@@ -1090,9 +1090,120 @@ const STAGE_DESC = {
 const EDUCATION_ICONS = ['&#x1F4D6;', '&#x1F52C;', '&#x1F49C;', '&#x1F331;', '&#x2728;'];
 
 let moodChart = null;
+let demoCheckins = []; // Store check-ins in memory for demo mode
 
-// ── API Helper ─────────────────────────────────────────
+// ── Demo Responses ────────────────────────────────────
+const DEMO_MIRA_RESPONSES = {
+  onboard: (name, stage) => `Hi ${name} — I'm so glad you're here. Starting your IVF journey takes real courage, and I want you to know that whatever you're feeling right now is completely valid.\n\nI'm Mira, and I'll be here with you through every step. You can chat with me anytime — whether you need information, want to vent, or just need someone to listen.\n\nHow are you feeling about things today?`,
+  checkin: (mood, anxiety, hope) => {
+    if (mood <= 3) return "Thank you for sharing that with me. It sounds like today is a tough one, and that's okay — you don't have to be strong all the time. I'm right here. Would it help to talk about what's weighing on you?";
+    if (anxiety >= 7) return "I can hear that the worry is really loud today. That makes so much sense given everything you're going through. Remember — anxiety about IVF doesn't mean anything bad will happen. Would you like to try a grounding exercise together?";
+    if (hope >= 7) return "I love seeing that spark of hope! Hold onto that feeling. Your body is doing incredible things right now, even when you can't see it. Is there anything specific that's helping you feel positive today?";
+    return "Thank you for checking in today — tracking how you feel is such an important part of taking care of yourself through this. I'm here whenever you want to chat. How's the rest of your day looking?";
+  },
+  chat: {
+    _default: "I hear you, and I want you to know that's a really normal feeling during IVF. This journey asks so much of you — physically and emotionally. What matters most is that you're not going through it alone. Would you like to tell me more about what's on your mind?",
+    anxious: "Anxiety during IVF is one of the most common experiences, and it makes complete sense. Your body and mind are under enormous pressure. One thing that can help is focusing on what you *can* control today — one small, gentle thing. What feels manageable right now?",
+    scared: "It's okay to be scared. This process involves so much uncertainty, and our brains naturally try to prepare for the worst. But being scared doesn't mean something will go wrong. Can you tell me what feels most frightening right now?",
+    lonely: "Feeling alone in this is one of the hardest parts of IVF. Even when people around you care, it can feel like nobody truly understands. But I'm here, and I get it. Have you been able to share how you're feeling with anyone close to you?",
+    inject: "Injection anxiety is incredibly common — you're not alone in this. Many people find it gets easier after the first few days. Some things that can help: icing the area beforehand, having a distraction ready (a favourite show or podcast), and reminding yourself that each injection is bringing you one step closer. Would you like more specific tips?",
+    egg: "The egg retrieval can feel daunting, but here's what actually happens: you'll be under light sedation (most people don't feel anything), and the whole procedure usually takes 15-30 minutes. Afterwards, you may feel crampy and bloated — that's normal. Most people rest for a day and feel much better within 48 hours. What part concerns you most?",
+    wait: "The two-week wait is often described as the hardest part of IVF — and for good reason. The uncertainty is intense. Here's what I want you to know: symptom spotting is unreliable (progesterone causes pregnancy-like symptoms regardless). Try to focus on one day at a time. What's one thing you could do today that brings you a small moment of joy?",
+    transfer: "Embryo transfer is usually quick and painless — most people say it's similar to a pap smear. The embryologist will carefully select your best embryo, and the doctor uses a thin catheter guided by ultrasound. The whole thing takes about 10 minutes. Afterwards, you can go about your normal activities — bed rest isn't recommended. Want to know more?",
+    partner: "IVF affects couples in different ways, and it's common for partners to process things differently. Some people cope by researching everything, while others need to not think about it. Neither approach is wrong. Open communication about what you each need is key. Would you like to talk about what's happening between you?",
+    work: "Balancing IVF and work is really challenging. Many people worry about taking time off or explaining absences. You get to decide how much to share — there's no right answer. Some find it helpful to tell their manager for scheduling flexibility. Others prefer to keep it private. What feels right for you?",
+  },
+  screening: "Thank you for completing that check-in. I really appreciate you being open with me. Based on what you've shared, I want you to know that what you're experiencing is understandable given the stress of IVF treatment. Remember, reaching out for support is a sign of strength, not weakness. I'm here for you.",
+};
+
+function getDemoChatResponse(message) {
+  const msg = message.toLowerCase();
+  const keywords = Object.keys(DEMO_MIRA_RESPONSES.chat).filter(k => k !== '_default');
+  for (const kw of keywords) {
+    if (msg.includes(kw)) return DEMO_MIRA_RESPONSES.chat[kw];
+  }
+  return DEMO_MIRA_RESPONSES.chat._default;
+}
+
+// ── API Helper (with demo fallback) ───────────────────
 async function api(endpoint, method = 'GET', body = null) {
+  // Demo mode — simulate all responses locally
+  if (DEMO_MODE) {
+    await new Promise(r => setTimeout(r, 800 + Math.random() * 1200)); // Simulate latency
+
+    if (endpoint === '/onboard') {
+      return {
+        patient_id: 'demo_' + Date.now(),
+        stage_display: STAGE_DISPLAY[body.treatment_stage] || body.treatment_stage,
+        message: DEMO_MIRA_RESPONSES.onboard(body.name, body.treatment_stage),
+      };
+    }
+    if (endpoint === '/chat') {
+      return {
+        response: getDemoChatResponse(body.message),
+        escalation: null,
+      };
+    }
+    if (endpoint === '/checkin') {
+      const checkin = { mood: body.mood, anxiety: body.anxiety, hope: body.hope,
+        loneliness: body.loneliness, uncertainty: body.uncertainty,
+        timestamp: new Date().toISOString(), stage: state.stage };
+      demoCheckins.push(checkin);
+      return {
+        message: DEMO_MIRA_RESPONSES.checkin(body.mood, body.anxiety, body.hope),
+        escalation: body.mood <= 2 || body.anxiety >= 9
+          ? { level: 'AMBER', reason: 'Elevated distress detected' } : null,
+        trigger_screening: body.mood <= 2 ? 'PHQ-9' : null,
+      };
+    }
+    if (endpoint.includes('/trends')) {
+      return { checkins: demoCheckins };
+    }
+    if (endpoint.includes('/screening/questions/')) {
+      const instrument = endpoint.split('/').pop();
+      if (instrument === 'PHQ-9') {
+        return {
+          conversational_intro: "I'd like to understand a bit more about how you've been feeling over the past two weeks. There are no right or wrong answers — just be honest with yourself.",
+          questions_conversational: [
+            "How often have you had little interest or pleasure in doing things?",
+            "How often have you been feeling down, depressed, or hopeless?",
+            "How often have you had trouble falling or staying asleep, or sleeping too much?",
+            "How often have you been feeling tired or having little energy?",
+            "How often have you had poor appetite or been overeating?",
+            "How often have you felt bad about yourself?",
+            "How often have you had trouble concentrating?",
+            "How often have you been moving or speaking noticeably slowly or fast?",
+            "How often have you had thoughts that you would be better off not here?"
+          ],
+          response_options: ["Not at all", "Several days", "More than half the days", "Nearly every day"],
+        };
+      }
+      return {
+        conversational_intro: "Let's gently check in on how worry has been showing up for you lately.",
+        questions_conversational: [
+          "How often have you been feeling nervous, anxious, or on edge?",
+          "How often have you not been able to stop or control worrying?",
+          "How often have you been worrying too much about different things?",
+          "How often have you had trouble relaxing?",
+          "How often have you been so restless that it's hard to sit still?",
+          "How often have you become easily annoyed or irritable?",
+          "How often have you felt afraid as if something awful might happen?"
+        ],
+        response_options: ["Not at all", "Several days", "More than half the days", "Nearly every day"],
+      };
+    }
+    if (endpoint === '/screening') {
+      const total = body.responses.reduce((a, b) => a + b, 0);
+      return {
+        message: DEMO_MIRA_RESPONSES.screening,
+        escalation: total >= 15 ? { level: 'AMBER', reason: `${body.instrument} score: ${total}` } : null,
+        score: total,
+      };
+    }
+    return {};
+  }
+
+  // Live mode — call actual backend
   const opts = {
     method,
     headers: { 'Content-Type': 'application/json' },
@@ -1564,6 +1675,9 @@ async function loadTrends() {
 
 // ── Init ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  if (DEMO_MODE) {
+    console.log('🌼 Mira running in demo mode (no backend connected)');
+  }
   checkExistingSession();
 });
 </script>

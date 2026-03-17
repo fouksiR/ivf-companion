@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mira — Your IVF Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════
+   MIRA — IVF COMPANION — PATIENT APP
+   Warm, illustrated, mobile-first design
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --cream: #FDF8F2;
+  --cream-deep: #F5EDE3;
+  --peach: #FADCC8;
+  --peach-soft: #FFF0E6;
+  --rose: #E2A3A8;
+  --rose-deep: #C87F85;
+  --mauve: #B88B9E;
+  --plum: #5B3A4A;
+  --plum-light: #7D5568;
+  --sage: #A8C5A0;
+  --sage-deep: #7BA87B;
+  --sage-light: #D4E7D0;
+  --teal: #7AACAC;
+  --teal-light: #C5E0E0;
+  --gold: #E2B866;
+  --gold-light: #F5E6C8;
+  --lavender: #C5B3D6;
+  --lavender-light: #E8DDEF;
+  --sky: #9DC4DE;
+  --text: #3A2A32;
+  --text-mid: #6B5A62;
+  --text-soft: #9D8E94;
+  --text-faint: #BFB3B8;
+  --white: #FFFFFF;
+  --danger: #D06B76;
+  --amber: #CFA24E;
+  --green: #6DAD6D;
+  --shadow-sm: 0 1px 8px rgba(91,58,74,0.06);
+  --shadow-md: 0 4px 20px rgba(91,58,74,0.1);
+  --shadow-lg: 0 8px 40px rgba(91,58,74,0.14);
+  --radius-xl: 24px;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Nunito', -apple-system, sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; }
+
+/* ═══ SCREEN SYSTEM ═══════════════════════════════════ */
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ═══ ONBOARDING ══════════════════════════════════════ */
+#screen-onboard {
+  background: linear-gradient(165deg, var(--cream) 0%, var(--peach-soft) 40%, var(--lavender-light) 80%, var(--teal-light) 100%);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Floating background shapes */
+#screen-onboard::before,
+#screen-onboard::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.12;
+  animation: float 20s ease-in-out infinite;
+}
+#screen-onboard::before {
+  width: 300px; height: 300px;
+  background: var(--rose);
+  top: -80px; right: -60px;
+}
+#screen-onboard::after {
+  width: 250px; height: 250px;
+  background: var(--teal);
+  bottom: -60px; left: -80px;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -15px) scale(1.05); }
+  66% { transform: translate(-10px, 10px) scale(0.95); }
+}
+
+.onboard-container {
+  position: relative;
+  z-index: 1;
+  max-width: 440px;
+  width: 100%;
+}
+
+.onboard-hero {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.onboard-hero .brand-mark {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, var(--rose), var(--mauve));
+  border-radius: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+  margin: 0 auto 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.onboard-hero h1 {
+  font-size: 34px;
+  color: var(--plum);
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
+.onboard-hero .tagline {
+  font-size: 16px;
+  color: var(--text-mid);
+  line-height: 1.6;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+/* Steps indicator */
+.steps-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.step-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  transition: all 0.3s ease;
+}
+
+.step-dot.active {
+  width: 32px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, var(--rose), var(--mauve));
+}
+
+.step-dot.done { background: var(--sage); }
+
+/* Cards for each step */
+.onboard-card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 32px 28px;
+  box-shadow: var(--shadow-lg);
+  display: none;
+  animation: slideUp 0.4s ease;
+}
+
+.onboard-card.active { display: block; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.onboard-card h2 {
+  font-size: 22px;
+  color: var(--plum);
+  margin-bottom: 6px;
+}
+
+.onboard-card .card-desc {
+  font-size: 14px;
+  color: var(--text-mid);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* Form elements */
+.field {
+  margin-bottom: 18px;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+
+.field input, .field select {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid var(--cream-deep);
+  border-radius: var(--radius-md);
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--cream);
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-appearance: none;
+}
+
+.field input:focus, .field select:focus {
+  border-color: var(--rose);
+  background: var(--white);
+}
+
+.field input::placeholder { color: var(--text-faint); }
+
+/* Stage picker — visual grid */
+.stage-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.stage-option {
+  padding: 14px 12px;
+  border: 2px solid var(--cream-deep);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  background: var(--cream);
+}
+
+.stage-option:hover { border-color: var(--rose); background: var(--peach-soft); }
+
+.stage-option.selected {
+  border-color: var(--rose-deep);
+  background: linear-gradient(135deg, rgba(226,163,168,0.12), rgba(184,139,158,0.08));
+}
+
+.stage-option .stage-emoji { font-size: 24px; display: block; margin-bottom: 4px; }
+.stage-option .stage-name { font-size: 13px; font-weight: 600; color: var(--plum); line-height: 1.3; }
+.stage-option .stage-sub { font-size: 11px; color: var(--text-soft); margin-top: 2px; }
+
+/* Buttons */
+.btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
+}
+
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--rose), var(--mauve));
+  color: var(--white);
+  box-shadow: 0 4px 16px rgba(226,163,168,0.4);
+}
+
+.btn-primary:hover:not(:disabled) { box-shadow: 0 6px 24px rgba(226,163,168,0.5); }
+
+.btn-secondary {
+  background: var(--cream);
+  color: var(--plum);
+  border: 2px solid var(--cream-deep);
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.btn-row .btn { flex: 1; }
+.btn-row .btn-back { flex: 0.6; }
+
+/* ═══ MAIN APP ════════════════════════════════════════ */
+#screen-app {
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--cream);
+  height: 100vh;
+}
+
+/* Top bar */
+.app-header {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+  border-bottom: 1px solid rgba(91,58,74,0.06);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.app-header .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-header .brand-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--rose), var(--mauve));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+
+.app-header .brand-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  color: var(--plum);
+}
+
+.stage-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  background: var(--peach-soft);
+  color: var(--plum-light);
+  max-width: 160px;
+  text-align: center;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.stage-pill:hover { background: var(--peach); }
+
+/* Navigation */
+.app-nav {
+  display: flex;
+  background: var(--white);
+  border-bottom: 1px solid rgba(91,58,74,0.06);
+  position: sticky;
+  top: 64px;
+  z-index: 19;
+}
+
+.nav-item {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+  color: var(--text-soft);
+}
+
+.nav-item.active { color: var(--plum); }
+
+.nav-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20%;
+  width: 60%;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, var(--rose), var(--mauve));
+  transform: scaleX(0);
+  transition: transform 0.2s;
+}
+
+.nav-item.active::after { transform: scaleX(1); }
+
+.nav-item .nav-icon { font-size: 20px; display: block; margin-bottom: 1px; }
+.nav-item .nav-label { font-size: 11px; font-weight: 700; }
+
+/* Tab panels */
+.tab-panel { display: none; flex: 1; overflow-y: auto; }
+.tab-panel.active { display: flex; flex-direction: column; }
+
+/* ═══ CHAT TAB ════════════════════════════════════════ */
+#panel-chat { background: var(--cream); }
+
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg {
+  max-width: 82%;
+  animation: msgIn 0.35s ease;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg-mira {
+  align-self: flex-start;
+}
+
+.msg-mira .msg-bubble {
+  background: var(--white);
+  color: var(--text);
+  padding: 14px 18px;
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 6px;
+  box-shadow: var(--shadow-sm);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.msg-mira .msg-sender {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rose-deep);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.msg-user {
+  align-self: flex-end;
+}
+
+.msg-user .msg-bubble {
+  background: linear-gradient(135deg, var(--rose), var(--mauve));
+  color: var(--white);
+  padding: 14px 18px;
+  border-radius: var(--radius-lg) var(--radius-lg) 6px var(--radius-lg);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.msg-system {
+  align-self: center;
+  max-width: 90%;
+}
+
+.msg-system .msg-bubble {
+  background: var(--lavender-light);
+  color: var(--plum);
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Stage update message */
+.msg-stage {
+  align-self: center;
+  max-width: 90%;
+}
+
+.msg-stage .msg-bubble {
+  background: linear-gradient(135deg, var(--sage-light), var(--teal-light));
+  color: var(--plum);
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.typing-dots {
+  align-self: flex-start;
+  padding: 14px 20px;
+  background: var(--white);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 6px;
+  box-shadow: var(--shadow-sm);
+  display: none;
+}
+
+.typing-dots span {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--rose);
+  margin: 0 2px;
+  animation: bounce 1.3s infinite;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
+.chat-composer {
+  padding: 10px 14px 14px;
+  background: var(--white);
+  border-top: 1px solid rgba(91,58,74,0.06);
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.chat-composer textarea {
+  flex: 1;
+  border: 2px solid var(--cream-deep);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--cream);
+  outline: none;
+  resize: none;
+  max-height: 100px;
+  min-height: 44px;
+  line-height: 1.4;
+  transition: border-color 0.2s;
+}
+
+.chat-composer textarea:focus { border-color: var(--rose); }
+.chat-composer textarea::placeholder { color: var(--text-faint); }
+
+.send-btn {
+  width: 46px; height: 46px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--rose), var(--mauve));
+  color: var(--white);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(226,163,168,0.35);
+  transition: transform 0.12s;
+}
+
+.send-btn:active { transform: scale(0.92); }
+
+/* ═══ CHECK-IN TAB ════════════════════════════════════ */
+#panel-checkin {
+  padding: 20px 16px;
+  gap: 14px;
+  align-items: center;
+  background: linear-gradient(180deg, var(--cream) 0%, var(--peach-soft) 100%);
+}
+
+.checkin-hero {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.checkin-hero h2 {
+  font-size: 24px;
+  color: var(--plum);
+}
+
+.checkin-hero p {
+  font-size: 14px;
+  color: var(--text-mid);
+  margin-top: 4px;
+}
+
+/* Current stage display */
+.current-stage-card {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(135deg, var(--lavender-light) 0%, var(--teal-light) 100%);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.current-stage-card .cs-icon { font-size: 32px; }
+
+.current-stage-card .cs-text h3 {
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--plum);
+}
+
+.current-stage-card .cs-text p {
+  font-size: 12px;
+  color: var(--plum-light);
+  margin-top: 1px;
+}
+
+.current-stage-card .cs-change {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--plum-light);
+  background: rgba(255,255,255,0.6);
+  padding: 4px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  border: none;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* Dimension sliders */
+.dim-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s;
+}
+
+.dim-card:hover { box-shadow: var(--shadow-md); }
+
+.dim-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.dim-header .dim-emoji { font-size: 24px; }
+
+.dim-header .dim-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--plum);
+}
+
+.dim-header .dim-val {
+  margin-left: auto;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--plum);
+  min-width: 28px;
+  text-align: right;
+}
+
+.dim-prompt {
+  font-size: 13px;
+  color: var(--text-mid);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.dim-slider-wrap {
+  position: relative;
+}
+
+.dim-slider-wrap input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  outline: none;
+  cursor: pointer;
+}
+
+.dim-slider-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--white);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.dim-slider-wrap input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.sl-mood { background: linear-gradient(to right, #C87F85, #E2B866, #A8C5A0); }
+.sl-mood::-webkit-slider-thumb { background: var(--gold); }
+
+.sl-anxiety { background: linear-gradient(to right, #A8C5A0, #E2B866, #C87F85); }
+.sl-anxiety::-webkit-slider-thumb { background: var(--rose); }
+
+.sl-loneliness { background: linear-gradient(to right, #C87F85, #C5B3D6, #A8C5A0); }
+.sl-loneliness::-webkit-slider-thumb { background: var(--lavender); }
+
+.sl-uncertainty { background: linear-gradient(to right, #A8C5A0, #9DC4DE, #7AACAC); }
+.sl-uncertainty::-webkit-slider-thumb { background: var(--teal); }
+
+.sl-hope { background: linear-gradient(to right, #9D8E94, #E2B866, #E2A3A8); }
+.sl-hope::-webkit-slider-thumb { background: var(--gold); }
+
+.dim-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* Note */
+.note-area {
+  width: 100%;
+  max-width: 420px;
+}
+
+.note-area textarea {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid rgba(91,58,74,0.08);
+  border-radius: var(--radius-md);
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--white);
+  outline: none;
+  resize: none;
+  height: 64px;
+  transition: border-color 0.2s;
+}
+
+.note-area textarea:focus { border-color: var(--rose); }
+.note-area textarea::placeholder { color: var(--text-faint); }
+
+.checkin-btn-area {
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Mira response after check-in */
+.mira-response {
+  width: 100%;
+  max-width: 420px;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+  display: none;
+  animation: msgIn 0.4s ease;
+  border-left: 4px solid var(--rose);
+}
+
+.mira-response .mr-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rose-deep);
+  margin-bottom: 8px;
+}
+
+.mira-response .mr-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+/* ═══ JOURNEY TAB ═════════════════════════════════════ */
+#panel-journey {
+  padding: 20px 16px;
+  gap: 20px;
+  background: var(--cream);
+}
+
+.journey-hero {
+  text-align: center;
+}
+
+.journey-hero h2 {
+  font-size: 24px;
+  color: var(--plum);
+}
+
+.journey-hero p {
+  font-size: 14px;
+  color: var(--text-mid);
+  margin-top: 4px;
+}
+
+/* Visual timeline */
+.timeline-track {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-left: 36px;
+}
+
+.timeline-track::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: linear-gradient(180deg, var(--sage), var(--rose), var(--lavender), var(--teal));
+  border-radius: 2px;
+}
+
+.tl-item {
+  position: relative;
+  padding: 10px 0;
+}
+
+.tl-item .tl-dot {
+  position: absolute;
+  left: -28px;
+  top: 14px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 3px solid var(--cream-deep);
+  background: var(--cream);
+  transition: all 0.3s;
+}
+
+.tl-item.done .tl-dot { background: var(--sage); border-color: var(--sage); }
+.tl-item.done .tl-dot::after {
+  content: '✓';
+  position: absolute;
+  top: -2px; left: 1px;
+  font-size: 10px;
+  color: var(--white);
+  font-weight: 800;
+}
+
+.tl-item.current .tl-dot {
+  background: var(--rose);
+  border-color: var(--rose);
+  box-shadow: 0 0 0 6px rgba(226,163,168,0.25);
+}
+
+.tl-item.future .tl-dot { background: var(--cream-deep); border-color: var(--text-faint); }
+
+.tl-item .tl-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--plum);
+}
+
+.tl-item.future .tl-label { color: var(--text-faint); }
+
+.tl-item .tl-sub {
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-top: 1px;
+}
+
+.tl-item.future .tl-sub { color: var(--text-faint); }
+
+/* Trend chart area */
+.trend-panel {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.trend-panel h3 {
+  font-size: 18px;
+  color: var(--plum);
+  margin-bottom: 12px;
+}
+
+.trend-panel .chart-wrap {
+  height: 200px;
+  position: relative;
+}
+
+.trend-panel .chart-wrap canvas { width: 100% !important; height: 100% !important; }
+
+/* Education cards */
+.edu-section h3 {
+  font-size: 18px;
+  color: var(--plum);
+  margin-bottom: 12px;
+}
+
+.edu-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edu-item {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.edu-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.edu-item .edu-icon {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.edu-item:nth-child(1) .edu-icon { background: var(--peach-soft); }
+.edu-item:nth-child(2) .edu-icon { background: var(--lavender-light); }
+.edu-item:nth-child(3) .edu-icon { background: var(--sage-light); }
+.edu-item:nth-child(4) .edu-icon { background: var(--teal-light); }
+.edu-item:nth-child(5) .edu-icon { background: var(--gold-light); }
+
+.edu-item .edu-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* ═══ STAGE CHANGE MODAL ═════════════════════════════ */
+.modal-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(58,42,50,0.5);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal-bg.open { display: flex; }
+
+.modal-panel {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 28px 24px;
+  max-width: 440px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.3s ease;
+}
+
+.modal-panel h3 {
+  font-size: 20px;
+  color: var(--plum);
+  margin-bottom: 4px;
+}
+
+.modal-panel .modal-desc {
+  font-size: 14px;
+  color: var(--text-mid);
+  margin-bottom: 18px;
+  line-height: 1.5;
+}
+
+.modal-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-stage-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 2px solid var(--cream-deep);
+  border-radius: var(--radius-md);
+  background: var(--cream);
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+  text-align: left;
+  font-family: 'Nunito', sans-serif;
+}
+
+.modal-stage-btn:hover { border-color: var(--rose); background: var(--peach-soft); }
+
+.modal-stage-btn.active {
+  border-color: var(--rose-deep);
+  background: rgba(226,163,168,0.1);
+}
+
+.modal-stage-btn .ms-emoji { font-size: 22px; flex-shrink: 0; }
+
+.modal-stage-btn .ms-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--plum);
+}
+
+.modal-stage-btn .ms-desc {
+  font-size: 11px;
+  color: var(--text-soft);
+  margin-top: 1px;
+}
+
+/* ═══ DEMO RIBBON ═════════════════════════════════════ */
+.demo-ribbon {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(135deg, var(--plum), var(--plum-light));
+  color: var(--white);
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 200;
+  letter-spacing: 0.3px;
+}
+
+.demo-ribbon a { color: var(--peach); }
+
+/* ═══ RESPONSIVE ══════════════════════════════════════ */
+@media (min-width: 521px) {
+  #screen-app {
+    border-left: 1px solid var(--cream-deep);
+    border-right: 1px solid var(--cream-deep);
+    box-shadow: var(--shadow-lg);
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ ONBOARDING ══════════════════════════════════════ -->
+<div class="screen active" id="screen-onboard">
+  <div class="onboard-container">
+    <div class="onboard-hero">
+      <div class="brand-mark">🌼</div>
+      <h1>Mira</h1>
+      <p class="tagline">Your companion through the IVF journey. Here to listen, support, and walk beside you — every step.</p>
+    </div>
+
+    <div class="steps-indicator">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+      <div class="step-dot" id="dot-3"></div>
+    </div>
+
+    <!-- Step 1: Name -->
+    <div class="onboard-card active" id="step-1">
+      <h2>Let's get to know each other</h2>
+      <p class="card-desc">I'm Mira — think of me as a friend who really understands what you're going through.</p>
+      <div class="field">
+        <label>Your first name</label>
+        <input type="text" id="ob-name" placeholder="What should I call you?">
+      </div>
+      <div class="field">
+        <label>Partner's name (optional)</label>
+        <input type="text" id="ob-partner" placeholder="Leave blank if you prefer">
+      </div>
+      <div class="field">
+        <label>Your clinic (optional)</label>
+        <input type="text" id="ob-clinic" placeholder="e.g., Melbourne IVF">
+      </div>
+      <button class="btn btn-primary" onclick="nextStep(2)">Continue</button>
+    </div>
+
+    <!-- Step 2: Treatment stage -->
+    <div class="onboard-card" id="step-2">
+      <h2>Where are you right now?</h2>
+      <p class="card-desc">This helps me understand your world and tailor my support. You can always change this later.</p>
+
+      <div class="stage-picker" id="stage-picker">
+        <div class="stage-option" data-stage="consultation" onclick="pickStage(this)">
+          <span class="stage-emoji">🩺</span>
+          <span class="stage-name">First Consultation</span>
+          <span class="stage-sub">Just starting out</span>
+        </div>
+        <div class="stage-option" data-stage="investigation" onclick="pickStage(this)">
+          <span class="stage-emoji">🔬</span>
+          <span class="stage-name">Investigations</span>
+          <span class="stage-sub">Tests & workup</span>
+        </div>
+        <div class="stage-option" data-stage="waiting_to_start" onclick="pickStage(this)">
+          <span class="stage-emoji">⏳</span>
+          <span class="stage-name">Waiting to Start</span>
+          <span class="stage-sub">Pre-cycle limbo</span>
+        </div>
+        <div class="stage-option" data-stage="stimulation" onclick="pickStage(this)">
+          <span class="stage-emoji">💉</span>
+          <span class="stage-name">Stimulation</span>
+          <span class="stage-sub">Daily injections</span>
+        </div>
+        <div class="stage-option" data-stage="before_retrieval" onclick="pickStage(this)">
+          <span class="stage-emoji">🌙</span>
+          <span class="stage-name">Before Retrieval</span>
+          <span class="stage-sub">Trigger & waiting</span>
+        </div>
+        <div class="stage-option" data-stage="after_retrieval" onclick="pickStage(this)">
+          <span class="stage-emoji">🌿</span>
+          <span class="stage-name">After Retrieval</span>
+          <span class="stage-sub">Recovery & results</span>
+        </div>
+        <div class="stage-option" data-stage="embryo_development" onclick="pickStage(this)">
+          <span class="stage-emoji">🧫</span>
+          <span class="stage-name">Embryo Updates</span>
+          <span class="stage-sub">Fert & dev reports</span>
+        </div>
+        <div class="stage-option" data-stage="before_transfer" onclick="pickStage(this)">
+          <span class="stage-emoji">🌱</span>
+          <span class="stage-name">Before Transfer</span>
+          <span class="stage-sub">Preparing for ET</span>
+        </div>
+        <div class="stage-option" data-stage="after_transfer" onclick="pickStage(this)">
+          <span class="stage-emoji">🤞</span>
+          <span class="stage-name">After Transfer</span>
+          <span class="stage-sub">The early wait</span>
+        </div>
+        <div class="stage-option" data-stage="two_week_wait" onclick="pickStage(this)">
+          <span class="stage-emoji">🕰️</span>
+          <span class="stage-name">Two-Week Wait</span>
+          <span class="stage-sub">The hardest part</span>
+        </div>
+        <div class="stage-option" data-stage="result_day" onclick="pickStage(this)">
+          <span class="stage-emoji">📋</span>
+          <span class="stage-name">Result Day</span>
+          <span class="stage-sub">Pregnancy test</span>
+        </div>
+        <div class="stage-option" data-stage="positive_result" onclick="pickStage(this)">
+          <span class="stage-emoji">🌈</span>
+          <span class="stage-name">Positive Result</span>
+          <span class="stage-sub">Cautious joy</span>
+        </div>
+        <div class="stage-option" data-stage="negative_result" onclick="pickStage(this)">
+          <span class="stage-emoji">💜</span>
+          <span class="stage-name">Negative Result</span>
+          <span class="stage-sub">Processing & grief</span>
+        </div>
+        <div class="stage-option" data-stage="failed_cycle" onclick="pickStage(this)">
+          <span class="stage-emoji">🌧️</span>
+          <span class="stage-name">After Failed Cycle</span>
+          <span class="stage-sub">Recovering</span>
+        </div>
+        <div class="stage-option" data-stage="between_cycles" onclick="pickStage(this)">
+          <span class="stage-emoji">🔄</span>
+          <span class="stage-name">Between Cycles</span>
+          <span class="stage-sub">Rest & decide</span>
+        </div>
+        <div class="stage-option" data-stage="considering_stopping" onclick="pickStage(this)">
+          <span class="stage-emoji">🌅</span>
+          <span class="stage-name">Considering Stopping</span>
+          <span class="stage-sub">A brave question</span>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top: 20px;">
+        <button class="btn btn-secondary btn-back" onclick="nextStep(1)">Back</button>
+        <button class="btn btn-primary" id="step2-next" onclick="nextStep(3)" disabled>Continue</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Cycle -->
+    <div class="onboard-card" id="step-3">
+      <h2>A bit more context</h2>
+      <p class="card-desc">Every journey is different. This helps me understand yours.</p>
+      <div class="field">
+        <label>Which cycle is this?</label>
+        <select id="ob-cycle">
+          <option value="1">My first cycle</option>
+          <option value="2">Second cycle</option>
+          <option value="3">Third cycle</option>
+          <option value="4">Fourth cycle</option>
+          <option value="5+">Five or more</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>What type of treatment?</label>
+        <select id="ob-treatment">
+          <option value="ivf">IVF</option>
+          <option value="icsi">ICSI</option>
+          <option value="fet">Frozen Embryo Transfer (FET)</option>
+          <option value="iui">IUI</option>
+          <option value="egg_freezing">Egg Freezing</option>
+          <option value="other">Other / Not sure</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary btn-back" onclick="nextStep(2)">Back</button>
+        <button class="btn btn-primary" onclick="finishOnboard()">Meet Mira</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP ═══════════════════════════════════════ -->
+<div class="screen" id="screen-app">
+  <div class="app-header">
+    <div class="brand">
+      <div class="brand-icon">🌼</div>
+      <span class="brand-text">Mira</span>
+    </div>
+    <div class="stage-pill" id="header-stage" onclick="openStageModal()">—</div>
+  </div>
+
+  <div class="app-nav">
+    <div class="nav-item active" data-panel="chat" onclick="switchPanel('chat')">
+      <span class="nav-icon">💬</span>
+      <span class="nav-label">Chat</span>
+    </div>
+    <div class="nav-item" data-panel="checkin" onclick="switchPanel('checkin')">
+      <span class="nav-icon">🌿</span>
+      <span class="nav-label">Check-in</span>
+    </div>
+    <div class="nav-item" data-panel="journey" onclick="switchPanel('journey')">
+      <span class="nav-icon">🗺️</span>
+      <span class="nav-label">Journey</span>
+    </div>
+  </div>
+
+  <!-- Chat -->
+  <div class="tab-panel active" id="panel-chat">
+    <div class="chat-area" id="chat-area"></div>
+    <div class="typing-dots" id="typing"><span></span><span></span><span></span></div>
+    <div class="chat-composer">
+      <textarea id="chat-input" rows="1" placeholder="Talk to Mira..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+      <button class="send-btn" onclick="sendMsg()">↑</button>
+    </div>
+  </div>
+
+  <!-- Check-in -->
+  <div class="tab-panel" id="panel-checkin">
+    <div class="checkin-hero">
+      <h2>How are you today?</h2>
+      <p>Take 30 seconds to check in with yourself</p>
+    </div>
+
+    <div class="current-stage-card">
+      <span class="cs-icon" id="cs-icon">💉</span>
+      <div class="cs-text">
+        <h3 id="cs-name">Stimulation</h3>
+        <p id="cs-sub">Your check-in is coupled with this stage</p>
+      </div>
+      <button class="cs-change" onclick="openStageModal()">Change</button>
+    </div>
+
+    <div class="dim-card">
+      <div class="dim-header">
+        <span class="dim-emoji">☀️</span>
+        <span class="dim-title">Mood</span>
+        <span class="dim-val" id="v-mood">5</span>
+      </div>
+      <div class="dim-prompt">How would you describe your overall mood today?</div>
+      <div class="dim-slider-wrap">
+        <input type="range" min="0" max="10" value="5" class="sl-mood" id="sl-mood" oninput="document.getElementById('v-mood').textContent=this.value">
+        <div class="dim-labels"><span>Heavy</span><span>Bright</span></div>
+      </div>
+    </div>
+
+    <div class="dim-card">
+      <div class="dim-header">
+        <span class="dim-emoji">🌊</span>
+        <span class="dim-title">Worry & Fear</span>
+        <span class="dim-val" id="v-anx">5</span>
+      </div>
+      <div class="dim-prompt">How much space is worry taking up today?</div>
+      <div class="dim-slider-wrap">
+        <input type="range" min="0" max="10" value="5" class="sl-anxiety" id="sl-anx" oninput="document.getElementById('v-anx').textContent=this.value">
+        <div class="dim-labels"><span>Calm</span><span>Overwhelmed</span></div>
+      </div>
+    </div>
+
+    <div class="dim-card">
+      <div class="dim-header">
+        <span class="dim-emoji">🫂</span>
+        <span class="dim-title">Connection</span>
+        <span class="dim-val" id="v-lone">5</span>
+      </div>
+      <div class="dim-prompt">Did you feel connected to someone who understands?</div>
+      <div class="dim-slider-wrap">
+        <input type="range" min="0" max="10" value="5" class="sl-loneliness" id="sl-lone" oninput="document.getElementById('v-lone').textContent=this.value">
+        <div class="dim-labels"><span>Very alone</span><span>Held & seen</span></div>
+      </div>
+    </div>
+
+    <div class="dim-card">
+      <div class="dim-header">
+        <span class="dim-emoji">🧭</span>
+        <span class="dim-title">Uncertainty</span>
+        <span class="dim-val" id="v-unc">5</span>
+      </div>
+      <div class="dim-prompt">How much control do you feel over what's happening?</div>
+      <div class="dim-slider-wrap">
+        <input type="range" min="0" max="10" value="5" class="sl-uncertainty" id="sl-unc" oninput="document.getElementById('v-unc').textContent=this.value">
+        <div class="dim-labels"><span>Grounded</span><span>Adrift</span></div>
+      </div>
+    </div>
+
+    <div class="dim-card">
+      <div class="dim-header">
+        <span class="dim-emoji">🕯️</span>
+        <span class="dim-title">Hope</span>
+        <span class="dim-val" id="v-hope">5</span>
+      </div>
+      <div class="dim-prompt">Where is your hope sitting today?</div>
+      <div class="dim-slider-wrap">
+        <input type="range" min="0" max="10" value="5" class="sl-hope" id="sl-hope" oninput="document.getElementById('v-hope').textContent=this.value">
+        <div class="dim-labels"><span>Ember</span><span>Flame</span></div>
+      </div>
+    </div>
+
+    <div class="note-area">
+      <textarea id="ci-note" placeholder="Anything else on your mind? (optional)"></textarea>
+    </div>
+
+    <div class="checkin-btn-area">
+      <button class="btn btn-primary" id="ci-btn" onclick="submitCheckin()">Share with Mira</button>
+    </div>
+
+    <div class="mira-response" id="ci-response">
+      <div class="mr-label">✿ Mira says</div>
+      <div class="mr-text" id="ci-response-text"></div>
+    </div>
+  </div>
+
+  <!-- Journey -->
+  <div class="tab-panel" id="panel-journey">
+    <div class="journey-hero">
+      <h2>Your Journey</h2>
+      <p>Where you've been and where you're headed</p>
+    </div>
+
+    <div class="timeline-track" id="timeline"></div>
+
+    <div class="trend-panel">
+      <h3>Your Week</h3>
+      <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
+    </div>
+
+    <div class="edu-section">
+      <h3>Learn About This Stage</h3>
+      <div class="edu-grid" id="edu-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ STAGE CHANGE MODAL ═════════════════════════════ -->
+<div class="modal-bg" id="stage-modal">
+  <div class="modal-panel">
+    <h3>Update your stage</h3>
+    <p class="modal-desc">Where are you in your journey right now? Every check-in is tagged with your current stage — this helps us learn and support you better.</p>
+    <div class="modal-stages" id="modal-stages"></div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="confirmStageChange()">Update</button>
+    <button class="btn btn-secondary" style="margin-top:8px" onclick="closeStageModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- Demo ribbon -->
+<div class="demo-ribbon">PROTOTYPE — IVF Companion by Dr Yuval Fouks · Not connected to backend</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+/* ═══ TREATMENT STAGES ═════════════════════════════════
+   Granular, clinically meaningful stages.
+   Each check-in is tagged with the current stage —
+   this is the data structure for future predictive models.
+   ══════════════════════════════════════════════════════ */
+
+const STAGES = [
+  { id: 'consultation',         emoji: '🩺', name: 'First Consultation',    desc: 'Meeting your specialist, discussing options' },
+  { id: 'investigation',        emoji: '🔬', name: 'Investigations',        desc: 'Blood tests, scans, semen analysis, genetics' },
+  { id: 'waiting_to_start',     emoji: '⏳', name: 'Waiting to Start',      desc: 'Approved, waiting for cycle to begin' },
+  { id: 'downregulation',       emoji: '💊', name: 'Down-Regulation',       desc: 'Suppression phase before stimulation' },
+  { id: 'stimulation',          emoji: '💉', name: 'Stimulation',           desc: 'Daily injections, growing follicles' },
+  { id: 'monitoring',           emoji: '📊', name: 'Monitoring Scans',      desc: 'Tracking follicle growth, blood tests' },
+  { id: 'trigger',              emoji: '🌙', name: 'Trigger Shot',          desc: 'Final maturation trigger, countdown begins' },
+  { id: 'before_retrieval',     emoji: '😰', name: 'Day Before Retrieval',  desc: 'Anxiety, fasting, preparing' },
+  { id: 'retrieval_day',        emoji: '🏥', name: 'Retrieval Day',         desc: 'The procedure itself' },
+  { id: 'post_retrieval',       emoji: '🛋️', name: 'Recovery',              desc: 'Physical recovery, waiting for fert report' },
+  { id: 'fertilisation_report', emoji: '🧫', name: 'Fertilisation Report',  desc: 'How many fertilised? The first drop-off' },
+  { id: 'embryo_development',   emoji: '🔬', name: 'Embryo Updates',        desc: 'Day 3 / Day 5 reports, the attrition curve' },
+  { id: 'freeze_all',           emoji: '❄️', name: 'Freeze All',            desc: 'All embryos frozen, no fresh transfer' },
+  { id: 'before_transfer',      emoji: '🌱', name: 'Before Transfer',       desc: 'Preparing for embryo transfer' },
+  { id: 'transfer_day',         emoji: '✨', name: 'Transfer Day',          desc: 'The embryo\'s new beginning' },
+  { id: 'early_tww',            emoji: '🤞', name: 'Early TWW (Days 1-5)',  desc: 'Just transferred, symptom watching begins' },
+  { id: 'late_tww',             emoji: '🕰️', name: 'Late TWW (Days 6-12)', desc: 'The hardest stretch of waiting' },
+  { id: 'result_day',           emoji: '📋', name: 'Result Day',            desc: 'Beta HCG blood test' },
+  { id: 'positive_result',      emoji: '🌈', name: 'Positive Result',       desc: 'Cautious joy, early monitoring' },
+  { id: 'negative_result',      emoji: '💜', name: 'Negative Result',       desc: 'Processing, grief, what now' },
+  { id: 'chemical_pregnancy',   emoji: '💔', name: 'Chemical Pregnancy',    desc: 'Brief positive, then loss' },
+  { id: 'miscarriage',          emoji: '🕊️', name: 'Miscarriage',          desc: 'Loss after positive — grief & recovery' },
+  { id: 'failed_cycle_acute',   emoji: '🌧️', name: 'Fresh After Failure',  desc: 'The raw days right after' },
+  { id: 'failed_cycle_processing', emoji: '🌫️', name: 'Processing Failure', desc: 'Making sense of what happened' },
+  { id: 'wtf_appointment',      emoji: '📝', name: 'Follow-up / WTF Appt',  desc: 'Reviewing what happened, planning next' },
+  { id: 'between_cycles',       emoji: '🔄', name: 'Between Cycles',        desc: 'Resting, recovering, deciding' },
+  { id: 'considering_stopping',  emoji: '🌅', name: 'Considering Stopping', desc: 'A courageous and painful question' },
+  { id: 'donor_journey',        emoji: '🤝', name: 'Donor/Surrogacy Path',  desc: 'Exploring alternative paths' },
+  { id: 'early_pregnancy',      emoji: '🤰', name: 'Early Pregnancy',       desc: 'IVF pregnancy — worry doesn\'t stop' },
+];
+
+const STAGE_MAP = {};
+STAGES.forEach(s => STAGE_MAP[s.id] = s);
+
+const EDUCATION = {
+  consultation: ['What to expect at your first fertility appointment', 'Questions worth asking your specialist', 'Understanding fertility testing'],
+  investigation: ['AMH, FSH, and what the numbers mean', 'What an antral follicle count tells us', 'Semen analysis — what\'s normal?'],
+  waiting_to_start: ['How to prepare your body (and mind)', 'The emotional weight of waiting', 'What your clinic is planning'],
+  stimulation: ['What stim medications actually do', 'Managing injection anxiety', 'Side effects: normal vs call your clinic'],
+  monitoring: ['What they\'re looking for on scans', 'Why follicle numbers change', 'Adjusting your protocol'],
+  trigger: ['What the trigger shot does', 'Timing matters — here\'s why', 'Preparing for retrieval'],
+  before_retrieval: ['What to expect on the day', 'Fasting and preparation tips', 'Managing pre-procedure anxiety'],
+  retrieval_day: ['Step by step through retrieval', 'What the team is doing', 'After the procedure'],
+  post_retrieval: ['Recovery timeline', 'OHSS: what to watch for', 'When to call your clinic'],
+  fertilisation_report: ['Understanding your fert report', 'Why some eggs don\'t fertilise', 'It\'s more common than you think'],
+  embryo_development: ['Day 3 vs Day 5 embryos', 'What grading means (and doesn\'t)', 'The attrition curve is normal'],
+  before_transfer: ['Fresh vs frozen transfer', 'Preparing your lining', 'What you can and can\'t control'],
+  transfer_day: ['Transfer is simpler than you think', 'What happens in the lab', 'The first hours after'],
+  early_tww: ['What\'s happening in your body now', 'Why symptom-spotting is unreliable', 'Grounding techniques for the wait'],
+  late_tww: ['The implantation window', 'Managing the unbearable wait', 'What the research says about rest'],
+  result_day: ['Understanding beta HCG', 'What the number means', 'Preparing for either outcome'],
+  positive_result: ['First trimester after IVF', 'When IVF worry meets pregnancy worry', 'Monitoring and next steps'],
+  negative_result: ['Your grief is valid and real', 'There is no right way to feel', 'When to think about what\'s next (not now)'],
+  chemical_pregnancy: ['What happened and why', 'This loss is real', 'Physical and emotional recovery'],
+  miscarriage: ['Grief after loss', 'Physical recovery', 'When to seek support'],
+  failed_cycle_acute: ['The first days are the hardest', 'Be gentle with yourself', 'You don\'t have to decide anything yet'],
+  failed_cycle_processing: ['Making sense of what happened', 'Talking to your partner', 'When grief comes in waves'],
+  between_cycles: ['Giving your body time', 'Questions for your next appointment', 'The courage of trying again'],
+  considering_stopping: ['There is no failure in stopping', 'Life after IVF', 'Finding your path forward'],
+};
+
+/* ═══ APP STATE ════════════════════════════════════════ */
+let state = {
+  name: '',
+  partner: '',
+  clinic: '',
+  stage: '',
+  cycle: '1',
+  treatment: 'ivf',
+  checkins: [],
+};
+
+let pendingStage = '';
+
+/* ═══ ONBOARDING ═══════════════════════════════════════ */
+function nextStep(n) {
+  if (n === 2) {
+    const name = document.getElementById('ob-name').value.trim();
+    if (!name) { document.getElementById('ob-name').focus(); return; }
+    state.name = name;
+    state.partner = document.getElementById('ob-partner').value.trim();
+    state.clinic = document.getElementById('ob-clinic').value.trim();
+  }
+  document.querySelectorAll('.onboard-card').forEach(c => c.classList.remove('active'));
+  document.getElementById(`step-${n}`).classList.add('active');
+  document.querySelectorAll('.step-dot').forEach((d, i) => {
+    d.classList.remove('active', 'done');
+    if (i + 1 < n) d.classList.add('done');
+    if (i + 1 === n) d.classList.add('active');
+  });
+}
+
+function pickStage(el) {
+  document.querySelectorAll('.stage-option').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  state.stage = el.dataset.stage;
+  document.getElementById('step2-next').disabled = false;
+}
+
+function finishOnboard() {
+  state.cycle = document.getElementById('ob-cycle').value;
+  state.treatment = document.getElementById('ob-treatment').value;
+
+  // Switch to app
+  document.getElementById('screen-onboard').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+
+  updateStageUI();
+  buildTimeline();
+  buildEducation();
+
+  // Welcome message
+  const s = STAGE_MAP[state.stage];
+  addMsg('mira', `Hi ${state.name} 🌼\n\nI'm Mira — and I'm so glad you're here. I know being at the "${s.name}" stage can bring up a lot of feelings, and I want you to know: whatever you're feeling is completely valid.\n\nI'm here whenever you want to talk, learn about what's happening, or just check in with yourself. There's no pressure — we go at your pace.\n\nHow are you feeling today?`);
+}
+
+/* ═══ NAVIGATION ═══════════════════════════════════════ */
+function switchPanel(panel) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.nav-item[data-panel="${panel}"]`).classList.add('active');
+  document.getElementById(`panel-${panel}`).classList.add('active');
+
+  if (panel === 'journey') renderChart();
+}
+
+/* ═══ CHAT ═════════════════════════════════════════════ */
+function addMsg(role, text) {
+  const area = document.getElementById('chat-area');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+
+  const formatted = text.replace(/\n/g, '<br>');
+
+  if (role === 'mira') {
+    div.innerHTML = `<div class="msg-sender">✿ Mira</div><div class="msg-bubble">${formatted}</div>`;
+  } else if (role === 'user') {
+    div.innerHTML = `<div class="msg-bubble">${formatted}</div>`;
+  } else if (role === 'stage') {
+    div.className = 'msg msg-stage';
+    div.innerHTML = `<div class="msg-bubble">${formatted}</div>`;
+  } else {
+    div.className = 'msg msg-system';
+    div.innerHTML = `<div class="msg-bubble">${formatted}</div>`;
+  }
+
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function sendMsg() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  addMsg('user', text);
+
+  // Show typing
+  const typing = document.getElementById('typing');
+  typing.style.display = 'block';
+
+  // Demo response (in production this hits /chat endpoint)
+  setTimeout(() => {
+    typing.style.display = 'none';
+    const s = STAGE_MAP[state.stage];
+    const responses = [
+      `Thank you for sharing that with me, ${state.name}. I can hear that this is weighing on you. Being at the ${s.name.toLowerCase()} stage brings up so many emotions — and they're all valid.\n\nWould you like to talk more about what's on your mind, or would it help to learn a bit about what's happening right now?`,
+      `I really appreciate you telling me that. It takes courage to put those feelings into words.\n\nRemember, there's no "right" way to feel during ${s.name.toLowerCase()}. Whatever comes up for you is okay.`,
+      `That makes so much sense, ${state.name}. So many people going through ${s.name.toLowerCase()} describe exactly what you're feeling.\n\nYou're not alone in this — even when it feels that way.`,
+    ];
+    addMsg('mira', responses[Math.floor(Math.random() * responses.length)]);
+  }, 1500 + Math.random() * 1000);
+}
+
+/* ═══ CHECK-IN ═════════════════════════════════════════ */
+function submitCheckin() {
+  const btn = document.getElementById('ci-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sharing...';
+
+  const checkin = {
+    timestamp: new Date().toISOString(),
+    stage: state.stage,
+    mood: +document.getElementById('sl-mood').value,
+    anxiety: +document.getElementById('sl-anx').value,
+    loneliness: 10 - (+document.getElementById('sl-lone').value),
+    uncertainty: +document.getElementById('sl-unc').value,
+    hope: +document.getElementById('sl-hope').value,
+    note: document.getElementById('ci-note').value.trim(),
+    cycle: state.cycle,
+    treatment: state.treatment,
+  };
+
+  state.checkins.push(checkin);
+
+  // Generate response
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.textContent = 'Share with Mira';
+
+    const s = STAGE_MAP[state.stage];
+    let response = '';
+
+    if (checkin.mood <= 3) {
+      response = `I hear you, ${state.name}. It sounds like today is a heavy one. Being in ${s.name.toLowerCase()} and feeling this way — that makes complete sense. You don't have to carry this alone. I'm right here.`;
+    } else if (checkin.anxiety >= 7) {
+      response = `I can see that worry is taking up a lot of space today. That's so understandable during ${s.name.toLowerCase()}. Would it help to talk through what's driving the anxiety, or would you prefer a grounding exercise?`;
+    } else if (checkin.hope <= 2) {
+      response = `I notice hope is feeling really low today. I want you to know — that's okay. You don't have to feel hopeful every day. Some days it's enough just to keep going. And you are.`;
+    } else {
+      response = `Thank you for checking in today. It looks like you're holding steady — and during ${s.name.toLowerCase()}, that's genuinely something. Keep being gentle with yourself.`;
+    }
+
+    const el = document.getElementById('ci-response');
+    document.getElementById('ci-response-text').innerHTML = response;
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior: 'smooth' });
+  }, 1200);
+}
+
+/* ═══ STAGE MANAGEMENT ═════════════════════════════════ */
+function updateStageUI() {
+  const s = STAGE_MAP[state.stage];
+  if (!s) return;
+  document.getElementById('header-stage').textContent = s.name;
+  document.getElementById('cs-icon').textContent = s.emoji;
+  document.getElementById('cs-name').textContent = s.name;
+  document.getElementById('cs-sub').textContent = 'Your check-in is tagged to this stage';
+}
+
+function openStageModal() {
+  pendingStage = state.stage;
+  const container = document.getElementById('modal-stages');
+  container.innerHTML = STAGES.map(s => `
+    <button class="modal-stage-btn ${s.id === state.stage ? 'active' : ''}" data-id="${s.id}" onclick="selectModalStage('${s.id}')">
+      <span class="ms-emoji">${s.emoji}</span>
+      <div>
+        <div class="ms-name">${s.name}</div>
+        <div class="ms-desc">${s.desc}</div>
+      </div>
+    </button>
+  `).join('');
+  document.getElementById('stage-modal').classList.add('open');
+}
+
+function selectModalStage(id) {
+  pendingStage = id;
+  document.querySelectorAll('.modal-stage-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.modal-stage-btn[data-id="${id}"]`).classList.add('active');
+}
+
+function confirmStageChange() {
+  if (pendingStage && pendingStage !== state.stage) {
+    const oldS = STAGE_MAP[state.stage];
+    const newS = STAGE_MAP[pendingStage];
+    state.stage = pendingStage;
+    updateStageUI();
+    buildTimeline();
+    buildEducation();
+
+    // Log stage transition in chat
+    switchPanel('chat');
+    addMsg('stage', `${newS.emoji} Stage updated: ${newS.name}`);
+    addMsg('mira', `Thank you for letting me know, ${state.name}. Moving into ${newS.name.toLowerCase()} — I'll adjust my support to where you are now.\n\nHow are you feeling about this transition?`);
+  }
+  closeStageModal();
+}
+
+function closeStageModal() {
+  document.getElementById('stage-modal').classList.remove('open');
+}
+
+/* ═══ TIMELINE ═════════════════════════════════════════ */
+function buildTimeline() {
+  const track = document.getElementById('timeline');
+  const currentIdx = STAGES.findIndex(s => s.id === state.stage);
+
+  track.innerHTML = STAGES.map((s, i) => {
+    let cls = 'tl-item';
+    if (i < currentIdx) cls += ' done';
+    else if (i === currentIdx) cls += ' current';
+    else cls += ' future';
+
+    return `<div class="${cls}">
+      <div class="tl-dot"></div>
+      <div class="tl-label">${s.emoji} ${s.name}</div>
+      <div class="tl-sub">${s.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══ EDUCATION ════════════════════════════════════════ */
+function buildEducation() {
+  const grid = document.getElementById('edu-grid');
+  const topics = EDUCATION[state.stage] || [];
+  const icons = ['📖', '🔬', '💜', '🌱', '✨'];
+
+  grid.innerHTML = topics.map((t, i) => `
+    <div class="edu-item" onclick="askAbout('${t.replace(/'/g, "\\'")}')">
+      <div class="edu-icon">${icons[i % icons.length]}</div>
+      <div class="edu-text">${t}</div>
+    </div>
+  `).join('');
+}
+
+function askAbout(topic) {
+  switchPanel('chat');
+  document.getElementById('chat-input').value = `Can you tell me about: ${topic}`;
+  sendMsg();
+}
+
+/* ═══ CHART ════════════════════════════════════════════ */
+let trendChart = null;
+
+function renderChart() {
+  const canvas = document.getElementById('trend-chart');
+  if (!canvas) return;
+
+  // Use actual checkins or demo data
+  let data = state.checkins;
+  if (data.length < 2) {
+    data = [
+      { mood: 6, anxiety: 4, hope: 7 },
+      { mood: 5, anxiety: 5, hope: 6 },
+      { mood: 4, anxiety: 7, hope: 5 },
+      { mood: 3, anxiety: 8, hope: 3 },
+      { mood: 5, anxiety: 6, hope: 4 },
+      { mood: 6, anxiety: 5, hope: 5 },
+      { mood: 7, anxiety: 3, hope: 7 },
+    ];
+  }
+
+  const labels = data.map((_, i) => `Day ${i + 1}`);
+
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Mood', data: data.map(c => c.mood),
+          borderColor: '#E2B866', backgroundColor: 'rgba(226,184,102,0.08)',
+          borderWidth: 2.5, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#E2B866', fill: true,
+        },
+        {
+          label: 'Hope', data: data.map(c => c.hope),
+          borderColor: '#A8C5A0', backgroundColor: 'rgba(168,197,160,0.08)',
+          borderWidth: 2.5, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#A8C5A0', fill: true,
+        },
+        {
+          label: 'Anxiety', data: data.map(c => c.anxiety),
+          borderColor: '#E2A3A8', borderWidth: 2, tension: 0.4, pointRadius: 3,
+          pointBackgroundColor: '#E2A3A8', borderDash: [5, 3], fill: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        y: { min: 0, max: 10, ticks: { stepSize: 2, font: { family: 'Nunito', size: 11 }, color: '#9D8E94' }, grid: { color: 'rgba(0,0,0,0.04)' } },
+        x: { ticks: { font: { family: 'Nunito', size: 10 }, color: '#9D8E94' }, grid: { display: false } },
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { font: { family: 'Nunito', size: 11 }, color: '#6B5A62', usePointStyle: true, pointStyle: 'circle', padding: 16 },
+        },
+      },
+    },
+  });
+}
+</script>
+</body>
+</html>

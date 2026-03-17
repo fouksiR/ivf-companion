@@ -1,0 +1,8 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+anthropic==0.39.0
+pydantic==2.9.2
+sentence-transformers==3.3.1
+faiss-cpu==1.9.0
+langchain==0.3.14
+langchain-community==0.3.14

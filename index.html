@@ -1049,7 +1049,6 @@ body {
 <script>
 // ── Config ─────────────────────────────────────────────
 const API_BASE = 'https://ivf-companion-532857641879.australia-southeast1.run.app';
-const DEMO_MODE = false;
 
 let state = {
   patientId: null,
@@ -1129,7 +1128,6 @@ function getDemoChatResponse(message) {
 // ── API Helper (with demo fallback) ───────────────────
 async function api(endpoint, method = 'GET', body = null) {
   // Demo mode — simulate all responses locally
-  if (DEMO_MODE) {
     await new Promise(r => setTimeout(r, 800 + Math.random() * 1200)); // Simulate latency
 
     if (endpoint === '/onboard') {
@@ -1676,7 +1674,6 @@ async function loadTrends() {
 
 // ── Init ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  if (DEMO_MODE) {
     console.log('🌼 Mira running in demo mode (no backend connected)');
   }
   checkExistingSession();

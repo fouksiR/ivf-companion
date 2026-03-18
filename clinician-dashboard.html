@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melod·AI — Clinician Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --white: #ffffff;
+            --off-white: #fafaf9;
+            --warm-gray-50: #f5f4f2;
+            --warm-gray-100: #eae8e4;
+            --warm-gray-200: #d4d0ca;
+            --warm-gray-300: #b8b2a8;
+            --warm-gray-400: #9c9486;
+            --warm-gray-500: #7a7268;
+            --warm-gray-600: #5c564e;
+            --warm-gray-700: #3e3a34;
+            --warm-gray-800: #2a2722;
+            --text-primary: #2a2722;
+            --text-secondary: #7a7268;
+            --text-muted: #9c9486;
+            --green: #4a7c59;
+            --green-bg: #eef5f0;
+            --amber: #b8860b;
+            --amber-bg: #fdf6e3;
+            --red: #c44040;
+            --red-bg: #fdf0f0;
+            --red-pulse: #e85555;
+            --blue: #4a6fa5;
+            --blue-bg: #eef2f8;
+            --border: #eae8e4;
+            --shadow-sm: 0 1px 2px rgba(42,39,34,0.04);
+            --shadow-md: 0 2px 8px rgba(42,39,34,0.06);
+            --shadow-lg: 0 4px 16px rgba(42,39,34,0.08);
+            --serif: 'Cormorant Garamond', Georgia, serif;
+            --sans: 'Montserrat', -apple-system, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--sans);
+            background: var(--off-white);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ── Header ─────────────────────────────── */
+        .header {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            font-family: var(--serif);
+            font-size: 22px;
+            font-weight: 400;
+            letter-spacing: 0.02em;
+            color: var(--text-primary);
+        }
+
+        .logo span {
+            color: var(--warm-gray-400);
+        }
+
+        .badge-clinician {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--blue);
+            background: var(--blue-bg);
+            padding: 4px 10px;
+            border-radius: 4px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+        }
+
+        .status-dot.disconnected { background: var(--red); }
+
+        .poll-info {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* ── Alert Banner ───────────────────────── */
+        .alert-banner {
+            display: none;
+            background: var(--red-bg);
+            border-bottom: 2px solid var(--red);
+            padding: 12px 32px;
+            animation: alertPulse 2s ease-in-out infinite;
+        }
+
+        .alert-banner.active { display: flex; align-items: center; gap: 12px; }
+
+        .alert-banner-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .alert-banner-text {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--red);
+        }
+
+        .alert-banner-time {
+            font-weight: 400;
+            color: var(--warm-gray-500);
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { background: var(--red-bg); }
+            50% { background: #fbe8e8; }
+        }
+
+        /* ── Layout ─────────────────────────────── */
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 0;
+            min-height: calc(100vh - 60px);
+        }
+
+        .panel-left {
+            padding: 24px 32px;
+            overflow-y: auto;
+        }
+
+        .panel-right {
+            background: var(--white);
+            border-left: 1px solid var(--border);
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        /* ── Section headers ────────────────────── */
+        .section-title {
+            font-family: var(--serif);
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-count {
+            font-family: var(--sans);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: var(--warm-gray-100);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        /* ── Patient Cards ──────────────────────── */
+        .patient-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .patient-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px 24px;
+            box-shadow: var(--shadow-sm);
+            transition: box-shadow 0.2s, border-color 0.2s;
+            cursor: pointer;
+        }
+
+        .patient-card:hover {
+            box-shadow: var(--shadow-md);
+            border-color: var(--warm-gray-200);
+        }
+
+        .patient-card.level-RED {
+            border-left: 3px solid var(--red);
+        }
+
+        .patient-card.level-AMBER {
+            border-left: 3px solid var(--amber);
+        }
+
+        .patient-card.level-GREEN {
+            border-left: 3px solid var(--green);
+        }
+
+        .patient-card.human-escalation {
+            border-left: 3px solid var(--red);
+            background: var(--red-bg);
+            animation: cardPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes cardPulse {
+            0%, 100% { box-shadow: var(--shadow-sm); }
+            50% { box-shadow: 0 0 0 2px rgba(196, 64, 64, 0.15), var(--shadow-md); }
+        }
+
+        .patient-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .patient-name {
+            font-family: var(--serif);
+            font-size: 17px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .escalation-badge {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 4px;
+        }
+
+        .escalation-badge.GREEN { color: var(--green); background: var(--green-bg); }
+        .escalation-badge.AMBER { color: var(--amber); background: var(--amber-bg); }
+        .escalation-badge.RED { color: var(--red); background: var(--red-bg); }
+
+        .human-flag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--red);
+            background: white;
+            border: 1px solid var(--red);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+            animation: flagBlink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes flagBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .patient-meta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .patient-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .constructs-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .construct-tag {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 3px;
+            background: var(--warm-gray-100);
+            color: var(--warm-gray-600);
+        }
+
+        .construct-tag.active {
+            background: var(--amber-bg);
+            color: var(--amber);
+        }
+
+        .construct-tag.critical {
+            background: var(--red-bg);
+            color: var(--red);
+        }
+
+        .patient-summary {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .checkin-sparkline {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 28px;
+            margin-top: 10px;
+        }
+
+        .spark-bar {
+            width: 6px;
+            border-radius: 2px 2px 0 0;
+            transition: height 0.3s;
+        }
+
+        .spark-bar.mood { background: var(--blue); opacity: 0.7; }
+        .spark-bar.anxiety { background: var(--amber); opacity: 0.7; }
+        .spark-bar.hope { background: var(--green); opacity: 0.7; }
+
+        /* ── Right Panel: Alerts ────────────────── */
+        .alert-feed-title {
+            font-family: var(--serif);
+            font-size: 16px;
+            font-weight: 400;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .unread-count {
+            font-family: var(--sans);
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            background: var(--red);
+            padding: 1px 7px;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .alert-item {
+            padding: 14px 16px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            background: var(--white);
+            transition: background 0.2s;
+        }
+
+        .alert-item.unacknowledged {
+            background: var(--warm-gray-50);
+            border-color: var(--warm-gray-200);
+        }
+
+        .alert-item.human-escalation {
+            background: var(--red-bg);
+            border-color: var(--red);
+        }
+
+        .alert-type {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .alert-type.signal { color: var(--amber); }
+        .alert-type.checkin { color: var(--blue); }
+        .alert-type.human { color: var(--red); }
+
+        .alert-message {
+            font-size: 13px;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .alert-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .alert-action {
+            margin-top: 8px;
+        }
+
+        .btn-ack {
+            font-family: var(--sans);
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: var(--white);
+            border: 1px solid var(--warm-gray-200);
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-ack:hover {
+            background: var(--warm-gray-50);
+            border-color: var(--warm-gray-300);
+        }
+
+        .btn-contact {
+            font-family: var(--sans);
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            background: var(--red);
+            border: none;
+            padding: 5px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 6px;
+            transition: background 0.2s;
+        }
+
+        .btn-contact:hover { background: var(--red-pulse); }
+
+        /* ── Detail Modal ───────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(42, 39, 34, 0.3);
+            z-index: 200;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--white);
+            border-radius: 12px;
+            width: 640px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            padding: 32px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-title {
+            font-family: var(--serif);
+            font-size: 22px;
+            font-weight: 400;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--text-secondary);
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover { background: var(--warm-gray-50); }
+
+        .detail-section {
+            margin-bottom: 20px;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .checkin-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+            height: 60px;
+            padding: 8px 0;
+        }
+
+        .chart-bar-group {
+            display: flex;
+            gap: 1px;
+            align-items: flex-end;
+        }
+
+        .chart-bar {
+            width: 8px;
+            border-radius: 2px 2px 0 0;
+            transition: height 0.3s;
+        }
+
+        /* ── Empty state ────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        .empty-state-text {
+            font-family: var(--serif);
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-sub {
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        /* ── Config bar ─────────────────────────── */
+        .config-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .config-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .config-input {
+            font-family: var(--sans);
+            font-size: 13px;
+            padding: 6px 10px;
+            border: 1px solid var(--warm-gray-200);
+            border-radius: 4px;
+            color: var(--text-primary);
+            background: var(--white);
+            width: 320px;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: var(--warm-gray-400);
+        }
+
+        .btn-connect {
+            font-family: var(--sans);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--white);
+            background: var(--text-primary);
+            border: none;
+            padding: 7px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-connect:hover { background: var(--warm-gray-700); }
+
+        /* ── Responsive ─────────────────────────── */
+        @media (max-width: 900px) {
+            .main { grid-template-columns: 1fr; }
+            .panel-right { border-left: none; border-top: 1px solid var(--border); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────── -->
+<div class="header">
+    <div class="header-left">
+        <div class="logo">Melod<span>·</span>AI</div>
+        <div class="badge-clinician">Clinician</div>
+    </div>
+    <div class="header-right">
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Connecting…</span>
+        </div>
+        <div class="poll-info" id="pollInfo"></div>
+    </div>
+</div>
+
+<!-- ── Alert Banner (for human escalation) ────────────── -->
+<div class="alert-banner" id="alertBanner">
+    <div class="alert-banner-icon">!</div>
+    <div class="alert-banner-text" id="alertBannerText"></div>
+</div>
+
+<!-- ── Main Layout ────────────────────────────────────── -->
+<div class="main">
+    <!-- Left: Patient List -->
+    <div class="panel-left">
+        <div class="config-bar">
+            <span class="config-label">Backend URL</span>
+            <input class="config-input" id="backendUrl" type="text" 
+                   value="https://ivf-companion-532857641879.australia-southeast1.run.app"
+                   placeholder="https://your-backend.run.app">
+            <button class="btn-connect" onclick="startPolling()">Connect</button>
+        </div>
+
+        <div class="section-title">
+            Patients
+            <span class="section-count" id="patientCount">0</span>
+        </div>
+
+        <div class="patient-grid" id="patientGrid">
+            <div class="empty-state">
+                <div class="empty-state-icon">◌</div>
+                <div class="empty-state-text">Waiting for connection</div>
+                <div class="empty-state-sub">Enter your backend URL and click Connect</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Alert Feed -->
+    <div class="panel-right">
+        <div class="alert-feed-title">
+            Alerts
+            <span class="unread-count" id="unreadCount" style="display: none;">0</span>
+        </div>
+
+        <div id="alertFeed">
+            <div class="empty-state">
+                <div class="empty-state-icon">○</div>
+                <div class="empty-state-text">No alerts yet</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Patient Detail Modal ───────────────────────────── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-title" id="modalTitle">Patient Detail</div>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+let pollInterval = null;
+let patients = [];
+let alerts = [];
+let connected = false;
+
+const API = () => document.getElementById('backendUrl').value.replace(/\/+$/, '');
+
+// ── Polling ────────────────────────────────────────────
+function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    fetchData();
+    pollInterval = setInterval(fetchData, 8000); // Poll every 8s
+}
+
+async function fetchData() {
+    try {
+        const [pRes, aRes] = await Promise.all([
+            fetch(`${API()}/clinician/patients`),
+            fetch(`${API()}/clinician/alerts?limit=30`)
+        ]);
+        
+        if (!pRes.ok || !aRes.ok) throw new Error('API error');
+        
+        const pData = await pRes.json();
+        const aData = await aRes.json();
+        
+        patients = pData.patients || [];
+        alerts = aData.alerts || [];
+        
+        setConnected(true);
+        renderPatients();
+        renderAlerts();
+        checkHumanEscalations();
+        
+        document.getElementById('pollInfo').textContent = 
+            `Last: ${new Date().toLocaleTimeString()}`;
+    } catch (err) {
+        console.error('Poll failed:', err);
+        setConnected(false);
+    }
+}
+
+function setConnected(state) {
+    connected = state;
+    const dot = document.getElementById('statusDot');
+    const text = document.getElementById('statusText');
+    if (state) {
+        dot.classList.remove('disconnected');
+        text.textContent = 'Connected';
+    } else {
+        dot.classList.add('disconnected');
+        text.textContent = 'Disconnected';
+    }
+}
+
+// ── Render Patients ────────────────────────────────────
+function renderPatients() {
+    const grid = document.getElementById('patientGrid');
+    const count = document.getElementById('patientCount');
+    count.textContent = patients.length;
+    
+    if (patients.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">◌</div>
+                <div class="empty-state-text">No active patients</div>
+                <div class="empty-state-sub">Patients will appear once they start using Melod·AI</div>
+            </div>`;
+        return;
+    }
+    
+    grid.innerHTML = patients.map(p => {
+        const isHuman = p.human_escalation_requested;
+        const level = p.escalation_level || 'GREEN';
+        const constructs = p.active_constructs || [];
+        const ci = p.latest_checkin;
+        const ciHistory = p.check_in_history_mini || []; // If available
+        
+        return `
+        <div class="patient-card level-${level} ${isHuman ? 'human-escalation' : ''}" 
+             onclick="openDetail('${p.patient_id}')">
+            <div class="patient-card-header">
+                <div>
+                    <span class="patient-name">${escHtml(p.patient_id)}</span>
+                    ${isHuman ? '<span class="human-flag">⚡ HUMAN REQUESTED</span>' : ''}
+                </div>
+                <span class="escalation-badge ${level}">${level}</span>
+            </div>
+            
+            <div class="patient-meta">
+                <div class="patient-meta-item">
+                    <span>Sessions: ${p.session_count || 0}</span>
+                </div>
+                <div class="patient-meta-item">
+                    <span>Baseline: ${p.baseline_established ? '✓' : 'building…'}</span>
+                </div>
+                ${p.last_updated ? `<div class="patient-meta-item">
+                    <span>Updated: ${timeAgo(p.last_updated)}</span>
+                </div>` : ''}
+            </div>
+            
+            ${constructs.length > 0 ? `
+            <div class="constructs-row">
+                ${constructs.map(c => `
+                    <span class="construct-tag ${level === 'RED' ? 'critical' : 'active'}">
+                        ${formatConstruct(c)}
+                    </span>
+                `).join('')}
+            </div>` : ''}
+            
+            ${ci ? `
+            <div style="display: flex; gap: 16px; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">
+                <span>Mood: <strong style="color: ${scoreColor(ci.mood, false)}">${ci.mood}</strong></span>
+                <span>Anxiety: <strong style="color: ${scoreColor(ci.anxiety, true)}">${ci.anxiety}</strong></span>
+                <span>Hope: <strong style="color: ${scoreColor(ci.hope, false)}">${ci.hope}</strong></span>
+                <span>Loneliness: <strong style="color: ${scoreColor(ci.loneliness, true)}">${ci.loneliness}</strong></span>
+            </div>` : ''}
+            
+            <div class="patient-summary">${escHtml(p.summary || '')}</div>
+        </div>`;
+    }).join('');
+}
+
+// ── Render Alerts ──────────────────────────────────────
+function renderAlerts() {
+    const feed = document.getElementById('alertFeed');
+    const badge = document.getElementById('unreadCount');
+    const unack = alerts.filter(a => !a.acknowledged).length;
+    
+    if (unack > 0) {
+        badge.style.display = 'inline';
+        badge.textContent = unack;
+    } else {
+        badge.style.display = 'none';
+    }
+    
+    if (alerts.length === 0) {
+        feed.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">○</div>
+                <div class="empty-state-text">No alerts yet</div>
+            </div>`;
+        return;
+    }
+    
+    feed.innerHTML = alerts.map((a, i) => {
+        const isHuman = a.type === 'human_escalation';
+        const typeLabel = {
+            'signal_alert': 'Signal Alert',
+            'checkin_alert': 'Check-in Alert',
+            'human_escalation': 'Human Requested'
+        }[a.type] || a.type;
+        const typeClass = {
+            'signal_alert': 'signal',
+            'checkin_alert': 'checkin',
+            'human_escalation': 'human'
+        }[a.type] || '';
+        
+        let message = '';
+        if (isHuman) {
+            message = `<strong>${escHtml(a.patient_name || a.patient_id)}</strong> is requesting to speak with someone.`;
+            if (a.reason) message += ` Reason: "${escHtml(a.reason)}"`;
+        } else if (a.type === 'checkin_alert') {
+            const s = a.scores || {};
+            message = `<strong>${escHtml(a.patient_id)}</strong> — ${escHtml(a.summary || '')}`;
+            if (s.mood) message += ` (mood: ${s.mood}, anxiety: ${s.anxiety})`;
+        } else {
+            message = `<strong>${escHtml(a.patient_id)}</strong> — ${escHtml(a.summary || '')}`;
+        }
+        
+        return `
+        <div class="alert-item ${!a.acknowledged ? 'unacknowledged' : ''} ${isHuman ? 'human-escalation' : ''}">
+            <div class="alert-type ${typeClass}">${typeLabel}</div>
+            <div class="alert-message">${message}</div>
+            <div class="alert-time">${timeAgo(a.timestamp)}</div>
+            <div class="alert-action">
+                ${!a.acknowledged ? `<button class="btn-ack" onclick="ackAlert(${i}); event.stopPropagation();">Acknowledge</button>` : ''}
+                ${isHuman ? `<button class="btn-contact" onclick="contactPatient('${a.patient_id}'); event.stopPropagation();">Contact</button>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── Human escalation banner ────────────────────────────
+function checkHumanEscalations() {
+    const banner = document.getElementById('alertBanner');
+    const bannerText = document.getElementById('alertBannerText');
+    
+    const humanAlerts = alerts.filter(a => a.type === 'human_escalation' && !a.acknowledged);
+    if (humanAlerts.length > 0) {
+        const latest = humanAlerts[0];
+        bannerText.innerHTML = `
+            <strong>${escHtml(latest.patient_name || latest.patient_id)}</strong> 
+            is requesting human support 
+            <span class="alert-banner-time">— ${timeAgo(latest.timestamp)}</span>
+        `;
+        banner.classList.add('active');
+    } else {
+        banner.classList.remove('active');
+    }
+}
+
+// ── Actions ────────────────────────────────────────────
+async function ackAlert(index) {
+    try {
+        await fetch(`${API()}/clinician/alerts/${index}/acknowledge`, { method: 'POST' });
+        alerts[index].acknowledged = true;
+        renderAlerts();
+        checkHumanEscalations();
+    } catch (err) {
+        console.error('Ack failed:', err);
+    }
+}
+
+function contactPatient(patientId) {
+    // For now, open WhatsApp or phone — customize per clinic
+    // In future: in-app messaging
+    alert(`Opening contact for patient ${patientId}.\n\nIn production this would trigger a secure messaging channel or phone call.`);
+}
+
+async function openDetail(patientId) {
+    const modal = document.getElementById('modalOverlay');
+    const title = document.getElementById('modalTitle');
+    const body = document.getElementById('modalBody');
+    
+    title.textContent = patientId;
+    body.innerHTML = '<p style="color: var(--text-muted);">Loading…</p>';
+    modal.classList.add('active');
+    
+    try {
+        const res = await fetch(`${API()}/clinician/patient/${patientId}`);
+        const data = await res.json();
+        
+        const assessment = data.current_assessment || {};
+        const constructs = assessment.constructs || {};
+        const checkIns = data.check_in_history || [];
+        
+        let html = '';
+        
+        // Escalation
+        html += `
+        <div class="detail-section">
+            <div class="detail-label">Escalation Level</div>
+            <span class="escalation-badge ${data.escalation_level}">${data.escalation_level}</span>
+            ${data.human_escalation_requested ? 
+                `<span class="human-flag" style="margin-left: 8px;">⚡ HUMAN REQUESTED at ${data.human_escalation_at || 'unknown'}</span>` : ''}
+        </div>`;
+        
+        // Assessment summary
+        html += `
+        <div class="detail-section">
+            <div class="detail-label">Assessment Summary</div>
+            <p style="font-size: 14px; color: var(--text-primary);">${escHtml(assessment.summary || 'No assessment yet')}</p>
+        </div>`;
+        
+        // Active constructs
+        if (Object.keys(constructs).length > 0) {
+            html += `
+            <div class="detail-section">
+                <div class="detail-label">Active Constructs</div>
+                ${Object.entries(constructs).map(([name, info]) => `
+                    <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border);">
+                        <span style="font-size: 13px; font-weight: 500;">${formatConstruct(name)}</span>
+                        <span style="font-size: 12px; color: var(--text-muted);">
+                            ${info.signal || ''} ${info.z_score ? `(z=${info.z_score})` : ''}
+                        </span>
+                    </div>
+                `).join('')}
+            </div>`;
+        }
+        
+        // Check-in history chart
+        if (checkIns.length > 0) {
+            html += `
+            <div class="detail-section">
+                <div class="detail-label">Check-in History (last ${checkIns.length})</div>
+                <div class="checkin-chart">
+                    ${checkIns.map(ci => `
+                        <div class="chart-bar-group" title="M:${ci.mood} A:${ci.anxiety} H:${ci.hope}">
+                            <div class="chart-bar" style="height: ${ci.mood * 6}px; background: var(--blue); opacity: 0.7;"></div>
+                            <div class="chart-bar" style="height: ${ci.anxiety * 6}px; background: var(--amber); opacity: 0.7;"></div>
+                            <div class="chart-bar" style="height: ${ci.hope * 6}px; background: var(--green); opacity: 0.7;"></div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="display: flex; gap: 16px; margin-top: 6px; font-size: 11px; color: var(--text-muted);">
+                    <span style="display: flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;background:var(--blue);border-radius:2px;display:inline-block;"></span> Mood</span>
+                    <span style="display: flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;background:var(--amber);border-radius:2px;display:inline-block;"></span> Anxiety</span>
+                    <span style="display: flex; align-items: center; gap: 4px;"><span style="width:8px;height:8px;background:var(--green);border-radius:2px;display:inline-block;"></span> Hope</span>
+                </div>
+            </div>`;
+        }
+        
+        // Meta
+        html += `
+        <div class="detail-section" style="display: flex; gap: 24px; font-size: 12px; color: var(--text-muted);">
+            <span>Sessions: ${data.session_count || 0}</span>
+            <span>Baseline: ${data.baseline_established ? 'Established' : 'Building'}</span>
+            <span>Signals logged: ${data.signal_history_count || 0}</span>
+        </div>`;
+        
+        body.innerHTML = html;
+    } catch (err) {
+        body.innerHTML = `<p style="color: var(--red);">Failed to load patient data: ${err.message}</p>`;
+    }
+}
+
+function closeModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('modalOverlay').classList.remove('active');
+}
+
+// ── Utilities ──────────────────────────────────────────
+function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+}
+
+function timeAgo(ts) {
+    if (!ts) return '';
+    const diff = (Date.now() - new Date(ts).getTime()) / 1000;
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function formatConstruct(c) {
+    return (c || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+function scoreColor(val, inverted) {
+    // For mood/hope (higher = better): low is red, high is green
+    // For anxiety/loneliness (higher = worse): high is red, low is green
+    if (inverted) {
+        if (val >= 8) return 'var(--red)';
+        if (val >= 6) return 'var(--amber)';
+        return 'var(--green)';
+    } else {
+        if (val <= 3) return 'var(--red)';
+        if (val <= 5) return 'var(--amber)';
+        return 'var(--green)';
+    }
+}
+
+// ── Keyboard shortcut ──────────────────────────────────
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal(e);
+});
+
+// ── Auto-start ─────────────────────────────────────────
+window.addEventListener('load', () => {
+    // Try to connect immediately
+    startPolling();
+});
+</script>
+
+</body>
+</html>

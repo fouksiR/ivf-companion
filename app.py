@@ -29,6 +29,17 @@ from pydantic import BaseModel, Field
 import anthropic
 import asyncio
 
+
+# Add the import line after the existing imports in app.py
+sed -i '1s/^/from signal_integration import signal_router, get_signal_context_for_patient, patient_signal_store\n/' app.py
+
+# Find where FastAPI app is created and add the router after it
+sed -i '/^app = FastAPI/a app.include_router(signal_router)' app.py
+
+# Verify it worked
+head -5 app.py
+grep "include_router" app.py
+
 # ── Logging ──────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ivf-companion")

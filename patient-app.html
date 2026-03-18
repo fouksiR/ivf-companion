@@ -3,1757 +3,382 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Mira — Your IVF Companion</title>
+<title>Melod·AI — Your IVF Companion</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-/* ═══════════════════════════════════════════════════════
-   MIRA — IVF COMPANION — PATIENT APP
-   Warm, illustrated, mobile-first design
-   ═══════════════════════════════════════════════════════ */
-
-:root {
-  --cream: #FDF8F2;
-  --cream-deep: #F5EDE3;
-  --peach: #FADCC8;
-  --peach-soft: #FFF0E6;
-  --rose: #E2A3A8;
-  --rose-deep: #C87F85;
-  --mauve: #B88B9E;
-  --plum: #5B3A4A;
-  --plum-light: #7D5568;
-  --sage: #A8C5A0;
-  --sage-deep: #7BA87B;
-  --sage-light: #D4E7D0;
-  --teal: #7AACAC;
-  --teal-light: #C5E0E0;
-  --gold: #E2B866;
-  --gold-light: #F5E6C8;
-  --lavender: #C5B3D6;
-  --lavender-light: #E8DDEF;
-  --sky: #9DC4DE;
-  --text: #3A2A32;
-  --text-mid: #6B5A62;
-  --text-soft: #9D8E94;
-  --text-faint: #BFB3B8;
-  --white: #FFFFFF;
-  --danger: #D06B76;
-  --amber: #CFA24E;
-  --green: #6DAD6D;
-  --shadow-sm: 0 1px 8px rgba(91,58,74,0.06);
-  --shadow-md: 0 4px 20px rgba(91,58,74,0.1);
-  --shadow-lg: 0 8px 40px rgba(91,58,74,0.14);
-  --radius-xl: 24px;
-  --radius-lg: 18px;
-  --radius-md: 14px;
-  --radius-sm: 10px;
-}
-
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-body {
-  font-family: 'Nunito', -apple-system, sans-serif;
-  background: var(--cream);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-
-h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; }
-
-/* ═══ SCREEN SYSTEM ═══════════════════════════════════ */
-.screen { display: none; min-height: 100vh; }
-.screen.active { display: flex; flex-direction: column; }
-
-/* ═══ ONBOARDING ══════════════════════════════════════ */
-#screen-onboard {
-  background: linear-gradient(165deg, var(--cream) 0%, var(--peach-soft) 40%, var(--lavender-light) 80%, var(--teal-light) 100%);
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Floating background shapes */
-#screen-onboard::before,
-#screen-onboard::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0.12;
-  animation: float 20s ease-in-out infinite;
-}
-#screen-onboard::before {
-  width: 300px; height: 300px;
-  background: var(--rose);
-  top: -80px; right: -60px;
-}
-#screen-onboard::after {
-  width: 250px; height: 250px;
-  background: var(--teal);
-  bottom: -60px; left: -80px;
-  animation-delay: -10s;
-}
-
-@keyframes float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(20px, -15px) scale(1.05); }
-  66% { transform: translate(-10px, 10px) scale(0.95); }
-}
-
-.onboard-container {
-  position: relative;
-  z-index: 1;
-  max-width: 440px;
-  width: 100%;
-}
-
-.onboard-hero {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.onboard-hero .brand-mark {
-  width: 72px; height: 72px;
-  background: linear-gradient(135deg, var(--rose), var(--mauve));
-  border-radius: 22px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 36px;
-  margin: 0 auto 16px;
-  box-shadow: var(--shadow-md);
-}
-
-.onboard-hero h1 {
-  font-size: 34px;
-  color: var(--plum);
-  letter-spacing: -0.5px;
-  margin-bottom: 8px;
-}
-
-.onboard-hero .tagline {
-  font-size: 16px;
-  color: var(--text-mid);
-  line-height: 1.6;
-  max-width: 320px;
-  margin: 0 auto;
-}
-
-/* Steps indicator */
-.steps-indicator {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.step-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--text-faint);
-  transition: all 0.3s ease;
-}
-
-.step-dot.active {
-  width: 32px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, var(--rose), var(--mauve));
-}
-
-.step-dot.done { background: var(--sage); }
-
-/* Cards for each step */
-.onboard-card {
-  background: var(--white);
-  border-radius: var(--radius-xl);
-  padding: 32px 28px;
-  box-shadow: var(--shadow-lg);
-  display: none;
-  animation: slideUp 0.4s ease;
-}
-
-.onboard-card.active { display: block; }
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.onboard-card h2 {
-  font-size: 22px;
-  color: var(--plum);
-  margin-bottom: 6px;
-}
-
-.onboard-card .card-desc {
-  font-size: 14px;
-  color: var(--text-mid);
-  margin-bottom: 24px;
-  line-height: 1.5;
-}
-
-/* Form elements */
-.field {
-  margin-bottom: 18px;
-}
-
-.field label {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-soft);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 6px;
-}
-
-.field input, .field select {
-  width: 100%;
-  padding: 14px 18px;
-  border: 2px solid var(--cream-deep);
-  border-radius: var(--radius-md);
-  font-family: 'Nunito', sans-serif;
-  font-size: 15px;
-  color: var(--text);
-  background: var(--cream);
-  outline: none;
-  transition: border-color 0.2s, background 0.2s;
-  -webkit-appearance: none;
-}
-
-.field input:focus, .field select:focus {
-  border-color: var(--rose);
-  background: var(--white);
-}
-
-.field input::placeholder { color: var(--text-faint); }
-
-/* Stage picker — visual grid */
-.stage-picker {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.stage-option {
-  padding: 14px 12px;
-  border: 2px solid var(--cream-deep);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-  background: var(--cream);
-}
-
-.stage-option:hover { border-color: var(--rose); background: var(--peach-soft); }
-
-.stage-option.selected {
-  border-color: var(--rose-deep);
-  background: linear-gradient(135deg, rgba(226,163,168,0.12), rgba(184,139,158,0.08));
-}
-
-.stage-option .stage-emoji { font-size: 24px; display: block; margin-bottom: 4px; }
-.stage-option .stage-name { font-size: 13px; font-weight: 600; color: var(--plum); line-height: 1.3; }
-.stage-option .stage-sub { font-size: 11px; color: var(--text-soft); margin-top: 2px; }
-
-/* Buttons */
-.btn {
-  width: 100%;
-  padding: 16px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-family: 'Nunito', sans-serif;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.12s, opacity 0.12s;
-}
-
-.btn:active { transform: scale(0.98); }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--rose), var(--mauve));
-  color: var(--white);
-  box-shadow: 0 4px 16px rgba(226,163,168,0.4);
-}
-
-.btn-primary:hover:not(:disabled) { box-shadow: 0 6px 24px rgba(226,163,168,0.5); }
-
-.btn-secondary {
-  background: var(--cream);
-  color: var(--plum);
-  border: 2px solid var(--cream-deep);
-}
-
-.btn-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 6px;
-}
-
-.btn-row .btn { flex: 1; }
-.btn-row .btn-back { flex: 0.6; }
-
-/* ═══ MAIN APP ════════════════════════════════════════ */
-#screen-app {
-  max-width: 520px;
-  margin: 0 auto;
-  background: var(--cream);
-  height: 100vh;
-}
-
-/* Top bar */
-.app-header {
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--white);
-  border-bottom: 1px solid rgba(91,58,74,0.06);
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-
-.app-header .brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.app-header .brand-icon {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, var(--rose), var(--mauve));
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-}
-
-.app-header .brand-text {
-  font-family: 'Playfair Display', serif;
-  font-size: 20px;
-  color: var(--plum);
-}
-
-.stage-pill {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 5px 14px;
-  border-radius: 20px;
-  background: var(--peach-soft);
-  color: var(--plum-light);
-  max-width: 160px;
-  text-align: center;
-  line-height: 1.3;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.stage-pill:hover { background: var(--peach); }
-
-/* Navigation */
-.app-nav {
-  display: flex;
-  background: var(--white);
-  border-bottom: 1px solid rgba(91,58,74,0.06);
-  position: sticky;
-  top: 64px;
-  z-index: 19;
-}
-
-.nav-item {
-  flex: 1;
-  text-align: center;
-  padding: 10px 0;
-  cursor: pointer;
-  position: relative;
-  transition: color 0.2s;
-  color: var(--text-soft);
-}
-
-.nav-item.active { color: var(--plum); }
-
-.nav-item::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 20%;
-  width: 60%;
-  height: 3px;
-  border-radius: 3px;
-  background: linear-gradient(135deg, var(--rose), var(--mauve));
-  transform: scaleX(0);
-  transition: transform 0.2s;
-}
-
-.nav-item.active::after { transform: scaleX(1); }
-
-.nav-item .nav-icon { font-size: 20px; display: block; margin-bottom: 1px; }
-.nav-item .nav-label { font-size: 11px; font-weight: 700; }
-
-/* Tab panels */
-.tab-panel { display: none; flex: 1; overflow-y: auto; }
-.tab-panel.active { display: flex; flex-direction: column; }
-
-/* ═══ CHAT TAB ════════════════════════════════════════ */
-#panel-chat { background: var(--cream); }
-
-.chat-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 16px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.msg {
-  max-width: 82%;
-  animation: msgIn 0.35s ease;
-}
-
-@keyframes msgIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.msg-mira {
-  align-self: flex-start;
-}
-
-.msg-mira .msg-bubble {
-  background: var(--white);
-  color: var(--text);
-  padding: 14px 18px;
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 6px;
-  box-shadow: var(--shadow-sm);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.msg-mira .msg-sender {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--rose-deep);
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.msg-user {
-  align-self: flex-end;
-}
-
-.msg-user .msg-bubble {
-  background: linear-gradient(135deg, var(--rose), var(--mauve));
-  color: var(--white);
-  padding: 14px 18px;
-  border-radius: var(--radius-lg) var(--radius-lg) 6px var(--radius-lg);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.msg-system {
-  align-self: center;
-  max-width: 90%;
-}
-
-.msg-system .msg-bubble {
-  background: var(--lavender-light);
-  color: var(--plum);
-  padding: 8px 18px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  text-align: center;
-}
-
-/* Stage update message */
-.msg-stage {
-  align-self: center;
-  max-width: 90%;
-}
-
-.msg-stage .msg-bubble {
-  background: linear-gradient(135deg, var(--sage-light), var(--teal-light));
-  color: var(--plum);
-  padding: 12px 20px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  text-align: center;
-  font-weight: 600;
-}
-
-.typing-dots {
-  align-self: flex-start;
-  padding: 14px 20px;
-  background: var(--white);
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 6px;
-  box-shadow: var(--shadow-sm);
-  display: none;
-}
-
-.typing-dots span {
-  display: inline-block;
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--rose);
-  margin: 0 2px;
-  animation: bounce 1.3s infinite;
-}
-
-.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.3s; }
-
-@keyframes bounce {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-  40% { transform: translateY(-6px); opacity: 1; }
-}
-
-.chat-composer {
-  padding: 10px 14px 14px;
-  background: var(--white);
-  border-top: 1px solid rgba(91,58,74,0.06);
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.chat-composer textarea {
-  flex: 1;
-  border: 2px solid var(--cream-deep);
-  border-radius: var(--radius-md);
-  padding: 12px 16px;
-  font-family: 'Nunito', sans-serif;
-  font-size: 15px;
-  color: var(--text);
-  background: var(--cream);
-  outline: none;
-  resize: none;
-  max-height: 100px;
-  min-height: 44px;
-  line-height: 1.4;
-  transition: border-color 0.2s;
-}
-
-.chat-composer textarea:focus { border-color: var(--rose); }
-.chat-composer textarea::placeholder { color: var(--text-faint); }
-
-.send-btn {
-  width: 46px; height: 46px;
-  border: none;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--rose), var(--mauve));
-  color: var(--white);
-  font-size: 20px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 2px 12px rgba(226,163,168,0.35);
-  transition: transform 0.12s;
-}
-
-.send-btn:active { transform: scale(0.92); }
-
-/* ═══ CHECK-IN TAB ════════════════════════════════════ */
-#panel-checkin {
-  padding: 20px 16px;
-  gap: 14px;
-  align-items: center;
-  background: linear-gradient(180deg, var(--cream) 0%, var(--peach-soft) 100%);
-}
-
-.checkin-hero {
-  text-align: center;
-  padding: 8px 0 4px;
-}
-
-.checkin-hero h2 {
-  font-size: 24px;
-  color: var(--plum);
-}
-
-.checkin-hero p {
-  font-size: 14px;
-  color: var(--text-mid);
-  margin-top: 4px;
-}
-
-/* Current stage display */
-.current-stage-card {
-  width: 100%;
-  max-width: 420px;
-  background: linear-gradient(135deg, var(--lavender-light) 0%, var(--teal-light) 100%);
-  border-radius: var(--radius-lg);
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.current-stage-card .cs-icon { font-size: 32px; }
-
-.current-stage-card .cs-text h3 {
-  font-family: 'Nunito', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--plum);
-}
-
-.current-stage-card .cs-text p {
-  font-size: 12px;
-  color: var(--plum-light);
-  margin-top: 1px;
-}
-
-.current-stage-card .cs-change {
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--plum-light);
-  background: rgba(255,255,255,0.6);
-  padding: 4px 12px;
-  border-radius: 20px;
-  cursor: pointer;
-  border: none;
-  font-family: 'Nunito', sans-serif;
-}
-
-/* Dimension sliders */
-.dim-card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  padding: 18px 20px;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s;
-}
-
-.dim-card:hover { box-shadow: var(--shadow-md); }
-
-.dim-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-
-.dim-header .dim-emoji { font-size: 24px; }
-
-.dim-header .dim-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--plum);
-}
-
-.dim-header .dim-val {
-  margin-left: auto;
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--plum);
-  min-width: 28px;
-  text-align: right;
-}
-
-.dim-prompt {
-  font-size: 13px;
-  color: var(--text-mid);
-  margin-bottom: 12px;
-  line-height: 1.4;
-}
-
-.dim-slider-wrap {
-  position: relative;
-}
-
-.dim-slider-wrap input[type="range"] {
-  -webkit-appearance: none;
-  width: 100%;
-  height: 10px;
-  border-radius: 5px;
-  outline: none;
-  cursor: pointer;
-}
-
-.dim-slider-wrap input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: 3px solid var(--white);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-
-.dim-slider-wrap input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-}
-
-.sl-mood { background: linear-gradient(to right, #C87F85, #E2B866, #A8C5A0); }
-.sl-mood::-webkit-slider-thumb { background: var(--gold); }
-
-.sl-anxiety { background: linear-gradient(to right, #A8C5A0, #E2B866, #C87F85); }
-.sl-anxiety::-webkit-slider-thumb { background: var(--rose); }
-
-.sl-loneliness { background: linear-gradient(to right, #C87F85, #C5B3D6, #A8C5A0); }
-.sl-loneliness::-webkit-slider-thumb { background: var(--lavender); }
-
-.sl-uncertainty { background: linear-gradient(to right, #A8C5A0, #9DC4DE, #7AACAC); }
-.sl-uncertainty::-webkit-slider-thumb { background: var(--teal); }
-
-.sl-hope { background: linear-gradient(to right, #9D8E94, #E2B866, #E2A3A8); }
-.sl-hope::-webkit-slider-thumb { background: var(--gold); }
-
-.dim-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--text-faint);
-  margin-top: 6px;
-  font-weight: 600;
-}
-
-/* Note */
-.note-area {
-  width: 100%;
-  max-width: 420px;
-}
-
-.note-area textarea {
-  width: 100%;
-  padding: 14px 18px;
-  border: 2px solid rgba(91,58,74,0.08);
-  border-radius: var(--radius-md);
-  font-family: 'Nunito', sans-serif;
-  font-size: 14px;
-  color: var(--text);
-  background: var(--white);
-  outline: none;
-  resize: none;
-  height: 64px;
-  transition: border-color 0.2s;
-}
-
-.note-area textarea:focus { border-color: var(--rose); }
-.note-area textarea::placeholder { color: var(--text-faint); }
-
-.checkin-btn-area {
-  width: 100%;
-  max-width: 420px;
-}
-
-/* Mira response after check-in */
-.mira-response {
-  width: 100%;
-  max-width: 420px;
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  box-shadow: var(--shadow-md);
-  display: none;
-  animation: msgIn 0.4s ease;
-  border-left: 4px solid var(--rose);
-}
-
-.mira-response .mr-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--rose-deep);
-  margin-bottom: 8px;
-}
-
-.mira-response .mr-text {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--text);
-}
-
-/* ═══ JOURNEY TAB ═════════════════════════════════════ */
-#panel-journey {
-  padding: 20px 16px;
-  gap: 20px;
-  background: var(--cream);
-}
-
-.journey-hero {
-  text-align: center;
-}
-
-.journey-hero h2 {
-  font-size: 24px;
-  color: var(--plum);
-}
-
-.journey-hero p {
-  font-size: 14px;
-  color: var(--text-mid);
-  margin-top: 4px;
-}
-
-/* Visual timeline */
-.timeline-track {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding-left: 36px;
-}
-
-.timeline-track::before {
-  content: '';
-  position: absolute;
-  left: 14px;
-  top: 8px;
-  bottom: 8px;
-  width: 3px;
-  background: linear-gradient(180deg, var(--sage), var(--rose), var(--lavender), var(--teal));
-  border-radius: 2px;
-}
-
-.tl-item {
-  position: relative;
-  padding: 10px 0;
-}
-
-.tl-item .tl-dot {
-  position: absolute;
-  left: -28px;
-  top: 14px;
-  width: 16px; height: 16px;
-  border-radius: 50%;
-  border: 3px solid var(--cream-deep);
-  background: var(--cream);
-  transition: all 0.3s;
-}
-
-.tl-item.done .tl-dot { background: var(--sage); border-color: var(--sage); }
-.tl-item.done .tl-dot::after {
-  content: '✓';
-  position: absolute;
-  top: -2px; left: 1px;
-  font-size: 10px;
-  color: var(--white);
-  font-weight: 800;
-}
-
-.tl-item.current .tl-dot {
-  background: var(--rose);
-  border-color: var(--rose);
-  box-shadow: 0 0 0 6px rgba(226,163,168,0.25);
-}
-
-.tl-item.future .tl-dot { background: var(--cream-deep); border-color: var(--text-faint); }
-
-.tl-item .tl-label {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--plum);
-}
-
-.tl-item.future .tl-label { color: var(--text-faint); }
-
-.tl-item .tl-sub {
-  font-size: 12px;
-  color: var(--text-mid);
-  margin-top: 1px;
-}
-
-.tl-item.future .tl-sub { color: var(--text-faint); }
-
-/* Trend chart area */
-.trend-panel {
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-}
-
-.trend-panel h3 {
-  font-size: 18px;
-  color: var(--plum);
-  margin-bottom: 12px;
-}
-
-.trend-panel .chart-wrap {
-  height: 200px;
-  position: relative;
-}
-
-.trend-panel .chart-wrap canvas { width: 100% !important; height: 100% !important; }
-
-/* Education cards */
-.edu-section h3 {
-  font-size: 18px;
-  color: var(--plum);
-  margin-bottom: 12px;
-}
-
-.edu-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.edu-item {
-  background: var(--white);
-  border-radius: var(--radius-md);
-  padding: 16px 18px;
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.edu-item:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.edu-item .edu-icon {
-  width: 42px; height: 42px;
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.edu-item:nth-child(1) .edu-icon { background: var(--peach-soft); }
-.edu-item:nth-child(2) .edu-icon { background: var(--lavender-light); }
-.edu-item:nth-child(3) .edu-icon { background: var(--sage-light); }
-.edu-item:nth-child(4) .edu-icon { background: var(--teal-light); }
-.edu-item:nth-child(5) .edu-icon { background: var(--gold-light); }
-
-.edu-item .edu-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.4;
-}
-
-/* ═══ STAGE CHANGE MODAL ═════════════════════════════ */
-.modal-bg {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(58,42,50,0.5);
-  backdrop-filter: blur(6px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 20px;
-}
-
-.modal-bg.open { display: flex; }
-
-.modal-panel {
-  background: var(--white);
-  border-radius: var(--radius-xl);
-  padding: 28px 24px;
-  max-width: 440px;
-  width: 100%;
-  max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-lg);
-  animation: slideUp 0.3s ease;
-}
-
-.modal-panel h3 {
-  font-size: 20px;
-  color: var(--plum);
-  margin-bottom: 4px;
-}
-
-.modal-panel .modal-desc {
-  font-size: 14px;
-  color: var(--text-mid);
-  margin-bottom: 18px;
-  line-height: 1.5;
-}
-
-.modal-stages {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.modal-stage-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border: 2px solid var(--cream-deep);
-  border-radius: var(--radius-md);
-  background: var(--cream);
-  cursor: pointer;
-  transition: all 0.15s;
-  width: 100%;
-  text-align: left;
-  font-family: 'Nunito', sans-serif;
-}
-
-.modal-stage-btn:hover { border-color: var(--rose); background: var(--peach-soft); }
-
-.modal-stage-btn.active {
-  border-color: var(--rose-deep);
-  background: rgba(226,163,168,0.1);
-}
-
-.modal-stage-btn .ms-emoji { font-size: 22px; flex-shrink: 0; }
-
-.modal-stage-btn .ms-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--plum);
-}
-
-.modal-stage-btn .ms-desc {
-  font-size: 11px;
-  color: var(--text-soft);
-  margin-top: 1px;
-}
-
-/* ═══ DEMO RIBBON ═════════════════════════════════════ */
-.demo-ribbon {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: linear-gradient(135deg, var(--plum), var(--plum-light));
-  color: var(--white);
-  text-align: center;
-  padding: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  z-index: 200;
-  letter-spacing: 0.3px;
-}
-
-.demo-ribbon a { color: var(--peach); }
-
-/* ═══ RESPONSIVE ══════════════════════════════════════ */
-@media (min-width: 521px) {
-  #screen-app {
-    border-left: 1px solid var(--cream-deep);
-    border-right: 1px solid var(--cream-deep);
-    box-shadow: var(--shadow-lg);
-  }
-}
+:root{--white:#FFF;--bg:#FAFAFA;--bg-warm:#F8F7F5;--border:#E8E6E3;--border-light:#F0EEEC;--text:#1A1A1A;--text-mid:#5C5C5C;--text-soft:#999;--text-faint:#CCC;--accent:#2D8E8E;--accent-light:#E8F4F4;--accent-hover:#257676;--warm:#D4886B;--warm-light:#FDF3EF;--green:#5B9E5B;--green-light:#EDF5ED;--amber:#C4943D;--amber-light:#FFF8ED;--red:#C25D5D;--red-light:#FDF0F0;--shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 2px 12px rgba(0,0,0,.06);--shadow-lg:0 4px 24px rgba(0,0,0,.08);--radius:12px;--radius-sm:8px;--radius-xs:6px}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Montserrat',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.6}
+h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
+.screen{display:none;min-height:100vh}.screen.active{display:flex;flex-direction:column}
+
+#screen-onboard{background:var(--white);align-items:center;justify-content:center;padding:24px}
+.onboard-container{max-width:420px;width:100%}
+.onboard-hero{text-align:center;margin-bottom:40px}
+.brand-mark{display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.brand-mark svg{width:48px;height:48px}
+.onboard-hero h1{font-size:36px;color:var(--text);letter-spacing:-.5px;font-weight:300}
+.onboard-hero h1 span{color:var(--accent)}
+.onboard-hero .tagline{font-size:13px;color:var(--text-soft);margin-top:8px;letter-spacing:.3px}
+.steps-indicator{display:flex;justify-content:center;gap:6px;margin-bottom:32px}
+.step-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:all .3s}
+.step-dot.active{width:28px;border-radius:3px;background:var(--accent)}
+.step-dot.done{background:var(--accent)}
+.onboard-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;display:none;animation:fadeUp .35s ease}
+.onboard-card.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.onboard-card h2{font-size:24px;color:var(--text);margin-bottom:4px}
+.onboard-card .card-desc{font-size:13px;color:var(--text-mid);margin-bottom:24px}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.field input,.field select{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Montserrat',sans-serif;font-size:14px;color:var(--text);background:var(--white);outline:none;transition:border-color .2s;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field input::placeholder{color:var(--text-faint)}
+.stage-picker{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.stage-option{padding:14px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;text-align:center;background:var(--white)}
+.stage-option:hover{border-color:var(--accent);background:var(--accent-light)}
+.stage-option.selected{border-color:var(--accent);background:var(--accent-light)}
+.stage-option .stage-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.4}
+.stage-option .stage-sub{font-size:10px;color:var(--text-soft);margin-top:2px}
+.btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;letter-spacing:.3px}
+.btn:active{transform:scale(.98)}.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--accent);color:var(--white)}
+.btn-primary:hover:not(:disabled){background:var(--accent-hover)}
+.btn-secondary{background:var(--bg);color:var(--text-mid);border:1px solid var(--border)}
+.btn-row{display:flex;gap:8px;margin-top:8px}.btn-row .btn{flex:1}.btn-row .btn-back{flex:.6}
+
+#screen-app{max-width:520px;margin:0 auto;background:var(--bg);height:100vh}
+.app-header{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;background:var(--white);border-bottom:1px solid var(--border-light);position:sticky;top:0;z-index:20}
+.app-header .brand{display:flex;align-items:center;gap:8px}
+.app-header .brand svg{width:28px;height:28px}
+.app-header .brand-text{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text);letter-spacing:-.3px}
+.app-header .brand-text span{color:var(--accent)}
+.stage-pill{font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.5px;cursor:pointer;transition:background .15s;border:none;font-family:'Montserrat',sans-serif}
+.stage-pill:hover{background:#D3EBEB}
+.app-nav{display:flex;background:var(--white);border-bottom:1px solid var(--border-light);position:sticky;top:52px;z-index:19}
+.nav-item{flex:1;text-align:center;padding:10px 0;cursor:pointer;position:relative;transition:color .2s;color:var(--text-soft);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;font-family:'Montserrat',sans-serif}
+.nav-item.active{color:var(--accent)}
+.nav-item::after{content:'';position:absolute;bottom:0;left:20%;width:60%;height:2px;background:var(--accent);transform:scaleX(0);transition:transform .2s}
+.nav-item.active::after{transform:scaleX(1)}
+.tab-panel{display:none;flex:1;overflow-y:auto}.tab-panel.active{display:flex;flex-direction:column}
+
+#panel-chat{background:var(--bg-warm)}
+.chat-area{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:82%;animation:msgIn .3s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg-ai{align-self:flex-start}
+.msg-ai .msg-bubble{background:var(--white);color:var(--text);padding:14px 18px;border-radius:var(--radius) var(--radius) var(--radius) 3px;border:1px solid var(--border-light);font-size:14px;line-height:1.65}
+.msg-ai .msg-sender{font-size:10px;font-weight:600;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.msg-user{align-self:flex-end}
+.msg-user .msg-bubble{background:var(--accent);color:var(--white);padding:14px 18px;border-radius:var(--radius) var(--radius) 3px var(--radius);font-size:14px;line-height:1.65}
+.msg-system{align-self:center;max-width:90%}
+.msg-system .msg-bubble{background:var(--accent-light);color:var(--accent);padding:6px 16px;border-radius:var(--radius-xs);font-size:11px;text-align:center;font-weight:500}
+.typing-dots{align-self:flex-start;padding:14px 20px;background:var(--white);border-radius:var(--radius) var(--radius) var(--radius) 3px;border:1px solid var(--border-light);display:none}
+.typing-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin:0 2px;animation:bounce 1.3s infinite}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.3}40%{transform:translateY(-5px);opacity:1}}
+.chat-composer{padding:10px 14px 14px;background:var(--white);border-top:1px solid var(--border-light);display:flex;align-items:flex-end;gap:8px}
+.chat-composer textarea{flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;font-family:'Montserrat',sans-serif;font-size:14px;color:var(--text);background:var(--bg);outline:none;resize:none;max-height:100px;min-height:42px;line-height:1.5;transition:border-color .2s}
+.chat-composer textarea:focus{border-color:var(--accent);background:var(--white)}
+.chat-composer textarea::placeholder{color:var(--text-faint)}
+.send-btn{width:42px;height:42px;border:none;border-radius:50%;background:var(--accent);color:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.send-btn:hover{background:var(--accent-hover)}
+.send-btn:active{transform:scale(.93)}
+.send-btn svg{width:18px;height:18px}
+
+#panel-checkin{padding:20px 16px;gap:12px;align-items:center;background:var(--bg)}
+.checkin-hero{text-align:center;padding:4px 0}
+.checkin-hero h2{font-size:24px;color:var(--text)}
+.checkin-hero p{font-size:12px;color:var(--text-soft);margin-top:2px}
+.current-stage-card{width:100%;max-width:420px;background:var(--accent-light);border-radius:var(--radius-sm);padding:14px 18px;display:flex;align-items:center;gap:12px;border:1px solid rgba(45,142,142,.12)}
+.current-stage-card .cs-text h3{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;color:var(--accent)}
+.current-stage-card .cs-text p{font-size:11px;color:var(--text-mid);margin-top:1px}
+.current-stage-card .cs-change{margin-left:auto;font-size:11px;font-weight:600;color:var(--accent);background:var(--white);padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid rgba(45,142,142,.2);font-family:'Montserrat',sans-serif}
+.dim-card{width:100%;max-width:420px;background:var(--white);border-radius:var(--radius);padding:16px 18px;border:1px solid var(--border-light);transition:border-color .2s}
+.dim-card:hover{border-color:var(--border)}
+.dim-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.dim-header .dim-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dim-header .dim-icon svg{width:14px;height:14px}
+.dim-icon-mood{background:var(--warm-light);color:var(--warm)}
+.dim-icon-anxiety{background:var(--red-light);color:var(--red)}
+.dim-icon-loneliness{background:#F3EEFA;color:#8B6BA8}
+.dim-icon-uncertainty{background:var(--accent-light);color:var(--accent)}
+.dim-icon-hope{background:var(--amber-light);color:var(--amber)}
+.dim-header .dim-title{font-size:13px;font-weight:600;color:var(--text)}
+.dim-header .dim-val{margin-left:auto;font-size:18px;font-weight:700;color:var(--text);font-family:'Cormorant Garamond',serif;min-width:24px;text-align:right}
+.dim-prompt{font-size:12px;color:var(--text-soft);margin-bottom:10px;line-height:1.4}
+.dim-slider-wrap input[type="range"]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;outline:none;cursor:pointer;background:var(--border)}
+.dim-slider-wrap input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--white);border:2px solid var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.12);cursor:pointer;transition:transform .12s}
+.dim-slider-wrap input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.dim-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+.note-area{width:100%;max-width:420px}
+.note-area textarea{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Montserrat',sans-serif;font-size:13px;color:var(--text);background:var(--white);outline:none;resize:none;height:56px;transition:border-color .2s}
+.note-area textarea:focus{border-color:var(--accent)}
+.note-area textarea::placeholder{color:var(--text-faint)}
+.checkin-btn-area{width:100%;max-width:420px}
+.ai-response{width:100%;max-width:420px;background:var(--white);border-radius:var(--radius);padding:18px;border:1px solid var(--border-light);border-left:3px solid var(--accent);display:none;animation:msgIn .35s ease}
+.ai-response .ar-label{font-size:10px;font-weight:600;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.ai-response .ar-text{font-size:14px;line-height:1.65;color:var(--text)}
+
+#panel-journey{padding:20px 16px;gap:20px;background:var(--bg)}
+.journey-hero{text-align:center}
+.journey-hero h2{font-size:24px;color:var(--text)}
+.journey-hero p{font-size:12px;color:var(--text-soft);margin-top:2px}
+.timeline-track{position:relative;display:flex;flex-direction:column;padding-left:32px}
+.timeline-track::before{content:'';position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:var(--border);border-radius:1px}
+.tl-item{position:relative;padding:8px 0}
+.tl-item .tl-dot{position:absolute;left:-26px;top:12px;width:12px;height:12px;border-radius:50%;border:2px solid var(--border);background:var(--bg);transition:all .3s}
+.tl-item.done .tl-dot{background:var(--accent);border-color:var(--accent)}
+.tl-item.current .tl-dot{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 4px rgba(45,142,142,.15)}
+.tl-item.future .tl-dot{background:var(--bg);border-color:var(--text-faint)}
+.tl-item .tl-label{font-size:13px;font-weight:600;color:var(--text)}
+.tl-item.future .tl-label{color:var(--text-faint)}
+.tl-item .tl-sub{font-size:11px;color:var(--text-soft)}
+.tl-item.future .tl-sub{color:var(--text-faint)}
+.trend-panel{background:var(--white);border-radius:var(--radius);padding:18px;border:1px solid var(--border-light)}
+.trend-panel h3{font-size:20px;color:var(--text);margin-bottom:12px}
+.trend-panel .chart-wrap{height:180px;position:relative}
+.trend-panel .chart-wrap canvas{width:100%!important;height:100%!important}
+.edu-section h3{font-size:20px;color:var(--text);margin-bottom:12px}
+.edu-grid{display:flex;flex-direction:column;gap:8px}
+.edu-item{background:var(--white);border-radius:var(--radius-sm);padding:14px 16px;border:1px solid var(--border-light);display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+.edu-item:hover{border-color:var(--accent)}
+.edu-item .edu-marker{width:4px;height:32px;border-radius:2px;background:var(--accent);flex-shrink:0;opacity:.5}
+.edu-item:nth-child(2) .edu-marker{background:var(--warm)}
+.edu-item:nth-child(3) .edu-marker{background:var(--amber)}
+.edu-item .edu-text{font-size:13px;font-weight:500;color:var(--text);line-height:1.4}
+
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-bg.open{display:flex}
+.modal-panel{background:var(--white);border-radius:var(--radius);padding:28px 24px;max-width:440px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:fadeUp .25s ease}
+.modal-panel h3{font-size:22px;color:var(--text);margin-bottom:4px}
+.modal-panel .modal-desc{font-size:12px;color:var(--text-soft);margin-bottom:16px}
+.modal-stages{display:flex;flex-direction:column;gap:4px}
+.modal-stage-btn{display:flex;align-items:center;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;transition:all .12s;width:100%;text-align:left;font-family:'Montserrat',sans-serif;font-size:13px;color:var(--text);font-weight:500}
+.modal-stage-btn:hover{border-color:var(--accent);background:var(--accent-light)}
+.modal-stage-btn.current{border-color:var(--accent);background:var(--accent-light);font-weight:600}
+.modal-close{margin-top:12px;width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-family:'Montserrat',sans-serif;font-size:12px;color:var(--text-soft);font-weight:500}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+@media(max-width:380px){.stage-picker{grid-template-columns:1fr}.onboard-hero h1{font-size:30px}}
 </style>
 </head>
 <body>
-
-<!-- ═══ ONBOARDING ══════════════════════════════════════ -->
-<div class="screen active" id="screen-onboard">
-  <div class="onboard-container">
-    <div class="onboard-hero">
-      <div class="brand-mark">🌼</div>
-      <h1>Mira</h1>
-      <p class="tagline">Your companion through the IVF journey. Here to listen, support, and walk beside you — every step.</p>
-    </div>
-
-    <div class="steps-indicator">
-      <div class="step-dot active" id="dot-1"></div>
-      <div class="step-dot" id="dot-2"></div>
-      <div class="step-dot" id="dot-3"></div>
-    </div>
-
-    <!-- Step 1: Name -->
-    <div class="onboard-card active" id="step-1">
-      <h2>Let's get to know each other</h2>
-      <p class="card-desc">I'm Mira — think of me as a friend who really understands what you're going through.</p>
-      <div class="field">
-        <label>Your first name</label>
-        <input type="text" id="ob-name" placeholder="What should I call you?">
-      </div>
-      <div class="field">
-        <label>Partner's name (optional)</label>
-        <input type="text" id="ob-partner" placeholder="Leave blank if you prefer">
-      </div>
-      <div class="field">
-        <label>Your clinic (optional)</label>
-        <input type="text" id="ob-clinic" placeholder="e.g., Melbourne IVF">
-      </div>
-      <button class="btn btn-primary" onclick="nextStep(2)">Continue</button>
-    </div>
-
-    <!-- Step 2: Treatment stage -->
-    <div class="onboard-card" id="step-2">
-      <h2>Where are you right now?</h2>
-      <p class="card-desc">This helps me understand your world and tailor my support. You can always change this later.</p>
-
-      <div class="stage-picker" id="stage-picker">
-        <div class="stage-option" data-stage="consultation" onclick="pickStage(this)">
-          <span class="stage-emoji">🩺</span>
-          <span class="stage-name">First Consultation</span>
-          <span class="stage-sub">Just starting out</span>
-        </div>
-        <div class="stage-option" data-stage="investigation" onclick="pickStage(this)">
-          <span class="stage-emoji">🔬</span>
-          <span class="stage-name">Investigations</span>
-          <span class="stage-sub">Tests & workup</span>
-        </div>
-        <div class="stage-option" data-stage="waiting_to_start" onclick="pickStage(this)">
-          <span class="stage-emoji">⏳</span>
-          <span class="stage-name">Waiting to Start</span>
-          <span class="stage-sub">Pre-cycle limbo</span>
-        </div>
-        <div class="stage-option" data-stage="stimulation" onclick="pickStage(this)">
-          <span class="stage-emoji">💉</span>
-          <span class="stage-name">Stimulation</span>
-          <span class="stage-sub">Daily injections</span>
-        </div>
-        <div class="stage-option" data-stage="before_retrieval" onclick="pickStage(this)">
-          <span class="stage-emoji">🌙</span>
-          <span class="stage-name">Before Retrieval</span>
-          <span class="stage-sub">Trigger & waiting</span>
-        </div>
-        <div class="stage-option" data-stage="after_retrieval" onclick="pickStage(this)">
-          <span class="stage-emoji">🌿</span>
-          <span class="stage-name">After Retrieval</span>
-          <span class="stage-sub">Recovery & results</span>
-        </div>
-        <div class="stage-option" data-stage="embryo_development" onclick="pickStage(this)">
-          <span class="stage-emoji">🧫</span>
-          <span class="stage-name">Embryo Updates</span>
-          <span class="stage-sub">Fert & dev reports</span>
-        </div>
-        <div class="stage-option" data-stage="before_transfer" onclick="pickStage(this)">
-          <span class="stage-emoji">🌱</span>
-          <span class="stage-name">Before Transfer</span>
-          <span class="stage-sub">Preparing for ET</span>
-        </div>
-        <div class="stage-option" data-stage="after_transfer" onclick="pickStage(this)">
-          <span class="stage-emoji">🤞</span>
-          <span class="stage-name">After Transfer</span>
-          <span class="stage-sub">The early wait</span>
-        </div>
-        <div class="stage-option" data-stage="two_week_wait" onclick="pickStage(this)">
-          <span class="stage-emoji">🕰️</span>
-          <span class="stage-name">Two-Week Wait</span>
-          <span class="stage-sub">The hardest part</span>
-        </div>
-        <div class="stage-option" data-stage="result_day" onclick="pickStage(this)">
-          <span class="stage-emoji">📋</span>
-          <span class="stage-name">Result Day</span>
-          <span class="stage-sub">Pregnancy test</span>
-        </div>
-        <div class="stage-option" data-stage="positive_result" onclick="pickStage(this)">
-          <span class="stage-emoji">🌈</span>
-          <span class="stage-name">Positive Result</span>
-          <span class="stage-sub">Cautious joy</span>
-        </div>
-        <div class="stage-option" data-stage="negative_result" onclick="pickStage(this)">
-          <span class="stage-emoji">💜</span>
-          <span class="stage-name">Negative Result</span>
-          <span class="stage-sub">Processing & grief</span>
-        </div>
-        <div class="stage-option" data-stage="failed_cycle" onclick="pickStage(this)">
-          <span class="stage-emoji">🌧️</span>
-          <span class="stage-name">After Failed Cycle</span>
-          <span class="stage-sub">Recovering</span>
-        </div>
-        <div class="stage-option" data-stage="between_cycles" onclick="pickStage(this)">
-          <span class="stage-emoji">🔄</span>
-          <span class="stage-name">Between Cycles</span>
-          <span class="stage-sub">Rest & decide</span>
-        </div>
-        <div class="stage-option" data-stage="considering_stopping" onclick="pickStage(this)">
-          <span class="stage-emoji">🌅</span>
-          <span class="stage-name">Considering Stopping</span>
-          <span class="stage-sub">A brave question</span>
-        </div>
-      </div>
-
-      <div class="btn-row" style="margin-top: 20px;">
-        <button class="btn btn-secondary btn-back" onclick="nextStep(1)">Back</button>
-        <button class="btn btn-primary" id="step2-next" onclick="nextStep(3)" disabled>Continue</button>
-      </div>
-    </div>
-
-    <!-- Step 3: Cycle -->
-    <div class="onboard-card" id="step-3">
-      <h2>A bit more context</h2>
-      <p class="card-desc">Every journey is different. This helps me understand yours.</p>
-      <div class="field">
-        <label>Which cycle is this?</label>
-        <select id="ob-cycle">
-          <option value="1">My first cycle</option>
-          <option value="2">Second cycle</option>
-          <option value="3">Third cycle</option>
-          <option value="4">Fourth cycle</option>
-          <option value="5+">Five or more</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>What type of treatment?</label>
-        <select id="ob-treatment">
-          <option value="ivf">IVF</option>
-          <option value="icsi">ICSI</option>
-          <option value="fet">Frozen Embryo Transfer (FET)</option>
-          <option value="iui">IUI</option>
-          <option value="egg_freezing">Egg Freezing</option>
-          <option value="other">Other / Not sure</option>
-        </select>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-secondary btn-back" onclick="nextStep(2)">Back</button>
-        <button class="btn btn-primary" onclick="finishOnboard()">Meet Mira</button>
-      </div>
-    </div>
+<div id="screen-onboard" class="screen active">
+<div class="onboard-container">
+  <div class="onboard-hero">
+    <div class="brand-mark"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="22" stroke="#2D8E8E" stroke-width="2" fill="none"/><path d="M16 28C16 28 19 20 24 20C29 20 32 28 32 28" stroke="#2D8E8E" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="16" r="2.5" fill="#2D8E8E"/><path d="M20 32L24 36L28 32" stroke="#2D8E8E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h1>Melod<span>·AI</span></h1>
+    <p class="tagline">Your companion through the IVF journey</p>
   </div>
-</div>
+  <div class="steps-indicator"><div class="step-dot active" id="sd1"></div><div class="step-dot" id="sd2"></div><div class="step-dot" id="sd3"></div></div>
+  <div class="onboard-card active" id="step1"><h2>Welcome</h2><p class="card-desc">Let's get to know each other. What should we call you?</p><div class="field"><label>Your first name</label><input type="text" id="ob-name" placeholder="e.g. Sarah" autofocus></div><div class="field"><label>Partner's name (optional)</label><input type="text" id="ob-partner" placeholder="e.g. James"></div><button class="btn btn-primary" id="btn-step1" disabled onclick="goStep(2)">Continue</button></div>
+  <div class="onboard-card" id="step2"><h2>Where are you?</h2><p class="card-desc">Select the stage that best describes where you are right now.</p><div class="stage-picker" id="stage-grid"></div><div class="btn-row" style="margin-top:16px"><button class="btn btn-secondary btn-back" onclick="goStep(1)">Back</button><button class="btn btn-primary" id="btn-step2" disabled onclick="goStep(3)">Continue</button></div></div>
+  <div class="onboard-card" id="step3"><h2>A few more details</h2><p class="card-desc">This helps Melod·AI tailor support to your situation.</p><div class="field"><label>Treatment type</label><select id="ob-treatment"><option value="ivf">IVF</option><option value="icsi">ICSI</option><option value="fet">Frozen Embryo Transfer</option><option value="iui">IUI</option><option value="egg_freezing">Egg Freezing</option><option value="other">Other</option></select></div><div class="field"><label>Which cycle is this?</label><select id="ob-cycle"><option value="1">First cycle</option><option value="2">Second cycle</option><option value="3">Third cycle</option><option value="4">Fourth or more</option></select></div><div class="field"><label>Clinic name (optional)</label><input type="text" id="ob-clinic" placeholder="e.g. Melbourne IVF"></div><div class="btn-row"><button class="btn btn-secondary btn-back" onclick="goStep(2)">Back</button><button class="btn btn-primary" onclick="completeOnboarding()">Get started</button></div></div>
+</div></div>
 
-<!-- ═══ MAIN APP ═══════════════════════════════════════ -->
-<div class="screen" id="screen-app">
-  <div class="app-header">
-    <div class="brand">
-      <div class="brand-icon">🌼</div>
-      <span class="brand-text">Mira</span>
-    </div>
-    <div class="stage-pill" id="header-stage" onclick="openStageModal()">—</div>
-  </div>
-
-  <div class="app-nav">
-    <div class="nav-item active" data-panel="chat" onclick="switchPanel('chat')">
-      <span class="nav-icon">💬</span>
-      <span class="nav-label">Chat</span>
-    </div>
-    <div class="nav-item" data-panel="checkin" onclick="switchPanel('checkin')">
-      <span class="nav-icon">🌿</span>
-      <span class="nav-label">Check-in</span>
-    </div>
-    <div class="nav-item" data-panel="journey" onclick="switchPanel('journey')">
-      <span class="nav-icon">🗺️</span>
-      <span class="nav-label">Journey</span>
-    </div>
-  </div>
-
-  <!-- Chat -->
-  <div class="tab-panel active" id="panel-chat">
-    <div class="chat-area" id="chat-area"></div>
-    <div class="typing-dots" id="typing"><span></span><span></span><span></span></div>
-    <div class="chat-composer">
-      <textarea id="chat-input" rows="1" placeholder="Talk to Mira..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
-      <button class="send-btn" onclick="sendMsg()">↑</button>
-    </div>
-  </div>
-
-  <!-- Check-in -->
+<div id="screen-app" class="screen">
+  <div class="app-header"><div class="brand"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="22" stroke="#2D8E8E" stroke-width="2" fill="none"/><path d="M16 28C16 28 19 20 24 20C29 20 32 28 32 28" stroke="#2D8E8E" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="16" r="2.5" fill="#2D8E8E"/><path d="M20 32L24 36L28 32" stroke="#2D8E8E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="brand-text">Melod<span>·AI</span></div></div><button class="stage-pill" id="header-stage" onclick="openStageModal()">Loading</button></div>
+  <div class="app-nav"><div class="nav-item active" onclick="switchTab('chat')">Chat</div><div class="nav-item" onclick="switchTab('checkin')">Check-in</div><div class="nav-item" onclick="switchTab('journey')">Journey</div></div>
+  <div class="tab-panel active" id="panel-chat"><div class="chat-area" id="chat-area"></div><div class="typing-dots" id="typing"><span></span><span></span><span></span></div><div class="chat-composer"><textarea id="chat-input" rows="1" placeholder="Talk to Melod·AI..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea><button class="send-btn" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div></div>
   <div class="tab-panel" id="panel-checkin">
-    <div class="checkin-hero">
-      <h2>How are you today?</h2>
-      <p>Take 30 seconds to check in with yourself</p>
-    </div>
-
-    <div class="current-stage-card">
-      <span class="cs-icon" id="cs-icon">💉</span>
-      <div class="cs-text">
-        <h3 id="cs-name">Stimulation</h3>
-        <p id="cs-sub">Your check-in is coupled with this stage</p>
-      </div>
-      <button class="cs-change" onclick="openStageModal()">Change</button>
-    </div>
-
-    <div class="dim-card">
-      <div class="dim-header">
-        <span class="dim-emoji">☀️</span>
-        <span class="dim-title">Mood</span>
-        <span class="dim-val" id="v-mood">5</span>
-      </div>
-      <div class="dim-prompt">How would you describe your overall mood today?</div>
-      <div class="dim-slider-wrap">
-        <input type="range" min="0" max="10" value="5" class="sl-mood" id="sl-mood" oninput="document.getElementById('v-mood').textContent=this.value">
-        <div class="dim-labels"><span>Heavy</span><span>Bright</span></div>
-      </div>
-    </div>
-
-    <div class="dim-card">
-      <div class="dim-header">
-        <span class="dim-emoji">🌊</span>
-        <span class="dim-title">Worry & Fear</span>
-        <span class="dim-val" id="v-anx">5</span>
-      </div>
-      <div class="dim-prompt">How much space is worry taking up today?</div>
-      <div class="dim-slider-wrap">
-        <input type="range" min="0" max="10" value="5" class="sl-anxiety" id="sl-anx" oninput="document.getElementById('v-anx').textContent=this.value">
-        <div class="dim-labels"><span>Calm</span><span>Overwhelmed</span></div>
-      </div>
-    </div>
-
-    <div class="dim-card">
-      <div class="dim-header">
-        <span class="dim-emoji">🫂</span>
-        <span class="dim-title">Connection</span>
-        <span class="dim-val" id="v-lone">5</span>
-      </div>
-      <div class="dim-prompt">Did you feel connected to someone who understands?</div>
-      <div class="dim-slider-wrap">
-        <input type="range" min="0" max="10" value="5" class="sl-loneliness" id="sl-lone" oninput="document.getElementById('v-lone').textContent=this.value">
-        <div class="dim-labels"><span>Very alone</span><span>Held & seen</span></div>
-      </div>
-    </div>
-
-    <div class="dim-card">
-      <div class="dim-header">
-        <span class="dim-emoji">🧭</span>
-        <span class="dim-title">Uncertainty</span>
-        <span class="dim-val" id="v-unc">5</span>
-      </div>
-      <div class="dim-prompt">How much control do you feel over what's happening?</div>
-      <div class="dim-slider-wrap">
-        <input type="range" min="0" max="10" value="5" class="sl-uncertainty" id="sl-unc" oninput="document.getElementById('v-unc').textContent=this.value">
-        <div class="dim-labels"><span>Grounded</span><span>Adrift</span></div>
-      </div>
-    </div>
-
-    <div class="dim-card">
-      <div class="dim-header">
-        <span class="dim-emoji">🕯️</span>
-        <span class="dim-title">Hope</span>
-        <span class="dim-val" id="v-hope">5</span>
-      </div>
-      <div class="dim-prompt">Where is your hope sitting today?</div>
-      <div class="dim-slider-wrap">
-        <input type="range" min="0" max="10" value="5" class="sl-hope" id="sl-hope" oninput="document.getElementById('v-hope').textContent=this.value">
-        <div class="dim-labels"><span>Ember</span><span>Flame</span></div>
-      </div>
-    </div>
-
-    <div class="note-area">
-      <textarea id="ci-note" placeholder="Anything else on your mind? (optional)"></textarea>
-    </div>
-
-    <div class="checkin-btn-area">
-      <button class="btn btn-primary" id="ci-btn" onclick="submitCheckin()">Share with Mira</button>
-    </div>
-
-    <div class="mira-response" id="ci-response">
-      <div class="mr-label">✿ Mira says</div>
-      <div class="mr-text" id="ci-response-text"></div>
-    </div>
+    <div class="checkin-hero"><h2>Daily Check-in</h2><p>How are you feeling today?</p></div>
+    <div class="current-stage-card"><div class="cs-text"><h3 id="ci-stage-name">Loading</h3><p id="ci-stage-cycle">Cycle 1</p></div><button class="cs-change" onclick="openStageModal()">Change</button></div>
+    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-mood"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg></div><div class="dim-title">Mood</div><div class="dim-val" id="v-mood">5</div></div><p class="dim-prompt">How's your overall mood right now?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-mood').textContent=this.value;if(collector)collector.onSliderChange('mood',+this.value)"></div><div class="dim-labels"><span>Very low</span><span>Great</span></div></div>
+    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-anxiety"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="dim-title">Anxiety</div><div class="dim-val" id="v-anxiety">5</div></div><p class="dim-prompt">How anxious or on-edge are you feeling?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-anxiety').textContent=this.value;if(collector)collector.onSliderChange('anxiety',+this.value)"></div><div class="dim-labels"><span>Calm</span><span>Very anxious</span></div></div>
+    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-loneliness"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="dim-title">Loneliness</div><div class="dim-val" id="v-lonely">5</div></div><p class="dim-prompt">How connected or isolated do you feel?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-lonely').textContent=this.value;if(collector)collector.onSliderChange('loneliness',+this.value)"></div><div class="dim-labels"><span>Connected</span><span>Very alone</span></div></div>
+    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-uncertainty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="dim-title">Uncertainty</div><div class="dim-val" id="v-uncertain">5</div></div><p class="dim-prompt">How uncertain do things feel right now?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-uncertain').textContent=this.value;if(collector)collector.onSliderChange('uncertainty',+this.value)"></div><div class="dim-labels"><span>Settled</span><span>Very uncertain</span></div></div>
+    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-hope"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="dim-title">Hope</div><div class="dim-val" id="v-hope">5</div></div><p class="dim-prompt">How hopeful are you feeling about things?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-hope').textContent=this.value;if(collector)collector.onSliderChange('hope',+this.value)"></div><div class="dim-labels"><span>Hopeless</span><span>Very hopeful</span></div></div>
+    <div class="note-area"><textarea id="ci-note" placeholder="Anything on your mind? (optional)"></textarea></div>
+    <div class="checkin-btn-area"><button class="btn btn-primary" id="btn-checkin" onclick="submitCheckin()">Submit check-in</button></div>
+    <div class="ai-response" id="ci-response"><div class="ar-label">Melod·AI</div><div class="ar-text" id="ci-response-text"></div></div>
   </div>
-
-  <!-- Journey -->
   <div class="tab-panel" id="panel-journey">
-    <div class="journey-hero">
-      <h2>Your Journey</h2>
-      <p>Where you've been and where you're headed</p>
-    </div>
-
-    <div class="timeline-track" id="timeline"></div>
-
-    <div class="trend-panel">
-      <h3>Your Week</h3>
-      <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
-    </div>
-
-    <div class="edu-section">
-      <h3>Learn About This Stage</h3>
-      <div class="edu-grid" id="edu-grid"></div>
-    </div>
+    <div class="journey-hero"><h2>Your Journey</h2><p>Tracking where you've been and where you are</p></div>
+    <div class="trend-panel"><h3>Mood &amp; Anxiety</h3><div class="chart-wrap"><canvas id="trend-chart"></canvas></div></div>
+    <div class="edu-section"><h3>Learn More</h3><div class="edu-grid" id="edu-grid"></div></div>
+    <div style="margin-top:4px"><h3 style="font-family:'Cormorant Garamond',serif;font-size:20px;margin-bottom:12px">Timeline</h3><div class="timeline-track" id="timeline"></div></div>
   </div>
 </div>
 
-<!-- ═══ STAGE CHANGE MODAL ═════════════════════════════ -->
-<div class="modal-bg" id="stage-modal">
-  <div class="modal-panel">
-    <h3>Update your stage</h3>
-    <p class="modal-desc">Where are you in your journey right now? Every check-in is tagged with your current stage — this helps us learn and support you better.</p>
-    <div class="modal-stages" id="modal-stages"></div>
-    <button class="btn btn-primary" style="margin-top:16px" onclick="confirmStageChange()">Update</button>
-    <button class="btn btn-secondary" style="margin-top:8px" onclick="closeStageModal()">Cancel</button>
-  </div>
-</div>
+<div class="modal-bg" id="stage-modal" onclick="if(event.target===this)closeStageModal()"><div class="modal-panel"><h3>Update your stage</h3><p class="modal-desc">Select where you are in your treatment journey.</p><div class="modal-stages" id="modal-stages"></div><button class="modal-close" onclick="closeStageModal()">Cancel</button></div></div>
 
-<!-- Demo ribbon -->
-<div class="demo-ribbon">PROTOTYPE — IVF Companion by Dr Yuval Fouks · Not connected to backend</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-/* ═══ TREATMENT STAGES ═════════════════════════════════
-   Granular, clinically meaningful stages.
-   Each check-in is tagged with the current stage —
-   this is the data structure for future predictive models.
-   ══════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════════
+   MELOD-AI PASSIVE DIGITAL PHENOTYPING COLLECTOR
+   Silent behavioural instrumentation — all signals mapped to clinical
+   distress constructs (psychomotor, sleep, withdrawal, rumination,
+   anhedonia, anxiety, hopelessness). See signal_analysis.py for backend.
+   ════════════════════════════════════════════════════════════════════ */
+class PassiveCollector{
+constructor(cfg={}){this.patientId=cfg.patientId||null;this.apiBase=cfg.apiBase||'';this.flushInterval=cfg.flushInterval||60000;this.debug=cfg.debug||false;
+this.buffer=[];this.sessionId=this._uuid();this.sessionStart=Date.now();
+this.m={sessionStartTime:new Date().toISOString(),sessionStartHour:new Date().getHours(),totalTouches:0,totalScrollEvents:0,tabSwitches:0,appBackgrounds:0,
+keystrokes:[],deletions:0,totalCharsTyped:0,compositionStarts:[],compositionEnds:[],messagesSent:0,messageLengths:[],pasteEvents:0,
+touchVelocities:[],touchPressures:[],tapIntervals:[],longPresses:0,doubleTaps:0,
+scrollVelocities:[],scrollDirectionChanges:0,scrollDepths:{},
+sliderInteractions:[],checkinStartTime:null,checkinCompletionTime:null,checkinAbandoned:false,noteFieldEngaged:false,noteFieldTime:0,
+panelVisits:{},educationTaps:[],stageModalOpens:0,stageChanges:[],
+deviceMotionSamples:[],screenOrientation:null,orientationChanges:0,batteryLevel:null,batteryCharging:null,connectionType:null,
+hourOfDay:new Date().getHours(),dayOfWeek:new Date().getDay(),isLateNight:new Date().getHours()>=0&&new Date().getHours()<5};
+this._lt=0;this._lsy=0;this._lst=0;this._lkt=0;this._cs=null;this._sst=0;this._sa=0;this._tst=0;this._composing=false;this._cst=0;this._cf=null;this._cil=0;this._nfs=0;this._ltx=undefined;this._lty=undefined;this._ltmt=0;this._lsd=null;this._msc=0;
+this._bind();this._startFlush();this._probeAPIs();
+if(this.debug)console.log('[Phenotyping] Init',this.sessionId)}
+setPatientId(id){this.patientId=id}
+record(type,val,meta={}){this.buffer.push({signal_type:type,value:val,timestamp:new Date().toISOString(),session_id:this.sessionId,metadata:meta})}
+async flush(){if(!this.patientId||(!this.buffer.length&&!this._hasDerived()))return;
+const d=this._derive();const p={patient_id:this.patientId,session_id:this.sessionId,signals:[...this.buffer],derived_features:d,
+session_metadata:{start:this.m.sessionStartTime,duration_ms:Date.now()-this.sessionStart,hour_of_day:this.m.sessionStartHour,is_late_night:this.m.isLateNight,day_of_week:this.m.dayOfWeek,
+user_agent:navigator.userAgent,screen_width:screen.width,screen_height:screen.height,viewport_width:window.innerWidth,viewport_height:window.innerHeight,
+timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,language:navigator.language}};
+const n=this.buffer.length;this.buffer=[];
+try{await fetch(this.apiBase+'/passive-signals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+if(this.debug)console.log('[Phenotyping] Flushed',n,'signals')}catch(e){this.buffer=[...p.signals,...this.buffer];if(this.debug)console.warn('[Phenotyping] Flush failed:',e.message)}}
+async endSession(){this.record('session_end',Date.now()-this.sessionStart,{total_touches:this.m.totalTouches,total_messages:this.m.messagesSent});await this.flush();this._unbind();clearInterval(this._ft)}
 
-const STAGES = [
-  { id: 'consultation',         emoji: '🩺', name: 'First Consultation',    desc: 'Meeting your specialist, discussing options' },
-  { id: 'investigation',        emoji: '🔬', name: 'Investigations',        desc: 'Blood tests, scans, semen analysis, genetics' },
-  { id: 'waiting_to_start',     emoji: '⏳', name: 'Waiting to Start',      desc: 'Approved, waiting for cycle to begin' },
-  { id: 'downregulation',       emoji: '💊', name: 'Down-Regulation',       desc: 'Suppression phase before stimulation' },
-  { id: 'stimulation',          emoji: '💉', name: 'Stimulation',           desc: 'Daily injections, growing follicles' },
-  { id: 'monitoring',           emoji: '📊', name: 'Monitoring Scans',      desc: 'Tracking follicle growth, blood tests' },
-  { id: 'trigger',              emoji: '🌙', name: 'Trigger Shot',          desc: 'Final maturation trigger, countdown begins' },
-  { id: 'before_retrieval',     emoji: '😰', name: 'Day Before Retrieval',  desc: 'Anxiety, fasting, preparing' },
-  { id: 'retrieval_day',        emoji: '🏥', name: 'Retrieval Day',         desc: 'The procedure itself' },
-  { id: 'post_retrieval',       emoji: '🛋️', name: 'Recovery',              desc: 'Physical recovery, waiting for fert report' },
-  { id: 'fertilisation_report', emoji: '🧫', name: 'Fertilisation Report',  desc: 'How many fertilised? The first drop-off' },
-  { id: 'embryo_development',   emoji: '🔬', name: 'Embryo Updates',        desc: 'Day 3 / Day 5 reports, the attrition curve' },
-  { id: 'freeze_all',           emoji: '❄️', name: 'Freeze All',            desc: 'All embryos frozen, no fresh transfer' },
-  { id: 'before_transfer',      emoji: '🌱', name: 'Before Transfer',       desc: 'Preparing for embryo transfer' },
-  { id: 'transfer_day',         emoji: '✨', name: 'Transfer Day',          desc: 'The embryo\'s new beginning' },
-  { id: 'early_tww',            emoji: '🤞', name: 'Early TWW (Days 1-5)',  desc: 'Just transferred, symptom watching begins' },
-  { id: 'late_tww',             emoji: '🕰️', name: 'Late TWW (Days 6-12)', desc: 'The hardest stretch of waiting' },
-  { id: 'result_day',           emoji: '📋', name: 'Result Day',            desc: 'Beta HCG blood test' },
-  { id: 'positive_result',      emoji: '🌈', name: 'Positive Result',       desc: 'Cautious joy, early monitoring' },
-  { id: 'negative_result',      emoji: '💜', name: 'Negative Result',       desc: 'Processing, grief, what now' },
-  { id: 'chemical_pregnancy',   emoji: '💔', name: 'Chemical Pregnancy',    desc: 'Brief positive, then loss' },
-  { id: 'miscarriage',          emoji: '🕊️', name: 'Miscarriage',          desc: 'Loss after positive — grief & recovery' },
-  { id: 'failed_cycle_acute',   emoji: '🌧️', name: 'Fresh After Failure',  desc: 'The raw days right after' },
-  { id: 'failed_cycle_processing', emoji: '🌫️', name: 'Processing Failure', desc: 'Making sense of what happened' },
-  { id: 'wtf_appointment',      emoji: '📝', name: 'Follow-up / WTF Appt',  desc: 'Reviewing what happened, planning next' },
-  { id: 'between_cycles',       emoji: '🔄', name: 'Between Cycles',        desc: 'Resting, recovering, deciding' },
-  { id: 'considering_stopping',  emoji: '🌅', name: 'Considering Stopping', desc: 'A courageous and painful question' },
-  { id: 'donor_journey',        emoji: '🤝', name: 'Donor/Surrogacy Path',  desc: 'Exploring alternative paths' },
-  { id: 'early_pregnancy',      emoji: '🤰', name: 'Early Pregnancy',       desc: 'IVF pregnancy — worry doesn\'t stop' },
-];
+// ── HOOKS (called from app code) ──
+onMessageSent(text){this.m.messagesSent++;this.m.messageLengths.push(text.length);
+const ct=this.m.compositionStarts.length?Date.now()-this.m.compositionStarts[this.m.compositionStarts.length-1]:null;
+const w=text.trim().split(/\s+/).length;const qm=(text.match(/\?/g)||[]).length;const em=(text.match(/!/g)||[]).length;
+const letters=text.replace(/[^a-zA-Z]/g,'');const cr=letters.length>0?(text.match(/[A-Z]/g)||[]).length/letters.length:0;
+const el=(text.match(/\.{2,}/g)||[]).length;
+const nw=(text.toLowerCase().match(/\b(can't|won't|never|nothing|hopeless|alone|scared|terrified|hate|failed|pointless|useless|worthless|empty|numb|dead|die|hurt|pain|crying|cry|awful|terrible|horrible|devastated|broken|shattered|lost)\b/g)||[]).length;
+const uw=(text.toLowerCase().match(/\b(maybe|might|possibly|uncertain|unsure|confused|don't know|not sure|i think|i guess|wonder|worried|what if)\b/g)||[]).length;
+this.record('message_sent',text.length,{word_count:w,composition_time_ms:ct,question_marks:qm,exclamation_marks:em,caps_ratio:Math.round(cr*100)/100,ellipsis_count:el,negative_word_count:nw,uncertainty_word_count:uw,has_emoji:/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}]/u.test(text)})}
+onCheckinStart(){this.m.checkinStartTime=Date.now();this.m.checkinAbandoned=true;this.record('checkin_start',null)}
+onSliderChange(dim,val){if(this._cs!==dim){if(this._cs)this._finSlider();this._cs=dim;this._sst=Date.now();this._sa=0}this._sa++}
+_finSlider(){if(!this._cs)return;this.m.sliderInteractions.push({dimension:this._cs,adjustments:this._sa,time_spent_ms:Date.now()-this._sst})}
+onCheckinComplete(scores){this._finSlider();this._cs=null;this.m.checkinAbandoned=false;this.m.checkinCompletionTime=Date.now();
+const dur=this.m.checkinStartTime?Date.now()-this.m.checkinStartTime:null;
+this.record('checkin_complete',dur,{duration_ms:dur,scores:scores,slider_interactions:this.m.sliderInteractions.length,note_engaged:this.m.noteFieldEngaged,note_time_ms:this.m.noteFieldTime})}
+onTabSwitch(from,to){this.m.tabSwitches++;this.m.panelVisits[to]=(this.m.panelVisits[to]||0)+1;this.record('tab_switch',null,{from:from,to:to})}
+onEducationTap(topic){this.m.educationTaps.push({topic:topic,time:Date.now()});this.record('education_tap',topic)}
+onStageModalOpen(){this.m.stageModalOpens++;this.record('stage_modal_open',null)}
+onStageChange(oldS,newS){this.m.stageChanges.push({from:oldS,to:newS,time:Date.now()});this.record('stage_change',null,{from:oldS,to:newS})}
+onResponseReceived(len){this._lastRespTime=Date.now();this.record('response_received',len)}
 
-const STAGE_MAP = {};
-STAGES.forEach(s => STAGE_MAP[s.id] = s);
+// ── EVENT BINDING ──
+_bind(){
+this._hTS=e=>{const now=Date.now();this.m.totalTouches++;this._tst=now;
+if(this._lt>0){const iv=now-this._lt;this.m.tapIntervals.push(iv);if(iv<300)this.m.doubleTaps++}this._lt=now;
+if(e.touches&&e.touches[0]&&e.touches[0].force>0)this.m.touchPressures.push(e.touches[0].force);
+if(this._motionPending){this._motionPending=false;DeviceMotionEvent.requestPermission&&DeviceMotionEvent.requestPermission().then(s=>{if(s==='granted')window.addEventListener('devicemotion',this._hDM)}).catch(()=>{})}};
+this._hTM=e=>{if(!e.touches||!e.touches[0])return;const t=e.touches[0];
+if(this._ltx!==undefined){const dx=t.clientX-this._ltx,dy=t.clientY-this._lty,dt=Date.now()-this._ltmt;
+if(dt>0)this.m.touchVelocities.push(Math.sqrt(dx*dx+dy*dy)/dt)}
+this._ltx=t.clientX;this._lty=t.clientY;this._ltmt=Date.now()};
+this._hTE=e=>{const dur=Date.now()-this._tst;if(dur>500){this.m.longPresses++;this.record('long_press',dur)}this._ltx=undefined;this._lty=undefined};
+this._hKD=e=>{const now=Date.now();this.m.totalCharsTyped++;
+if(this._lkt>0){const iki=now-this._lkt;if(iki<5000)this.m.keystrokes.push(iki)}this._lkt=now;
+if(e.key==='Backspace'||e.key==='Delete')this.m.deletions++};
+this._hScr=()=>{const now=Date.now(),sy=window.scrollY||document.documentElement.scrollTop;this.m.totalScrollEvents++;
+if(this._lst>0){const dt=now-this._lst,dy=Math.abs(sy-this._lsy);if(dt>0)this.m.scrollVelocities.push(dy/dt);
+const dir=sy>this._lsy?'d':'u';if(this._lsd&&dir!==this._lsd)this.m.scrollDirectionChanges++;this._lsd=dir}
+this._lsy=sy;this._lst=now;
+const ap=document.querySelector('.tab-panel.active');if(ap){const ms=ap.scrollHeight-ap.clientHeight;if(ms>0)this.m.scrollDepths[ap.id]=Math.max(this.m.scrollDepths[ap.id]||0,ap.scrollTop/ms)}};
+this._hVis=()=>{if(document.hidden){this.m.appBackgrounds++;this.record('app_background',null,{session_so_far:Date.now()-this.sessionStart});this.flush()}else{this.record('app_foreground',null)}};
+this._hFI=e=>{const t=e.target;if(t.tagName==='TEXTAREA'||t.tagName==='INPUT'){this._composing=true;this._cst=Date.now();this._cf=t.id;this._cil=(t.value||'').length;
+if(t.id==='ci-note'){this.m.noteFieldEngaged=true;this._nfs=Date.now()}
+if(t.id==='chat-input')this.m.compositionStarts.push(Date.now())}};
+this._hFO=e=>{const t=e.target;if(this._composing&&(t.tagName==='TEXTAREA'||t.tagName==='INPUT')){
+const dur=Date.now()-this._cst,fl=(t.value||'').length;
+this.record('composition_end',dur,{field:this._cf,duration_ms:dur,chars_added:Math.max(0,fl-this._cil),final_length:fl});
+if(t.id==='chat-input')this.m.compositionEnds.push(Date.now());
+if(t.id==='ci-note'&&this._nfs)this.m.noteFieldTime+=Date.now()-this._nfs;
+this._composing=false}};
+this._hPaste=e=>{this.m.pasteEvents++;const t=(e.clipboardData||window.clipboardData)?.getData('text')||'';this.record('paste',t.length,{field:(e.target.id||'').substring(0,30)})};
+this._hOr=()=>{this.m.orientationChanges++;this.record('orientation_change',screen.orientation?.type)};
+this._hDM=e=>{this._msc++;if(this._msc%20!==0)return;const a=e.accelerationIncludingGravity;
+if(a&&a.x!=null){const mag=Math.sqrt(a.x**2+a.y**2+a.z**2),mv=Math.abs(mag-9.81);
+this.m.deviceMotionSamples.push(mv);if(this.m.deviceMotionSamples.length>300)this.m.deviceMotionSamples=this.m.deviceMotionSamples.slice(-300)}};
+this._hBU=()=>this.flush();
+document.addEventListener('touchstart',this._hTS,{passive:true});document.addEventListener('touchmove',this._hTM,{passive:true});document.addEventListener('touchend',this._hTE,{passive:true});
+document.addEventListener('keydown',this._hKD);window.addEventListener('scroll',this._hScr,{passive:true,capture:true});
+document.addEventListener('visibilitychange',this._hVis);document.addEventListener('focusin',this._hFI);document.addEventListener('focusout',this._hFO);
+document.addEventListener('paste',this._hPaste);window.addEventListener('orientationchange',this._hOr);
+if(window.DeviceMotionEvent){if(typeof DeviceMotionEvent.requestPermission==='function')this._motionPending=true;else window.addEventListener('devicemotion',this._hDM)}
+window.addEventListener('beforeunload',this._hBU);window.addEventListener('pagehide',this._hBU);
+window.addEventListener('online',()=>this.record('connectivity','online'));window.addEventListener('offline',()=>this.record('connectivity','offline'))}
 
-const EDUCATION = {
-  consultation: ['What to expect at your first fertility appointment', 'Questions worth asking your specialist', 'Understanding fertility testing'],
-  investigation: ['AMH, FSH, and what the numbers mean', 'What an antral follicle count tells us', 'Semen analysis — what\'s normal?'],
-  waiting_to_start: ['How to prepare your body (and mind)', 'The emotional weight of waiting', 'What your clinic is planning'],
-  stimulation: ['What stim medications actually do', 'Managing injection anxiety', 'Side effects: normal vs call your clinic'],
-  monitoring: ['What they\'re looking for on scans', 'Why follicle numbers change', 'Adjusting your protocol'],
-  trigger: ['What the trigger shot does', 'Timing matters — here\'s why', 'Preparing for retrieval'],
-  before_retrieval: ['What to expect on the day', 'Fasting and preparation tips', 'Managing pre-procedure anxiety'],
-  retrieval_day: ['Step by step through retrieval', 'What the team is doing', 'After the procedure'],
-  post_retrieval: ['Recovery timeline', 'OHSS: what to watch for', 'When to call your clinic'],
-  fertilisation_report: ['Understanding your fert report', 'Why some eggs don\'t fertilise', 'It\'s more common than you think'],
-  embryo_development: ['Day 3 vs Day 5 embryos', 'What grading means (and doesn\'t)', 'The attrition curve is normal'],
-  before_transfer: ['Fresh vs frozen transfer', 'Preparing your lining', 'What you can and can\'t control'],
-  transfer_day: ['Transfer is simpler than you think', 'What happens in the lab', 'The first hours after'],
-  early_tww: ['What\'s happening in your body now', 'Why symptom-spotting is unreliable', 'Grounding techniques for the wait'],
-  late_tww: ['The implantation window', 'Managing the unbearable wait', 'What the research says about rest'],
-  result_day: ['Understanding beta HCG', 'What the number means', 'Preparing for either outcome'],
-  positive_result: ['First trimester after IVF', 'When IVF worry meets pregnancy worry', 'Monitoring and next steps'],
-  negative_result: ['Your grief is valid and real', 'There is no right way to feel', 'When to think about what\'s next (not now)'],
-  chemical_pregnancy: ['What happened and why', 'This loss is real', 'Physical and emotional recovery'],
-  miscarriage: ['Grief after loss', 'Physical recovery', 'When to seek support'],
-  failed_cycle_acute: ['The first days are the hardest', 'Be gentle with yourself', 'You don\'t have to decide anything yet'],
-  failed_cycle_processing: ['Making sense of what happened', 'Talking to your partner', 'When grief comes in waves'],
-  between_cycles: ['Giving your body time', 'Questions for your next appointment', 'The courage of trying again'],
-  considering_stopping: ['There is no failure in stopping', 'Life after IVF', 'Finding your path forward'],
-};
+_unbind(){document.removeEventListener('touchstart',this._hTS);document.removeEventListener('touchmove',this._hTM);document.removeEventListener('touchend',this._hTE);
+document.removeEventListener('keydown',this._hKD);window.removeEventListener('scroll',this._hScr,{capture:true});
+document.removeEventListener('visibilitychange',this._hVis);document.removeEventListener('focusin',this._hFI);document.removeEventListener('focusout',this._hFO);
+document.removeEventListener('paste',this._hPaste);window.removeEventListener('orientationchange',this._hOr);
+window.removeEventListener('devicemotion',this._hDM);window.removeEventListener('beforeunload',this._hBU);window.removeEventListener('pagehide',this._hBU)}
 
-/* ═══ APP STATE ════════════════════════════════════════ */
-let state = {
-  name: '',
-  partner: '',
-  clinic: '',
-  stage: '',
-  cycle: '1',
-  treatment: 'ivf',
-  checkins: [],
-};
-
-let pendingStage = '';
-
-/* ═══ ONBOARDING ═══════════════════════════════════════ */
-function nextStep(n) {
-  if (n === 2) {
-    const name = document.getElementById('ob-name').value.trim();
-    if (!name) { document.getElementById('ob-name').focus(); return; }
-    state.name = name;
-    state.partner = document.getElementById('ob-partner').value.trim();
-    state.clinic = document.getElementById('ob-clinic').value.trim();
-  }
-  document.querySelectorAll('.onboard-card').forEach(c => c.classList.remove('active'));
-  document.getElementById(`step-${n}`).classList.add('active');
-  document.querySelectorAll('.step-dot').forEach((d, i) => {
-    d.classList.remove('active', 'done');
-    if (i + 1 < n) d.classList.add('done');
-    if (i + 1 === n) d.classList.add('active');
-  });
+// ── DERIVED FEATURES ──
+_derive(){const f={};f.session_duration_ms=Date.now()-this.sessionStart;f.session_hour=this.m.sessionStartHour;f.is_late_night=this.m.isLateNight;f.day_of_week=this.m.dayOfWeek;
+f.total_touches=this.m.totalTouches;f.total_messages_sent=this.m.messagesSent;f.app_backgrounds=this.m.appBackgrounds;f.tab_switches=this.m.tabSwitches;f.orientation_changes=this.m.orientationChanges;f.paste_events=this.m.pasteEvents;
+if(this.m.keystrokes.length>2){f.typing_speed_mean_ms=this._mean(this.m.keystrokes);f.typing_speed_median_ms=this._median(this.m.keystrokes);f.typing_speed_std_ms=this._std(this.m.keystrokes);f.typing_speed_cv=f.typing_speed_std_ms/(f.typing_speed_mean_ms||1)}
+f.total_chars_typed=this.m.totalCharsTyped;f.total_deletions=this.m.deletions;f.deletion_ratio=this.m.totalCharsTyped>0?this.m.deletions/this.m.totalCharsTyped:0;
+if(this.m.messageLengths.length>0){f.message_length_mean=this._mean(this.m.messageLengths);f.message_length_std=this._std(this.m.messageLengths);f.message_count=this.m.messageLengths.length;
+if(this.m.messageLengths.length>=3)f.message_length_trend=this._slope(this.m.messageLengths)}
+if(this.m.compositionStarts.length>0&&this.m.compositionEnds.length>0){const ct=[];for(let i=0;i<Math.min(this.m.compositionStarts.length,this.m.compositionEnds.length);i++)ct.push(this.m.compositionEnds[i]-this.m.compositionStarts[i]);
+if(ct.length>0){f.composition_time_mean_ms=this._mean(ct);f.composition_time_max_ms=Math.max(...ct)}}
+if(this.m.touchVelocities.length>5){f.touch_velocity_mean=this._mean(this.m.touchVelocities);f.touch_velocity_std=this._std(this.m.touchVelocities)}
+if(this.m.tapIntervals.length>3){f.tap_interval_mean_ms=this._mean(this.m.tapIntervals);f.tap_interval_std_ms=this._std(this.m.tapIntervals)}
+f.long_presses=this.m.longPresses;f.double_taps=this.m.doubleTaps;
+if(this.m.touchPressures.length>3){f.touch_pressure_mean=this._mean(this.m.touchPressures);f.touch_pressure_std=this._std(this.m.touchPressures)}
+if(this.m.scrollVelocities.length>3){f.scroll_velocity_mean=this._mean(this.m.scrollVelocities);f.scroll_velocity_max=Math.max(...this.m.scrollVelocities);f.scroll_velocity_std=this._std(this.m.scrollVelocities)}
+f.scroll_direction_changes=this.m.scrollDirectionChanges;f.scroll_depths=this.m.scrollDepths;
+if(this.m.deviceMotionSamples.length>10){f.motion_magnitude_mean=this._mean(this.m.deviceMotionSamples);f.motion_magnitude_std=this._std(this.m.deviceMotionSamples);f.motion_magnitude_max=Math.max(...this.m.deviceMotionSamples)}
+if(this.m.sliderInteractions.length>0){const tt=this.m.sliderInteractions.reduce((s,i)=>s+i.time_spent_ms,0);const ta=this.m.sliderInteractions.reduce((s,i)=>s+i.adjustments,0);
+f.checkin_total_slider_time_ms=tt;f.checkin_total_adjustments=ta;f.checkin_adjustments_per_slider=ta/this.m.sliderInteractions.length;f.checkin_abandoned=this.m.checkinAbandoned;f.checkin_note_engaged=this.m.noteFieldEngaged;f.checkin_note_time_ms=this.m.noteFieldTime;
+if(this.m.checkinStartTime&&this.m.checkinCompletionTime)f.checkin_duration_ms=this.m.checkinCompletionTime-this.m.checkinStartTime}
+f.panel_visits=this.m.panelVisits;f.education_taps_count=this.m.educationTaps.length;f.stage_modal_opens=this.m.stageModalOpens;
+const v=Object.values(this.m.panelVisits);if(v.length>0){const tot=v.reduce((a,b)=>a+b,0);f.navigation_entropy=-v.reduce((h,x)=>{const p=x/tot;return h+(p>0?p*Math.log2(p):0)},0)}
+f.battery_level=this.m.batteryLevel;f.battery_charging=this.m.batteryCharging;f.connection_type=this.m.connectionType;
+return f}
+_hasDerived(){return this.m.totalTouches>0||this.m.messagesSent>0||this.m.totalCharsTyped>0}
+async _probeAPIs(){if(navigator.getBattery){try{const b=await navigator.getBattery();this.m.batteryLevel=Math.round(b.level*100);this.m.batteryCharging=b.charging;
+b.addEventListener('levelchange',()=>{this.m.batteryLevel=Math.round(b.level*100);if(b.level<0.15&&this.m.isLateNight)this.record('low_battery_late_night',b.level)});
+b.addEventListener('chargingchange',()=>{this.m.batteryCharging=b.charging})}catch(e){}}
+if(navigator.connection){this.m.connectionType=navigator.connection.effectiveType;navigator.connection.addEventListener('change',()=>{this.m.connectionType=navigator.connection.effectiveType;this.record('connection_change',navigator.connection.effectiveType)})}
+if(screen.orientation)this.m.screenOrientation=screen.orientation.type}
+_startFlush(){this._ft=setInterval(()=>this.flush(),this.flushInterval)}
+_uuid(){return'xxxx-xxxx'.replace(/x/g,()=>((Math.random()*16)|0).toString(16))}
+_mean(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:0}
+_median(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
+_std(a){if(a.length<2)return 0;const m=this._mean(a);return Math.sqrt(a.reduce((s,v)=>s+(v-m)**2,0)/(a.length-1))}
+_slope(a){const n=a.length;if(n<2)return 0;const xm=(n-1)/2,ym=this._mean(a);let num=0,den=0;for(let i=0;i<n;i++){num+=(i-xm)*(a[i]-ym);den+=(i-xm)**2}return den>0?num/den:0}
 }
+/* ═══ END PASSIVE COLLECTOR ════════════════════════════════════════ */
 
-function pickStage(el) {
-  document.querySelectorAll('.stage-option').forEach(s => s.classList.remove('selected'));
-  el.classList.add('selected');
-  state.stage = el.dataset.stage;
-  document.getElementById('step2-next').disabled = false;
-}
+let collector = null; // initialised after onboarding
+const API_BASE='';
+const STAGES=[{id:'consultation',name:'First Consultation',group:'Getting Started'},{id:'investigation',name:'Investigations',group:'Getting Started'},{id:'waiting_to_start',name:'Waiting to Start',group:'Getting Started'},{id:'downregulation',name:'Down-Regulation',group:'Stimulation'},{id:'stimulation',name:'Stimulation',group:'Stimulation'},{id:'monitoring',name:'Monitoring Scans',group:'Stimulation'},{id:'trigger',name:'Trigger Shot',group:'Stimulation'},{id:'before_retrieval',name:'Day Before Retrieval',group:'Retrieval'},{id:'retrieval_day',name:'Retrieval Day',group:'Retrieval'},{id:'post_retrieval',name:'Recovery',group:'Retrieval'},{id:'fertilisation_report',name:'Fertilisation Report',group:'Embryo'},{id:'embryo_development',name:'Embryo Updates',group:'Embryo'},{id:'freeze_all',name:'Freeze All',group:'Embryo'},{id:'before_transfer',name:'Before Transfer',group:'Transfer'},{id:'transfer_day',name:'Transfer Day',group:'Transfer'},{id:'early_tww',name:'Early TWW (Days 1-5)',group:'Waiting'},{id:'late_tww',name:'Late TWW (Days 6-12)',group:'Waiting'},{id:'result_day',name:'Result Day',group:'Result'},{id:'positive_result',name:'Positive Result',group:'Result'},{id:'negative_result',name:'Negative Result',group:'Result'},{id:'chemical_pregnancy',name:'Chemical Pregnancy',group:'Loss'},{id:'miscarriage',name:'Miscarriage',group:'Loss'},{id:'failed_cycle_acute',name:'Fresh After Failure',group:'Processing'},{id:'failed_cycle_processing',name:'Processing Failure',group:'Processing'},{id:'wtf_appointment',name:'Follow-up Appt',group:'Processing'},{id:'between_cycles',name:'Between Cycles',group:'Next Steps'},{id:'considering_stopping',name:'Considering Stopping',group:'Next Steps'},{id:'donor_journey',name:'Donor / Surrogacy',group:'Next Steps'},{id:'early_pregnancy',name:'Early Pregnancy',group:'Pregnancy'}];
+const STAGE_GROUPS=[{label:'Just starting',sub:'Consultation & workup',ids:['consultation','investigation','waiting_to_start']},{label:'Stimulation',sub:'Injections & monitoring',ids:['downregulation','stimulation','monitoring','trigger']},{label:'Egg retrieval',sub:'Procedure & recovery',ids:['before_retrieval','retrieval_day','post_retrieval']},{label:'Embryo stage',sub:'Fertilisation & development',ids:['fertilisation_report','embryo_development','freeze_all']},{label:'Transfer',sub:'Before & day of',ids:['before_transfer','transfer_day']},{label:'Two-week wait',sub:'The hardest part',ids:['early_tww','late_tww']},{label:'Result',sub:'Positive or negative',ids:['result_day','positive_result','negative_result']},{label:'Loss',sub:'Chemical / miscarriage',ids:['chemical_pregnancy','miscarriage']},{label:'Processing',sub:'After a cycle',ids:['failed_cycle_acute','failed_cycle_processing','wtf_appointment']},{label:'Between cycles',sub:'Recovery & decisions',ids:['between_cycles','considering_stopping']},{label:'Donor path',sub:'Donor eggs / surrogacy',ids:['donor_journey']},{label:'Early pregnancy',sub:'After positive test',ids:['early_pregnancy']}];
+let state={patientId:null,name:'',partnerName:'',stage:'consultation',cycle:1,treatment:'ivf',clinic:'',checkins:[]};
 
-function finishOnboard() {
-  state.cycle = document.getElementById('ob-cycle').value;
-  state.treatment = document.getElementById('ob-treatment').value;
-
-  // Switch to app
-  document.getElementById('screen-onboard').classList.remove('active');
-  document.getElementById('screen-app').classList.add('active');
-
-  updateStageUI();
-  buildTimeline();
-  buildEducation();
-
-  // Welcome message
-  const s = STAGE_MAP[state.stage];
-  addMsg('mira', `Hi ${state.name} 🌼\n\nI'm Mira — and I'm so glad you're here. I know being at the "${s.name}" stage can bring up a lot of feelings, and I want you to know: whatever you're feeling is completely valid.\n\nI'm here whenever you want to talk, learn about what's happening, or just check in with yourself. There's no pressure — we go at your pace.\n\nHow are you feeling today?`);
-}
-
-/* ═══ NAVIGATION ═══════════════════════════════════════ */
-function switchPanel(panel) {
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelector(`.nav-item[data-panel="${panel}"]`).classList.add('active');
-  document.getElementById(`panel-${panel}`).classList.add('active');
-
-  if (panel === 'journey') renderChart();
-}
-
-/* ═══ CHAT ═════════════════════════════════════════════ */
-function addMsg(role, text) {
-  const area = document.getElementById('chat-area');
-  const div = document.createElement('div');
-  div.className = `msg msg-${role}`;
-
-  const formatted = text.replace(/\n/g, '<br>');
-
-  if (role === 'mira') {
-    div.innerHTML = `<div class="msg-sender">✿ Mira</div><div class="msg-bubble">${formatted}</div>`;
-  } else if (role === 'user') {
-    div.innerHTML = `<div class="msg-bubble">${formatted}</div>`;
-  } else if (role === 'stage') {
-    div.className = 'msg msg-stage';
-    div.innerHTML = `<div class="msg-bubble">${formatted}</div>`;
-  } else {
-    div.className = 'msg msg-system';
-    div.innerHTML = `<div class="msg-bubble">${formatted}</div>`;
-  }
-
-  area.appendChild(div);
-  area.scrollTop = area.scrollHeight;
-}
-
-function sendMsg() {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = '';
-
-  addMsg('user', text);
-
-  // Show typing
-  const typing = document.getElementById('typing');
-  typing.style.display = 'block';
-
-  // Demo response (in production this hits /chat endpoint)
-  setTimeout(() => {
-    typing.style.display = 'none';
-    const s = STAGE_MAP[state.stage];
-    const responses = [
-      `Thank you for sharing that with me, ${state.name}. I can hear that this is weighing on you. Being at the ${s.name.toLowerCase()} stage brings up so many emotions — and they're all valid.\n\nWould you like to talk more about what's on your mind, or would it help to learn a bit about what's happening right now?`,
-      `I really appreciate you telling me that. It takes courage to put those feelings into words.\n\nRemember, there's no "right" way to feel during ${s.name.toLowerCase()}. Whatever comes up for you is okay.`,
-      `That makes so much sense, ${state.name}. So many people going through ${s.name.toLowerCase()} describe exactly what you're feeling.\n\nYou're not alone in this — even when it feels that way.`,
-    ];
-    addMsg('mira', responses[Math.floor(Math.random() * responses.length)]);
-  }, 1500 + Math.random() * 1000);
-}
-
-/* ═══ CHECK-IN ═════════════════════════════════════════ */
-function submitCheckin() {
-  const btn = document.getElementById('ci-btn');
-  btn.disabled = true;
-  btn.textContent = 'Sharing...';
-
-  const checkin = {
-    timestamp: new Date().toISOString(),
-    stage: state.stage,
-    mood: +document.getElementById('sl-mood').value,
-    anxiety: +document.getElementById('sl-anx').value,
-    loneliness: 10 - (+document.getElementById('sl-lone').value),
-    uncertainty: +document.getElementById('sl-unc').value,
-    hope: +document.getElementById('sl-hope').value,
-    note: document.getElementById('ci-note').value.trim(),
-    cycle: state.cycle,
-    treatment: state.treatment,
-  };
-
-  state.checkins.push(checkin);
-
-  // Generate response
-  setTimeout(() => {
-    btn.disabled = false;
-    btn.textContent = 'Share with Mira';
-
-    const s = STAGE_MAP[state.stage];
-    let response = '';
-
-    if (checkin.mood <= 3) {
-      response = `I hear you, ${state.name}. It sounds like today is a heavy one. Being in ${s.name.toLowerCase()} and feeling this way — that makes complete sense. You don't have to carry this alone. I'm right here.`;
-    } else if (checkin.anxiety >= 7) {
-      response = `I can see that worry is taking up a lot of space today. That's so understandable during ${s.name.toLowerCase()}. Would it help to talk through what's driving the anxiety, or would you prefer a grounding exercise?`;
-    } else if (checkin.hope <= 2) {
-      response = `I notice hope is feeling really low today. I want you to know — that's okay. You don't have to feel hopeful every day. Some days it's enough just to keep going. And you are.`;
-    } else {
-      response = `Thank you for checking in today. It looks like you're holding steady — and during ${s.name.toLowerCase()}, that's genuinely something. Keep being gentle with yourself.`;
-    }
-
-    const el = document.getElementById('ci-response');
-    document.getElementById('ci-response-text').innerHTML = response;
-    el.style.display = 'block';
-    el.scrollIntoView({ behavior: 'smooth' });
-  }, 1200);
-}
-
-/* ═══ STAGE MANAGEMENT ═════════════════════════════════ */
-function updateStageUI() {
-  const s = STAGE_MAP[state.stage];
-  if (!s) return;
-  document.getElementById('header-stage').textContent = s.name;
-  document.getElementById('cs-icon').textContent = s.emoji;
-  document.getElementById('cs-name').textContent = s.name;
-  document.getElementById('cs-sub').textContent = 'Your check-in is tagged to this stage';
-}
-
-function openStageModal() {
-  pendingStage = state.stage;
-  const container = document.getElementById('modal-stages');
-  container.innerHTML = STAGES.map(s => `
-    <button class="modal-stage-btn ${s.id === state.stage ? 'active' : ''}" data-id="${s.id}" onclick="selectModalStage('${s.id}')">
-      <span class="ms-emoji">${s.emoji}</span>
-      <div>
-        <div class="ms-name">${s.name}</div>
-        <div class="ms-desc">${s.desc}</div>
-      </div>
-    </button>
-  `).join('');
-  document.getElementById('stage-modal').classList.add('open');
-}
-
-function selectModalStage(id) {
-  pendingStage = id;
-  document.querySelectorAll('.modal-stage-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.modal-stage-btn[data-id="${id}"]`).classList.add('active');
-}
-
-function confirmStageChange() {
-  if (pendingStage && pendingStage !== state.stage) {
-    const oldS = STAGE_MAP[state.stage];
-    const newS = STAGE_MAP[pendingStage];
-    state.stage = pendingStage;
-    updateStageUI();
-    buildTimeline();
-    buildEducation();
-
-    // Log stage transition in chat
-    switchPanel('chat');
-    addMsg('stage', `${newS.emoji} Stage updated: ${newS.name}`);
-    addMsg('mira', `Thank you for letting me know, ${state.name}. Moving into ${newS.name.toLowerCase()} — I'll adjust my support to where you are now.\n\nHow are you feeling about this transition?`);
-  }
-  closeStageModal();
-}
-
-function closeStageModal() {
-  document.getElementById('stage-modal').classList.remove('open');
-}
-
-/* ═══ TIMELINE ═════════════════════════════════════════ */
-function buildTimeline() {
-  const track = document.getElementById('timeline');
-  const currentIdx = STAGES.findIndex(s => s.id === state.stage);
-
-  track.innerHTML = STAGES.map((s, i) => {
-    let cls = 'tl-item';
-    if (i < currentIdx) cls += ' done';
-    else if (i === currentIdx) cls += ' current';
-    else cls += ' future';
-
-    return `<div class="${cls}">
-      <div class="tl-dot"></div>
-      <div class="tl-label">${s.emoji} ${s.name}</div>
-      <div class="tl-sub">${s.desc}</div>
-    </div>`;
-  }).join('');
-}
-
-/* ═══ EDUCATION ════════════════════════════════════════ */
-function buildEducation() {
-  const grid = document.getElementById('edu-grid');
-  const topics = EDUCATION[state.stage] || [];
-  const icons = ['📖', '🔬', '💜', '🌱', '✨'];
-
-  grid.innerHTML = topics.map((t, i) => `
-    <div class="edu-item" onclick="askAbout('${t.replace(/'/g, "\\'")}')">
-      <div class="edu-icon">${icons[i % icons.length]}</div>
-      <div class="edu-text">${t}</div>
-    </div>
-  `).join('');
-}
-
-function askAbout(topic) {
-  switchPanel('chat');
-  document.getElementById('chat-input').value = `Can you tell me about: ${topic}`;
-  sendMsg();
-}
-
-/* ═══ CHART ════════════════════════════════════════════ */
-let trendChart = null;
-
-function renderChart() {
-  const canvas = document.getElementById('trend-chart');
-  if (!canvas) return;
-
-  // Use actual checkins or demo data
-  let data = state.checkins;
-  if (data.length < 2) {
-    data = [
-      { mood: 6, anxiety: 4, hope: 7 },
-      { mood: 5, anxiety: 5, hope: 6 },
-      { mood: 4, anxiety: 7, hope: 5 },
-      { mood: 3, anxiety: 8, hope: 3 },
-      { mood: 5, anxiety: 6, hope: 4 },
-      { mood: 6, anxiety: 5, hope: 5 },
-      { mood: 7, anxiety: 3, hope: 7 },
-    ];
-  }
-
-  const labels = data.map((_, i) => `Day ${i + 1}`);
-
-  if (trendChart) trendChart.destroy();
-  trendChart = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'Mood', data: data.map(c => c.mood),
-          borderColor: '#E2B866', backgroundColor: 'rgba(226,184,102,0.08)',
-          borderWidth: 2.5, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#E2B866', fill: true,
-        },
-        {
-          label: 'Hope', data: data.map(c => c.hope),
-          borderColor: '#A8C5A0', backgroundColor: 'rgba(168,197,160,0.08)',
-          borderWidth: 2.5, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#A8C5A0', fill: true,
-        },
-        {
-          label: 'Anxiety', data: data.map(c => c.anxiety),
-          borderColor: '#E2A3A8', borderWidth: 2, tension: 0.4, pointRadius: 3,
-          pointBackgroundColor: '#E2A3A8', borderDash: [5, 3], fill: false,
-        },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      scales: {
-        y: { min: 0, max: 10, ticks: { stepSize: 2, font: { family: 'Nunito', size: 11 }, color: '#9D8E94' }, grid: { color: 'rgba(0,0,0,0.04)' } },
-        x: { ticks: { font: { family: 'Nunito', size: 10 }, color: '#9D8E94' }, grid: { display: false } },
-      },
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { font: { family: 'Nunito', size: 11 }, color: '#6B5A62', usePointStyle: true, pointStyle: 'circle', padding: 16 },
-        },
-      },
-    },
-  });
-}
+function initOnboarding(){const g=document.getElementById('stage-grid');STAGE_GROUPS.forEach(s=>{const d=document.createElement('div');d.className='stage-option';d.innerHTML='<div class="stage-name">'+s.label+'</div><div class="stage-sub">'+s.sub+'</div>';d.onclick=()=>{g.querySelectorAll('.stage-option').forEach(e=>e.classList.remove('selected'));d.classList.add('selected');state.stage=s.ids[0];document.getElementById('btn-step2').disabled=false};g.appendChild(d)});document.getElementById('ob-name').addEventListener('input',e=>{document.getElementById('btn-step1').disabled=!e.target.value.trim()})}
+function goStep(n){if(n===2){state.name=document.getElementById('ob-name').value.trim();state.partnerName=document.getElementById('ob-partner').value.trim()}document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));document.getElementById('step'+n).classList.add('active');for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}}
+async function completeOnboarding(){state.treatment=document.getElementById('ob-treatment').value;state.cycle=parseInt(document.getElementById('ob-cycle').value);state.clinic=document.getElementById('ob-clinic').value.trim();if(API_BASE){try{const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null})});const d=await r.json();state.patientId=d.patient_id;showApp();if(d.message)addMsg('ai',d.message);return}catch(e){console.warn('API unavailable:',e)}}state.patientId='demo-'+Math.random().toString(36).slice(2,8);showApp();addMsg('ai','Hi '+state.name+". I\u2019m Melod\u00b7AI \u2014 here to walk alongside you through this journey.\n\nYou\u2019re at the "+getStageName(state.stage)+' stage, cycle '+state.cycle+". Whether you want to talk about what you\u2019re feeling, ask questions about what\u2019s happening, or just vent \u2014 I\u2019m here.\n\nHow are you doing today?")}
+function showApp(){document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();
+collector=new PassiveCollector({patientId:state.patientId,apiBase:API_BASE,debug:true,flushInterval:60000});collector.record('session_start',null,{stage:state.stage,cycle:state.cycle,treatment:state.treatment})}
+function switchTab(t){var prev=document.querySelector('.nav-item.active');var prevTab=prev?prev.textContent.trim().toLowerCase():'';
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));var idx=t==='chat'?1:t==='checkin'?2:3;document.querySelector('.nav-item:nth-child('+idx+')').classList.add('active');document.getElementById('panel-'+t).classList.add('active');
+if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart()}
+function addMsg(role,text){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){d.innerHTML='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>'}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'}a.appendChild(d);a.scrollTop=a.scrollHeight}
+async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});var d=await r.json();typ.style.display='none';addMsg('ai',d.response);if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}return}catch(e){console.warn('API error:',e)}}setTimeout(function(){typ.style.display='none';addMsg('ai','Thank you for sharing that, '+state.name+". I hear you.\n\nIt\u2019s completely understandable to feel this way during the "+getStageName(state.stage).toLowerCase()+" stage. There\u2019s no right or wrong way to go through this.\n\nWould you like to talk more about what\u2019s on your mind, or would you prefer some information about what\u2019s happening right now in your treatment?")},1500)}
+function addSystemMsg(t){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-system';d.innerHTML='<div class="msg-bubble">'+t+'</div>';a.appendChild(d);a.scrollTop=a.scrollHeight}
+async function submitCheckin(){var b=document.getElementById('btn-checkin');b.disabled=true;b.textContent='Submitting...';var c={mood:+document.getElementById('v-mood').textContent,anxiety:+document.getElementById('v-anxiety').textContent,loneliness:+document.getElementById('v-lonely').textContent,uncertainty:+document.getElementById('v-uncertain').textContent,hope:+document.getElementById('v-hope').textContent,note:document.getElementById('ci-note').value.trim()};
+if(collector)collector.onCheckinComplete(c);
+state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Submit check-in';updateChart()}
+function getStageName(id){var s=STAGES.find(function(s){return s.id===id});return s?s.name:id}
+function updateStageUI(){document.getElementById('header-stage').textContent=getStageName(state.stage);document.getElementById('ci-stage-name').textContent=getStageName(state.stage);document.getElementById('ci-stage-cycle').textContent='Cycle '+state.cycle+' \u00b7 '+state.treatment.toUpperCase()}
+function openStageModal(){if(collector)collector.onStageModalOpen();var c=document.getElementById('modal-stages');c.innerHTML='';STAGES.forEach(function(s){var b=document.createElement('button');b.className='modal-stage-btn'+(s.id===state.stage?' current':'');b.textContent=s.name;b.onclick=function(){var oldStage=state.stage;state.stage=s.id;if(collector)collector.onStageChange(oldStage,s.id);updateStageUI();buildTimeline();buildEducation();closeStageModal();addSystemMsg('Stage updated to '+s.name)};c.appendChild(b)});document.getElementById('stage-modal').classList.add('open')}
+function closeStageModal(){document.getElementById('stage-modal').classList.remove('open')}
+function buildTimeline(){var e=document.getElementById('timeline');e.innerHTML='';var ci=STAGES.findIndex(function(s){return s.id===state.stage});STAGES.forEach(function(s,i){var st=i<ci?'done':i===ci?'current':'future';var d=document.createElement('div');d.className='tl-item '+st;d.innerHTML='<div class="tl-dot"></div><div class="tl-label">'+s.name+'</div><div class="tl-sub">'+s.group+'</div>';e.appendChild(d)})}
+var EDU={consultation:['What to expect at your first fertility consultation','Understanding initial blood tests and scans','Questions to ask your specialist'],stimulation:['What stimulation medications do','Managing injection anxiety','Why monitoring appointments matter'],retrieval_day:['Step-by-step: what happens during egg retrieval','Recovery expectations','Why egg numbers vary'],embryo_development:['Understanding your fertilisation report','What embryo grading means','The attrition curve explained'],transfer_day:['What happens during embryo transfer','Fresh vs frozen: why your doctor chose this','What you can and cannot control'],early_tww:['What is actually happening in your body','Why symptom spotting is unreliable','Evidence-based strategies for managing the wait'],late_tww:['What is actually happening in your body','Why symptom spotting is unreliable','Evidence-based strategies for managing the wait'],negative_result:['Grief after a failed cycle is valid','When to think about next steps','What your clinic might change'],between_cycles:['Giving your body and mind time','Questions to ask before another cycle','The emotional weight of deciding whether to continue']};
+function buildEducation(){var g=document.getElementById('edu-grid');g.innerHTML='';(EDU[state.stage]||EDU.consultation).forEach(function(t){var d=document.createElement('div');d.className='edu-item';d.innerHTML='<div class="edu-marker"></div><div class="edu-text">'+t+'</div>';d.onclick=function(){if(collector)collector.onEducationTap(t);switchTab('chat');document.getElementById('chat-input').value=t;sendMsg()};g.appendChild(d)})}
+var trendChart=null;
+function initChart(){if(typeof Chart==='undefined')return;var ctx=document.getElementById('trend-chart');if(!ctx)return;trendChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{label:'Mood',data:[],borderColor:'#2D8E8E',backgroundColor:'rgba(45,142,142,0.08)',tension:.3,pointRadius:3,borderWidth:2,fill:true},{label:'Anxiety',data:[],borderColor:'#C25D5D',backgroundColor:'rgba(194,93,93,0.05)',tension:.3,pointRadius:3,borderWidth:2,fill:false}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:10,grid:{color:'#F0EEEC'},ticks:{font:{family:'Montserrat',size:10},color:'#999'}},x:{grid:{display:false},ticks:{font:{family:'Montserrat',size:10},color:'#999'}}},plugins:{legend:{labels:{font:{family:'Montserrat',size:11},boxWidth:12}}}}})}
+function updateChart(){if(!trendChart)return;trendChart.data.labels=state.checkins.map(function(_,i){return'Day '+(i+1)});trendChart.data.datasets[0].data=state.checkins.map(function(c){return c.mood});trendChart.data.datasets[1].data=state.checkins.map(function(c){return c.anxiety});trendChart.update()}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function formatText(s){return escHtml(s).replace(/\n/g,'<br>')}
+initOnboarding();
 </script>
 </body>
 </html>

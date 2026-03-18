@@ -13,6 +13,7 @@ Architecture mirrors Fertool:
 Dr Yuval Fouks — March 2026
 """
 
+from signal_integration import signal_router, get_signal_context_for_patient, patient_signal_store
 import os
 import json
 import uuid
@@ -652,6 +653,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(signal_router)
 client = anthropic.Anthropic()  # Uses ANTHROPIC_API_KEY env var
 
 

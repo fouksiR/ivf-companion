@@ -296,6 +296,67 @@ EDUCATION_TOPICS = {
 }
 
 
+# ── Fertool Interactive Content Cards ────────────────────────────────
+
+FERTOOL_CARDS = {
+    "amh": {
+        "title": "AMH Guide — Interactive Normogram",
+        "description": "See where your AMH sits for your age, with percentile curves",
+        "url": "https://fouksir.github.io/Fertool/amh-guide.html",
+        "icon": "\U0001f4ca",
+        "tags": ["amh", "ovarian reserve", "egg count", "anti-mullerian", "hormone levels", "amh level"],
+    },
+    "egg_freezing": {
+        "title": "Egg Freezing Calculator",
+        "description": "Explore success rates based on your age and number of eggs frozen",
+        "url": "https://fouksir.github.io/Fertool/egg-freezing-calculator.html",
+        "icon": "\u2744\ufe0f",
+        "tags": ["egg freezing", "freeze", "cryopreservation", "oocyte", "fertility preservation", "social freezing"],
+    },
+    "endometriosis": {
+        "title": "Endometriosis & Fertility",
+        "description": "Understand how endometriosis affects fertility and your options",
+        "url": "https://fouksir.github.io/Fertool/endometriosis-landing.html",
+        "icon": "\U0001f52c",
+        "tags": ["endometriosis", "endo", "adenomyosis", "chocolate cyst", "endometrioma"],
+    },
+    "fertility_assessment": {
+        "title": "Fertility Assessment Tool",
+        "description": "Interactive assessment to understand your fertility picture",
+        "url": "https://fouksir.github.io/Fertool/fertility-assessment.html",
+        "icon": "\U0001f4cb",
+        "tags": ["assessment", "fertility check", "workup", "testing", "evaluation", "investigation"],
+    },
+    "fertool_search": {
+        "title": "Search Fertool Knowledge Base",
+        "description": "Search our clinical fertility database for detailed information",
+        "url": "https://fouksir.github.io/Fertool/index.html",
+        "icon": "\U0001f50d",
+        "tags": ["fertool", "search", "lookup"],
+    },
+}
+
+
+def match_fertool_cards(message: str, response_text: str, max_cards: int = 2) -> list[dict]:
+    """Match patient message + AI response against Fertool card tags.
+
+    Returns up to max_cards matching cards, sorted by relevance (number
+    of tag hits). Only call this for triage category 2 (education).
+    """
+    combined = (message + " " + response_text).lower()
+    scored = []
+    for key, card in FERTOOL_CARDS.items():
+        hits = sum(1 for tag in card["tags"] if tag in combined)
+        if hits > 0:
+            scored.append((hits, key, card))
+
+    scored.sort(key=lambda x: -x[0])
+    return [
+        {"title": c["title"], "description": c["description"], "url": c["url"], "icon": c["icon"]}
+        for _, _, c in scored[:max_cards]
+    ]
+
+
 # ── In-Memory Patient Store (Phase 1 — will move to PostgreSQL) ──────
 
 patients_db: dict = {}
@@ -753,6 +814,7 @@ class ChatResponse(BaseModel):
     treatment_stage: str
     escalation: Optional[dict] = None
     suggested_education: Optional[list] = None
+    fertool_cards: Optional[list] = None
     query_id: str = ""
 
 class CheckInRequest(BaseModel):
@@ -1132,12 +1194,18 @@ Do NOT be alarmist. Just be attentive and caring."""
         elif escalation["level"] == "AMBER":
             escalation["alerts"].append("Alert: Nurse dashboard notification")
 
+    # Match Fertool interactive cards for education queries
+    fertool_cards = None
+    if triage_category == 2:
+        fertool_cards = match_fertool_cards(req.message, assistant_msg) or None
+
     return ChatResponse(
         response=assistant_msg,
         patient_id=req.patient_id,
         treatment_stage=stage,
         escalation=escalation,
         suggested_education=suggested,
+        fertool_cards=fertool_cards,
         query_id=query_id,
     )
 

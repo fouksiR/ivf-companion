@@ -883,7 +883,13 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://fouksir.github.io",
+        "http://localhost:8000",
+        "http://localhost:3000",
+        "http://127.0.0.1:8000",
+    ],
+    allow_origin_regex=r"https://.*\.run\.app",  # Cloud Run preview URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -1771,6 +1777,7 @@ PASSIVE_SIGNAL_TYPES = {
 
 
 @app.post("/passive/signals")
+@app.post("/passive-signals")
 async def receive_passive_signals_endpoint(batch: PassiveSignalBatch):
     """Receive a batch of passive behavioural signals from the patient app.
 

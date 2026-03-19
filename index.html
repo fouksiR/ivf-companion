@@ -831,8 +831,9 @@ function snapToEdge(el){
 }
 
 function onDragDown(e){
-  // Only enable dragging when egg is closed (idle state, not in check-in)
-  if(isOpen||showingResults)return onDown(e);
+  // When egg is open (check-in mode) or showing results, bypass drag entirely
+  // and delegate directly to the original hold-to-score handler
+  if(isOpen||showingResults){onDown(e);return}
   e.preventDefault();e.stopPropagation();
   var t=getTouch(e);
   var r=egg.getBoundingClientRect();
@@ -843,7 +844,8 @@ function onDragDown(e){
 }
 
 function onDragMove(e){
-  if(!dragState.active)return;
+  // Don't intercept moves when egg is in check-in mode
+  if(!dragState.active||isOpen||showingResults)return;
   var t=getTouch(e);
   var dx=t.clientX-dragState.startX;
   var dy=t.clientY-dragState.startY;
@@ -868,6 +870,9 @@ function onDragMove(e){
 }
 
 function onDragUp(e){
+  // When egg is open (check-in mode), always delegate to the hold-score
+  // release handler — drag system must not interfere with check-in flow
+  if(isOpen||showingResults){onUp(e);return}
   if(!dragState.active)return;
   dragState.active=false;
   if(dragState.moved){
@@ -876,7 +881,7 @@ function onDragUp(e){
     snapToEdge(egg);
     startIdleFace();
   }else{
-    // Was a tap — run original onDown logic
+    // Was a tap — run original onDown logic (opens check-in)
     onDown(e);
   }
 }

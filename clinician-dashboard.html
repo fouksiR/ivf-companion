@@ -918,9 +918,12 @@
     <div class="panel-left">
         <div class="config-bar">
             <span class="config-label">Backend URL</span>
-            <input class="config-input" id="backendUrl" type="text" 
+            <input class="config-input" id="backendUrl" type="text"
                    value="https://ivf-companion-532857641879.australia-southeast1.run.app"
                    placeholder="https://your-backend.run.app">
+            <span class="config-label" style="margin-left:8px;">API Key</span>
+            <input class="config-input" id="apiKey" type="password" style="width:180px;"
+                   placeholder="X-API-Key">
             <button class="btn-connect" onclick="startPolling()">Connect</button>
         </div>
 
@@ -974,6 +977,14 @@ let connected = false;
 
 const API = () => document.getElementById('backendUrl').value.replace(/\/+$/, '');
 
+// Authenticated fetch — attaches X-API-Key header to all clinician requests
+function authFetch(url, opts = {}) {
+    const key = document.getElementById('apiKey').value.trim();
+    const headers = { ...(opts.headers || {}) };
+    if (key) headers['X-API-Key'] = key;
+    return fetch(url, { ...opts, headers });
+}
+
 // ── Polling ────────────────────────────────────────────
 function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
@@ -984,8 +995,8 @@ function startPolling() {
 async function fetchData() {
     try {
         const [pRes, aRes] = await Promise.all([
-            fetch(`${API()}/clinician/patients`),
-            fetch(`${API()}/clinician/alerts?limit=30`)
+            authFetch(`${API()}/clinician/patients`),
+            authFetch(`${API()}/clinician/alerts?limit=30`)
         ]);
         
         if (!pRes.ok || !aRes.ok) throw new Error('API error');
@@ -1052,7 +1063,8 @@ function renderPatients() {
              onclick="openDetail('${p.patient_id}')">
             <div class="patient-card-header">
                 <div>
-                    <span class="patient-name">${escHtml(p.patient_name || p.patient_id)}</span>
+                    <span class="patient-name">${escHtml(p.patient_name || 'Anonymous')}</span>
+                                    <span style="font-size:11px;color:var(--text-muted);margin-left:6px;">${p.patient_id.substring(0,8)}</span>
                     ${commStyle ? `<span class="comm-style-mini ${commStyle}">${commStyle}</span>` : ''}
                     ${isHuman ? '<span class="human-flag">⚡ HUMAN REQUESTED</span>' : ''}
                 </div>
@@ -1175,7 +1187,7 @@ function checkHumanEscalations() {
 // ── Actions ────────────────────────────────────────────
 async function ackAlert(index) {
     try {
-        await fetch(`${API()}/clinician/alerts/${index}/acknowledge`, { method: 'POST' });
+        await authFetch(`${API()}/clinician/alerts/${index}/acknowledge`, { method: 'POST' });
         alerts[index].acknowledged = true;
         renderAlerts();
         checkHumanEscalations();
@@ -1310,8 +1322,8 @@ async function openDetail(patientId) {
     try {
         // Fetch patient data and briefing in parallel
         const [res, briefingRes] = await Promise.all([
-            fetch(`${API()}/clinician/patient/${patientId}`),
-            fetch(`${API()}/clinician/patient/${patientId}/briefing`).catch(() => null)
+            authFetch(`${API()}/clinician/patient/${patientId}`),
+            authFetch(`${API()}/clinician/patient/${patientId}/briefing`).catch(() => null)
         ]);
 
         const data = await res.json();
@@ -1439,7 +1451,7 @@ let phenoCharts = [];
 async function loadPhenotypeCharts(patientId) {
     const container = document.getElementById('phenoChartsContainer');
     try {
-        const res = await fetch(`${API()}/clinician/patient/${patientId}/phenotype-history?days=30`);
+        const res = await authFetch(`${API()}/clinician/patient/${patientId}/phenotype-history?days=30`);
         if (!res.ok) throw new Error('Failed to fetch phenotype history');
         const data = await res.json();
 

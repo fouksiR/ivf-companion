@@ -468,14 +468,32 @@ async def request_human_escalation(payload: HumanEscalationRequest):
 @signal_router.get("/clinician/patients")
 async def get_all_patients():
     """Clinician dashboard: get overview of all patients."""
+    # Import patients_db to look up patient names
+    from app import patients_db
+
     patients = []
     for pid, store in patient_signal_store.items():
         assessment = store.get("current_assessment", {})
         check_ins = store.get("check_in_history", [])
         latest_checkin = check_ins[-1] if check_ins else None
-        
+
+        # Resolve patient name from patients_db (set during onboarding)
+        patient_record = patients_db.get(pid, {})
+        patient_name = patient_record.get("name") or None
+
+        # Normalise last_updated to an ISO string (always use datetime.now
+        # for consistent local-time comparison with the frontend)
+        last_upd = store.get("last_updated")
+        if isinstance(last_upd, datetime):
+            last_updated_iso = last_upd.isoformat()
+        elif isinstance(last_upd, str) and last_upd:
+            last_updated_iso = last_upd
+        else:
+            last_updated_iso = datetime.now().isoformat()
+
         patients.append({
             "patient_id": pid,
+            "patient_name": patient_name,
             "escalation_level": store.get("escalation_level", "GREEN"),
             "human_escalation_requested": store.get("human_escalation_requested", False),
             "human_escalation_at": store.get("human_escalation_at"),
@@ -484,7 +502,10 @@ async def get_all_patients():
             "latest_checkin": latest_checkin,
             "session_count": store.get("session_count", 0),
             "baseline_established": store.get("baseline_established", False),
-            "last_updated": store.get("last_updated", datetime.utcnow()).isoformat() if isinstance(store.get("last_updated"), datetime) else store.get("last_updated", ""),
+            "last_updated": last_updated_iso,
+            "treatment_stage": patient_record.get("treatment_stage", "unknown"),
+            "cycle_number": patient_record.get("cycle_number", 1),
+            "communication_style": store.get("communication_style"),
         })
     
     # Sort: human escalation first, then RED, then AMBER, then GREEN

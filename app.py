@@ -24,7 +24,7 @@ from datetime import datetime, timedelta, date
 from typing import Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -1340,9 +1340,19 @@ async def get_trends(patient_id: str):
     }
 
 
+# ── Clinician Auth ───────────────────────────────────────────────────
+
+CLINICIAN_API_KEY = os.getenv("CLINICIAN_API_KEY", "")
+
+async def verify_clinician_api_key(x_api_key: str = Header(None)):
+    """Dependency: reject requests without a valid clinician API key."""
+    if not CLINICIAN_API_KEY or x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail={"error": "Invalid API key"})
+
+
 # ── Clinician Dashboard Endpoints ────────────────────────────────────
 
-@app.get("/clinician/dashboard")
+@app.get("/clinician/dashboard", dependencies=[Depends(verify_clinician_api_key)])
 async def clinician_dashboard():
     """Get overview of all patients for clinician dashboard."""
     overview = []
@@ -1384,7 +1394,7 @@ async def clinician_dashboard():
     }
 
 
-@app.get("/clinician/patient/{patient_id}/summary")
+@app.get("/clinician/patient/{patient_id}/summary", dependencies=[Depends(verify_clinician_api_key)])
 async def clinician_patient_summary(patient_id: str):
     """Detailed clinician view of a specific patient."""
     if patient_id not in patients_db:
@@ -1426,7 +1436,7 @@ Conversations:
     }
 
 
-@app.get("/clinician/patient/{patient_id}/briefing")
+@app.get("/clinician/patient/{patient_id}/briefing", dependencies=[Depends(verify_clinician_api_key)])
 async def clinician_preconsult_briefing(patient_id: str):
     """
     Pre-consultation briefing for clinicians.

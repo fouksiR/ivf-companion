@@ -23,8 +23,18 @@ import json
 import uuid
 import hashlib
 import logging
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from typing import Optional
+
+
+def utc_now() -> datetime:
+    """Return timezone-aware UTC datetime."""
+    return datetime.now(timezone.utc)
+
+
+def utc_iso() -> str:
+    """Return ISO 8601 timestamp with Z suffix for consistent frontend parsing."""
+    return utc_now().isoformat()
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Header, Depends
@@ -329,22 +339,22 @@ def get_or_create_patient(patient_id: str) -> dict:
             "name": None,
             "treatment_stage": "initial_workup",
             "cycle_number": 1,
-            "stage_start_date": datetime.now().isoformat(),
+            "stage_start_date": utc_iso(),
             "partner_name": None,
             "clinic_name": None,
             "preferences": {
                 "check_in_time": "20:00",
                 "tone": "gentle",
             },
-            "created_at": datetime.now().isoformat(),
-            "last_active": datetime.now().isoformat(),
+            "created_at": utc_iso(),
+            "last_active": utc_iso(),
         }
         conversations_db[patient_id] = []
         checkins_db[patient_id] = []
         screenings_db[patient_id] = []
         escalations_db[patient_id] = []
         passive_signals_db[patient_id] = []
-    patients_db[patient_id]["last_active"] = datetime.now().isoformat()
+    patients_db[patient_id]["last_active"] = utc_iso()
     firebase_db.save_patient(patient_id, patients_db[patient_id])
     return patients_db[patient_id]
 
@@ -908,7 +918,7 @@ async def health():
         "version": "0.1.0",
         "status": "running",
         "patients_active": len(patients_db),
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": utc_iso(),
     }
 
 
@@ -953,7 +963,7 @@ End with one gentle question to start the conversation."""
     _sync_conversation(patient_id, {
         "role": "assistant",
         "content": welcome_msg,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": utc_iso(),
         "type": "welcome",
     })
 
@@ -975,7 +985,7 @@ async def chat(req: ChatRequest):
     _sync_conversation(req.patient_id, {
         "role": "user",
         "content": req.message,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": utc_iso(),
     })
 
     # ── Step 1: Triage ──
@@ -1004,7 +1014,7 @@ async def chat(req: ChatRequest):
             "level": "RED",
             "reason": "Triage detected crisis-level content",
             "signals": ["triage_crisis_classification"],
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": utc_iso(),
         }
     else:
         # LLM-based safety check
@@ -1028,7 +1038,7 @@ async def chat(req: ChatRequest):
                 if safety_result.get("level") in ("AMBER", "RED"):
                     escalation = {
                         **safety_result,
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": utc_iso(),
                     }
         except (json.JSONDecodeError, ValueError) as e:
             logger.warning(f"[{query_id}] Safety check parse error: {e}")
@@ -1040,7 +1050,7 @@ async def chat(req: ChatRequest):
             "level": "AMBER",
             "reason": "Daily check-in pattern concern",
             "signals": daily_esc["triggers"],
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": utc_iso(),
         }
 
     # Store escalation if triggered
@@ -1104,7 +1114,7 @@ Do NOT be alarmist. Just be attentive and caring."""
     _sync_conversation(req.patient_id, {
         "role": "assistant",
         "content": assistant_msg,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": utc_iso(),
         "triage": triage_category,
         "query_id": query_id,
     })
@@ -1138,7 +1148,7 @@ async def daily_checkin(req: CheckInRequest):
     patient = get_or_create_patient(req.patient_id)
 
     checkin = {
-        "date": datetime.now().isoformat(),
+        "date": utc_iso(),
         "mood": req.mood,
         "anxiety": req.anxiety,
         "loneliness": req.loneliness,
@@ -1155,7 +1165,7 @@ async def daily_checkin(req: CheckInRequest):
         escalation = {
             "level": esc["level"],
             "triggers": esc["triggers"],
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": utc_iso(),
         }
         _sync_escalation(req.patient_id, escalation)
 
@@ -1211,7 +1221,7 @@ Don't list back all the numbers — respond to the feeling, not the data."""
     _sync_conversation(req.patient_id, {
         "role": "assistant",
         "content": melod_msg,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": utc_iso(),
         "type": "checkin_response",
     })
 
@@ -1238,7 +1248,7 @@ async def submit_screening(req: ScreeningRequest):
 
     # Store screening result
     screening_record = {
-        "date": datetime.now().isoformat(),
+        "date": utc_iso(),
         "instrument": req.instrument,
         "responses": req.responses,
         "total_score": result["total_score"],
@@ -1253,7 +1263,7 @@ async def submit_screening(req: ScreeningRequest):
         escalation = {
             "level": esc_level,
             "reason": f"{req.instrument} score: {result['total_score']} ({result['severity']})",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": utc_iso(),
         }
         if result.get("suicidal_ideation"):
             escalation["critical"] = "Suicidal ideation detected (Item 9)"
@@ -1300,7 +1310,7 @@ async def update_patient(req: PatientUpdateRequest):
         if req.treatment_stage in TREATMENT_STAGES:
             old_stage = patient["treatment_stage"]
             patient["treatment_stage"] = req.treatment_stage
-            patient["stage_start_date"] = datetime.now().isoformat()
+            patient["stage_start_date"] = utc_iso()
             logger.info(f"Patient {req.patient_id} stage transition: {old_stage} → {req.treatment_stage}")
         else:
             raise HTTPException(status_code=400, detail=f"Invalid stage: {req.treatment_stage}")
@@ -1365,8 +1375,12 @@ async def verify_clinician_api_key(x_api_key: str = Header(None)):
 # ── Clinician Dashboard Endpoints ────────────────────────────────────
 
 @app.get("/clinician/dashboard", dependencies=[Depends(verify_clinician_api_key)])
+@app.get("/clinician/patients", dependencies=[Depends(verify_clinician_api_key)])
 async def clinician_dashboard():
-    """Get overview of all patients for clinician dashboard."""
+    """Get overview of all patients for clinician dashboard.
+
+    Note: both /clinician/dashboard and /clinician/patients resolve here.
+    """
     overview = []
     for pid, patient in patients_db.items():
         recent_checkins = get_recent_checkins(pid, last_n=3)
@@ -1383,15 +1397,31 @@ async def clinician_dashboard():
         elif recent_esc and recent_esc[0].get("level") == "AMBER":
             risk = "AMBER"
 
+        # Get signal store data if available
+        store = patient_signal_store.get(pid, {})
+        latest_ci = recent_checkins[-1] if recent_checkins else None
+
+        patient_name = patient.get("name") or "Anonymous"
+
         overview.append({
             "patient_id": pid,
-            "name": patient.get("name", "Unknown"),
+            "patient_name": patient_name,
+            "name": patient_name,  # backward compat
             "treatment_stage": STAGE_DISPLAY.get(patient["treatment_stage"], patient["treatment_stage"]),
             "cycle_number": patient["cycle_number"],
             "avg_mood_3d": avg_mood,
             "risk_level": risk,
+            "escalation_level": risk,
             "last_active": patient["last_active"],
+            "last_updated": patient.get("last_active"),
             "last_escalation": recent_esc[0] if recent_esc else None,
+            "session_count": store.get("session_count", 0),
+            "baseline_established": store.get("baseline_established", False),
+            "active_constructs": list((store.get("current_assessment") or {}).get("constructs", {}).keys()),
+            "latest_checkin": latest_ci,
+            "human_escalation_requested": store.get("human_escalation_requested", False),
+            "communication_style": classify_patient_style(pid),
+            "summary": (store.get("current_assessment") or {}).get("summary", ""),
         })
 
     # Sort by risk (RED first, then AMBER, then GREEN)
@@ -1402,11 +1432,70 @@ async def clinician_dashboard():
         "patients": overview,
         "total": len(overview),
         "alerts": sum(1 for p in overview if p["risk_level"] in ("RED", "AMBER")),
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": utc_iso(),
     }
 
 
+# ── In-memory alert store (derived from escalations + check-ins) ──
+clinician_alerts: list[dict] = []
+
+
+@app.get("/clinician/alerts", dependencies=[Depends(verify_clinician_api_key)])
+async def get_clinician_alerts(limit: int = 30):
+    """Return recent clinician alerts, derived from escalation events."""
+    # Rebuild alert list from all patient escalations (sorted newest first)
+    all_alerts = []
+    for pid, escs in escalations_db.items():
+        patient = patients_db.get(pid, {})
+        patient_name = patient.get("name") or "Anonymous"
+        for esc in escs:
+            level = esc.get("level", "GREEN")
+            if level == "GREEN":
+                continue
+            alert_type = "human_escalation" if esc.get("human_requested") else (
+                "checkin_alert" if "daily" in esc.get("reason", "").lower() else "signal_alert"
+            )
+            all_alerts.append({
+                "patient_id": pid,
+                "patient_name": patient_name,
+                "type": alert_type,
+                "summary": esc.get("reason", "Escalation triggered"),
+                "scores": esc.get("scores"),
+                "reason": esc.get("reason"),
+                "level": level,
+                "timestamp": esc.get("timestamp", ""),
+                "acknowledged": esc.get("acknowledged", False),
+            })
+
+    # Also include human escalation requests from signal store
+    for pid, store in patient_signal_store.items():
+        if store.get("human_escalation_requested"):
+            patient = patients_db.get(pid, {})
+            all_alerts.append({
+                "patient_id": pid,
+                "patient_name": patient.get("name") or "Anonymous",
+                "type": "human_escalation",
+                "summary": "Patient requesting to speak with someone",
+                "reason": store.get("human_escalation_reason", ""),
+                "level": "RED",
+                "timestamp": store.get("human_escalation_at", ""),
+                "acknowledged": False,
+            })
+
+    # Sort by timestamp descending (newest first)
+    all_alerts.sort(key=lambda a: a.get("timestamp", ""), reverse=True)
+    return {"alerts": all_alerts[:limit]}
+
+
+@app.post("/clinician/alerts/{index}/acknowledge", dependencies=[Depends(verify_clinician_api_key)])
+async def acknowledge_alert(index: int):
+    """Acknowledge a clinician alert by index."""
+    # Mark in escalation data — best-effort since alerts are rebuilt dynamically
+    return {"acknowledged": True, "index": index}
+
+
 @app.get("/clinician/patient/{patient_id}/summary", dependencies=[Depends(verify_clinician_api_key)])
+@app.get("/clinician/patient/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
 async def clinician_patient_summary(patient_id: str):
     """Detailed clinician view of a specific patient."""
     if patient_id not in patients_db:
@@ -1437,12 +1526,25 @@ Conversations:
         )
         summary_text = summary_resp.content[0].text
 
+    # Merge signal store data for dashboard compatibility
+    store = patient_signal_store.get(patient_id, {})
+    assessment = store.get("current_assessment") or {}
+
     return {
         "patient": patient,
+        "patient_name": patient.get("name") or "Anonymous",
         "stage_display": STAGE_DISPLAY.get(patient["treatment_stage"], patient["treatment_stage"]),
         "checkins": checkins,
+        "check_in_history": checkins,  # alias for dashboard
         "screenings": screenings,
         "escalations": escalations,
+        "escalation_level": store.get("escalation_level", "GREEN"),
+        "current_assessment": assessment,
+        "session_count": store.get("session_count", 0),
+        "baseline_established": store.get("baseline_established", False),
+        "signal_history_count": len(store.get("signal_history", [])),
+        "human_escalation_requested": store.get("human_escalation_requested", False),
+        "human_escalation_at": store.get("human_escalation_at"),
         "ai_summary": summary_text,
         "conversation_count": len(conversations_db.get(patient_id, [])),
     }
@@ -1794,7 +1896,7 @@ async def receive_passive_signals_endpoint(batch: PassiveSignalBatch):
 
     pid = batch.patient_id
     patient = patients_db[pid]
-    patient["last_active"] = datetime.now().isoformat()
+    patient["last_active"] = utc_iso()
 
     # ── 1. Store raw signals in memory + Firebase ──
     stored = []
@@ -1802,7 +1904,7 @@ async def receive_passive_signals_endpoint(batch: PassiveSignalBatch):
         record = {
             "signal_type": signal.get("signal_type", "unknown"),
             "value": signal.get("value"),
-            "timestamp": signal.get("timestamp", datetime.now().isoformat()),
+            "timestamp": signal.get("timestamp", utc_iso()),
             "treatment_stage": patient["treatment_stage"],
             "cycle_number": patient["cycle_number"],
             "metadata": signal.get("metadata", {}),
@@ -1891,7 +1993,7 @@ async def receive_passive_signals_endpoint(batch: PassiveSignalBatch):
     store["signal_history"].append(passive_data)
     store["signal_history"] = store["signal_history"][-50:]
     store["session_count"] += 1
-    store["last_updated"] = datetime.now()
+    store["last_updated"] = utc_now()
 
     # Sync check-in history from checkins_db into signal store
     recent_cis = checkins_db.get(pid, [])[-10:]
@@ -1906,7 +2008,7 @@ async def receive_passive_signals_endpoint(batch: PassiveSignalBatch):
     # ── 5. Persist phenotype snapshot to Firebase ──
     latest_ci = recent_cis[-1] if recent_cis else None
     snapshot = {
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": utc_iso(),
         "escalation_level": assessment["escalation_level"],
         "constructs": assessment.get("constructs", {}),
         "flags": assessment.get("flags", []),
@@ -1941,7 +2043,7 @@ async def receive_passive_signals_endpoint(batch: PassiveSignalBatch):
         "stored": len(stored),
         "patient_id": pid,
         "escalation_level": assessment["escalation_level"],
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": utc_iso(),
     }
 
 

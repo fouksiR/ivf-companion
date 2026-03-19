@@ -192,6 +192,14 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 .egg-companion.idle svg{animation:eggIdle 3s cubic-bezier(.36,.07,.19,.97) infinite}
 @keyframes eggIdle{0%,100%{transform:translateY(0) scale(1) rotate(0deg)}20%{transform:translateY(-12px) scale(1.06) rotate(-3deg)}40%{transform:translateY(2px) scale(.97) rotate(1deg)}55%{transform:translateY(-8px) scale(1.04) rotate(2deg)}75%{transform:translateY(1px) scale(.98) rotate(-1deg)}}
 .egg-companion.active svg{animation:none}
+/* ── Egg Welcome Bubble ──────────────────────────────── */
+.egg-welcome-bubble{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:240px;background:linear-gradient(135deg,#f0fafa,#e8f6f3);border:1px solid rgba(45,142,142,.18);border-radius:16px;padding:14px 16px;box-shadow:0 4px 20px rgba(45,142,142,.12),0 1px 3px rgba(0,0,0,.04);opacity:0;pointer-events:none;transition:opacity .8s ease,transform .8s cubic-bezier(.34,1.56,.64,1);transform:translateX(-50%) translateY(8px) scale(.95);z-index:52}
+.egg-welcome-bubble.visible{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
+.egg-welcome-bubble::after{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #e8f6f3;filter:drop-shadow(0 1px 1px rgba(0,0,0,.03))}
+.egg-welcome-bubble p{font-family:'Montserrat',sans-serif;font-size:12.5px;line-height:1.55;color:#2a6b6b;text-align:center;margin:0;font-weight:400}
+/* ── Chat Input Pulse ────────────────────────────────── */
+@keyframes inputPulse{0%,100%{box-shadow:0 0 0 0 rgba(45,142,142,.25)}50%{box-shadow:0 0 0 6px rgba(45,142,142,0)}}
+.chat-composer textarea.pulse-hint{animation:inputPulse 2s ease-in-out 3}
 .egg-overlay{position:fixed;inset:0;background:rgba(250,250,249,.88);backdrop-filter:blur(8px);z-index:45;display:none;opacity:0;transition:opacity .4s ease}
 .egg-overlay.visible{display:block;opacity:1}
 .egg-feeling-label{position:fixed;top:12%;left:0;right:0;text-align:center;z-index:51;opacity:0;transition:all .5s cubic-bezier(.34,1.56,.64,1);pointer-events:none;transform:translateY(10px) scale(.9)}
@@ -256,7 +264,7 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
     </div>
   </div>
   <div class="app-nav"><div class="nav-item active" onclick="switchTab('chat')">Chat</div><div class="nav-item" onclick="switchTab('checkin')">Check-in</div><div class="nav-item" onclick="switchTab('journey')">Journey</div></div>
-  <div class="tab-panel active" id="panel-chat"><div class="chat-area" id="chat-area"></div><div class="typing-dots" id="typing"><span></span><span></span><span></span></div><div class="chat-composer"><textarea id="chat-input" rows="1" placeholder="Talk to Melod·AI..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea><button class="send-btn" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div></div>
+  <div class="tab-panel active" id="panel-chat"><div class="chat-area" id="chat-area"></div><div class="typing-dots" id="typing"><span></span><span></span><span></span></div><div class="chat-composer"><textarea id="chat-input" rows="1" placeholder="Ask about your treatment, medications, or share how you're feeling..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea><button class="send-btn" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div></div>
   <div class="tab-panel" id="panel-checkin">
     <div class="checkin-hero"><h2>Daily Check-in</h2><p>How are you feeling today?</p></div>
     <div class="current-stage-card"><div class="cs-text"><h3 id="ci-stage-name">Loading</h3><p id="ci-stage-cycle">Cycle 1</p></div><button class="cs-change" onclick="openStageModal()">Change</button></div>
@@ -287,6 +295,9 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 <div class="egg-dots" id="eggDots"><div class="egg-dot"></div><div class="egg-dot"></div><div class="egg-dot"></div><div class="egg-dot"></div><div class="egg-dot"></div></div>
 <div class="egg-results" id="eggResults"><h3>Here's how you're feeling</h3><p id="eggResultsSub">Your check-in has been recorded</p><div class="egg-rbubbles" id="eggRBubbles"></div><button class="egg-send-btn" id="eggSendBtn">Send to Melod·AI</button></div>
 <div class="egg-companion idle" id="eggCompanion">
+  <div class="egg-welcome-bubble" id="eggWelcomeBubble">
+    <p>Ask me anything — about your treatment, your medications, or just how you're feeling. I'm here for you 💛</p>
+  </div>
   <svg id="eggSvg" width="64" height="80" viewBox="0 0 200 250">
     <defs>
       <radialGradient id="egG" cx="40%" cy="35%" r="60%"><stop offset="0%" id="egS1" stop-color="#FFF3E0"/><stop offset="100%" id="egS2" stop-color="#F5D9A8"/></radialGradient>
@@ -744,10 +755,53 @@ function spawnV(color,count){
 
 // ── Show egg ──
 var _origShow=window.showApp;
+var welcomeBubbleTimer=null;
+var welcomeBubbleDismissed=false;
+var hasTypedFirstMessage=false;
+
+function dismissWelcomeBubble(){
+  var b=document.getElementById('eggWelcomeBubble');
+  if(b)b.classList.remove('visible');
+  welcomeBubbleDismissed=true;
+  if(welcomeBubbleTimer){clearTimeout(welcomeBubbleTimer);welcomeBubbleTimer=null}
+}
+
 window.showApp=function(){
   _origShow.apply(this,arguments);
   setTimeout(function(){egg.classList.add('visible');egg.classList.add('idle');startIdleFace()},1500);
+
+  // Show welcome bubble after 2s, auto-dismiss after 8s
+  setTimeout(function(){
+    if(welcomeBubbleDismissed)return;
+    var b=document.getElementById('eggWelcomeBubble');
+    if(b)b.classList.add('visible');
+    welcomeBubbleTimer=setTimeout(function(){dismissWelcomeBubble()},8000);
+  },2000);
+
+  // Dismiss bubble on chat input focus or typing
+  var ci=document.getElementById('chat-input');
+  if(ci){
+    ci.addEventListener('focus',function(){dismissWelcomeBubble()},{once:true});
+    ci.addEventListener('input',function(){dismissWelcomeBubble()},{once:true});
+  }
+
+  // Add pulse animation to chat input after greeting is shown
+  setTimeout(function(){
+    if(!hasTypedFirstMessage&&ci){ci.classList.add('pulse-hint')}
+  },4000);
 };
+
+// Track first message sent to remove pulse
+var _origSendMsg=window.sendMsg;
+if(typeof _origSendMsg==='function'){
+  window.sendMsg=function(){
+    hasTypedFirstMessage=true;
+    var ci=document.getElementById('chat-input');
+    if(ci)ci.classList.remove('pulse-hint');
+    dismissWelcomeBubble();
+    return _origSendMsg.apply(this,arguments);
+  };
+}
 
 egg.addEventListener('mousedown',onDown);egg.addEventListener('touchstart',onDown,{passive:false});
 document.addEventListener('mouseup',onUp);document.addEventListener('touchend',onUp,{passive:false});

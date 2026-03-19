@@ -803,13 +803,92 @@ if(typeof _origSendMsg==='function'){
   };
 }
 
-egg.addEventListener('mousedown',onDown);egg.addEventListener('touchstart',onDown,{passive:false});
-document.addEventListener('mouseup',onUp);document.addEventListener('touchend',onUp,{passive:false});
-document.addEventListener('touchcancel',onUp,{passive:false});
+// ── Draggable egg with edge-snapping ──
+var dragState={active:false,startX:0,startY:0,startLeft:0,startBottom:0,moved:false};
+var DRAG_THRESHOLD=10;
+var NAV_HEIGHT=56;  // bottom nav bar height
+var COMPOSER_HEIGHT=66; // chat composer height
+var MIN_BOTTOM=NAV_HEIGHT+COMPOSER_HEIGHT+8;
+var savedPos=null;
+try{savedPos=JSON.parse(localStorage.getItem('egg_pos'))}catch(ex){}
+if(savedPos&&typeof savedPos.left==='number'&&typeof savedPos.bottom==='number'){
+  egg.style.left=savedPos.left+'px';egg.style.bottom=savedPos.bottom+'px';
+  egg.style.right='auto';
+}
+
+function getTouch(e){return e.touches?e.touches[0]:e}
+function snapToEdge(el){
+  var r=el.getBoundingClientRect();
+  var cx=r.left+r.width/2;
+  var vw=window.innerWidth;
+  var targetLeft=cx<vw/2?16:vw-r.width-16;
+  el.style.transition='left .3s cubic-bezier(.34,1.56,.64,1), transform .3s ease';
+  el.style.left=targetLeft+'px';el.style.right='auto';
+  el.style.transform='scale(1)';el.style.filter='';
+  setTimeout(function(){el.style.transition='all .5s cubic-bezier(.34,1.56,.64,1)'},350);
+  // Save position
+  try{localStorage.setItem('egg_pos',JSON.stringify({left:targetLeft,bottom:parseInt(el.style.bottom)||74}))}catch(ex){}
+}
+
+function onDragDown(e){
+  // Only enable dragging when egg is closed (idle state, not in check-in)
+  if(isOpen||showingResults)return onDown(e);
+  e.preventDefault();e.stopPropagation();
+  var t=getTouch(e);
+  var r=egg.getBoundingClientRect();
+  dragState.active=true;dragState.moved=false;
+  dragState.startX=t.clientX;dragState.startY=t.clientY;
+  dragState.startLeft=r.left;dragState.startBottom=window.innerHeight-r.bottom;
+  dragState.startTime=Date.now();
+}
+
+function onDragMove(e){
+  if(!dragState.active)return;
+  var t=getTouch(e);
+  var dx=t.clientX-dragState.startX;
+  var dy=t.clientY-dragState.startY;
+  if(!dragState.moved&&Math.sqrt(dx*dx+dy*dy)<DRAG_THRESHOLD)return;
+  if(!dragState.moved){
+    dragState.moved=true;
+    egg.style.transition='none';
+    egg.style.transform='scale(1.1)';
+    egg.style.filter='drop-shadow(0 8px 24px rgba(45,142,142,.3))';
+    egg.classList.remove('idle');
+    dismissWelcomeBubble();
+    if(navigator.vibrate)navigator.vibrate(10);
+  }
+  e.preventDefault();
+  var newLeft=dragState.startLeft+dx;
+  var newBottom=dragState.startBottom-dy;
+  // Constrain to viewport
+  var eW=egg.offsetWidth||64,eH=egg.offsetHeight||80;
+  newLeft=Math.max(0,Math.min(newLeft,window.innerWidth-eW));
+  newBottom=Math.max(MIN_BOTTOM,Math.min(newBottom,window.innerHeight-eH-16));
+  egg.style.left=newLeft+'px';egg.style.bottom=newBottom+'px';egg.style.right='auto';
+}
+
+function onDragUp(e){
+  if(!dragState.active)return;
+  dragState.active=false;
+  if(dragState.moved){
+    // Was a drag — snap to edge
+    egg.classList.add('idle');
+    snapToEdge(egg);
+    startIdleFace();
+  }else{
+    // Was a tap — run original onDown logic
+    onDown(e);
+  }
+}
+
+egg.addEventListener('mousedown',onDragDown);egg.addEventListener('touchstart',onDragDown,{passive:false});
+document.addEventListener('mousemove',onDragMove);document.addEventListener('touchmove',onDragMove,{passive:false});
+document.addEventListener('mouseup',onDragUp);document.addEventListener('touchend',onDragUp,{passive:false});
+document.addEventListener('touchcancel',onDragUp,{passive:false});
 egg.addEventListener('contextmenu',function(e){e.preventDefault()});
 
 function onDown(e){
-  e.preventDefault();e.stopPropagation();
+  if(e&&e.preventDefault){e.preventDefault();e.stopPropagation()}
   if(showingResults)return;
   if(!isOpen){stopIdleFace();openEgg();curDim=0;showDim(0);return}
   if(curDim<0||curDim>=DIMS.length)return;

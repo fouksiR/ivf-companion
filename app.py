@@ -13,7 +13,10 @@ Architecture mirrors Fertool:
 Dr Yuval Fouks — March 2026
 """
 
-from signal_integration import signal_router, get_signal_context_for_patient, patient_signal_store
+from signal_integration import (
+    signal_router, get_signal_context_for_patient, patient_signal_store,
+    analyze_passive_signals,
+)
 from firebase_db import db as firebase_db
 import os
 import json
@@ -771,7 +774,10 @@ class ScreeningResponse(BaseModel):
 class PassiveSignalBatch(BaseModel):
     """Passive behavioural signals collected silently from the patient app."""
     patient_id: str
-    signals: list[dict]  # Each: {signal_type, value, timestamp, metadata}
+    signals: list[dict] = []  # Each: {signal_type, value, timestamp, metadata}
+    derived_features: Optional[dict] = None
+    session_metadata: Optional[dict] = None
+    session_id: Optional[str] = None
 
 class PatientUpdateRequest(BaseModel):
     patient_id: str
@@ -1449,6 +1455,55 @@ async def clinician_preconsult_briefing(patient_id: str):
     return briefing
 
 
+@app.get("/clinician/patient/{patient_id}/phenotype-history", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_phenotype_history(patient_id: str, days: int = 30):
+    """Return the last N days of phenotype snapshots for trend charts."""
+    history = firebase_db.load_phenotype_history(patient_id, limit=500)
+
+    # Filter to last N days
+    cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+    recent = [s for s in history if s.get("timestamp", "") >= cutoff]
+
+    # Also include in-memory check-in data for completeness
+    checkins = checkins_db.get(patient_id, [])
+    recent_checkins = [c for c in checkins if c.get("date", "") >= cutoff]
+
+    return {
+        "patient_id": patient_id,
+        "snapshots": recent,
+        "checkins": recent_checkins,
+        "total_snapshots": len(recent),
+        "total_checkins": len(recent_checkins),
+        "days": days,
+    }
+
+
+# ── Debug Endpoints ──────────────────────────────────────────────────
+
+DEBUG_MODE = os.getenv("DEBUG_MODE", "").lower() == "true"
+
+
+@app.post("/debug/create-test-patient")
+async def debug_create_test_patient():
+    """Create a test patient for development. Only available when DEBUG_MODE=true."""
+    if not DEBUG_MODE:
+        raise HTTPException(status_code=403, detail="Debug mode not enabled")
+
+    test_id = "dr-fouks-pilot"
+    patient = get_or_create_patient(test_id)
+    patient["name"] = "Test Pilot"
+    patient["treatment_stage"] = "stimulation"
+    patient["cycle_number"] = 1
+    firebase_db.save_patient(test_id, patient)
+
+    return {
+        "patient_id": test_id,
+        "name": "Test Pilot",
+        "status": "created",
+        "treatment_stage": "stimulation",
+    }
+
+
 # ── Daily Nudge System ───────────────────────────────────────────────
 
 # Stage-aware nudge messages: each stage has contextual, gentle prompts
@@ -1716,19 +1771,25 @@ PASSIVE_SIGNAL_TYPES = {
 
 
 @app.post("/passive/signals")
-async def receive_passive_signals(batch: PassiveSignalBatch):
+async def receive_passive_signals_endpoint(batch: PassiveSignalBatch):
     """Receive a batch of passive behavioural signals from the patient app.
 
     These are collected silently during normal app usage — no extra input from patient.
     Each signal is tagged with patient_id, treatment stage, and timestamp for
     prospective training dataset construction.
+
+    After storing raw signals, maps derived_features into the clinical construct
+    analyser (signal_integration.analyze_passive_signals) and persists a
+    phenotype snapshot to Firebase for longitudinal tracking.
     """
     if batch.patient_id not in patients_db:
         raise HTTPException(status_code=404, detail="Patient not found")
 
-    patient = patients_db[batch.patient_id]
+    pid = batch.patient_id
+    patient = patients_db[pid]
     patient["last_active"] = datetime.now().isoformat()
 
+    # ── 1. Store raw signals in memory + Firebase ──
     stored = []
     for signal in batch.signals:
         record = {
@@ -1739,17 +1800,140 @@ async def receive_passive_signals(batch: PassiveSignalBatch):
             "cycle_number": patient["cycle_number"],
             "metadata": signal.get("metadata", {}),
         }
-        _sync_passive_signal(batch.patient_id, record)
+        _sync_passive_signal(pid, record)
         stored.append(record)
 
-    # Batch sync all signals to Firebase
-    _sync_passive_batch(batch.patient_id, stored)
+    _sync_passive_batch(pid, stored)
 
-    logger.info(f"Stored {len(stored)} passive signals for patient {batch.patient_id}")
+    # ── 2. Map frontend derived_features → analyser format ──
+    df = batch.derived_features or {}
+    sm = batch.session_metadata or {}
+
+    # Build the passive_data dict that analyze_passive_signals expects
+    passive_data = {}
+
+    # Typing signals
+    if df.get("typing_speed_mean_ms") is not None or df.get("deletion_ratio") is not None:
+        passive_data["typing"] = {
+            "mean_iki_ms": df.get("typing_speed_mean_ms", 0),
+            "deletion_ratio": df.get("deletion_ratio", 0),
+            "composition_time_ms": df.get("composition_time_mean_ms", 0),
+        }
+
+    # Touch signals
+    if df.get("touch_velocity_mean") is not None:
+        passive_data["touch"] = {
+            "velocity": df.get("touch_velocity_mean", 0),
+            "pressure": df.get("touch_pressure_mean", 0),
+        }
+
+    # Scroll signals
+    if df.get("scroll_velocity_mean") is not None:
+        passive_data["scroll"] = {
+            "velocity_peaks": df.get("scroll_velocity_max", 0),
+            "direction_changes": df.get("scroll_direction_changes", 0),
+        }
+
+    # Content signals (aggregate from message_sent events in buffer)
+    total_neg = 0
+    total_unc = 0
+    total_words = 0
+    for sig in batch.signals:
+        if sig.get("signal_type") == "message_sent":
+            meta = sig.get("metadata", {})
+            total_neg += meta.get("negative_word_count", 0)
+            total_unc += meta.get("uncertainty_word_count", 0)
+            total_words += meta.get("word_count", 0)
+    if total_words > 0:
+        passive_data["content"] = {
+            "word_count": total_words,
+            "negative_word_ratio": total_neg / total_words,
+            "uncertainty_word_ratio": total_unc / total_words,
+        }
+
+    # Circadian signals
+    hour = sm.get("hour_of_day", df.get("session_hour", 12))
+    passive_data["circadian"] = {
+        "hour": hour,
+        "is_late_night": sm.get("is_late_night", False),
+    }
+
+    # Engagement signals
+    passive_data["engagement"] = {
+        "session_duration_ms": df.get("session_duration_ms", 0),
+        "tab_switches": df.get("tab_switches", 0),
+        "app_backgrounds": df.get("app_backgrounds", 0),
+    }
+
+    # ── 3. Initialise signal store if needed ──
+    if pid not in patient_signal_store:
+        patient_signal_store[pid] = {
+            "signal_history": [],
+            "check_in_history": [],
+            "current_assessment": None,
+            "escalation_level": "GREEN",
+            "human_escalation_requested": False,
+            "human_escalation_at": None,
+            "baseline_established": False,
+            "session_count": 0,
+            "last_updated": datetime.now(),
+        }
+
+    store = patient_signal_store[pid]
+    store["last_passive_data"] = passive_data
+    store["signal_history"].append(passive_data)
+    store["signal_history"] = store["signal_history"][-50:]
+    store["session_count"] += 1
+    store["last_updated"] = datetime.now()
+
+    # Sync check-in history from checkins_db into signal store
+    recent_cis = checkins_db.get(pid, [])[-10:]
+    if recent_cis:
+        store["check_in_history"] = recent_cis
+
+    # ── 4. Run construct analysis ──
+    assessment = analyze_passive_signals(pid, passive_data, store)
+    store["current_assessment"] = assessment
+    store["escalation_level"] = assessment["escalation_level"]
+
+    # ── 5. Persist phenotype snapshot to Firebase ──
+    latest_ci = recent_cis[-1] if recent_cis else None
+    snapshot = {
+        "timestamp": datetime.now().isoformat(),
+        "escalation_level": assessment["escalation_level"],
+        "constructs": assessment.get("constructs", {}),
+        "flags": assessment.get("flags", []),
+        "derived_features": {
+            "typing_speed_ms": df.get("typing_speed_mean_ms"),
+            "deletion_ratio": df.get("deletion_ratio"),
+            "composition_time_ms": df.get("composition_time_mean_ms"),
+            "touch_velocity": df.get("touch_velocity_mean"),
+            "scroll_velocity": df.get("scroll_velocity_mean"),
+            "session_duration_ms": df.get("session_duration_ms"),
+            "session_hour": hour,
+            "is_late_night": passive_data["circadian"].get("is_late_night", False),
+            "message_count": df.get("total_messages_sent", 0),
+            "message_length_mean": df.get("message_length_mean"),
+        },
+        "checkin": {
+            "mood": latest_ci.get("mood") if latest_ci else None,
+            "anxiety": latest_ci.get("anxiety") if latest_ci else None,
+            "loneliness": latest_ci.get("loneliness") if latest_ci else None,
+            "uncertainty": latest_ci.get("uncertainty") if latest_ci else None,
+            "hope": latest_ci.get("hope") if latest_ci else None,
+        } if latest_ci else None,
+        "session_count": store["session_count"],
+        "baseline_established": store.get("baseline_established", False),
+    }
+    firebase_db.save_phenotype_snapshot(pid, snapshot)
+
+    logger.info(f"Stored {len(stored)} signals + phenotype snapshot for patient {pid} "
+                f"[escalation={assessment['escalation_level']}]")
 
     return {
         "stored": len(stored),
-        "patient_id": batch.patient_id,
+        "patient_id": pid,
+        "escalation_level": assessment["escalation_level"],
         "timestamp": datetime.now().isoformat(),
     }
 

@@ -187,6 +187,39 @@ class FirebaseDB:
             logger.warning(f"Firebase load_escalations error: {e}")
             return []
 
+    # ── Phenotype Snapshots ──────────────────────────────
+
+    def save_phenotype_snapshot(self, patient_id: str, data: dict):
+        """Save a phenotype snapshot for longitudinal tracking.
+
+        Writes to melod_ai/phenotype_history/{patient_id}/{timestamp_key}.
+        Each snapshot contains construct z-scores, escalation level,
+        raw derived features, and check-in scores.
+        """
+        if not _enabled:
+            return
+        try:
+            ts_key = data.get("timestamp", datetime.now().isoformat()).replace(".", "_").replace(":", "-")
+            _fb_ref.child('phenotype_history').child(patient_id).child(ts_key).set(data)
+        except Exception as e:
+            logger.warning(f"Firebase save_phenotype_snapshot error: {e}")
+
+    def load_phenotype_history(self, patient_id: str, limit: int = 200) -> list:
+        """Load phenotype snapshots for a patient, sorted by timestamp."""
+        if not _enabled:
+            return []
+        try:
+            result = _fb_ref.child('phenotype_history').child(patient_id).get()
+            if result is None:
+                return []
+            if isinstance(result, dict):
+                items = [v for k, v in sorted(result.items())]
+                return items[-limit:]
+            return result if isinstance(result, list) else []
+        except Exception as e:
+            logger.warning(f"Firebase load_phenotype_history error: {e}")
+            return []
+
     # ── Passive Signals ─────────────────────────────────
 
     def append_passive_signals(self, patient_id: str, signals: list):

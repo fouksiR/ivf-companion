@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Melod·AI — Egg Check-in</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAFAF9;
+  --text: #1A1A1A;
+  --text-soft: #999;
+  --text-mid: #666;
+  --accent: #2D8E8E;
+  --accent-soft: rgba(45,142,142,0.08);
+  --warm: #D4886B;
+  --coral: #C25D5D;
+  --amber: #C4943D;
+  --lavender: #8B6BA8;
+  --green: #5B9E5B;
+  --white: #FFF;
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: 'Montserrat', -apple-system, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  font-family: var(--sans); background: var(--bg); color: var(--text);
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  overflow: hidden; -webkit-user-select: none; user-select: none;
+}
+
+.egg-scene {
+  position: relative; width: 100%; max-width: 440px; height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+
+/* ── Phase label ── */
+.phase-label {
+  position: absolute; top: 12%; left: 0; right: 0; text-align: center;
+  opacity: 0; transition: opacity 0.6s ease;
+}
+.phase-label.visible { opacity: 1; }
+.phase-label h2 {
+  font-family: var(--serif); font-size: 26px; font-weight: 400;
+  color: var(--text); letter-spacing: 0.01em;
+}
+.phase-label p {
+  font-size: 13px; color: var(--text-soft); margin-top: 4px;
+  font-weight: 400;
+}
+
+/* ── Egg container ── */
+.egg-wrap {
+  position: relative; width: 200px; height: 250px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; touch-action: none;
+}
+
+.egg-svg {
+  width: 100%; height: 100%;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.5s ease;
+  filter: drop-shadow(0 8px 24px rgba(45,142,142,0.12));
+}
+
+.egg-svg.breathing {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+.egg-svg.pressed {
+  animation: none;
+}
+
+/* Egg face */
+.egg-face { opacity: 1; transition: opacity 0.3s; }
+.egg-eye { fill: #3a3a3a; }
+.egg-cheek { fill: #F5C4B8; opacity: 0.5; }
+.egg-mouth { stroke: #3a3a3a; fill: none; stroke-width: 1.5; stroke-linecap: round; }
+
+/* ── Intensity ring ── */
+.intensity-ring {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 220px; height: 270px; border-radius: 50%;
+  border: 3px solid transparent;
+  opacity: 0; transition: all 0.3s ease;
+  pointer-events: none;
+}
+.intensity-ring.active {
+  opacity: 1;
+}
+
+/* ── Value display ── */
+.value-display {
+  position: absolute; bottom: 22%; left: 0; right: 0; text-align: center;
+  opacity: 0; transition: opacity 0.4s ease;
+}
+.value-display.visible { opacity: 1; }
+.value-number {
+  font-family: var(--serif); font-size: 52px; font-weight: 300;
+  color: var(--accent); line-height: 1;
+  transition: color 0.3s ease;
+}
+.value-max {
+  font-family: var(--serif); font-size: 18px; color: var(--text-soft);
+  font-weight: 300;
+}
+.value-hint {
+  font-size: 11px; color: var(--text-soft); margin-top: 6px;
+  font-weight: 400; letter-spacing: 0.02em;
+}
+
+/* ── Instruction ── */
+.instruction {
+  position: absolute; bottom: 10%; left: 0; right: 0; text-align: center;
+  opacity: 0; transition: opacity 0.6s ease;
+}
+.instruction.visible { opacity: 1; }
+.instruction p {
+  font-size: 13px; color: var(--text-soft); font-weight: 400;
+}
+.instruction .tap-hint {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--white); border: 1px solid #E8E6E3; border-radius: 20px;
+  padding: 8px 16px; margin-top: 8px; font-size: 12px; color: var(--text-mid);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+/* ── Dimension dots (progress) ── */
+.dim-dots {
+  position: absolute; bottom: 5%; display: flex; gap: 8px;
+  opacity: 0; transition: opacity 0.4s ease;
+}
+.dim-dots.visible { opacity: 1; }
+.dim-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #E0DEDA; transition: all 0.3s ease;
+}
+.dim-dot.active { background: var(--accent); transform: scale(1.3); }
+.dim-dot.done { background: var(--accent); opacity: 0.5; }
+
+/* ── Result summary ── */
+.result-summary {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.8s ease; pointer-events: none;
+}
+.result-summary.visible { opacity: 1; pointer-events: auto; }
+
+.result-bubbles {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 10px; max-width: 340px; margin-top: 20px;
+}
+.result-bubble {
+  background: var(--white); border: 1px solid #E8E6E3;
+  border-radius: 16px; padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  opacity: 0; transform: translateY(10px);
+  transition: all 0.4s ease;
+}
+.result-bubble.show { opacity: 1; transform: translateY(0); }
+.rb-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.rb-label { font-size: 12px; color: var(--text-mid); font-weight: 500; }
+.rb-val { font-family: var(--serif); font-size: 20px; font-weight: 500; }
+
+.result-btn {
+  margin-top: 28px; padding: 14px 40px;
+  background: var(--text); color: var(--white); border: none; border-radius: 8px;
+  font-family: var(--sans); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: background 0.2s; letter-spacing: 0.02em;
+  opacity: 0; transform: translateY(10px); transition: all 0.4s ease 0.6s;
+}
+.result-btn.show { opacity: 1; transform: translateY(0); }
+.result-btn:hover { background: #333; }
+
+/* ── Ripple effect ── */
+.ripple {
+  position: absolute; border-radius: 50%;
+  background: rgba(45,142,142,0.15);
+  animation: rippleOut 0.8s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes rippleOut {
+  0% { transform: scale(0.5); opacity: 0.6; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+/* ── Glow particles ── */
+.glow-particle {
+  position: absolute; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--accent); opacity: 0;
+  animation: particleFloat 2s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes particleFloat {
+  0% { opacity: 0.8; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0); }
+}
+
+/* ── Welcome state ── */
+.welcome-state {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  transition: opacity 0.6s ease;
+}
+.welcome-state.hidden { opacity: 0; pointer-events: none; }
+.welcome-title {
+  font-family: var(--serif); font-size: 28px; font-weight: 400;
+  color: var(--text); margin-bottom: 4px;
+}
+.welcome-sub {
+  font-size: 13px; color: var(--text-soft); margin-bottom: 32px;
+}
+</style>
+</head>
+<body>
+
+<div class="egg-scene" id="scene">
+  <!-- Welcome state -->
+  <div class="welcome-state" id="welcomeState">
+    <div class="phase-label visible" style="position:relative; top:auto; margin-bottom:24px;">
+      <h2>Daily Check-in</h2>
+      <p>How are you feeling today?</p>
+    </div>
+  </div>
+
+  <!-- Phase label (dimension name) -->
+  <div class="phase-label" id="phaseLabel">
+    <h2 id="dimName"></h2>
+    <p id="dimPrompt"></p>
+  </div>
+
+  <!-- Egg -->
+  <div class="egg-wrap" id="eggWrap">
+    <div class="intensity-ring" id="intensityRing"></div>
+    <svg class="egg-svg breathing" id="eggSvg" viewBox="0 0 200 250">
+      <defs>
+        <radialGradient id="eggGrad" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" id="gradStop1" stop-color="#F2F0ED"/>
+          <stop offset="100%" id="gradStop2" stop-color="#E8E5E0"/>
+        </radialGradient>
+        <radialGradient id="eggShine" cx="35%" cy="30%" r="30%">
+          <stop offset="0%" stop-color="rgba(255,255,255,0.6)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+        <filter id="softShadow">
+          <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="rgba(0,0,0,0.06)"/>
+        </filter>
+      </defs>
+      <!-- Egg shell shape -->
+      <path id="eggBody" d="M100,230 C45,230 20,170 20,120 C20,50 55,20 100,20 C145,20 180,50 180,120 C180,170 155,230 100,230Z"
+            fill="url(#eggGrad)" filter="url(#softShadow)"
+            stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>
+      <!-- Shine highlight -->
+      <ellipse cx="75" cy="80" rx="25" ry="35" fill="url(#eggShine)" opacity="0.5"/>
+      <!-- Face -->
+      <g class="egg-face" id="eggFace" transform="translate(0, 10)">
+        <!-- Eyes -->
+        <ellipse class="egg-eye" cx="78" cy="115" rx="4.5" ry="5"/>
+        <ellipse class="egg-eye" cx="122" cy="115" rx="4.5" ry="5"/>
+        <!-- Eye shine -->
+        <circle cx="76" cy="113" r="1.5" fill="white"/>
+        <circle cx="120" cy="113" r="1.5" fill="white"/>
+        <!-- Cheeks -->
+        <ellipse class="egg-cheek" cx="65" cy="130" rx="10" ry="6"/>
+        <ellipse class="egg-cheek" cx="135" cy="130" rx="10" ry="6"/>
+        <!-- Mouth (smile) -->
+        <path id="eggMouth" class="egg-mouth" d="M90,138 Q100,148 110,138"/>
+      </g>
+      <!-- Crack line at bottom (subtle, like it's hatching) -->
+      <path d="M70,210 L78,195 L85,205 L95,190 L105,205 L115,192 L122,202 L130,210"
+            fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="1" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <!-- Value display -->
+  <div class="value-display" id="valueDisplay">
+    <span class="value-number" id="valueNumber">5</span>
+    <span class="value-max">/10</span>
+    <div class="value-hint" id="valueHint">hold longer for higher</div>
+  </div>
+
+  <!-- Instruction -->
+  <div class="instruction" id="instruction">
+    <p>Touch &amp; hold the egg</p>
+    <div class="tap-hint">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-10-10h4m12 0h4"/>
+      </svg>
+      Longer hold = stronger feeling
+    </div>
+  </div>
+
+  <!-- Dimension progress dots -->
+  <div class="dim-dots" id="dimDots">
+    <div class="dim-dot" data-dim="0"></div>
+    <div class="dim-dot" data-dim="1"></div>
+    <div class="dim-dot" data-dim="2"></div>
+    <div class="dim-dot" data-dim="3"></div>
+    <div class="dim-dot" data-dim="4"></div>
+  </div>
+
+  <!-- Result summary -->
+  <div class="result-summary" id="resultSummary">
+    <div class="phase-label visible" style="position:relative;top:auto;margin-bottom:8px;">
+      <h2>Here's how you're feeling</h2>
+      <p>Your check-in has been recorded</p>
+    </div>
+    <div class="result-bubbles" id="resultBubbles"></div>
+    <button class="result-btn" id="resultBtn" onclick="submitResults()">Send to Melod·AI</button>
+  </div>
+</div>
+
+<script>
+// ── DIMENSIONS ──
+const DIMS = [
+  { key: 'mood', name: 'Mood', prompt: 'How\'s your overall mood right now?',
+    icon: '☀', lowLabel: 'Very low', highLabel: 'Great',
+    colorLow: '#C25D5D', colorMid: '#C4943D', colorHigh: '#5B9E5B',
+    inverted: false },
+  { key: 'anxiety', name: 'Anxiety', prompt: 'How anxious or on-edge are you feeling?',
+    icon: '⚡', lowLabel: 'Calm', highLabel: 'Very anxious',
+    colorLow: '#5B9E5B', colorMid: '#C4943D', colorHigh: '#C25D5D',
+    inverted: true },
+  { key: 'loneliness', name: 'Loneliness', prompt: 'How connected or isolated do you feel?',
+    icon: '🫧', lowLabel: 'Connected', highLabel: 'Very alone',
+    colorLow: '#5B9E5B', colorMid: '#8B6BA8', colorHigh: '#C25D5D',
+    inverted: true },
+  { key: 'uncertainty', name: 'Uncertainty', prompt: 'How uncertain do things feel right now?',
+    icon: '◌', lowLabel: 'Settled', highLabel: 'Very uncertain',
+    colorLow: '#2D8E8E', colorMid: '#C4943D', colorHigh: '#C25D5D',
+    inverted: true },
+  { key: 'hope', name: 'Hope', prompt: 'How hopeful are you feeling about things?',
+    icon: '✦', lowLabel: 'Hopeless', highLabel: 'Very hopeful',
+    colorLow: '#C25D5D', colorMid: '#C4943D', colorHigh: '#2D8E8E',
+    inverted: false },
+];
+
+// ── STATE ──
+let currentDim = -1; // -1 = welcome
+let scores = {};
+let isPressed = false;
+let pressStart = 0;
+let currentValue = 0;
+let animFrame = null;
+let holdTimeout = null;
+const MAX_HOLD_MS = 3000; // 3 seconds = score 10
+
+// ── ELEMENTS ──
+const scene = document.getElementById('scene');
+const eggWrap = document.getElementById('eggWrap');
+const eggSvg = document.getElementById('eggSvg');
+const eggBody = document.getElementById('eggBody');
+const eggFace = document.getElementById('eggFace');
+const eggMouth = document.getElementById('eggMouth');
+const gradStop1 = document.getElementById('gradStop1');
+const gradStop2 = document.getElementById('gradStop2');
+const phaseLabel = document.getElementById('phaseLabel');
+const dimName = document.getElementById('dimName');
+const dimPrompt = document.getElementById('dimPrompt');
+const valueDisplay = document.getElementById('valueDisplay');
+const valueNumber = document.getElementById('valueNumber');
+const valueHint = document.getElementById('valueHint');
+const instruction = document.getElementById('instruction');
+const dimDots = document.getElementById('dimDots');
+const intensityRing = document.getElementById('intensityRing');
+const resultSummary = document.getElementById('resultSummary');
+const welcomeState = document.getElementById('welcomeState');
+
+// ── COLOR INTERPOLATION ──
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return {r,g,b};
+}
+function rgbToHex(r,g,b) {
+  return '#' + [r,g,b].map(x => Math.round(x).toString(16).padStart(2,'0')).join('');
+}
+function lerpColor(c1, c2, t) {
+  const a = hexToRgb(c1), b = hexToRgb(c2);
+  return rgbToHex(a.r+(b.r-a.r)*t, a.g+(b.g-a.g)*t, a.b+(b.b-a.b)*t);
+}
+function getColorForValue(dim, val) {
+  const t = val / 10;
+  if (t < 0.5) return lerpColor(dim.colorLow, dim.colorMid, t * 2);
+  return lerpColor(dim.colorMid, dim.colorHigh, (t - 0.5) * 2);
+}
+
+// ── EGG VISUAL UPDATES ──
+function updateEggColor(color, intensity) {
+  const light = lerpColor('#F2F0ED', color, intensity * 0.3);
+  const dark = lerpColor('#E8E5E0', color, intensity * 0.4);
+  gradStop1.setAttribute('stop-color', light);
+  gradStop2.setAttribute('stop-color', dark);
+}
+
+function updateEggScale(intensity) {
+  const s = 1 + intensity * 0.25; // up to 1.25x
+  eggSvg.style.transform = `scale(${s})`;
+}
+
+function updateEggFace(value, dim) {
+  // Face reacts to the value
+  // For inverted dims (anxiety, loneliness, uncertainty): high = worried face
+  // For normal dims (mood, hope): high = happy face
+  const isNeg = dim && dim.inverted;
+  const effectiveVal = isNeg ? (10 - value) : value;
+
+  // Mouth curvature
+  const curve = (effectiveVal - 5) * 2; // -10 to +10
+  const cy = 148 - curve * 0.5;
+  eggMouth.setAttribute('d', `M90,138 Q100,${cy} 110,138`);
+
+  // Cheek opacity based on intensity
+  document.querySelectorAll('.egg-cheek').forEach(c => {
+    c.setAttribute('opacity', 0.3 + (value/10) * 0.5);
+  });
+}
+
+function resetEggVisuals() {
+  gradStop1.setAttribute('stop-color', '#F2F0ED');
+  gradStop2.setAttribute('stop-color', '#E8E5E0');
+  eggSvg.style.transform = 'scale(1)';
+  eggMouth.setAttribute('d', 'M90,138 Q100,148 110,138');
+  document.querySelectorAll('.egg-cheek').forEach(c => c.setAttribute('opacity', '0.5'));
+  intensityRing.classList.remove('active');
+}
+
+// ── PARTICLES ──
+function spawnParticles(x, y, color, count=6) {
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'glow-particle';
+    p.style.left = x + 'px';
+    p.style.top = y + 'px';
+    p.style.background = color;
+    const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+    const dist = 40 + Math.random() * 60;
+    p.style.setProperty('--px', Math.cos(angle) * dist + 'px');
+    p.style.setProperty('--py', Math.sin(angle) * dist + 'px');
+    scene.appendChild(p);
+    setTimeout(() => p.remove(), 2000);
+  }
+}
+
+function spawnRipple(x, y) {
+  const r = document.createElement('div');
+  r.className = 'ripple';
+  r.style.left = (x - 40) + 'px';
+  r.style.top = (y - 40) + 'px';
+  r.style.width = '80px';
+  r.style.height = '80px';
+  scene.appendChild(r);
+  setTimeout(() => r.remove(), 800);
+}
+
+// ── DIMENSION FLOW ──
+function startCheckin() {
+  welcomeState.classList.add('hidden');
+  currentDim = 0;
+  showDimension(0);
+}
+
+function showDimension(idx) {
+  const dim = DIMS[idx];
+  resetEggVisuals();
+  eggSvg.classList.add('breathing');
+
+  // Update labels
+  dimName.textContent = dim.name;
+  dimPrompt.textContent = dim.prompt;
+  phaseLabel.classList.add('visible');
+
+  // Show value + instruction
+  valueNumber.textContent = '—';
+  valueNumber.style.color = '#CCC';
+  valueHint.textContent = dim.inverted
+    ? `${dim.lowLabel} ← hold → ${dim.highLabel}`
+    : `${dim.lowLabel} ← hold → ${dim.highLabel}`;
+  valueDisplay.classList.add('visible');
+  instruction.classList.add('visible');
+
+  // Update dots
+  dimDots.classList.add('visible');
+  dimDots.querySelectorAll('.dim-dot').forEach((dot, i) => {
+    dot.className = 'dim-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+    if (i < idx) {
+      const prevDim = DIMS[i];
+      const prevScore = scores[prevDim.key];
+      dot.style.background = getColorForValue(prevDim, prevScore);
+    }
+  });
+}
+
+function recordDimension() {
+  const dim = DIMS[currentDim];
+  scores[dim.key] = currentValue;
+
+  // Get egg center for particle effect
+  const rect = eggWrap.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  const color = getColorForValue(dim, currentValue);
+  spawnParticles(cx - scene.getBoundingClientRect().left, cy - scene.getBoundingClientRect().top, color, 8);
+  spawnRipple(cx - scene.getBoundingClientRect().left, cy - scene.getBoundingClientRect().top);
+
+  // Brief pause, then next
+  phaseLabel.classList.remove('visible');
+  valueDisplay.classList.remove('visible');
+  instruction.classList.remove('visible');
+
+  setTimeout(() => {
+    resetEggVisuals();
+    currentDim++;
+    if (currentDim < DIMS.length) {
+      showDimension(currentDim);
+    } else {
+      showResults();
+    }
+  }, 800);
+}
+
+function showResults() {
+  phaseLabel.classList.remove('visible');
+  valueDisplay.classList.remove('visible');
+  instruction.classList.remove('visible');
+  dimDots.classList.remove('visible');
+  eggSvg.style.display = 'none';
+
+  resultSummary.classList.add('visible');
+  const container = document.getElementById('resultBubbles');
+  container.innerHTML = '';
+
+  DIMS.forEach((dim, i) => {
+    const val = scores[dim.key];
+    const color = getColorForValue(dim, val);
+    const bubble = document.createElement('div');
+    bubble.className = 'result-bubble';
+    bubble.innerHTML = `
+      <div class="rb-icon" style="background:${color}15; color:${color};">${dim.icon}</div>
+      <div>
+        <div class="rb-label">${dim.name}</div>
+        <div class="rb-val" style="color:${color};">${val}</div>
+      </div>
+    `;
+    container.appendChild(bubble);
+    setTimeout(() => bubble.classList.add('show'), 100 + i * 120);
+  });
+
+  setTimeout(() => document.getElementById('resultBtn').classList.add('show'), 600);
+}
+
+function submitResults() {
+  // This would POST to /checkin endpoint
+  console.log('Check-in scores:', scores);
+  alert('Check-in submitted!\n\n' + DIMS.map(d => `${d.name}: ${scores[d.key]}/10`).join('\n'));
+}
+
+// ── PRESS HANDLING ──
+function onPressStart(e) {
+  e.preventDefault();
+  if (currentDim === -1) {
+    startCheckin();
+    return;
+  }
+  if (currentDim >= DIMS.length) return;
+
+  isPressed = true;
+  pressStart = Date.now();
+  eggSvg.classList.remove('breathing');
+  eggSvg.classList.add('pressed');
+  intensityRing.classList.add('active');
+
+  // Haptic feedback if available
+  if (navigator.vibrate) navigator.vibrate(10);
+
+  animatePress();
+}
+
+function onPressEnd(e) {
+  e.preventDefault();
+  if (!isPressed) return;
+  isPressed = false;
+  eggSvg.classList.remove('pressed');
+  cancelAnimationFrame(animFrame);
+
+  if (currentDim >= 0 && currentDim < DIMS.length && currentValue > 0) {
+    // Haptic confirmation
+    if (navigator.vibrate) navigator.vibrate([20, 50, 20]);
+    recordDimension();
+  } else {
+    eggSvg.classList.add('breathing');
+    resetEggVisuals();
+  }
+}
+
+function animatePress() {
+  if (!isPressed) return;
+
+  const elapsed = Date.now() - pressStart;
+  const t = Math.min(elapsed / MAX_HOLD_MS, 1); // 0-1 over 3 seconds
+  currentValue = Math.round(t * 10); // 0-10
+  if (currentValue < 1 && elapsed > 100) currentValue = 1;
+
+  const dim = DIMS[currentDim];
+  if (!dim) return;
+
+  // Update visuals
+  const color = getColorForValue(dim, currentValue);
+  updateEggColor(color, t);
+  updateEggScale(t);
+  updateEggFace(currentValue, dim);
+
+  // Update value display
+  valueNumber.textContent = currentValue;
+  valueNumber.style.color = color;
+
+  // Update intensity ring
+  intensityRing.style.borderColor = color;
+  const ringScale = 1 + t * 0.3;
+  intensityRing.style.transform = `translate(-50%, -50%) scale(${ringScale})`;
+  intensityRing.style.borderWidth = (2 + t * 3) + 'px';
+
+  // Subtle haptic at thresholds
+  if (navigator.vibrate && currentValue > 0 && elapsed % 300 < 20) {
+    navigator.vibrate(5);
+  }
+
+  animFrame = requestAnimationFrame(animatePress);
+}
+
+// ── EVENT LISTENERS ──
+eggWrap.addEventListener('mousedown', onPressStart);
+eggWrap.addEventListener('touchstart', onPressStart, { passive: false });
+document.addEventListener('mouseup', onPressEnd);
+document.addEventListener('touchend', onPressEnd, { passive: false });
+document.addEventListener('touchcancel', onPressEnd, { passive: false });
+
+// Prevent context menu on long press
+eggWrap.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── INIT: show welcome egg with breathing ──
+resetEggVisuals();
+</script>
+</body>
+</html>

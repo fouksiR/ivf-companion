@@ -220,6 +220,31 @@ class FirebaseDB:
             logger.warning(f"Firebase load_phenotype_history error: {e}")
             return []
 
+    # ── Reflections ───────────────────────────────────────
+
+    def save_reflection(self, patient_id: str, reflection: dict):
+        """Save a full or micro reflection."""
+        if not _enabled: return
+        try:
+            ts_key = reflection.get("created_at", datetime.now().isoformat()).replace(".", "_").replace(":", "-")
+            _fb_ref.child('reflections').child(patient_id).child(ts_key).set(reflection)
+        except Exception as e:
+            logger.warning(f"Firebase save_reflection error: {e}")
+
+    def load_reflections(self, patient_id: str, limit: int = 20) -> list:
+        """Load reflections for a patient, sorted by timestamp."""
+        if not _enabled: return []
+        try:
+            result = _fb_ref.child('reflections').child(patient_id).get()
+            if result is None: return []
+            if isinstance(result, dict):
+                items = [v for k, v in sorted(result.items())]
+                return items[-limit:]
+            return result if isinstance(result, list) else []
+        except Exception as e:
+            logger.warning(f"Firebase load_reflections error: {e}")
+            return []
+
     # ── Passive Signals ─────────────────────────────────
 
     def append_passive_signals(self, patient_id: str, signals: list):

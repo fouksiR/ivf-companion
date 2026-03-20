@@ -1420,12 +1420,363 @@ async def get_smart_greeting(patient_id: str):
     greeting = build_smart_greeting(patient_id)
     soft_spot = get_soft_spot_context(patient_id)
 
+    # Generate micro-reflection if triggered
+    micro = generate_micro_reflection(patient_id)
+
+    # Check if full reflection is due
+    needs_reflection = _should_generate_reflection(patient_id)
+
     return {
         "greeting": greeting,
         "soft_spot": soft_spot,
+        "micro_reflection": micro,
+        "needs_reflection": needs_reflection,
         "patient_id": patient_id,
         "timestamp": utc_iso(),
     }
+
+
+# ── Reflections ─────────────────────────────────────────────────────
+reflections_db: dict = {}  # patient_id -> list of reflection dicts
+
+
+def _get_landscape_zone(stage: str) -> str:
+    """Map treatment stage to landscape zone name."""
+    zone_map = {
+        "consultation": "the_meadow", "investigation": "the_meadow", "waiting_to_start": "the_meadow",
+        "downregulation": "the_climb", "stimulation": "the_climb", "monitoring": "the_climb", "trigger": "the_climb",
+        "before_retrieval": "the_peak", "retrieval_day": "the_peak", "post_retrieval": "the_peak",
+        "fertilisation_report": "the_bridge", "embryo_development": "the_bridge", "freeze_all": "the_bridge",
+        "before_transfer": "the_valley", "transfer_day": "the_valley", "early_tww": "the_valley", "late_tww": "the_valley",
+        "result_day": "the_fork",
+        "positive_result": "the_garden", "early_pregnancy": "the_garden",
+        "negative_result": "the_lake", "chemical_pregnancy": "the_lake", "miscarriage": "the_lake",
+        "failed_cycle_acute": "the_lake", "failed_cycle_processing": "the_lake",
+        "wtf_appointment": "the_lake", "between_cycles": "the_lake",
+        "considering_stopping": "the_lake", "donor_journey": "the_lake",
+    }
+    return zone_map.get(stage, "the_meadow")
+
+
+LANDSCAPE_ZONE_DISPLAY = {
+    "the_meadow": "The Quiet Meadow",
+    "the_climb": "The Climb",
+    "the_peak": "The Peak",
+    "the_bridge": "The Bridge",
+    "the_valley": "The Valley of Waiting",
+    "the_fork": "The Fork",
+    "the_garden": "The Garden",
+    "the_lake": "The Quiet Lake",
+}
+
+
+def _compute_mood_trend(checkins: list) -> str:
+    """Compute mood trend from recent check-ins."""
+    if len(checkins) < 2:
+        return "stable"
+    recent = checkins[-4:]
+    moods = [c.get("mood", 5) for c in recent]
+    if len(moods) < 2:
+        return "stable"
+    first_half = sum(moods[:len(moods)//2]) / max(len(moods)//2, 1)
+    second_half = sum(moods[len(moods)//2:]) / max(len(moods) - len(moods)//2, 1)
+    diff = second_half - first_half
+    if diff > 1:
+        return "improving"
+    elif diff < -1:
+        return "declining"
+    return "stable"
+
+
+def _should_generate_reflection(patient_id: str) -> bool:
+    """Check if enough time has passed since last full reflection (3+ days)."""
+    refs = reflections_db.get(patient_id, [])
+    full_refs = [r for r in refs if r.get("type") == "full"]
+    if not full_refs:
+        return True
+    last = full_refs[-1]
+    try:
+        last_ts = datetime.fromisoformat(last["created_at"].replace("Z", "+00:00"))
+        days_since = (utc_now() - last_ts).days
+        return days_since >= 3
+    except (ValueError, TypeError, KeyError):
+        return True
+
+
+def generate_micro_reflection(patient_id: str) -> Optional[str]:
+    """Generate a micro-reflection if triggered by recent patterns."""
+    patient = get_or_create_patient(patient_id)
+    refs = reflections_db.get(patient_id, [])
+    recent_micros = [r for r in refs if r.get("type") == "micro"]
+
+    # Check what was recently shown (avoid repeating within 48h)
+    recent_triggers = set()
+    for r in recent_micros[-10:]:
+        try:
+            ts = datetime.fromisoformat(r["created_at"].replace("Z", "+00:00"))
+            if (utc_now() - ts).total_seconds() < 48 * 3600:
+                for t in r.get("triggers", []):
+                    recent_triggers.add(t)
+        except (ValueError, TypeError, KeyError):
+            pass
+
+    micro = None
+    trigger = None
+
+    # Check: patient came back after 2+ day gap
+    conv = conversations_db.get(patient_id, [])
+    last_user = None
+    for m in reversed(conv):
+        if m.get("role") == "user":
+            last_user = m
+            break
+    if last_user and last_user.get("timestamp") and "return_after_gap" not in recent_triggers:
+        try:
+            last_ts = datetime.fromisoformat(last_user["timestamp"].replace("Z", "+00:00"))
+            gap = (utc_now() - last_ts).days
+            if gap >= 2:
+                micro = "You've been away for a bit. Welcome back."
+                trigger = "return_after_gap"
+        except (ValueError, TypeError):
+            pass
+
+    # Check: 3 consecutive low mood check-ins
+    checkins = checkins_db.get(patient_id, [])
+    if not micro and len(checkins) >= 3 and "consecutive_low_mood" not in recent_triggers:
+        last3 = checkins[-3:]
+        if all(c.get("mood", 5) <= 3 for c in last3):
+            micro = "It's been a tough stretch. I see that."
+            trigger = "consecutive_low_mood"
+
+    # Check: significant mood improvement
+    if not micro and len(checkins) >= 2 and "mood_improved" not in recent_triggers:
+        prev = checkins[-2].get("mood", 5)
+        curr = checkins[-1].get("mood", 5)
+        if curr - prev >= 3:
+            micro = "Something feels different today — in a good way."
+            trigger = "mood_improved"
+
+    # Check: late night session (3rd time this week)
+    if not micro and "late_night_pattern" not in recent_triggers:
+        now = utc_now()
+        week_ago = now - timedelta(days=7)
+        late_sessions = 0
+        for m in conv:
+            try:
+                ts = datetime.fromisoformat(m.get("timestamp", "").replace("Z", "+00:00"))
+                if ts > week_ago and (ts.hour >= 23 or ts.hour < 5):
+                    late_sessions += 1
+            except (ValueError, TypeError):
+                pass
+        if late_sessions >= 3 and (now.hour >= 23 or now.hour < 5):
+            micro = "Another late night. Your sleep matters too."
+            trigger = "late_night_pattern"
+
+    # Check: new treatment stage
+    if not micro and "new_stage" not in recent_triggers:
+        stage_start = patient.get("stage_start_date")
+        if stage_start:
+            try:
+                start_dt = datetime.fromisoformat(stage_start.replace("Z", "+00:00"))
+                if (utc_now() - start_dt).days <= 1:
+                    micro = "New territory. How does it feel to be here?"
+                    trigger = "new_stage"
+            except (ValueError, TypeError):
+                pass
+
+    if micro and trigger:
+        # Store micro-reflection
+        ref_data = {
+            "type": "micro",
+            "text": micro,
+            "period_start": utc_iso(),
+            "period_end": utc_iso(),
+            "mood_trend": _compute_mood_trend(checkins),
+            "landscape_zone": _get_landscape_zone(patient.get("treatment_stage", "")),
+            "triggers": [trigger],
+            "feedback": None,
+            "created_at": utc_iso(),
+        }
+        reflections_db.setdefault(patient_id, []).append(ref_data)
+        firebase_db.save_reflection(patient_id, ref_data)
+        return micro
+
+    return None
+
+
+@app.get("/reflection/{patient_id}")
+async def get_reflection(patient_id: str):
+    """Generate or return cached personal reflection for a patient."""
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    patient = patients_db[patient_id]
+    checkins = checkins_db.get(patient_id, [])
+    conv = conversations_db.get(patient_id, [])
+
+    # Check if reflection is needed
+    if not _should_generate_reflection(patient_id):
+        # Return most recent full reflection
+        refs = reflections_db.get(patient_id, [])
+        full_refs = [r for r in refs if r.get("type") == "full"]
+        if full_refs:
+            return full_refs[-1]
+        # Fall through to generate
+
+    # Gather data from last 4 days
+    cutoff = utc_now() - timedelta(days=4)
+
+    recent_checkins = []
+    for c in checkins:
+        try:
+            ts = datetime.fromisoformat(c.get("date", "").replace("Z", "+00:00"))
+            if ts >= cutoff:
+                recent_checkins.append(c)
+        except (ValueError, TypeError):
+            pass
+
+    recent_convos = []
+    triage_counts = {"emotional": 0, "education": 0, "screening": 0, "social": 0}
+    for m in conv:
+        try:
+            ts = datetime.fromisoformat(m.get("timestamp", "").replace("Z", "+00:00"))
+            if ts >= cutoff and m.get("role") == "user":
+                recent_convos.append(m)
+                tc = m.get("triage")
+                if tc == 1: triage_counts["emotional"] += 1
+                elif tc == 2: triage_counts["education"] += 1
+                elif tc == 3: triage_counts["screening"] += 1
+                elif tc == 5: triage_counts["social"] += 1
+        except (ValueError, TypeError):
+            pass
+
+    # Build data summary for the LLM
+    stage = patient.get("treatment_stage", "consultation")
+    stage_name = STAGE_DISPLAY.get(stage, stage)
+    mood_trend = _compute_mood_trend(checkins)
+    zone = _get_landscape_zone(stage)
+
+    # Check-in summary
+    checkin_summary = ""
+    if recent_checkins:
+        moods = [c.get("mood", 5) for c in recent_checkins]
+        anxieties = [c.get("anxiety", 5) for c in recent_checkins]
+        hopes = [c.get("hope", 5) for c in recent_checkins]
+        loneliness = [c.get("loneliness", 5) for c in recent_checkins]
+        # One-word check-ins
+        one_words = [c.get("word", "") for c in recent_checkins if c.get("source") == "one_word"]
+        checkin_summary = f"""Check-ins ({len(recent_checkins)} in last 4 days):
+Mood range: {min(moods)}-{max(moods)} (trend: {mood_trend})
+Anxiety range: {min(anxieties)}-{max(anxieties)}
+Hope range: {min(hopes)}-{max(hopes)}
+Loneliness range: {min(loneliness)}-{max(loneliness)}
+{f'One-word feelings shared: {", ".join(one_words)}' if one_words else ''}"""
+    else:
+        checkin_summary = "No check-ins in the last 4 days."
+
+    # Conversation summary
+    conv_summary = f"Conversations: {len(recent_convos)} messages in last 4 days."
+    if triage_counts["emotional"] > 0:
+        conv_summary += f" {triage_counts['emotional']} emotional."
+    if triage_counts["education"] > 0:
+        conv_summary += f" {triage_counts['education']} education questions."
+
+    # Late night pattern
+    late_count = sum(1 for m in recent_convos
+                     if m.get("timestamp") and
+                     (int(m["timestamp"].split("T")[1][:2]) >= 23 or
+                      int(m["timestamp"].split("T")[1][:2]) < 5) if "T" in m.get("timestamp", ""))
+
+    # Soft spot
+    soft_spot = get_soft_spot_context(patient_id)
+    soft_spot_note = f"They are at a known difficulty point: {soft_spot['message']}" if soft_spot else ""
+
+    reflection_prompt = f"""You are Melod-AI writing a warm, personal reflection for an IVF patient
+covering the last few days. Based on this data, write 2-3 sentences that
+feel like a caring friend who's been paying attention. Reference specific
+patterns you notice. Never clinical language. Never use numbers directly —
+translate data into human feelings. Keep it short.
+
+Patient: {patient.get('name', 'the patient')}
+Treatment stage: {stage_name}
+Landscape zone: {LANDSCAPE_ZONE_DISPLAY.get(zone, zone)}
+{checkin_summary}
+{conv_summary}
+{'Late night sessions: ' + str(late_count) if late_count > 0 else ''}
+Mood trend: {mood_trend}
+{soft_spot_note}
+
+Match the reflection to what's happening:
+- During stimulation: focus on how their body and emotions are tracking
+- During TWW: acknowledge the specific agony of waiting
+- After a result: be present, don't silver-line
+- Between cycles: honour the processing, don't rush them forward
+
+Write ONLY the reflection text, nothing else. 2-3 sentences max."""
+
+    try:
+        response = client.messages.create(
+            model=HAIKU_MODEL,
+            max_tokens=200,
+            messages=[{"role": "user", "content": reflection_prompt}],
+        )
+        reflection_text = response.content[0].text.strip()
+    except Exception as e:
+        logger.warning(f"Reflection generation error: {e}")
+        reflection_text = "I've been here with you through the last few days. Whatever you're carrying, you don't have to carry it alone."
+
+    # Detect key moment
+    key_moment = None
+    if soft_spot:
+        key_moment = soft_spot.get("stage")
+    elif mood_trend == "declining":
+        key_moment = "mood_decline"
+    elif mood_trend == "improving":
+        key_moment = "mood_recovery"
+
+    ref_data = {
+        "type": "full",
+        "text": reflection_text,
+        "period_start": (utc_now() - timedelta(days=4)).isoformat(),
+        "period_end": utc_iso(),
+        "mood_trend": mood_trend,
+        "anxiety_trend": "elevated" if recent_checkins and max(c.get("anxiety", 5) for c in recent_checkins) >= 7 else "normal",
+        "key_moment": key_moment,
+        "landscape_zone": zone,
+        "zone_display": LANDSCAPE_ZONE_DISPLAY.get(zone, zone),
+        "triggers": [],
+        "feedback": None,
+        "created_at": utc_iso(),
+    }
+
+    reflections_db.setdefault(patient_id, []).append(ref_data)
+    firebase_db.save_reflection(patient_id, ref_data)
+
+    return ref_data
+
+
+@app.post("/reflection/{patient_id}/feedback")
+async def reflection_feedback(patient_id: str, request: Request):
+    """Record feedback on a reflection (heart = resonated)."""
+    body = await request.json()
+    feedback_type = body.get("feedback", "resonated")
+
+    refs = reflections_db.get(patient_id, [])
+    if refs:
+        refs[-1]["feedback"] = feedback_type
+        firebase_db.save_reflection(patient_id, refs[-1])
+
+    return {"status": "ok"}
+
+
+@app.get("/reflections/{patient_id}")
+async def list_reflections(patient_id: str, limit: int = 10):
+    """List recent reflections for landscape integration."""
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    refs = reflections_db.get(patient_id, [])[-limit:]
+    return {"reflections": refs, "patient_id": patient_id}
 
 
 @app.post("/chat", response_model=ChatResponse)

@@ -97,6 +97,367 @@ STAGE_DISPLAY = {
     "early_pregnancy": "Early Pregnancy",
 }
 
+# ── Soft Spots — Known emotional difficulty points per stage ─────────
+import random
+
+SOFT_SPOTS = {
+    "stimulation": {
+        "trigger_days": [5, 7, 10],
+        "messages": [
+            "Around this point in stimulation, many people tell us the hormones start to feel heavy. That's completely normal.",
+            "By now the injections can start to wear you down — physically and emotionally. That's a really common experience.",
+            "A lot of people hit a wall around this point in stim. The hormones are real, and so is the exhaustion.",
+        ],
+        "what_helps": "Some find it helps to talk about the physical side. Others just want to know it's temporary. What would help you?",
+    },
+    "retrieval_day": {
+        "trigger": "stage_entry",
+        "messages": [
+            "Retrieval day can bring up a lot — nervousness about the procedure, hope about the outcome, or just wanting it to be over.",
+            "Today's a big day. However you're feeling right now — nervous, hopeful, numb — it's all valid.",
+            "A lot of people describe retrieval day as a mix of relief and anxiety. Whatever you're feeling is okay.",
+        ],
+        "what_helps": "Want to talk through what to expect, or just want some calm company?",
+    },
+    "before_retrieval": {
+        "trigger": "stage_entry",
+        "messages": [
+            "The day before retrieval can feel like the longest day. Waiting when you've done everything you can is genuinely hard.",
+            "Tomorrow's the big day. It's normal to feel a swirl of emotions right now.",
+        ],
+        "what_helps": "Would it help to go through what tomorrow looks like, or would you rather talk about something else?",
+    },
+    "early_tww": {
+        "trigger_days": [1, 3],
+        "messages": [
+            "The first days of waiting are often the hardest because there's nothing to do but wait.",
+            "These early days after transfer can feel surreal — like time slows down. You're not imagining it.",
+            "A lot of people describe these first few days as a strange limbo. That's a really normal response.",
+        ],
+        "what_helps": "I can share what's actually happening in your body right now if that helps, or we can talk about something else entirely.",
+    },
+    "late_tww": {
+        "trigger_days": [8, 10, 12],
+        "messages": [
+            "These final days before the result can feel unbearable. You're not imagining it — this is genuinely one of the hardest parts.",
+            "The end of the wait is often harder than the beginning. Every sensation gets analyzed. That's completely understandable.",
+            "You're so close to knowing. The intensity of these last days is something everyone describes — you're not overreacting.",
+        ],
+        "what_helps": "Many people start symptom-spotting around now. Want to talk about what's real vs what's anxiety?",
+    },
+    "fertilisation_report": {
+        "trigger": "stage_entry",
+        "messages": [
+            "Waiting for the fertilisation report is a unique kind of anxiety. The phone becomes the most important object in the world.",
+            "This wait feels different from other waits — it's about your embryos, and that makes it deeply personal.",
+        ],
+        "what_helps": "Would it help to understand what the embryologist is looking for, or would you rather just talk?",
+    },
+    "embryo_development": {
+        "trigger_days": [3, 5],
+        "messages": [
+            "Waiting for embryo updates is nerve-wracking. Each call or message from the clinic carries so much weight.",
+            "The attrition — losing embryos between day 3 and day 5 — is one of the most emotionally difficult parts. No one prepares you for it.",
+        ],
+        "what_helps": "Want me to explain what's happening at this stage of development, or would you rather just talk about how you're feeling?",
+    },
+    "negative_result": {
+        "trigger": "stage_entry",
+        "messages": [
+            "There are no words that make this easier. I'm here.",
+            "I'm so sorry. You don't have to say anything right now. I'm here whenever you're ready.",
+        ],
+        "what_helps": None,
+    },
+    "chemical_pregnancy": {
+        "trigger": "stage_entry",
+        "messages": [
+            "A chemical pregnancy is a real loss. The fact that it was brief doesn't make it less painful.",
+            "This is grief. However you're processing it is valid.",
+        ],
+        "what_helps": None,
+    },
+    "miscarriage": {
+        "trigger": "stage_entry",
+        "messages": [
+            "I'm deeply sorry. This loss is profound and you deserve space to feel whatever comes.",
+        ],
+        "what_helps": None,
+    },
+    "failed_cycle_acute": {
+        "trigger": "stage_entry",
+        "messages": [
+            "This news is devastating. You did everything right. This is not your fault.",
+            "Right now, there's nothing I can say that fixes this. But I'm here.",
+        ],
+        "what_helps": None,
+    },
+    "considering_stopping": {
+        "trigger": "stage_entry",
+        "messages": [
+            "Thinking about stopping takes as much courage as deciding to start. There's no wrong answer here.",
+            "This is one of the hardest decisions in the journey. Whatever you're feeling about it is completely valid.",
+        ],
+        "what_helps": "Would it help to talk through what you're weighing, or do you just need space to sit with it?",
+    },
+    "trigger": {
+        "trigger": "stage_entry",
+        "messages": [
+            "Trigger shot day means things are moving. It's normal to feel a rush of emotions — excitement, fear, hope all at once.",
+        ],
+        "what_helps": "Want to know what happens next, or just want to talk about how you're feeling?",
+    },
+}
+
+# ── One-word mood mapping ────────────────────────────────────────────
+ONE_WORD_MOOD_MAP = {
+    # Low mood words
+    "tired": {"mood": 3, "anxiety": 4, "loneliness": 4, "uncertainty": 5, "hope": 4},
+    "exhausted": {"mood": 2, "anxiety": 4, "loneliness": 5, "uncertainty": 5, "hope": 3},
+    "drained": {"mood": 2, "anxiety": 5, "loneliness": 5, "uncertainty": 5, "hope": 3},
+    "sad": {"mood": 2, "anxiety": 4, "loneliness": 6, "uncertainty": 5, "hope": 3},
+    "low": {"mood": 2, "anxiety": 4, "loneliness": 5, "uncertainty": 5, "hope": 3},
+    "flat": {"mood": 3, "anxiety": 3, "loneliness": 5, "uncertainty": 5, "hope": 3},
+    "numb": {"mood": 2, "anxiety": 3, "loneliness": 6, "uncertainty": 6, "hope": 2},
+    "empty": {"mood": 2, "anxiety": 3, "loneliness": 7, "uncertainty": 6, "hope": 2},
+    "heavy": {"mood": 3, "anxiety": 5, "loneliness": 5, "uncertainty": 5, "hope": 3},
+    "defeated": {"mood": 1, "anxiety": 4, "loneliness": 6, "uncertainty": 7, "hope": 1},
+    "broken": {"mood": 1, "anxiety": 5, "loneliness": 7, "uncertainty": 7, "hope": 1},
+    "crying": {"mood": 2, "anxiety": 5, "loneliness": 6, "uncertainty": 5, "hope": 3},
+    "down": {"mood": 3, "anxiety": 4, "loneliness": 5, "uncertainty": 5, "hope": 3},
+    "miserable": {"mood": 1, "anxiety": 5, "loneliness": 6, "uncertainty": 6, "hope": 2},
+    "devastated": {"mood": 1, "anxiety": 6, "loneliness": 7, "uncertainty": 7, "hope": 1},
+    "gutted": {"mood": 1, "anxiety": 5, "loneliness": 6, "uncertainty": 6, "hope": 2},
+    # Anxiety words
+    "scared": {"mood": 4, "anxiety": 8, "loneliness": 4, "uncertainty": 7, "hope": 4},
+    "nervous": {"mood": 5, "anxiety": 7, "loneliness": 3, "uncertainty": 6, "hope": 5},
+    "anxious": {"mood": 4, "anxiety": 8, "loneliness": 4, "uncertainty": 6, "hope": 4},
+    "worried": {"mood": 4, "anxiety": 7, "loneliness": 4, "uncertainty": 7, "hope": 4},
+    "panicked": {"mood": 3, "anxiety": 9, "loneliness": 5, "uncertainty": 7, "hope": 3},
+    "terrified": {"mood": 3, "anxiety": 9, "loneliness": 5, "uncertainty": 8, "hope": 3},
+    "stressed": {"mood": 4, "anxiety": 7, "loneliness": 4, "uncertainty": 6, "hope": 4},
+    "overwhelmed": {"mood": 3, "anxiety": 8, "loneliness": 5, "uncertainty": 7, "hope": 3},
+    "restless": {"mood": 4, "anxiety": 7, "loneliness": 3, "uncertainty": 6, "hope": 5},
+    "tense": {"mood": 4, "anxiety": 7, "loneliness": 3, "uncertainty": 5, "hope": 5},
+    # Hope words
+    "hopeful": {"mood": 7, "anxiety": 3, "loneliness": 2, "uncertainty": 4, "hope": 8},
+    "excited": {"mood": 8, "anxiety": 3, "loneliness": 2, "uncertainty": 3, "hope": 8},
+    "ready": {"mood": 7, "anxiety": 3, "loneliness": 2, "uncertainty": 3, "hope": 7},
+    "optimistic": {"mood": 7, "anxiety": 3, "loneliness": 2, "uncertainty": 3, "hope": 8},
+    "positive": {"mood": 7, "anxiety": 3, "loneliness": 2, "uncertainty": 3, "hope": 7},
+    "grateful": {"mood": 7, "anxiety": 3, "loneliness": 2, "uncertainty": 4, "hope": 7},
+    "calm": {"mood": 7, "anxiety": 2, "loneliness": 3, "uncertainty": 4, "hope": 6},
+    "peaceful": {"mood": 7, "anxiety": 1, "loneliness": 2, "uncertainty": 3, "hope": 7},
+    "strong": {"mood": 7, "anxiety": 3, "loneliness": 2, "uncertainty": 3, "hope": 7},
+    "brave": {"mood": 6, "anxiety": 4, "loneliness": 3, "uncertainty": 4, "hope": 7},
+    "determined": {"mood": 6, "anxiety": 4, "loneliness": 3, "uncertainty": 4, "hope": 7},
+    # Loneliness words
+    "alone": {"mood": 3, "anxiety": 4, "loneliness": 8, "uncertainty": 5, "hope": 3},
+    "isolated": {"mood": 3, "anxiety": 4, "loneliness": 9, "uncertainty": 5, "hope": 3},
+    "lonely": {"mood": 3, "anxiety": 3, "loneliness": 9, "uncertainty": 5, "hope": 3},
+    "invisible": {"mood": 2, "anxiety": 4, "loneliness": 9, "uncertainty": 6, "hope": 2},
+    "misunderstood": {"mood": 3, "anxiety": 4, "loneliness": 8, "uncertainty": 5, "hope": 3},
+    # Neutral / mixed
+    "okay": {"mood": 5, "anxiety": 4, "loneliness": 4, "uncertainty": 5, "hope": 5},
+    "fine": {"mood": 5, "anxiety": 4, "loneliness": 4, "uncertainty": 5, "hope": 5},
+    "meh": {"mood": 4, "anxiety": 4, "loneliness": 5, "uncertainty": 5, "hope": 4},
+    "whatever": {"mood": 3, "anxiety": 3, "loneliness": 5, "uncertainty": 6, "hope": 3},
+    "uncertain": {"mood": 4, "anxiety": 5, "loneliness": 4, "uncertainty": 8, "hope": 4},
+    "confused": {"mood": 4, "anxiety": 5, "loneliness": 4, "uncertainty": 8, "hope": 4},
+    "frustrated": {"mood": 3, "anxiety": 6, "loneliness": 4, "uncertainty": 6, "hope": 4},
+    "angry": {"mood": 3, "anxiety": 6, "loneliness": 4, "uncertainty": 5, "hope": 4},
+    "jealous": {"mood": 3, "anxiety": 4, "loneliness": 7, "uncertainty": 5, "hope": 3},
+    "resentful": {"mood": 3, "anxiety": 4, "loneliness": 6, "uncertainty": 5, "hope": 3},
+    "good": {"mood": 7, "anxiety": 3, "loneliness": 3, "uncertainty": 4, "hope": 6},
+    "great": {"mood": 8, "anxiety": 2, "loneliness": 2, "uncertainty": 3, "hope": 7},
+    "amazing": {"mood": 9, "anxiety": 2, "loneliness": 1, "uncertainty": 2, "hope": 8},
+    "better": {"mood": 6, "anxiety": 4, "loneliness": 3, "uncertainty": 4, "hope": 6},
+    "surviving": {"mood": 4, "anxiety": 5, "loneliness": 5, "uncertainty": 6, "hope": 4},
+    "coping": {"mood": 5, "anxiety": 5, "loneliness": 4, "uncertainty": 5, "hope": 5},
+}
+
+
+def get_soft_spot_context(patient_id: str) -> Optional[dict]:
+    """Check if patient is at a known emotional difficulty point."""
+    patient = get_or_create_patient(patient_id)
+    stage = patient.get("treatment_stage", "")
+    spot = SOFT_SPOTS.get(stage)
+    if not spot:
+        return None
+
+    # Check trigger type
+    if spot.get("trigger") == "stage_entry":
+        # Always relevant when at this stage
+        return {
+            "message": random.choice(spot["messages"]),
+            "what_helps": spot.get("what_helps"),
+            "stage": stage,
+        }
+
+    # Day-based triggers
+    trigger_days = spot.get("trigger_days", [])
+    if trigger_days:
+        stage_start = patient.get("stage_start_date")
+        if stage_start:
+            try:
+                start_dt = datetime.fromisoformat(stage_start.replace("Z", "+00:00"))
+                days_in_stage = (utc_now() - start_dt).days
+                # Check if within 1 day of a trigger point
+                for td in trigger_days:
+                    if abs(days_in_stage - td) <= 1:
+                        return {
+                            "message": random.choice(spot["messages"]),
+                            "what_helps": spot.get("what_helps"),
+                            "stage": stage,
+                            "days_in_stage": days_in_stage,
+                        }
+            except (ValueError, TypeError):
+                pass
+
+    return None
+
+
+def map_one_word_to_checkin(word: str) -> Optional[dict]:
+    """Map a single word/short phrase to check-in dimensions."""
+    word_clean = word.strip().lower().rstrip(".,!?…")
+    # Direct match
+    if word_clean in ONE_WORD_MOOD_MAP:
+        return ONE_WORD_MOOD_MAP[word_clean]
+    # Fuzzy: check if any key is contained in the word
+    for key, vals in ONE_WORD_MOOD_MAP.items():
+        if key in word_clean:
+            return vals
+    return None
+
+
+def build_smart_greeting(patient_id: str) -> str:
+    """Build a contextual opening message instead of generic greeting."""
+    patient = get_or_create_patient(patient_id)
+    name = patient.get("name", "there")
+    stage = patient.get("treatment_stage", "consultation")
+    stage_name = STAGE_DISPLAY.get(stage, stage)
+
+    parts = []
+
+    # ── Time of day awareness ──
+    now = utc_now()
+    # Approximate — user timezone not stored, but we can be gentle
+    hour = now.hour  # UTC — imperfect but a start
+    if hour >= 22 or hour < 5:
+        time_greetings = [
+            f"It's late, {name} — can't sleep?",
+            f"Hey {name}, burning the midnight oil?",
+            f"Late-night thoughts? I'm here, {name}.",
+        ]
+        parts.append(random.choice(time_greetings))
+    elif hour < 12:
+        parts.append(random.choice([
+            f"Good morning, {name}.",
+            f"Morning, {name}.",
+            f"Hi {name} — how's today starting?",
+        ]))
+    elif hour < 18:
+        parts.append(random.choice([
+            f"Hey {name}.",
+            f"Hi {name}.",
+            f"Afternoon, {name}.",
+        ]))
+    else:
+        parts.append(random.choice([
+            f"Evening, {name}.",
+            f"Hey {name} — how's today been?",
+            f"Hi {name}.",
+        ]))
+
+    # ── Days since last check-in / conversation ──
+    checkins = checkins_db.get(patient_id, [])
+    last_checkin = checkins[-1] if checkins else None
+    conv = conversations_db.get(patient_id, [])
+    last_user_msg = None
+    for m in reversed(conv):
+        if m.get("role") == "user":
+            last_user_msg = m
+            break
+
+    days_since = None
+    if last_user_msg and last_user_msg.get("timestamp"):
+        try:
+            last_ts = datetime.fromisoformat(last_user_msg["timestamp"].replace("Z", "+00:00"))
+            days_since = (utc_now() - last_ts).days
+        except (ValueError, TypeError):
+            pass
+
+    if days_since and days_since >= 3:
+        parts.append(random.choice([
+            f"It's been a few days. How are things?",
+            f"I've been thinking about you. How have the last few days been?",
+            f"It's been {days_since} days since we last talked. No pressure — just wanted to check in.",
+        ]))
+    elif days_since and days_since >= 1:
+        parts.append(random.choice([
+            "How are things today?",
+            "What's on your mind today?",
+        ]))
+
+    # ── Last mood score reference ──
+    if last_checkin:
+        mood = last_checkin.get("mood", 5)
+        if mood <= 3:
+            parts.append(random.choice([
+                "Last time we talked, you were having a tough time. How are things now?",
+                "You were feeling pretty low last time. Has anything shifted?",
+                "I remember things were hard last time. How are you doing?",
+            ]))
+        elif mood >= 7:
+            parts.append(random.choice([
+                "You were in a good place last time. Hope that's holding up.",
+                "Things were feeling better last time — how's today?",
+            ]))
+
+    # ── Soft spot awareness ──
+    soft_spot = get_soft_spot_context(patient_id)
+    if soft_spot:
+        parts.append(soft_spot["message"])
+        if soft_spot.get("what_helps"):
+            parts.append(soft_spot["what_helps"])
+    elif not days_since or days_since == 0:
+        # Stage-specific openers when no soft spot and first conversation or same day
+        stage_openers = {
+            "stimulation": [
+                f"You're in the thick of stimulation. How's your body feeling?",
+                f"Stim days can be a lot. How are you going?",
+            ],
+            "monitoring": [
+                f"Monitoring can feel like a lot of waiting between scans. How are you holding up?",
+            ],
+            "early_tww": [
+                f"The two-week wait is its own kind of challenge. How are you managing?",
+            ],
+            "late_tww": [
+                f"These final days of waiting are intense. I'm here if you need to talk.",
+            ],
+            "between_cycles": [
+                f"Time between cycles can feel like limbo. How are you using this space?",
+                f"Are you giving yourself permission to rest, or does your mind keep going?",
+            ],
+            "early_pregnancy": [
+                f"Early pregnancy after IVF comes with its own set of worries. How are you feeling?",
+            ],
+        }
+        if stage in stage_openers and not last_checkin:
+            parts.append(random.choice(stage_openers[stage]))
+
+    # If we only have the time greeting, add something gentle
+    if len(parts) <= 1:
+        parts.append(random.choice([
+            "I'm here whenever you're ready to talk.",
+            "What's on your mind?",
+            "How are you feeling?",
+        ]))
+
+    return "\n\n".join(parts)
+
+
 # ── Psychometric Instruments ─────────────────────────────────────────
 
 PHQ2_QUESTIONS = [
@@ -815,6 +1176,8 @@ class ChatResponse(BaseModel):
     escalation: Optional[dict] = None
     suggested_education: Optional[list] = None
     fertool_cards: Optional[list] = None
+    one_word_checkin: Optional[dict] = None  # If message was mapped as a one-word check-in
+    education_fork: Optional[str] = None  # Clarifying question for education queries
     query_id: str = ""
 
 class CheckInRequest(BaseModel):
@@ -995,16 +1358,27 @@ async def onboard_patient(req: OnboardRequest):
     patient["partner_name"] = req.partner_name
     patient["clinic_name"] = req.clinic_name
 
-    # Generate welcome message
+    # Generate contextual welcome message using smart greeting + LLM
     stage_name = STAGE_DISPLAY.get(req.treatment_stage, req.treatment_stage)
+
+    # Build smart greeting context
+    smart_context = build_smart_greeting(patient_id)
+    soft_spot = get_soft_spot_context(patient_id)
+
     welcome_prompt = f"""Generate a warm welcome message for {req.name} who is just starting to use IVF Companion.
 They are currently at the '{stage_name}' stage of their IVF journey (cycle {req.cycle_number}).
 {"Their partner's name is " + req.partner_name + ". " if req.partner_name else ""}
 {"They're being treated at " + req.clinic_name + ". " if req.clinic_name else ""}
 
-Introduce yourself as Melod-AI. Be warm, brief (3-4 sentences), and let them know you're here for them throughout this journey.
-Mention what you can help with (emotional support, education about what's happening, daily check-ins) without overwhelming them.
-End with one gentle question to start the conversation."""
+Use this contextual opening as inspiration (adapt naturally, don't copy verbatim):
+{smart_context}
+
+{"SOFT SPOT: " + soft_spot['message'] if soft_spot else ""}
+
+Introduce yourself as Melod-AI. Be warm, brief (3-4 sentences), and let them know you're here.
+Mention what you can help with (emotional support, education, daily check-ins) without overwhelming.
+End with one gentle question to start the conversation.
+Do NOT be generic — show you understand where they are in their journey."""
 
     response = client.messages.create(
         model=SONNET_MODEL,
@@ -1037,6 +1411,23 @@ End with one gentle question to start the conversation."""
     }
 
 
+@app.get("/greeting/{patient_id}")
+async def get_smart_greeting(patient_id: str):
+    """Return a contextual greeting for a returning user opening the app."""
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    greeting = build_smart_greeting(patient_id)
+    soft_spot = get_soft_spot_context(patient_id)
+
+    return {
+        "greeting": greeting,
+        "soft_spot": soft_spot,
+        "patient_id": patient_id,
+        "timestamp": utc_iso(),
+    }
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
     """Main chat endpoint — triage → layers → synthesis → safety check."""
@@ -1049,6 +1440,23 @@ async def chat(req: ChatRequest):
         "content": req.message,
         "timestamp": utc_iso(),
     })
+
+    # ── One-word check-in detection (Part C) ──
+    one_word_checkin = None
+    msg_words = req.message.strip().split()
+    if len(msg_words) <= 3:
+        mapped = map_one_word_to_checkin(req.message)
+        if mapped:
+            one_word_checkin = mapped
+            # Store as a lightweight check-in
+            checkin_data = {
+                "date": utc_iso(),
+                "source": "one_word",
+                "word": req.message.strip(),
+                **mapped,
+            }
+            _sync_checkin(req.patient_id, checkin_data)
+            logger.info(f"[{query_id}] One-word check-in: '{req.message.strip()}' → {mapped}")
 
     # ── Step 1: Triage ──
     triage_resp = client.messages.create(
@@ -1120,6 +1528,15 @@ async def chat(req: ChatRequest):
         _sync_escalation(req.patient_id, escalation)
         logger.warning(f"[{query_id}] ESCALATION: {escalation['level']} for patient={req.patient_id}")
 
+    # ── Education fork (Part D) ──
+    education_fork = None
+    style = classify_patient_style(req.patient_id)
+    user_msg_count = len([m for m in conversations_db.get(req.patient_id, []) if m.get("role") == "user"])
+
+    if triage_category == 2 and user_msg_count <= 5 and style == "MIXED":
+        # Style not yet established — ask clarifying question
+        education_fork = "I can help with that — are you looking for reassurance, or do you want the clinical details?"
+
     # ── Step 3: Generate companion response ──
     # Retrieve education RAG content if this is an education query
     rag_context = ""
@@ -1130,6 +1547,38 @@ async def chat(req: ChatRequest):
         patient_context=build_patient_context(req.patient_id),
         education_context=build_education_context(req.patient_id) + rag_context,
     )
+
+    # Add one-word check-in context so AI responds warmly
+    if one_word_checkin:
+        word = req.message.strip()
+        system_prompt += f"""
+
+ONE-WORD CHECK-IN DETECTED:
+The patient just said "{word}" as a mood check-in. This maps to:
+mood={one_word_checkin['mood']}, anxiety={one_word_checkin['anxiety']}, hope={one_word_checkin['hope']}, loneliness={one_word_checkin['loneliness']}, uncertainty={one_word_checkin['uncertainty']}
+Respond with warmth. Acknowledge the word they used. Don't lecture. Don't ask them to rate things on a scale.
+If it's a negative word, validate first. If positive, mirror the energy gently.
+Keep it brief (2-3 sentences) and end with an open door: something like "Want to tell me more?" or "What's behind that?"
+This has been recorded as a check-in — no need to ask them to do a formal one."""
+
+    # Add education fork instruction to guide response style
+    if education_fork:
+        system_prompt += """
+
+EDUCATION STYLE FORK:
+This patient's communication style is not yet clear. After answering their question,
+gently ask if they'd prefer more clinical detail or more reassurance-focused answers going forward.
+Weave this naturally into your response — don't make it a separate question."""
+    elif triage_category == 2 and style == "ANALYTICAL":
+        system_prompt += """
+
+STYLE NOTE: This patient prefers ANALYTICAL responses. Lead with data, statistics,
+and clinical detail. Use precise language. They appreciate thoroughness."""
+    elif triage_category == 2 and style == "EMOTIONAL":
+        system_prompt += """
+
+STYLE NOTE: This patient prefers EMOTIONAL responses. Lead with validation and
+shared experience. Weave in the clinical information gently after connecting emotionally."""
 
     # Add safety-aware instructions if escalation detected
     if escalation:
@@ -1154,6 +1603,17 @@ The patient is showing elevated distress. Be especially:
 - Offer to connect them with their clinic's support team
 - Consider suggesting a full check-in if not done recently
 Do NOT be alarmist. Just be attentive and caring."""
+
+    # Add soft spot context to system prompt
+    soft_spot = get_soft_spot_context(req.patient_id)
+    if soft_spot:
+        system_prompt += f"""
+
+SOFT SPOT AWARENESS:
+The patient is at a known emotional difficulty point: {soft_spot['stage']}.
+Context: {soft_spot['message']}
+{"Offer: " + soft_spot['what_helps'] if soft_spot.get('what_helps') else "Just be present. No fixing needed."}
+Weave this awareness naturally — don't announce it as a feature, just show you understand where they are."""
 
     # Build conversation messages for Claude
     conv_messages = []
@@ -1206,6 +1666,8 @@ Do NOT be alarmist. Just be attentive and caring."""
         escalation=escalation,
         suggested_education=suggested,
         fertool_cards=fertool_cards,
+        one_word_checkin=one_word_checkin,
+        education_fork=education_fork,
         query_id=query_id,
     )
 

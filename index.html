@@ -134,25 +134,40 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 .ai-response .ar-label{font-size:10px;font-weight:600;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .ai-response .ar-text{font-size:14px;line-height:1.65;color:var(--text)}
 
-#panel-journey{padding:20px 16px;gap:20px;background:var(--bg)}
-.journey-hero{text-align:center}
+#panel-journey{padding:0;gap:0;background:var(--bg)}
+.journey-hero{text-align:center;padding:20px 16px 12px}
 .journey-hero h2{font-size:24px;color:var(--text)}
 .journey-hero p{font-size:12px;color:var(--text-soft);margin-top:2px}
-.timeline-track{position:relative;display:flex;flex-direction:column;padding-left:40px}
-.timeline-track::before{content:'';position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:var(--border);border-radius:1px}
-.tl-item{position:relative;padding:8px 0;display:flex;align-items:flex-start;gap:8px}
-.tl-item .tl-dot{position:absolute;left:-34px;top:12px;width:12px;height:12px;border-radius:50%;border:2px solid var(--border);background:var(--bg);transition:all .3s}
-.tl-item.done .tl-dot{background:var(--accent);border-color:var(--accent)}
-.tl-item.current .tl-dot{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 4px rgba(45,142,142,.15)}
-.tl-item.future .tl-dot{background:var(--bg);border-color:var(--text-faint)}
-.tl-item .tl-icon{flex-shrink:0;width:20px;height:20px;margin-top:1px}
-.tl-item .tl-icon svg{width:20px;height:20px}
-.tl-item.future .tl-icon svg{opacity:.35}
-.tl-item .tl-content{flex:1}
-.tl-item .tl-label{font-size:13px;font-weight:600;color:var(--text)}
-.tl-item.future .tl-label{color:var(--text-faint)}
-.tl-item .tl-sub{font-size:11px;color:var(--text-soft)}
-.tl-item.future .tl-sub{color:var(--text-faint)}
+/* ── Emotional Landscape ── */
+.landscape-wrap{position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;margin:0;scrollbar-width:none;touch-action:pan-x pinch-zoom}
+.landscape-wrap::-webkit-scrollbar{display:none}
+.landscape-svg{display:block;height:320px;min-width:1800px}
+.landscape-zone{cursor:pointer;opacity:1;transition:opacity .3s}
+.landscape-zone.future-zone{opacity:.45}
+.landscape-zone:hover{opacity:1}
+.landscape-marker{cursor:pointer;transition:transform .2s}
+.landscape-marker:hover{transform:scale(1.15)}
+.landscape-egg{animation:landEggBob 3s ease-in-out infinite}
+@keyframes landEggBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.landscape-checkin-dot{fill:#2D8E8E;opacity:.6}
+.landscape-bench{cursor:pointer;opacity:.7;transition:opacity .3s}
+.landscape-bench:hover{opacity:1}
+/* Zone card tooltip */
+.zone-card{position:absolute;background:var(--white);border:1px solid var(--border-light);border-radius:12px;padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,.08);z-index:20;max-width:220px;pointer-events:none;opacity:0;transition:opacity .3s;transform:translateY(-8px)}
+.zone-card.visible{opacity:1;pointer-events:auto}
+.zone-card h4{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--text);margin:0 0 4px}
+.zone-card p{font-size:11px;color:var(--text-soft);margin:0;line-height:1.5}
+.zone-card .zc-here{font-size:10px;font-weight:600;color:var(--accent);margin-top:6px}
+.zone-card .zc-stats{font-size:10px;color:var(--text-faint);margin-top:4px}
+/* Bench tooltip */
+.bench-tip{position:absolute;background:rgba(45,45,40,.88);color:#fff;font-size:11px;padding:8px 12px;border-radius:8px;max-width:200px;line-height:1.5;pointer-events:none;opacity:0;transition:opacity .3s;z-index:21}
+.bench-tip.visible{opacity:1}
+/* Weather overlay */
+.weather-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;transition:opacity 1.5s ease}
+.weather-sun{fill:rgba(212,168,67,.12);animation:weatherPulse 6s ease-in-out infinite}
+@keyframes weatherPulse{0%,100%{opacity:.6}50%{opacity:1}}
+.weather-cloud{fill:rgba(180,185,195,.2);animation:cloudDrift 20s linear infinite}
+@keyframes cloudDrift{0%{transform:translateX(0)}100%{transform:translateX(60px)}}
 .trend-panel{background:var(--white);border-radius:var(--radius);padding:18px;border:1px solid var(--border-light)}
 .trend-panel h3{font-size:20px;color:var(--text);margin-bottom:12px}
 .trend-panel .chart-wrap{height:180px;position:relative}
@@ -388,10 +403,12 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
     <div class="ai-response" id="ci-response"><div class="ar-label">Melod·AI</div><div class="ar-text" id="ci-response-text"></div></div>
   </div>
   <div class="tab-panel" id="panel-journey">
-    <div class="journey-hero"><h2>Your Journey</h2><p>Tracking where you've been and where you are</p></div>
-    <div class="trend-panel"><h3>Mood &amp; Anxiety</h3><div class="chart-wrap"><canvas id="trend-chart"></canvas></div></div>
-    <div class="edu-section"><h3>Learn More</h3><div class="edu-grid" id="edu-grid"></div></div>
-    <div style="margin-top:4px"><h3 style="font-family:'Cormorant Garamond',serif;font-size:20px;margin-bottom:12px">Timeline</h3><div class="timeline-track" id="timeline"></div></div>
+    <div class="journey-hero"><h2>Your Journey</h2><p>An emotional map of where you've been and where you are</p></div>
+    <div style="padding:0 16px"><div class="trend-panel"><h3>Mood &amp; Anxiety</h3><div class="chart-wrap"><canvas id="trend-chart"></canvas></div></div></div>
+    <div class="landscape-wrap" id="landscapeWrap">
+      <div id="landscapeContainer" style="position:relative;display:inline-block"></div>
+    </div>
+    <div class="edu-section" style="padding:0 16px"><h3>Learn More</h3><div class="edu-grid" id="edu-grid"></div></div>
   </div>
 </div>
 
@@ -670,7 +687,287 @@ function getStageName(id){var s=STAGES.find(function(s){return s.id===id});retur
 function updateStageUI(){document.getElementById('header-stage').textContent=getStageName(state.stage);document.getElementById('ci-stage-name').textContent=getStageName(state.stage);document.getElementById('ci-stage-cycle').textContent='Cycle '+state.cycle+' \u00b7 '+state.treatment.toUpperCase()}
 function openStageModal(){if(collector)collector.onStageModalOpen();var c=document.getElementById('modal-stages');c.innerHTML='';STAGES.forEach(function(s){var b=document.createElement('button');b.className='modal-stage-btn'+(s.id===state.stage?' current':'');b.innerHTML='<span class="stage-icon">'+(stageIcon(s.id)||'')+'</span>'+s.name;b.onclick=function(){var oldStage=state.stage;state.stage=s.id;if(collector)collector.onStageChange(oldStage,s.id);updateStageUI();buildTimeline();buildEducation();closeStageModal();addSystemMsg('Stage updated to '+s.name)};c.appendChild(b)});document.getElementById('stage-modal').classList.add('open')}
 function closeStageModal(){document.getElementById('stage-modal').classList.remove('open')}
-function buildTimeline(){var e=document.getElementById('timeline');e.innerHTML='';var ci=STAGES.findIndex(function(s){return s.id===state.stage});STAGES.forEach(function(s,i){var st=i<ci?'done':i===ci?'current':'future';var d=document.createElement('div');d.className='tl-item '+st;d.innerHTML='<div class="tl-dot"></div><div class="tl-icon">'+(stageIcon(s.id)||'')+'</div><div class="tl-content"><div class="tl-label">'+s.name+'</div><div class="tl-sub">'+s.group+'</div></div>';e.appendChild(d)})}
+function buildTimeline(){buildLandscape()}
+/* ═══ EMOTIONAL LANDSCAPE ═══════════════════════════════════════════ */
+var LANDSCAPE_ZONES=[
+  {id:'meadow',name:'The Quiet Meadow',desc:'A gentle beginning — taking the first steps.',stages:['consultation','investigation','waiting_to_start'],baseColor:'#B5D99C',x:0,w:300},
+  {id:'climb',name:'The Climb',desc:'Stimulation — the terrain gets steeper, but you\'re strong.',stages:['downregulation','stimulation','monitoring','trigger'],baseColor:'#8CB369',x:300,w:350},
+  {id:'peak',name:'The Peak',desc:'Retrieval — you made it to the summit.',stages:['before_retrieval','retrieval_day','post_retrieval'],baseColor:'#A8D5D3',x:650,w:250},
+  {id:'bridge',name:'The Bridge',desc:'Embryo stage — crossing through uncertainty, one step at a time.',stages:['fertilisation_report','embryo_development','freeze_all'],baseColor:'#9B8EC0',x:900,w:280},
+  {id:'valley',name:'The Valley of Waiting',desc:'The two-week wait — quiet, foggy, and uniquely hard.',stages:['before_transfer','transfer_day','early_tww','late_tww'],baseColor:'#7A9EC0',x:1180,w:320},
+  {id:'fork',name:'The Fork',desc:'Result day — the path divides.',stages:['result_day'],baseColor:'#D4A843',x:1500,w:100},
+  {id:'garden',name:'The Garden',desc:'New life taking root — cautious hope blooms.',stages:['positive_result','early_pregnancy'],baseColor:'#E8C170',x:1600,w:200},
+  {id:'lake',name:'The Quiet Lake',desc:'A place to rest, reflect, and gather strength.',stages:['negative_result','chemical_pregnancy','miscarriage','failed_cycle_acute','failed_cycle_processing','wtf_appointment','between_cycles','considering_stopping','donor_journey'],baseColor:'#8BA7BF',x:1600,w:200}
+];
+function getZoneForStage(stageId){for(var i=0;i<LANDSCAPE_ZONES.length;i++){if(LANDSCAPE_ZONES[i].stages.indexOf(stageId)!==-1)return i}return 0}
+function buildLandscape(){
+  var container=document.getElementById('landscapeContainer');
+  if(!container)return;
+  var curZoneIdx=getZoneForStage(state.stage);
+  var W=1800,H=320;
+  // Path waypoints (x,y) for the winding journey path
+  var pathPoints=[
+    [40,240],[100,235],[160,230],[220,225],[280,220],
+    [340,210],[400,195],[460,175],[520,160],[560,150],
+    [620,135],[680,120],[720,110],[760,115],[800,125],
+    [860,130],[920,145],[960,155],[1000,160],[1040,155],
+    [1100,165],[1160,180],[1220,200],[1280,215],[1340,225],
+    [1400,230],[1460,225],[1520,220],
+    [1580,200],[1640,185],[1700,175],[1760,170]
+  ];
+  // Build smooth path string
+  function smoothPath(pts){
+    if(pts.length<2)return'';
+    var d='M'+pts[0][0]+','+pts[0][1];
+    for(var i=1;i<pts.length;i++){
+      var prev=pts[i-1],cur=pts[i];
+      var cx=(prev[0]+cur[0])/2,cy=(prev[1]+cur[1])/2;
+      d+=' Q'+prev[0]+','+prev[1]+' '+cx+','+cy;
+    }
+    d+=' T'+pts[pts.length-1][0]+','+pts[pts.length-1][1];
+    return d;
+  }
+  var mainPath=smoothPath(pathPoints);
+  // Find patient position on path
+  var allStagesFlat=[];
+  LANDSCAPE_ZONES.forEach(function(z){z.stages.forEach(function(s){allStagesFlat.push(s)})});
+  var stageIdx=allStagesFlat.indexOf(state.stage);
+  if(stageIdx<0)stageIdx=0;
+  var t=stageIdx/(allStagesFlat.length-1);
+  var ptIdx=Math.min(Math.floor(t*(pathPoints.length-1)),pathPoints.length-1);
+  var ptFrac=t*(pathPoints.length-1)-ptIdx;
+  var px,py;
+  if(ptIdx<pathPoints.length-1){
+    px=pathPoints[ptIdx][0]+(pathPoints[ptIdx+1][0]-pathPoints[ptIdx][0])*ptFrac;
+    py=pathPoints[ptIdx][1]+(pathPoints[ptIdx+1][1]-pathPoints[ptIdx][1])*ptFrac;
+  }else{px=pathPoints[ptIdx][0];py=pathPoints[ptIdx][1]}
+
+  // Recent mood for weather
+  var recentMood=5,recentAnx=4;
+  if(state.checkins.length>0){
+    var last3=state.checkins.slice(-3);
+    recentMood=last3.reduce(function(a,c){return a+(c.mood||5)},0)/last3.length;
+    recentAnx=last3.reduce(function(a,c){return a+(c.anxiety||4)},0)/last3.length;
+  }
+  var warmth=recentMood>=6?1:(recentMood<=3?0:0.5);
+  var cloudOpacity=recentMood<=3?0.3:(recentMood>=6?0:0.12);
+
+  var svg='<svg class="landscape-svg" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">';
+  svg+='<defs>';
+  // Gradients
+  svg+='<linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+(warmth>0.5?'#E8DDD0':'#D6DCE4')+'"/><stop offset="100%" stop-color="'+(warmth>0.5?'#F5F0EA':'#E8EBF0')+'"/></linearGradient>';
+  svg+='<linearGradient id="groundGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C8DDB8"/><stop offset="35%" stop-color="#B5D99C"/><stop offset="55%" stop-color="#9B8EC050"/><stop offset="75%" stop-color="#8BA7BF40"/><stop offset="100%" stop-color="#C8DDB8"/></linearGradient>';
+  svg+='<radialGradient id="sunGlow" cx="85%" cy="10%" r="30%"><stop offset="0%" stop-color="rgba(212,168,67,'+(0.08+warmth*0.12).toFixed(2)+')"/><stop offset="100%" stop-color="rgba(212,168,67,0)"/></radialGradient>';
+  svg+='<filter id="softBlur"><feGaussianBlur stdDeviation="2"/></filter>';
+  svg+='<filter id="fogBlur"><feGaussianBlur stdDeviation="8"/></filter>';
+  svg+='</defs>';
+
+  // Sky
+  svg+='<rect width="'+W+'" height="'+H+'" fill="url(#skyGrad)"/>';
+  // Sun glow
+  if(warmth>0.3)svg+='<circle cx="1530" cy="40" r="200" fill="url(#sunGlow)" class="weather-sun"/>';
+  // Clouds
+  if(cloudOpacity>0.05){
+    svg+='<g class="weather-cloud" opacity="'+cloudOpacity.toFixed(2)+'">';
+    svg+='<ellipse cx="300" cy="50" rx="80" ry="25" fill="#B4B9C3" filter="url(#fogBlur)"/>';
+    svg+='<ellipse cx="800" cy="35" rx="100" ry="30" fill="#B4B9C3" filter="url(#fogBlur)"/>';
+    svg+='<ellipse cx="1300" cy="55" rx="70" ry="22" fill="#B4B9C3" filter="url(#fogBlur)"/>';
+    svg+='</g>';
+  }
+
+  // ── Zone 1: Quiet Meadow (0-300) ──
+  svg+='<g class="landscape-zone'+(curZoneIdx<0?' future-zone':'')+'" data-zone="0">';
+  // Rolling hills
+  svg+='<path d="M0,250 Q50,230 100,240 Q150,220 200,235 Q250,225 300,240 L300,320 L0,320Z" fill="#C8DDB8" opacity=".6"/>';
+  svg+='<path d="M0,260 Q80,245 150,255 Q200,240 280,250 L300,260 L300,320 L0,320Z" fill="#B5D99C" opacity=".5"/>';
+  // Wildflowers
+  var flowers=[[50,238,'#E07A5F'],[90,233,'#D4A843'],[140,228,'#9B8EC0'],[190,233,'#E07A5F'],[240,225,'#D4A843'],[270,218,'#A8D5D3']];
+  flowers.forEach(function(f){svg+='<circle cx="'+f[0]+'" cy="'+f[1]+'" r="2.5" fill="'+f[2]+'" opacity=".7"/><line x1="'+f[0]+'" y1="'+f[1]+'" x2="'+f[0]+'" y2="'+(f[1]+6)+'" stroke="#8CB369" stroke-width=".8"/>'});
+  svg+='</g>';
+
+  // ── Zone 2: The Climb (300-650) ──
+  svg+='<g class="landscape-zone'+(curZoneIdx<1?' future-zone':'')+'" data-zone="1">';
+  // Hillside rising
+  svg+='<path d="M300,240 Q350,230 400,210 Q450,190 500,175 Q550,160 600,145 Q630,135 650,130 L650,320 L300,320Z" fill="#8CB36940"/>';
+  svg+='<path d="M280,250 Q350,240 400,220 Q480,195 550,170 Q600,155 650,140 L650,320 L280,320Z" fill="#B5D99C" opacity=".4"/>';
+  // Trees along the climb
+  var trees=[[330,225],[380,210],[440,192],[500,172],[570,155]];
+  trees.forEach(function(tr){svg+='<path d="M'+tr[0]+','+(tr[1]-5)+' L'+(tr[0]-6)+','+tr[1]+' L'+(tr[0]-2)+','+tr[1]+' L'+(tr[0]-2)+','+(tr[1]+8)+' L'+(tr[0]+2)+','+(tr[1]+8)+' L'+(tr[0]+2)+','+tr[1]+' L'+(tr[0]+6)+','+tr[1]+'Z" fill="#6B8F4E" opacity=".5"/>'});
+  // Small rocks
+  svg+='<ellipse cx="420" cy="205" rx="5" ry="3" fill="#C0B8A8" opacity=".4"/>';
+  svg+='<ellipse cx="530" cy="168" rx="4" ry="2.5" fill="#C0B8A8" opacity=".4"/>';
+  svg+='</g>';
+
+  // ── Zone 3: The Peak (650-900) ──
+  svg+='<g class="landscape-zone'+(curZoneIdx<2?' future-zone':'')+'" data-zone="2">';
+  // Summit
+  svg+='<path d="M650,130 Q700,115 740,110 Q780,108 820,115 Q860,122 900,135 L900,320 L650,320Z" fill="#A8D5D340"/>';
+  // Flag at peak
+  svg+='<line x1="740" y1="90" x2="740" y2="110" stroke="#2D8E8E" stroke-width="1.5"/>';
+  svg+='<path d="M740,90 L758,95 L740,100Z" fill="#2D8E8E" opacity=".7"/>';
+  // Open sky feeling — a subtle arc
+  svg+='<path d="M680,105 Q740,85 800,105" fill="none" stroke="rgba(168,213,211,.3)" stroke-width="1" stroke-dasharray="3,3"/>';
+  svg+='</g>';
+
+  // ── Zone 4: The Bridge (900-1180) ──
+  svg+='<g class="landscape-zone'+(curZoneIdx<3?' future-zone':'')+'" data-zone="3">';
+  // Misty valley below bridge
+  svg+='<ellipse cx="1040" cy="260" rx="140" ry="60" fill="#9B8EC0" opacity=".1" filter="url(#fogBlur)"/>';
+  // Bridge structure
+  svg+='<path d="M900,135 Q940,155 980,160 Q1020,162 1060,158 Q1100,152 1140,148 Q1160,146 1180,150" fill="none" stroke="#8B7355" stroke-width="3" opacity=".6"/>';
+  // Bridge railings
+  svg+='<path d="M900,130 Q940,150 980,155 Q1020,157 1060,153 Q1100,147 1140,143 Q1160,141 1180,145" fill="none" stroke="#A0936E" stroke-width="1" opacity=".4"/>';
+  // Lanterns along bridge
+  var lanterns=[[940,148],[1000,155],[1060,152],[1120,146]];
+  lanterns.forEach(function(l){svg+='<circle cx="'+l[0]+'" cy="'+(l[1]-8)+'" r="3" fill="#D4A843" opacity=".5"/><line x1="'+l[0]+'" y1="'+(l[1]-5)+'" x2="'+l[0]+'" y2="'+l[1]+'" stroke="#8B7355" stroke-width=".8"/>'});
+  svg+='</g>';
+
+  // ── Zone 5: Valley of Waiting (1180-1500) ──
+  svg+='<g class="landscape-zone'+(curZoneIdx<4?' future-zone':'')+'" data-zone="4">';
+  // Descending valley
+  svg+='<path d="M1180,150 Q1220,165 1260,185 Q1300,200 1340,215 Q1380,225 1420,230 Q1460,232 1500,228 L1500,320 L1180,320Z" fill="#7A9EC020"/>';
+  // Fog layers
+  svg+='<ellipse cx="1300" cy="220" rx="120" ry="40" fill="#8BA7BF" opacity=".08" filter="url(#fogBlur)"/>';
+  svg+='<ellipse cx="1400" cy="235" rx="80" ry="30" fill="#9B8EC0" opacity=".06" filter="url(#fogBlur)"/>';
+  // Bench rest stops
+  svg+='<g class="landscape-bench" data-bench="tww">';
+  svg+='<rect x="1290" y="210" width="14" height="2" rx="1" fill="#8B7355" opacity=".6"/>';
+  svg+='<rect x="1292" y="212" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+  svg+='<rect x="1300" y="212" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+  svg+='</g>';
+  svg+='<g class="landscape-bench" data-bench="late-tww">';
+  svg+='<rect x="1410" y="228" width="14" height="2" rx="1" fill="#8B7355" opacity=".6"/>';
+  svg+='<rect x="1412" y="230" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+  svg+='<rect x="1420" y="230" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+  svg+='</g>';
+  svg+='</g>';
+
+  // ── Zone 6: The Fork (1500-1600) ──
+  svg+='<g class="landscape-zone'+(curZoneIdx<5?' future-zone':'')+'" data-zone="5">';
+  // Fork visual — path splits
+  svg+='<circle cx="1530" cy="222" r="4" fill="#D4A843" opacity=".4"/>';
+  svg+='</g>';
+
+  // ── Zone 7: The Garden (upper path, 1600-1800) ──
+  svg+='<g class="landscape-zone'+(curZoneIdx<6?' future-zone':'')+'" data-zone="6">';
+  // Warm path upward
+  svg+='<path d="M1560,210 Q1600,195 1640,185 Q1680,178 1720,175 Q1760,173 1800,170 L1800,320 L1560,320Z" fill="#E8C17020"/>';
+  // Flowers blooming
+  var gardenFlowers=[[1600,192,'#E07A5F'],[1640,183,'#D4A843'],[1680,177,'#E07A5F'],[1720,174,'#9B8EC0'],[1750,172,'#D4A843']];
+  gardenFlowers.forEach(function(f){svg+='<circle cx="'+f[0]+'" cy="'+(f[1]-2)+'" r="3" fill="'+f[2]+'" opacity=".6"/><circle cx="'+(f[0]+3)+'" cy="'+(f[1]-1)+'" r="2" fill="'+f[2]+'" opacity=".4"/>'});
+  // Sun rays
+  svg+='<line x1="1700" y1="60" x2="1680" y2="160" stroke="rgba(212,168,67,.06)" stroke-width="20"/>';
+  svg+='<line x1="1740" y1="50" x2="1730" y2="155" stroke="rgba(212,168,67,.05)" stroke-width="15"/>';
+  svg+='</g>';
+
+  // ── Zone 8: The Quiet Lake (lower path, same x range) ──
+  svg+='<g class="landscape-zone" data-zone="7">';
+  // Lake
+  svg+='<ellipse cx="1680" cy="270" rx="80" ry="25" fill="#8BA7BF" opacity=".2"/>';
+  svg+='<ellipse cx="1680" cy="272" rx="60" ry="15" fill="#7A9EC0" opacity=".15"/>';
+  // Small dock
+  svg+='<rect x="1650" y="258" width="20" height="3" rx="1" fill="#8B7355" opacity=".5"/>';
+  svg+='<rect x="1650" y="258" width="2" height="8" rx=".5" fill="#8B7355" opacity=".4"/>';
+  // Trees around lake
+  svg+='<path d="M1620,250 L1614,258 L1617,258 L1617,265 L1623,265 L1623,258 L1626,258Z" fill="#6B8F4E" opacity=".35"/>';
+  svg+='<path d="M1740,248 L1734,256 L1737,256 L1737,263 L1743,263 L1743,256 L1746,256Z" fill="#6B8F4E" opacity=".35"/>';
+  svg+='</g>';
+
+  // ── Ground line ──
+  svg+='<path d="M0,260 Q200,250 400,240 Q600,220 800,230 Q1000,250 1200,260 Q1400,268 1600,265 Q1700,262 1800,260 L1800,320 L0,320Z" fill="#D5CFC4" opacity=".15"/>';
+
+  // ── Main journey path ──
+  // Future portion (faded)
+  svg+='<path d="'+mainPath+'" fill="none" stroke="rgba(45,142,142,.15)" stroke-width="4" stroke-linecap="round" stroke-dasharray="8,6"/>';
+  // Past portion (solid, clipped to patient position)
+  svg+='<defs><clipPath id="pastClip"><rect x="0" y="0" width="'+px.toFixed(0)+'" height="'+H+'"/></clipPath></defs>';
+  svg+='<path d="'+mainPath+'" fill="none" stroke="#2D8E8E" stroke-width="4" stroke-linecap="round" clip-path="url(#pastClip)" opacity=".7"/>';
+
+  // ── Check-in dots along path ──
+  if(state.checkins.length>0){
+    var step=Math.max(1,Math.floor(pathPoints.length/state.checkins.length));
+    state.checkins.forEach(function(ci,i){
+      var pi=Math.min(i*step,pathPoints.length-1);
+      if(pi<ptIdx){
+        svg+='<circle cx="'+pathPoints[pi][0]+'" cy="'+pathPoints[pi][1]+'" r="3" class="landscape-checkin-dot"/>';
+      }
+    });
+  }
+
+  // ── Soft spot benches at key difficulty points ──
+  // (Additional bench at stimulation day 7, day before retrieval, fertilisation wait)
+  var benchPoints=[
+    {x:460,y:175,tip:'Many people find the hormones hit hardest around here.'},
+    {x:680,y:118,tip:'The day before retrieval — a mix of nerves and anticipation.'},
+    {x:960,y:155,tip:'Waiting for the fertilisation report is a unique kind of anxiety.'},
+  ];
+  benchPoints.forEach(function(b,i){
+    svg+='<g class="landscape-bench" data-tip="'+i+'">';
+    svg+='<rect x="'+(b.x-7)+'" y="'+(b.y+2)+'" width="14" height="2" rx="1" fill="#8B7355" opacity=".6"/>';
+    svg+='<rect x="'+(b.x-5)+'" y="'+(b.y+4)+'" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+    svg+='<rect x="'+(b.x+3)+'" y="'+(b.y+4)+'" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+    svg+='</g>';
+  });
+
+  // ── Patient egg marker ──
+  svg+='<g class="landscape-egg" transform="translate('+(px-10).toFixed(0)+','+(py-22).toFixed(0)+')">';
+  svg+='<ellipse cx="10" cy="14" rx="8" ry="10" fill="#FFF3E0" stroke="rgba(0,0,0,.06)" stroke-width=".5"/>';
+  svg+='<ellipse cx="7" cy="10" rx="3" ry="4" fill="rgba(255,255,255,.4)" opacity=".5"/>';
+  svg+='<circle cx="7.5" cy="12" r="1.2" fill="#3a3a3a"/>';
+  svg+='<circle cx="12.5" cy="12" r="1.2" fill="#3a3a3a"/>';
+  svg+='<path d="M8,15 Q10,17 12,15" fill="none" stroke="#3a3a3a" stroke-width=".8" stroke-linecap="round"/>';
+  svg+='</g>';
+
+  svg+='</svg>';
+  container.innerHTML=svg;
+
+  // Auto-scroll to patient position
+  var wrap=document.getElementById('landscapeWrap');
+  if(wrap){
+    var scrollTarget=px-wrap.clientWidth/2;
+    setTimeout(function(){wrap.scrollTo({left:Math.max(0,scrollTarget),behavior:'smooth'})},300);
+  }
+
+  // Zone tap interaction
+  container.querySelectorAll('.landscape-zone').forEach(function(el){
+    el.addEventListener('click',function(e){
+      var zi=parseInt(el.getAttribute('data-zone'));
+      var zone=LANDSCAPE_ZONES[zi];if(!zone)return;
+      // Remove existing card
+      var old=container.querySelector('.zone-card');if(old)old.remove();
+      var card=document.createElement('div');card.className='zone-card';
+      var html='<h4>'+zone.name+'</h4><p>'+zone.desc+'</p>';
+      if(zi===curZoneIdx)html+='<div class="zc-here">You are here</div>';
+      card.innerHTML=html;
+      card.style.left=(zone.x+zone.w/2-100)+'px';card.style.top='20px';
+      container.appendChild(card);
+      setTimeout(function(){card.classList.add('visible')},10);
+      setTimeout(function(){card.classList.remove('visible');setTimeout(function(){card.remove()},300)},4000);
+    });
+  });
+
+  // Bench tap interaction
+  var allBenchTips=[].concat(benchPoints,
+    [{tip:'Many people find this part hard. You\'re not alone here.'},{tip:'These final days before the result are genuinely one of the hardest parts.'}]
+  );
+  container.querySelectorAll('.landscape-bench').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      var tipIdx=el.getAttribute('data-tip');
+      var benchData=benchPoints[tipIdx];
+      if(!benchData)benchData={tip:'Many people find this part hard. You\'re not alone here.'};
+      var old=container.querySelector('.bench-tip');if(old)old.remove();
+      var tip=document.createElement('div');tip.className='bench-tip';
+      tip.textContent=benchData.tip;
+      var rect=el.getBoundingClientRect();var cRect=container.getBoundingClientRect();
+      tip.style.left=(rect.left-cRect.left-60)+'px';tip.style.top=(rect.top-cRect.top-40)+'px';
+      container.appendChild(tip);
+      setTimeout(function(){tip.classList.add('visible')},10);
+      setTimeout(function(){tip.classList.remove('visible');setTimeout(function(){tip.remove()},300)},4000);
+    });
+  });
+}
+/* ═══ END EMOTIONAL LANDSCAPE ═══════════════════════════════════════ */
 var EDU={consultation:['What to expect at your first fertility consultation','Understanding initial blood tests and scans','Questions to ask your specialist'],stimulation:['What stimulation medications do','Managing injection anxiety','Why monitoring appointments matter'],retrieval_day:['Step-by-step: what happens during egg retrieval','Recovery expectations','Why egg numbers vary'],embryo_development:['Understanding your fertilisation report','What embryo grading means','The attrition curve explained'],transfer_day:['What happens during embryo transfer','Fresh vs frozen: why your doctor chose this','What you can and cannot control'],early_tww:['What is actually happening in your body','Why symptom spotting is unreliable','Evidence-based strategies for managing the wait'],late_tww:['What is actually happening in your body','Why symptom spotting is unreliable','Evidence-based strategies for managing the wait'],negative_result:['Grief after a failed cycle is valid','When to think about next steps','What your clinic might change'],between_cycles:['Giving your body and mind time','Questions to ask before another cycle','The emotional weight of deciding whether to continue']};
 function buildEducation(){var g=document.getElementById('edu-grid');g.innerHTML='';(EDU[state.stage]||EDU.consultation).forEach(function(t){var d=document.createElement('div');d.className='edu-item';d.innerHTML='<div class="edu-marker"></div><div class="edu-text">'+t+'</div>';d.onclick=function(){if(collector)collector.onEducationTap(t);switchTab('chat');document.getElementById('chat-input').value=t;sendMsg()};g.appendChild(d)})}
 var trendChart=null;

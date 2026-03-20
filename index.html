@@ -224,6 +224,43 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 .egg-welcome-bubble.visible{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
 .egg-welcome-bubble::after{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid #f2edea;filter:drop-shadow(0 1px 1px rgba(0,0,0,.02))}
 .egg-welcome-bubble p{font-family:'Montserrat',sans-serif;font-size:12px;line-height:1.6;color:#5a7a7a;text-align:center;margin:0;font-weight:400;letter-spacing:.01em}
+/* ── Stress-ball spring-back ──────────────────────────── */
+@keyframes eggSpringBack{
+0%{transform:scale(1)}
+30%{transform:scale(1.06,0.94)}
+50%{transform:scale(0.97,1.03)}
+70%{transform:scale(1.02,0.98)}
+100%{transform:scale(1)}
+}
+@keyframes eggWobble{
+0%{transform:rotate(0deg)}
+15%{transform:rotate(-4deg)}
+30%{transform:rotate(3.5deg)}
+45%{transform:rotate(-2.5deg)}
+60%{transform:rotate(1.5deg)}
+75%{transform:rotate(-0.8deg)}
+100%{transform:rotate(0deg)}
+}
+/* ── Welcome Intro Screen ────────────────────────────── */
+#screen-welcome{background:var(--white);align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+#screen-welcome .welcome-inner{max-width:420px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;z-index:2}
+#screen-welcome .welcome-egg{width:200px;height:260px;margin-bottom:24px}
+#screen-welcome .welcome-egg svg{filter:drop-shadow(0 6px 20px rgba(122,172,172,.18)) drop-shadow(0 2px 6px rgba(0,0,0,.06));animation:eggBreathe 5s ease-in-out infinite,eggFloat 7s ease-in-out infinite}
+.welcome-text{font-family:'Montserrat',sans-serif;font-size:14px;line-height:1.75;color:var(--text-mid);max-width:360px;text-align:center;min-height:220px}
+.welcome-text .wt-hi{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:400;color:var(--text);display:block;margin-bottom:12px}
+.welcome-cursor{display:inline-block;width:2px;height:1em;background:var(--accent);margin-left:1px;animation:cursorBlink 1s step-end infinite;vertical-align:text-bottom}
+@keyframes cursorBlink{0%,100%{opacity:1}50%{opacity:0}}
+.welcome-cta{margin-top:28px;width:100%;max-width:360px;opacity:0;transform:translateY(12px);transition:opacity .8s ease,transform .8s ease}
+.welcome-cta.visible{opacity:1;transform:translateY(0)}
+.welcome-cta button{width:100%;padding:16px;background:var(--accent);color:var(--white);border:none;border-radius:var(--radius-sm);font-family:'Montserrat',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s;letter-spacing:.3px}
+.welcome-cta button:hover{background:var(--accent-hover)}
+/* Welcome ambient background */
+.welcome-ambient{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.welcome-orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.15;animation:orbDrift 20s ease-in-out infinite}
+.welcome-orb:nth-child(1){width:300px;height:300px;background:rgba(122,172,172,.3);top:-80px;right:-60px;animation-delay:0s}
+.welcome-orb:nth-child(2){width:250px;height:250px;background:rgba(240,224,207,.4);bottom:-60px;left:-40px;animation-delay:-7s}
+.welcome-orb:nth-child(3){width:180px;height:180px;background:rgba(122,172,172,.2);top:40%;left:60%;animation-delay:-13s}
+@keyframes orbDrift{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(15px,-10px) scale(1.05)}50%{transform:translate(-10px,15px) scale(0.95)}75%{transform:translate(8px,8px) scale(1.03)}}
 /* ── Chat Input Pulse ────────────────────────────────── */
 @keyframes inputPulse{0%,100%{box-shadow:0 0 0 0 rgba(45,142,142,.25)}50%{box-shadow:0 0 0 6px rgba(45,142,142,0)}}
 .chat-composer textarea.pulse-hint{animation:inputPulse 2s ease-in-out 3}
@@ -276,7 +313,38 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 </style>
 </head>
 <body>
-<div id="screen-onboard" class="screen active">
+<!-- Welcome Intro Screen (first-time only) -->
+<div id="screen-welcome" class="screen">
+<div class="welcome-ambient"><div class="welcome-orb"></div><div class="welcome-orb"></div><div class="welcome-orb"></div></div>
+<div class="welcome-inner">
+  <div class="welcome-egg">
+    <svg viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="wG" cx="42%" cy="32%" r="62%"><stop offset="0%" stop-color="#FFF8F0"/><stop offset="100%" stop-color="#F0E0CF"/></radialGradient>
+        <radialGradient id="wHi" cx="32%" cy="25%" r="28%"><stop offset="0%" stop-color="rgba(255,255,255,0.55)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
+        <radialGradient id="wDp" cx="50%" cy="85%" r="45%"><stop offset="0%" stop-color="rgba(180,160,140,.08)"/><stop offset="100%" stop-color="rgba(180,160,140,0)"/></radialGradient>
+      </defs>
+      <ellipse cx="100" cy="236" rx="52" ry="10" fill="#f5ede4" opacity="0.5"/>
+      <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#wG)" stroke="rgba(0,0,0,0.03)" stroke-width="0.5"/>
+      <ellipse cx="72" cy="75" rx="28" ry="40" fill="url(#wHi)" opacity="0.6"/>
+      <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#wDp)"/>
+      <g transform="translate(0,10)">
+        <ellipse cx="82" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
+        <ellipse cx="118" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
+        <circle cx="80.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
+        <circle cx="116.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
+        <ellipse cx="68" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
+        <ellipse cx="132" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
+        <path d="M92,138 Q100,144 108,138" stroke="#8a8078" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+      </g>
+    </svg>
+  </div>
+  <div class="welcome-text" id="welcomeText"></div>
+  <div class="welcome-cta" id="welcomeCta"><button onclick="dismissWelcome()">Get Started &rarr;</button></div>
+</div>
+</div>
+
+<div id="screen-onboard" class="screen">
 <div class="onboard-container">
   <div class="onboard-hero">
     <div class="brand-mark"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="22" stroke="#2D8E8E" stroke-width="2" fill="none"/><path d="M16 28C16 28 19 20 24 20C29 20 32 28 32 28" stroke="#2D8E8E" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="16" r="2.5" fill="#2D8E8E"/><path d="M20 32L24 36L28 32" stroke="#2D8E8E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -1217,6 +1285,211 @@ function resetEggVisuals(){
   egg.style.transform='';labelTitle.style.color='';badgeNum.style.transform='scale(1)';
   hideAllSpecials();
 }
+/* ── FEATURE 1: Reactive Stress-Ball Egg ──────────────────────── */
+var squishState={active:false,tapTimes:[],wobbling:false};
+
+function handleSquishDown(e){
+  if(isOpen||showingResults||!egg.classList.contains('idle'))return;
+  if(dragState.moved)return; // don't squish during drag
+  var t=getTouch(e);
+  var rect=svg.getBoundingClientRect();
+  var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+  var dx=(t.clientX-cx)/(rect.width/2); // -1 to 1
+  var dy=(t.clientY-cy)/(rect.height/2);
+  var dist=Math.sqrt(dx*dx+dy*dy);
+  var intensity=Math.min(dist,1)*0.12; // max 12% deform
+
+  // Direction-based squish
+  var sX=1-Math.abs(dx)*intensity;
+  var sY=1-Math.abs(dy)*intensity;
+  // Compensate volume: if squished on X, stretch Y and vice versa
+  if(Math.abs(dx)>Math.abs(dy)){sY=1+Math.abs(dx)*intensity*0.5}
+  else{sX=1+Math.abs(dy)*intensity*0.5}
+
+  svg.style.transition='transform 60ms ease-out';
+  svg.style.transform='scaleX('+sX.toFixed(3)+') scaleY('+sY.toFixed(3)+')';
+
+  // Warm color shift at touch point
+  var warmT=Math.min(intensity*4,0.3);
+  s1.setAttribute('stop-color',mix('#FFF8F0','#F5D0C0',warmT));
+  s2.setAttribute('stop-color',mix('#F0E0CF','#E8B8A8',warmT));
+
+  squishState.active=true;
+
+  // Track rapid taps for wobble
+  var now=Date.now();
+  squishState.tapTimes.push(now);
+  squishState.tapTimes=squishState.tapTimes.filter(function(t){return now-t<2000});
+  if(squishState.tapTimes.length>=5&&!squishState.wobbling){
+    squishState.wobbling=true;
+    svg.style.transition='none';
+    svg.style.animation='eggWobble .6s ease';
+    if(navigator.vibrate)navigator.vibrate([8,30,8,30,8]);
+    // Secret 5-tap: force spawn sperm
+    if(!spermActive){
+      console.log('[Sperm] Force-spawned via 5-tap');
+      spawnSpermVisit();
+    }
+    setTimeout(function(){
+      svg.style.animation='';squishState.wobbling=false;
+      svg.style.transform='scale(1)';
+      s1.setAttribute('stop-color','#FFF8F0');s2.setAttribute('stop-color','#F0E0CF');
+    },650);
+    squishState.tapTimes=[];
+  }
+}
+
+function handleSquishUp(){
+  if(!squishState.active)return;
+  squishState.active=false;
+  if(squishState.wobbling)return;
+  // Spring-back with overshoot
+  svg.style.transition='none';
+  svg.style.animation='eggSpringBack .5s cubic-bezier(.34,1.56,.64,1)';
+  s1.setAttribute('stop-color','#FFF8F0');s2.setAttribute('stop-color','#F0E0CF');
+  setTimeout(function(){
+    svg.style.animation='';svg.style.transform='scale(1)';
+  },520);
+}
+
+// Attach squish listeners to the SVG (fires alongside drag system)
+svg.addEventListener('mousedown',handleSquishDown);
+svg.addEventListener('touchstart',handleSquishDown,{passive:true});
+document.addEventListener('mouseup',handleSquishUp);
+document.addEventListener('touchend',handleSquishUp,{passive:true});
+
+/* ── FEATURE 2: Sperm Animation Fix ──────────────────────────── */
+// The sperm code exists but scheduleNextSperm() only fires when
+// startIdleFace is called. The hook at line ~910 wraps startIdleFace
+// to call scheduleNextSperm. However, the egg becomes visible + idle
+// AFTER showApp runs (1500ms delay). The hook is set up before that.
+// Potential issue: if startIdleFace is called before the hook is wired,
+// or the guard conditions block it. Let's add explicit debug logging
+// and ensure scheduling starts reliably.
+
+var _origScheduleNext=scheduleNextSperm;
+scheduleNextSperm=function(){
+  if(spermTimer)clearTimeout(spermTimer);
+  var delay=25000+Math.random()*35000; // 25-60s for testing
+  console.log('[Sperm] Scheduled next visit in '+(delay/1000).toFixed(0)+'s');
+  spermTimer=setTimeout(function(){
+    console.log('[Sperm] Spawning visit now');
+    spawnSpermVisit();
+  },delay);
+};
+
+var _origSpawnSperm=spawnSpermVisit;
+spawnSpermVisit=function(){
+  if(isOpen||showingResults||!egg.classList.contains('visible')||!egg.classList.contains('idle')){
+    console.log('[Sperm] Blocked — egg state:',{isOpen:isOpen,showingResults:showingResults,visible:egg.classList.contains('visible'),idle:egg.classList.contains('idle')});
+    scheduleNextSperm(); // retry later instead of giving up
+    return;
+  }
+  console.log('[Sperm] Spawned!');
+  _origSpawnSperm();
+};
+
+// Force an initial schedule after egg becomes visible, as a safety net
+var _showAppForSperm=window.showApp;
+window.showApp=function(){
+  _showAppForSperm.apply(this,arguments);
+  // After egg appears (1500ms), ensure sperm is scheduled
+  setTimeout(function(){
+    if(!spermTimer){
+      console.log('[Sperm] Safety-net: initial schedule');
+      scheduleNextSperm();
+    }
+  },2000);
+};
+
+/* ── FEATURE 3: Welcome Intro Screen ─────────────────────────── */
+var WELCOME_TEXT="Hi there \uD83D\uDC9B\n\nI'm Melod\u00b7AI \u2014 your companion through IVF.\n\nI'm here to support you emotionally, answer your questions about treatment and medications, and help you feel less alone through this journey.\n\nEverything you share stays private. I use gentle background tracking \u2014 like how you're feeling over time \u2014 only to better support YOU. Never for marketing, never shared without your consent.\n\nThink of me as a knowledgeable friend who's always available, powered by AI and guided by fertility specialists.";
+
+function dismissWelcome(){
+  try{localStorage.setItem('melodai_welcomed','1')}catch(ex){}
+  document.getElementById('screen-welcome').classList.remove('active');
+  document.getElementById('screen-onboard').classList.add('active');
+}
+window.dismissWelcome=dismissWelcome;
+
+function typewriterWelcome(){
+  var el=document.getElementById('welcomeText');
+  var cta=document.getElementById('welcomeCta');
+  var text=WELCOME_TEXT;
+  var i=0;
+  var cursor=document.createElement('span');
+  cursor.className='welcome-cursor';
+
+  // Split into hi line + body
+  var lines=text.split('\n');
+  var hiLine=lines[0];
+
+  function typeChar(){
+    if(i>=text.length){
+      // Remove cursor, show CTA
+      if(cursor.parentNode)cursor.parentNode.removeChild(cursor);
+      setTimeout(function(){cta.classList.add('visible')},400);
+      return;
+    }
+    var ch=text[i];
+    if(i===0){
+      // Start with the hi span
+      var hi=document.createElement('span');
+      hi.className='wt-hi';
+      el.appendChild(hi);
+    }
+    // Find current container
+    var container;
+    if(i<hiLine.length){
+      container=el.querySelector('.wt-hi');
+    }else{
+      // Body text — just append to el
+      container=el;
+    }
+
+    if(ch==='\n'){
+      if(i>=hiLine.length){
+        // Double newline = paragraph break, single = line break
+        if(i+1<text.length&&text[i+1]==='\n'){
+          var br=document.createElement('div');
+          br.style.height='12px';
+          container.appendChild(br);
+          i++; // skip next \n
+        }else{
+          container.appendChild(document.createElement('br'));
+        }
+      }
+    }else{
+      container.appendChild(document.createTextNode(ch));
+    }
+
+    // Move cursor
+    if(cursor.parentNode)cursor.parentNode.removeChild(cursor);
+    container.appendChild(cursor);
+
+    i++;
+    var delay=30;
+    // Pause after punctuation
+    if(ch==='.'||ch==='\u2014')delay=60;
+    if(ch===','||ch==='\u2014')delay=45;
+    setTimeout(typeChar,delay);
+  }
+  setTimeout(typeChar,800); // initial pause
+}
+
+// Decide which screen to show first
+(function(){
+  var welcomed=false;
+  try{welcomed=localStorage.getItem('melodai_welcomed')==='1'}catch(ex){}
+  if(welcomed){
+    // Skip welcome, go straight to onboarding/app
+    document.getElementById('screen-onboard').classList.add('active');
+  }else{
+    document.getElementById('screen-welcome').classList.add('active');
+    typewriterWelcome();
+  }
+})();
+
 })();
 /* ═══ END EGG COMPANION ═════════════════════════════════════════ */
 

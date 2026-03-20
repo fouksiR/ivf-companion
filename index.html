@@ -99,6 +99,18 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 /* ── Micro-reflection ── */
 .micro-reflection{font-style:italic;font-size:13px;color:var(--text-soft);margin-bottom:6px;opacity:0;animation:microIn .8s ease .2s forwards;align-self:flex-start}
 @keyframes microIn{from{opacity:0}to{opacity:.8}}
+/* ── Daily Insight (morning card) ── */
+.daily-insight{font-family:Georgia,'Cormorant Garamond',serif;font-size:18px;line-height:1.6;color:#3a3a3a;text-align:center;padding:28px 24px 20px;opacity:0;animation:insightIn 1s ease .3s forwards;cursor:pointer;transition:opacity .4s ease,transform .4s ease}
+@keyframes insightIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.daily-insight.dismissed{opacity:0;transform:translateY(-16px);pointer-events:none}
+.daily-insight-sep{width:40px;height:1px;background:var(--accent);margin:0 auto 16px;opacity:0;animation:insightIn 1s ease .8s forwards}
+/* ── Evening Wind-Down ── */
+.evening-card{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);max-width:340px;width:calc(100% - 48px);background:linear-gradient(145deg,#faf8f5,#f5ede4);border:1px solid rgba(122,172,172,.12);border-radius:16px;padding:16px 20px;box-shadow:0 4px 24px rgba(0,0,0,.06);z-index:40;opacity:0;animation:eveningIn .8s ease forwards;cursor:pointer;font-family:Georgia,'Cormorant Garamond',serif;font-size:15px;line-height:1.5;color:#3a3a3a;text-align:center}
+@keyframes eveningIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.evening-card.dismissed{opacity:0;transform:translateX(-50%) translateY(12px);pointer-events:none}
+/* ── Still Here Whisper ── */
+.still-here-whisper{position:absolute;bottom:92px;left:50%;transform:translateX(-50%);background:linear-gradient(145deg,#faf8f5,#f2edea);border:1px solid rgba(122,172,172,.1);border-radius:14px;padding:10px 16px;box-shadow:0 2px 12px rgba(0,0,0,.04);opacity:0;transition:opacity 1.5s ease;pointer-events:none;z-index:51;font-family:'Montserrat',sans-serif;font-size:12px;color:#5a7a7a;text-align:center;white-space:nowrap}
+.still-here-whisper.visible{opacity:1}
 .typing-dots{align-self:flex-start;padding:14px 20px;background:var(--white);border-radius:var(--radius) var(--radius) var(--radius) 3px;border:1px solid var(--border-light);display:none}
 .typing-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin:0 2px;animation:bounce 1.3s infinite}
 .typing-dots span:nth-child(2){animation-delay:.15s}
@@ -757,14 +769,20 @@ function goStep(n){if(n===2){state.name=document.getElementById('ob-name').value
 async function completeOnboarding(){state.treatment=document.getElementById('ob-treatment').value;state.cycle=parseInt(document.getElementById('ob-cycle').value);state.clinic=document.getElementById('ob-clinic').value.trim();
 var fallback=function(){state.patientId=state.patientId||('demo-'+Math.random().toString(36).slice(2,8));showApp();addMsg('ai','Hi '+state.name+". I\u2019m Melod\u00b7AI \u2014 here to walk alongside you through this journey.\n\nYou\u2019re at the "+getStageName(state.stage)+' stage, cycle '+state.cycle+". Whether you want to talk about what you\u2019re feeling, ask questions about what\u2019s happening, or just vent \u2014 I\u2019m here.\n\nHow are you doing today?",null,{showOneWord:true})};
 if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(function(){ctrl.abort()},8000);const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null}),signal:ctrl.signal});clearTimeout(timer);const d=await r.json();state.patientId=d.patient_id;showApp();if(d.message)addMsg('ai',d.message,null,{showOneWord:true});return}catch(e){console.warn('API unavailable:',e)}}fallback()}
-function showApp(){try{document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();
+function showApp(){try{document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();
+document.getElementById('chat-input').addEventListener('input',resetStillHere);
 collector=new PassiveCollector({patientId:state.patientId,apiBase:API_BASE,debug:true,flushInterval:60000});collector.record('session_start',null,{stage:state.stage,cycle:state.cycle,treatment:state.treatment})}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
 /* ═══ REFLECTIONS ═══════════════════════════════════════════════════ */
 async function fetchReflection(){
   if(!state.patientId||!API_BASE)return;
   try{
+    // Fetch daily insight first (morning card)
+    fetchDailyInsight();
     // First check greeting for micro-reflection
     var gr=await fetch(API_BASE+'/greeting/'+state.patientId).then(function(r){return r.ok?r.json():null}).catch(function(){return null});
+    if(gr&&gr.gap_message){
+      addMicroReflection(gr.gap_message);
+    }
     if(gr&&gr.micro_reflection){
       addMicroReflection(gr.micro_reflection);
     }
@@ -776,8 +794,52 @@ async function fetchReflection(){
         addReflectionCard(ref.text,ref.zone_display||ref.landscape_zone||'',ref.mood_trend);
       }
     }
+    // Check evening prompt
+    fetchEveningPrompt();
   }catch(e){console.warn('Reflection fetch failed:',e)}
 }
+/* ═══ DAILY INSIGHT (Morning Card) ═════════════════════════════════ */
+var _insightShown=false;
+async function fetchDailyInsight(){
+  if(!state.patientId||!API_BASE||_insightShown)return;
+  try{
+    var r=await fetch(API_BASE+'/daily-insight/'+state.patientId);
+    if(!r.ok)return;
+    var d=await r.json();
+    if(d.insight){
+      _insightShown=true;
+      var a=document.getElementById('chat-area');
+      var di=document.createElement('div');di.className='daily-insight';
+      di.textContent=d.insight;
+      di.onclick=function(){di.classList.add('dismissed');var sep=di.nextElementSibling;if(sep&&sep.classList.contains('daily-insight-sep')){sep.style.opacity='0'}setTimeout(function(){di.remove();if(sep)sep.remove()},400)};
+      var sep=document.createElement('div');sep.className='daily-insight-sep';
+      if(a.firstChild){a.insertBefore(sep,a.firstChild);a.insertBefore(di,a.firstChild)}else{a.appendChild(di);a.appendChild(sep)}
+    }
+  }catch(e){console.warn('Daily insight fetch failed:',e)}
+}
+/* ═══ EVENING WIND-DOWN ════════════════════════════════════════════ */
+async function fetchEveningPrompt(){
+  if(!state.patientId||!API_BASE)return;
+  var h=new Date().getHours();
+  if(h<20||h>=23)return; // Only 8pm-11pm
+  try{
+    var r=await fetch(API_BASE+'/evening-prompt/'+state.patientId);
+    if(!r.ok)return;
+    var d=await r.json();
+    if(d.prompt){
+      var card=document.createElement('div');card.className='evening-card';
+      card.textContent=d.prompt;
+      card.onclick=function(){card.classList.add('dismissed');setTimeout(function(){card.remove()},400)};
+      document.body.appendChild(card);
+    }
+  }catch(e){console.warn('Evening prompt fetch failed:',e)}
+}
+/* ═══ STILL HERE — Passive Presence ════════════════════════════════ */
+var _stillHereShown=false;var _stillHereTimer=null;
+var STILL_HERE_MSGS=["No need to talk. Just sitting here with you.","Sometimes opening the app is enough.","I\u2019m here. Take your time.","You don\u2019t have to have words for it.","Just being here counts."];
+function initStillHere(){if(_stillHereShown)return;_stillHereTimer=setTimeout(function(){if(_stillHereShown)return;_stillHereShown=true;var egg=document.getElementById('eggCompanion');if(!egg)return;var w=document.createElement('div');w.className='still-here-whisper';w.textContent=STILL_HERE_MSGS[Math.floor(Math.random()*STILL_HERE_MSGS.length)];egg.appendChild(w);setTimeout(function(){w.classList.add('visible')},50);setTimeout(function(){w.classList.remove('visible');setTimeout(function(){w.remove()},1500)},10000)},30000)}
+function resetStillHere(){if(_stillHereTimer){clearTimeout(_stillHereTimer);_stillHereTimer=null}if(!_stillHereShown)initStillHere()}
+/* ═══ END STILL HERE ═══════════════════════════════════════════════ */
 function addReflectionCard(text,zone,trend){
   var a=document.getElementById('chat-area');
   var d=document.createElement('div');d.className='reflection-card';

@@ -245,6 +245,41 @@ class FirebaseDB:
             logger.warning(f"Firebase load_reflections error: {e}")
             return []
 
+    # ── Conversation Summaries ───────────────────────────────
+
+    def save_conversation_summary(self, patient_id: str, summary: dict):
+        """Save a conversation summary for continuity."""
+        if not _enabled: return
+        try:
+            ts_key = summary.get("date", datetime.now().isoformat()).replace(".", "_").replace(":", "-")
+            _fb_ref.child('conversation_summaries').child(patient_id).child(ts_key).set(summary)
+        except Exception as e:
+            logger.warning(f"Firebase save_conversation_summary error: {e}")
+
+    def load_conversation_summaries(self, patient_id: str, limit: int = 10) -> list:
+        """Load recent conversation summaries."""
+        if not _enabled: return []
+        try:
+            result = _fb_ref.child('conversation_summaries').child(patient_id).get()
+            if result is None: return []
+            if isinstance(result, dict):
+                items = [v for k, v in sorted(result.items())]
+                return items[-limit:]
+            return result if isinstance(result, list) else []
+        except Exception as e:
+            logger.warning(f"Firebase load_conversation_summaries error: {e}")
+            return []
+
+    # ── Daily Insights ───────────────────────────────────────
+
+    def save_daily_insight(self, patient_id: str, date_str: str, insight: str):
+        """Save a daily insight."""
+        if not _enabled: return
+        try:
+            _fb_ref.child('daily_insights').child(patient_id).child(date_str).set(insight)
+        except Exception as e:
+            logger.warning(f"Firebase save_daily_insight error: {e}")
+
     # ── Passive Signals ─────────────────────────────────
 
     def append_passive_signals(self, patient_id: str, signals: list):

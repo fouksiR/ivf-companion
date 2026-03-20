@@ -369,6 +369,21 @@ def build_smart_greeting(patient_id: str) -> str:
             f"Hi {name}.",
         ]))
 
+    # ── Streak & rhythm awareness ──
+    engagement = patient.get("engagement", {})
+    consec = engagement.get("consecutive_days", 0)
+    gap_ack = engagement.get("gap_acknowledged", False)
+
+    if consec == 3:
+        parts.append("Three days straight you've shown up for yourself. That matters.")
+    elif consec == 7:
+        parts.append("A whole week of checking in. You're building a habit of self-care through this.")
+    elif consec >= 14:
+        parts.append(f"{'Two' if consec < 21 else str(consec // 7) + ' '}weeks of showing up. In the middle of everything you're going through, that's remarkable.")
+    elif consec == 0 and not gap_ack:
+        # Check for gap — the days_since logic below will handle messaging
+        pass
+
     # ── Days since last check-in / conversation ──
     checkins = checkins_db.get(patient_id, [])
     last_checkin = checkins[-1] if checkins else None
@@ -456,6 +471,122 @@ def build_smart_greeting(patient_id: str) -> str:
         ]))
 
     return "\n\n".join(parts)
+
+
+# ── Conversation Continuity ─────────────────────────────────────────
+
+def summarize_last_conversations(patient_id: str, last_n: int = 3) -> list[str]:
+    """Return brief summaries of the patient's last N conversations for continuity."""
+    conv = conversations_db.get(patient_id, [])
+    if not conv:
+        return []
+
+    # Group messages into sessions (gap of 2+ hours = new session)
+    sessions = []
+    current_session = []
+    last_ts = None
+    for msg in conv:
+        ts_str = msg.get("timestamp", "")
+        try:
+            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            ts = None
+
+        if last_ts and ts and (ts - last_ts).total_seconds() > 7200:
+            if current_session:
+                sessions.append(current_session)
+            current_session = [msg]
+        else:
+            current_session.append(msg)
+        if ts:
+            last_ts = ts
+
+    if current_session:
+        sessions.append(current_session)
+
+    # Take last N sessions (skip the current one if it just started)
+    recent = sessions[-last_n - 1:-1] if len(sessions) > 1 else []
+    if not recent and len(sessions) == 1 and len(sessions[0]) > 2:
+        recent = sessions[-1:]
+
+    summaries = []
+    for session in recent[-last_n:]:
+        user_msgs = [m["content"] for m in session if m.get("role") == "user"]
+        ai_msgs = [m for m in session if m.get("role") == "assistant"]
+
+        # Get timestamp for relative date
+        ts_str = session[0].get("timestamp", "")
+        try:
+            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+            days_ago = (utc_now() - ts).days
+            if days_ago == 0:
+                when = "Earlier today"
+            elif days_ago == 1:
+                when = "Yesterday"
+            else:
+                when = f"{days_ago} days ago"
+        except (ValueError, TypeError):
+            when = "Recently"
+
+        # Extract topics from user messages
+        all_text = " ".join(user_msgs).lower()
+        topics = []
+        topic_keywords = {
+            "progesterone": "progesterone", "estrogen": "estrogen", "clexane": "clexane",
+            "embryo": "embryo", "transfer": "transfer", "retrieval": "retrieval",
+            "injection": "injections", "side effect": "side effects", "amh": "AMH",
+            "ivf": "IVF process", "scan": "scans", "blood": "blood tests",
+            "medication": "medications", "pregnant": "pregnancy", "symptom": "symptoms",
+            "alone": "loneliness", "scared": "fears", "anxious": "anxiety",
+            "partner": "partner", "work": "work", "sleep": "sleep",
+            "waiting": "the wait", "result": "results", "egg": "eggs",
+            "sperm": "sperm", "clinic": "clinic",
+        }
+        for keyword, topic in topic_keywords.items():
+            if keyword in all_text and topic not in topics:
+                topics.append(topic)
+                if len(topics) >= 3:
+                    break
+
+        # Detect emotional tone
+        tone = "neutral"
+        neg_words = sum(1 for w in ["sad", "scared", "anxious", "worried", "alone", "afraid", "crying", "angry", "frustrated", "hopeless", "overwhelmed"] if w in all_text)
+        pos_words = sum(1 for w in ["happy", "hopeful", "grateful", "excited", "better", "good", "relieved", "calm", "positive"] if w in all_text)
+        if neg_words > pos_words:
+            tone = "anxious" if "anxious" in all_text or "worried" in all_text else "struggling"
+        elif pos_words > neg_words:
+            tone = "hopeful" if "hope" in all_text else "positive"
+        elif "?" in " ".join(user_msgs):
+            tone = "curious"
+
+        # Build summary line
+        topic_str = ", ".join(topics[:2]) if topics else "general chat"
+        summary = f"{when}: talked about {topic_str}, seemed {tone}"
+        summaries.append(summary)
+
+    return summaries[-last_n:]
+
+
+# ── Daily Insight ───────────────────────────────────────────────────
+
+EVENING_PROMPTS = {
+    "stimulation": "Your body did a lot of work today. Thank it.",
+    "monitoring": "Another scan day done. Rest now.",
+    "early_tww": "Another day closer. That's enough for today.",
+    "late_tww": "Another day closer. That's enough for today.",
+    "retrieval_day": "Your body did something incredible today. Rest well.",
+    "transfer_day": "A tiny passenger is on board. Breathe easy tonight.",
+    "negative_result": "You made it through today. That's not nothing.",
+    "miscarriage": "You made it through today. That's not nothing.",
+    "failed_cycle_acute": "You made it through today. That's not nothing.",
+    "chemical_pregnancy": "You made it through today. That's not nothing.",
+}
+
+EVENING_GENERIC = [
+    "Before you close your eyes tonight — one thing from today that wasn't terrible?",
+    "Today is done. You showed up. That counts.",
+    "Whatever today was — you made it through. Rest well.",
+]
 
 
 # ── Common IVF Topics Knowledge Base ─────────────────────────────────
@@ -983,6 +1114,50 @@ def _sync_escalation(patient_id: str, escalation: dict):
 def _sync_screening(patient_id: str, screening: dict):
     screenings_db.setdefault(patient_id, []).append(screening)
     firebase_db.append_screening(patient_id, screening)
+
+
+def _update_engagement(patient_id: str):
+    """Update consecutive day tracking for engagement rhythm."""
+    patient = get_or_create_patient(patient_id)
+    today = date.today().isoformat()
+
+    if "engagement" not in patient:
+        patient["engagement"] = {
+            "consecutive_days": 1,
+            "longest_streak": 1,
+            "total_interactions": 1,
+            "last_interaction_date": today,
+            "gap_acknowledged": False,
+        }
+    else:
+        eng = patient["engagement"]
+        last_date = eng.get("last_interaction_date", "")
+        eng["total_interactions"] = eng.get("total_interactions", 0) + 1
+
+        if last_date == today:
+            return  # Already counted today
+
+        try:
+            last_dt = date.fromisoformat(last_date)
+            today_dt = date.fromisoformat(today)
+            gap = (today_dt - last_dt).days
+        except (ValueError, TypeError):
+            gap = 999
+
+        if gap == 1:
+            eng["consecutive_days"] = eng.get("consecutive_days", 0) + 1
+            eng["gap_acknowledged"] = False
+        elif gap > 1:
+            eng["consecutive_days"] = 1
+            eng["gap_acknowledged"] = False
+        # else gap == 0 already handled
+
+        eng["last_interaction_date"] = today
+        if eng["consecutive_days"] > eng.get("longest_streak", 0):
+            eng["longest_streak"] = eng["consecutive_days"]
+
+    firebase_db.save_patient(patient_id, patient)
+
 
 def _sync_passive_signal(patient_id: str, record: dict):
     passive_signals_db.setdefault(patient_id, []).append(record)
@@ -1652,6 +1827,181 @@ Do NOT be generic — show you understand where they are in their journey."""
     }
 
 
+@app.get("/daily-insight/{patient_id}")
+async def get_daily_insight(patient_id: str):
+    """Generate a fresh, personal daily observation based on last 24-48h data."""
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    patient = patients_db[patient_id]
+    today = date.today().isoformat()
+
+    # Check cache — one insight per day
+    daily_insights = patient.get("daily_insights", {})
+    if today in daily_insights:
+        return {"insight": daily_insights[today], "cached": True, "date": today}
+
+    # Gather last 48h data
+    name = patient.get("name", "there")
+    stage = patient.get("treatment_stage", "consultation")
+    stage_name = STAGE_DISPLAY.get(stage, stage)
+
+    checkins = get_recent_checkins(patient_id, last_n=3)
+    last_checkin = checkins[-1] if checkins else None
+
+    conv = conversations_db.get(patient_id, [])
+    recent_msgs = [m for m in conv[-20:] if m.get("timestamp")]
+
+    # Time since last session
+    last_session_time = None
+    for m in reversed(recent_msgs):
+        try:
+            last_session_time = datetime.fromisoformat(m["timestamp"].replace("Z", "+00:00"))
+            break
+        except (ValueError, TypeError):
+            pass
+
+    # Build data summary for Claude
+    data_points = []
+    if last_checkin:
+        data_points.append(f"Last check-in: mood={last_checkin.get('mood')}, anxiety={last_checkin.get('anxiety')}, hope={last_checkin.get('hope')}, loneliness={last_checkin.get('loneliness')}")
+    if last_session_time:
+        hour = last_session_time.hour
+        if hour >= 22 or hour < 5:
+            data_points.append(f"Last session was late at night ({last_session_time.strftime('%I:%M %p')})")
+        days_since = (utc_now() - last_session_time).days
+        if days_since >= 2:
+            data_points.append(f"Haven't checked in for {days_since} days")
+
+    # Recent user messages — extract topics
+    user_msgs = [m["content"] for m in recent_msgs if m.get("role") == "user"][-5:]
+    if user_msgs:
+        data_points.append(f"Recent topics discussed: {'; '.join(user_msgs[-3:])}")
+
+    # Stage and day info
+    stage_start = patient.get("stage_start_date")
+    days_in_stage = None
+    if stage_start:
+        try:
+            start_dt = datetime.fromisoformat(stage_start.replace("Z", "+00:00"))
+            days_in_stage = (datetime.now() - start_dt.replace(tzinfo=None)).days
+            data_points.append(f"Day {days_in_stage} of {stage_name}")
+        except (ValueError, TypeError):
+            pass
+
+    # Upcoming soft spots
+    soft_spot = get_soft_spot_context(patient_id)
+    if soft_spot:
+        data_points.append(f"Upcoming emotional moment: {soft_spot.get('message', '')[:80]}")
+
+    # Checkin trends
+    if len(checkins) >= 2:
+        moods = [c.get("mood", 5) for c in checkins]
+        if moods[-1] > moods[-2] + 1:
+            data_points.append("Mood jumped up recently")
+        elif moods[-1] < moods[-2] - 1:
+            data_points.append("Mood dropped recently")
+        hopes = [c.get("hope", 5) for c in checkins]
+        if hopes[-1] > hopes[-2] + 1:
+            data_points.append("Hope score increased")
+
+    data_summary = "\n- ".join(data_points) if data_points else "No recent data available"
+
+    prompt = f"""Write ONE sentence — warm, specific, observational — based on this patient's data from the last 24-48 hours. This should feel like a friend who noticed something. Never generic. Never clinical. Never longer than 2 sentences.
+
+Patient name: {name}
+Current stage: {stage_name}
+Data:
+- {data_summary}
+
+Examples of GOOD daily insights:
+- "You were up past midnight last night. I hope today is gentler."
+- "Your hope score jumped yesterday — something shifted. Hold onto that."
+- "You asked three questions about embryo grading yesterday. Sounds like the scientist in you is processing."
+- "You haven't checked in since Tuesday. That's okay. I'm still here."
+- "Today is day 8 of your wait. More than halfway. You're doing this."
+- "Last night you told me you felt alone. I thought about that. You're carrying a lot right now."
+
+Examples of BAD insights (NEVER do these):
+- "Great job checking in yesterday!" (patronizing)
+- "Your mood was 6.2 yesterday" (clinical numbers)
+- "Remember to stay positive!" (toxic positivity)
+- "How are you today?" (generic, not an insight)
+
+Write ONLY the insight text. No quotes, no labels, no preamble."""
+
+    try:
+        response = client.messages.create(
+            model=HAIKU_MODEL,
+            max_tokens=120,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        insight = response.content[0].text.strip().strip('"')
+    except Exception as e:
+        logger.warning(f"Daily insight generation failed: {e}")
+        # Fallback insight based on available data
+        if last_session_time and (last_session_time.hour >= 22 or last_session_time.hour < 5):
+            insight = f"You were up late last night, {name}. I hope today is gentler."
+        elif days_in_stage is not None:
+            insight = f"Day {days_in_stage} of {stage_name}. You're still here. That matters."
+        elif last_checkin and last_checkin.get("mood", 5) <= 3:
+            insight = "Yesterday was heavy. Today is a new page."
+        else:
+            insight = f"I'm here whenever you need me, {name}."
+
+    # Cache in patient record and Firebase
+    if "daily_insights" not in patient:
+        patient["daily_insights"] = {}
+    patient["daily_insights"][today] = insight
+    # Keep only last 7 days
+    keys = sorted(patient["daily_insights"].keys())
+    if len(keys) > 7:
+        for old_key in keys[:-7]:
+            del patient["daily_insights"][old_key]
+    firebase_db.save_patient(patient_id, patient)
+
+    return {"insight": insight, "cached": False, "date": today}
+
+
+@app.get("/evening-prompt/{patient_id}")
+async def get_evening_prompt(patient_id: str):
+    """Return an evening wind-down prompt if the patient was active today."""
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    patient = patients_db[patient_id]
+    stage = patient.get("treatment_stage", "consultation")
+    today = date.today().isoformat()
+
+    # Check if patient was active today
+    conv = conversations_db.get(patient_id, [])
+    checkins = checkins_db.get(patient_id, [])
+    active_today = any(
+        m.get("timestamp", "")[:10] == today for m in conv
+    ) or any(
+        c.get("date", "")[:10] == today for c in checkins
+    )
+
+    if not active_today:
+        return {"prompt": None, "reason": "not_active_today"}
+
+    # Check if already shown today
+    evening = patient.get("evening_prompts", {})
+    if evening.get("last_shown") == today:
+        return {"prompt": None, "reason": "already_shown"}
+
+    # Pick prompt
+    prompt = EVENING_PROMPTS.get(stage, random.choice(EVENING_GENERIC))
+
+    # Mark as shown
+    if "evening_prompts" not in patient:
+        patient["evening_prompts"] = {}
+    patient["evening_prompts"]["last_shown"] = today
+    firebase_db.save_patient(patient_id, patient)
+
+    return {"prompt": prompt, "stage": stage, "date": today}
+
+
 @app.get("/greeting/{patient_id}")
 async def get_smart_greeting(patient_id: str):
     """Return a contextual greeting for a returning user opening the app."""
@@ -1670,12 +2020,30 @@ async def get_smart_greeting(patient_id: str):
     # Check for capability discovery hint
     capability_hint = get_capability_discovery(patient_id)
 
+    # Check engagement streak for gap acknowledgment
+    patient = patients_db.get(patient_id, {})
+    engagement = patient.get("engagement", {})
+    gap_msg = None
+    if engagement:
+        last_date = engagement.get("last_interaction_date", "")
+        try:
+            last_dt = date.fromisoformat(last_date)
+            gap = (date.today() - last_dt).days
+            if gap >= 3 and not engagement.get("gap_acknowledged"):
+                gap_msg = "Welcome back. No guilt — sometimes you need space. I kept your spot."
+                engagement["gap_acknowledged"] = True
+                firebase_db.save_patient(patient_id, patient)
+        except (ValueError, TypeError):
+            pass
+
     return {
         "greeting": greeting,
         "soft_spot": soft_spot,
         "micro_reflection": micro,
         "needs_reflection": needs_reflection,
         "capability_hint": capability_hint,
+        "gap_message": gap_msg,
+        "streak": engagement.get("consecutive_days", 0) if engagement else 0,
         "patient_id": patient_id,
         "timestamp": utc_iso(),
     }
@@ -2037,6 +2405,9 @@ async def chat(req: ChatRequest):
         "timestamp": utc_iso(),
     })
 
+    # Update engagement tracking
+    _update_engagement(req.patient_id)
+
     # ── One-word check-in detection (Part C) ──
     one_word_checkin = None
     msg_words = req.message.strip().split()
@@ -2151,6 +2522,19 @@ async def chat(req: ChatRequest):
         patient_context=build_patient_context(req.patient_id),
         education_context=build_education_context(req.patient_id) + rag_context,
     )
+
+    # Conversation continuity — inject recent conversation summaries
+    conv_summaries = summarize_last_conversations(req.patient_id, last_n=3)
+    if conv_summaries:
+        system_prompt += """
+
+CONVERSATION MEMORY (reference naturally when relevant — like a friend who remembers):
+""" + "\n".join(f"- {s}" for s in conv_summaries) + """
+
+Don't reference every past conversation. Only bring it up when it adds warmth or continuity.
+Never say 'according to my records' or 'I see from your history' — just remember like a human would.
+Examples: 'You mentioned feeling alone on Tuesday — has that shifted at all?'
+'Last time you were curious about embryo grading. Did you get your report?'"""
 
     # Add one-word check-in context so AI responds warmly
     if one_word_checkin:
@@ -2315,6 +2699,32 @@ Say this ONCE, naturally."""
         "query_id": query_id,
     })
 
+    # Store conversation summary for continuity
+    conv_summary = {
+        "date": utc_iso(),
+        "topics": [],
+        "emotional_tone": "neutral",
+        "one_line": req.message[:100] if len(req.message) <= 100 else req.message[:97] + "...",
+        "triage_category": triage_category,
+    }
+    # Quick topic extraction
+    msg_lower = req.message.lower()
+    for kw, topic in [("progesterone", "progesterone"), ("embryo", "embryo"), ("transfer", "transfer"),
+                       ("retrieval", "retrieval"), ("injection", "injections"), ("amh", "AMH"),
+                       ("medication", "medications"), ("pregnant", "pregnancy"), ("symptom", "symptoms"),
+                       ("alone", "loneliness"), ("scared", "fears"), ("anxious", "anxiety"),
+                       ("egg", "eggs"), ("result", "results"), ("sleep", "sleep")]:
+        if kw in msg_lower:
+            conv_summary["topics"].append(topic)
+    # Quick tone detection
+    neg = sum(1 for w in ["sad", "scared", "anxious", "worried", "alone", "crying", "frustrated", "hopeless"] if w in msg_lower)
+    pos = sum(1 for w in ["happy", "hopeful", "grateful", "better", "good", "relieved", "positive"] if w in msg_lower)
+    if neg > pos:
+        conv_summary["emotional_tone"] = "struggling"
+    elif pos > neg:
+        conv_summary["emotional_tone"] = "positive"
+    firebase_db.save_conversation_summary(req.patient_id, conv_summary)
+
     # Suggested education topics
     stage = patient["treatment_stage"]
     suggested = EDUCATION_TOPICS.get(stage, [])[:3] if triage_category == 2 else None
@@ -2378,6 +2788,9 @@ async def daily_checkin(req: CheckInRequest):
         "note": req.note,
     }
     _sync_checkin(req.patient_id, checkin)
+
+    # Update engagement tracking
+    _update_engagement(req.patient_id)
 
     # Check escalation triggers
     esc = check_daily_escalation(req.patient_id)

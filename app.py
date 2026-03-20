@@ -458,6 +458,244 @@ def build_smart_greeting(patient_id: str) -> str:
     return "\n\n".join(parts)
 
 
+# ── Common IVF Topics Knowledge Base ─────────────────────────────────
+COMMON_IVF_TOPICS = {
+    "amh": {
+        "keywords": ["amh", "anti-mullerian", "anti mullerian", "ovarian reserve", "egg reserve"],
+        "name": "AMH (Anti-Müllerian Hormone)",
+        "summary": "AMH is a blood test that estimates your remaining egg supply. It's a snapshot, not a destiny.",
+        "analytical": "AMH is produced by granulosa cells of pre-antral and small antral follicles. Normal range is roughly 1.0–3.5 ng/mL (7–25 pmol/L). Low AMH (<1.0 ng/mL) suggests diminished ovarian reserve but does NOT predict egg quality. Many women with low AMH conceive. It helps your specialist choose the right stimulation dose.",
+        "emotional": "Getting an AMH number can feel like getting a grade — but it's not a pass/fail. It's one piece of a much bigger puzzle. Women with 'low' numbers have babies every day, and a 'good' number doesn't guarantee anything either.",
+        "practical": "Ask your specialist: 'What does my AMH mean for my protocol?' AMH can fluctuate slightly cycle to cycle. Retest only if your specialist recommends it.",
+    },
+    "progesterone": {
+        "keywords": ["progesterone", "pessaries", "crinone", "utrogestan", "endometrin", "PIO", "progesterone in oil"],
+        "name": "Progesterone Support",
+        "summary": "Progesterone helps prepare and maintain your uterine lining for embryo implantation.",
+        "analytical": "After egg retrieval, the corpus luteum may not produce sufficient progesterone. Supplementation (vaginal pessaries, gel, or intramuscular PIO) maintains the endometrial lining in its secretory phase. Typical start is 1-2 days after retrieval. Continue until 8-12 weeks if pregnant.",
+        "emotional": "The pessaries can feel like an annoying chore on top of everything else. The discharge and mess are normal — it doesn't mean the medication isn't working.",
+        "practical": "Insert at consistent times. Lying down for 10-15 min after helps absorption. Side effects (bloating, breast tenderness, mood changes) mimic pregnancy symptoms — try not to symptom-spot based on these.",
+    },
+    "trigger_shot": {
+        "keywords": ["trigger shot", "trigger injection", "ovidrel", "pregnyl", "hcg trigger", "lupron trigger"],
+        "name": "Trigger Shot",
+        "summary": "The trigger shot tells your eggs to complete final maturation so they can be retrieved ~36 hours later.",
+        "analytical": "The trigger (typically hCG or GnRH agonist) induces final oocyte maturation. Timing is precise: retrieval is scheduled 34-36 hours post-trigger. hCG triggers carry slightly more OHSS risk than agonist triggers.",
+        "emotional": "Trigger night can feel surreal — you've been building to this moment. The precise timing can feel stressful, but clinics are very experienced at scheduling this.",
+        "practical": "Set 2-3 alarms. Have supplies laid out in advance. If you miss the window, call your clinic immediately. Take a photo of the syringe/vial as a record.",
+    },
+    "egg_freezing": {
+        "keywords": ["egg freezing", "freeze eggs", "fertility preservation", "social freezing", "oocyte cryopreservation"],
+        "name": "Egg Freezing",
+        "summary": "Egg freezing preserves your eggs at their current quality for future use.",
+        "analytical": "Vitrification achieves >90% egg survival rates. Ideal age for freezing is under 35. Each cycle typically retrieves 8-15 eggs; most specialists suggest 15-20 mature eggs for a reasonable chance at one live birth.",
+        "emotional": "Egg freezing can feel empowering — you're taking control. But it can also bring up complicated feelings about timelines and partnerships. Both are valid.",
+        "practical": "Budget for 1-2 cycles. Storage fees are annual (~$300-500/year in Australia). Medicare rebates apply for medical indications but not elective freezing.",
+    },
+    "embryo_grading": {
+        "keywords": ["embryo grade", "embryo grading", "blastocyst grade", "day 5 grade", "4AA", "5AB", "hatching"],
+        "name": "Embryo Grading",
+        "summary": "Embryo grading describes how an embryo looks under the microscope — a rough guide, not a guarantee.",
+        "analytical": "Day 5 blastocysts are graded on expansion (1-6), inner cell mass (A-C), and trophectoderm (A-C). A '4AA' means fully expanded, top quality. However, a 'BB' embryo can absolutely become a healthy baby. PGT-A tested euploid embryos have ~60-70% implantation rates regardless of morphology.",
+        "emotional": "Getting your embryo report can feel like results day at school. Remember: embryologists see 'average-looking' embryos become beautiful babies all the time.",
+        "practical": "Ask your embryologist to explain YOUR grades. Don't compare to others online — different clinics use slightly different scales.",
+    },
+    "tww_symptoms": {
+        "keywords": ["tww", "two week wait", "2ww", "symptom spotting", "implantation", "cramping after transfer"],
+        "name": "The Two-Week Wait (TWW)",
+        "summary": "The TWW is the period between transfer and your pregnancy test. Symptom-spotting is universal but unreliable.",
+        "analytical": "Implantation typically occurs 6-10 days post-ovulation (1-5 days post day-5 transfer). Progesterone supplementation causes symptoms identical to early pregnancy. There is NO reliable way to distinguish medication side effects from pregnancy symptoms before the blood test.",
+        "emotional": "The TWW might be the longest two weeks of your life. Every twinge becomes a Google search. This is completely normal.",
+        "practical": "Avoid home pregnancy tests before your clinic's blood test date. Distraction helps: plan activities, start a show, see friends. Light movement is fine.",
+    },
+    "fsh": {
+        "keywords": ["fsh", "follicle stimulating hormone", "day 3 fsh", "baseline fsh"],
+        "name": "FSH (Follicle-Stimulating Hormone)",
+        "summary": "FSH stimulates your ovaries. Your baseline level helps assess ovarian function.",
+        "analytical": "Day 2-3 FSH <10 IU/L is generally normal. Elevated FSH (>10-15) may suggest diminished ovarian reserve. FSH fluctuates cycle to cycle more than AMH. Interpreted alongside estradiol, AMH, and AFC.",
+        "emotional": "Like AMH, an FSH number is just one data point. If yours is elevated, it doesn't close doors — it helps your specialist choose the best approach.",
+        "practical": "FSH is drawn on cycle day 2-3 along with estradiol. If elevated, ask about AMH and AFC for a more complete picture.",
+    },
+    "follicle_count": {
+        "keywords": ["follicle count", "afc", "antral follicle", "how many follicles", "follicle scan"],
+        "name": "Antral Follicle Count (AFC)",
+        "summary": "AFC is the number of small resting follicles on ultrasound — it predicts stimulation response.",
+        "analytical": "AFC measured via transvaginal ultrasound on day 2-5. Normal AFC is 10-20 total. <6 suggests low reserve; >20 suggests possible PCOS. AFC combined with AMH gives the most accurate response prediction.",
+        "emotional": "Counting follicles can feel like counting chances. But follicle count tells you about quantity potential, not quality.",
+        "practical": "Don't compare your count to others. During stimulation, not all follicles grow at the same rate — that's normal.",
+    },
+    "icsi_vs_ivf": {
+        "keywords": ["icsi", "icsi vs ivf", "conventional ivf", "intracytoplasmic", "sperm injection"],
+        "name": "ICSI vs Conventional IVF",
+        "summary": "In conventional IVF, sperm and eggs are mixed. In ICSI, a single sperm is injected directly into each egg.",
+        "analytical": "ICSI is recommended for male factor, previous fertilisation failure, PGT-A cycles, or frozen eggs. Fertilisation rates are similar (~70-80%) when appropriately indicated. ICSI does not improve outcomes when sperm parameters are normal.",
+        "emotional": "If your clinic recommends ICSI, it's because they want to give your eggs the best chance. It's a very routine procedure.",
+        "practical": "Ask why they're recommending ICSI vs conventional for your situation. Cost may differ.",
+    },
+    "pgt": {
+        "keywords": ["pgt", "pgs", "pgt-a", "genetic testing", "preimplantation", "euploid", "aneuploid", "mosaic"],
+        "name": "PGT-A (Preimplantation Genetic Testing)",
+        "summary": "PGT-A tests embryos for the correct number of chromosomes before transfer.",
+        "analytical": "PGT-A biopsies 5-10 trophectoderm cells from day 5-7 blastocysts. Euploid embryos have ~60-70% implantation rates. Aneuploidy rate increases sharply after age 37. Mosaic results are increasingly considered for transfer.",
+        "emotional": "Waiting for PGT results adds another layer of waiting. Some embryos that looked great won't pass, and that's a real loss.",
+        "practical": "Results take 1-2 weeks. Ask about your clinic's mosaic embryo policy. PGT-A adds ~$3,000-5,000 per cycle. Consider it especially if you're 37+.",
+    },
+    "endometriosis": {
+        "keywords": ["endometriosis", "endo", "endometrioma", "chocolate cyst", "adenomyosis"],
+        "name": "Endometriosis & Fertility",
+        "summary": "Endometriosis can affect fertility but many women with endo conceive with treatment.",
+        "analytical": "Staged I-IV. Even mild endo can reduce fertility via inflammatory factors. Endometriomas >4cm may warrant drainage before IVF. AMH may be lower with bilateral endometriomas.",
+        "emotional": "Living with endo AND doing IVF is a double load. You deserve extra gentleness with yourself.",
+        "practical": "Discuss whether surgical treatment before IVF is recommended for your situation. Keep a pain diary to track patterns.",
+    },
+    "pcos": {
+        "keywords": ["pcos", "polycystic", "metformin", "insulin resistance", "anovulation"],
+        "name": "PCOS & Fertility Treatment",
+        "summary": "PCOS is common and very treatable. Women with PCOS often respond strongly to stimulation.",
+        "analytical": "PCOS affects 8-13% of women. In IVF, PCOS patients typically produce more eggs but OHSS risk is elevated. Antagonist protocols with agonist triggers are preferred. Metformin may improve egg quality.",
+        "emotional": "PCOS can feel like your body is working against you. But a strong response to medication is actually an advantage.",
+        "practical": "Ask about OHSS prevention strategies. Low-GI diet and moderate exercise can help with insulin resistance.",
+    },
+    "male_factor": {
+        "keywords": ["male factor", "sperm count", "motility", "morphology", "low sperm", "azoospermia", "sperm analysis"],
+        "name": "Male Factor Infertility",
+        "summary": "Male factor contributes to about 40-50% of infertility cases. ICSI has transformed outcomes.",
+        "analytical": "WHO normal values: count >15M/mL, motility >40%, morphology >4%. Severe cases may require surgical sperm retrieval (TESA/micro-TESE). Lifestyle factors can improve parameters over 2-3 months.",
+        "emotional": "Male factor affects both partners emotionally. It's a medical condition, not a personal failing.",
+        "practical": "A repeat semen analysis is standard. 3 months of lifestyle optimisation can improve results. Ask about DNA fragmentation testing if borderline.",
+    },
+    "clexane": {
+        "keywords": ["clexane", "enoxaparin", "blood thinner", "thrombophilia", "heparin"],
+        "name": "Clexane (Enoxaparin)",
+        "summary": "Clexane is a blood thinner sometimes prescribed to improve blood flow to the uterus.",
+        "analytical": "Low-molecular-weight heparin prescribed for thrombophilia, recurrent implantation failure, or antiphospholipid syndrome. Typical dose 20-40mg daily subcutaneous. Evidence for routine use without specific indication is limited.",
+        "emotional": "Adding another injection can feel overwhelming. The bruising is normal and doesn't mean anything is wrong.",
+        "practical": "Rotate injection sites. Ice before injecting to reduce bruising. Tell your dentist you're on blood thinners.",
+    },
+    "ivf_process": {
+        "keywords": ["ivf process", "how does ivf work", "ivf steps", "ivf cycle", "what happens in ivf"],
+        "name": "The IVF Process Overview",
+        "summary": "IVF involves stimulating ovaries, collecting eggs, fertilising in the lab, growing embryos, and transferring back.",
+        "analytical": "Standard cycle: (1) Stimulation 8-14 days, (2) Trigger shot at ~18-20mm follicles, (3) Retrieval under sedation 36h post-trigger, (4) Fertilisation, (5) Culture to day 3-6, (6) Transfer or freeze-all, (7) Luteal support, (8) Pregnancy test ~14 days post-retrieval. Timeline: ~4-6 weeks.",
+        "emotional": "Starting IVF can feel like stepping onto a conveyor belt. But you can ask questions at every step and advocate for yourself.",
+        "practical": "Plan flexibility at work around monitoring (usually mornings) and retrieval day. Start a medication organiser.",
+    },
+    "fresh_vs_frozen": {
+        "keywords": ["fresh transfer", "frozen transfer", "fet", "freeze all", "fresh vs frozen"],
+        "name": "Fresh vs Frozen Embryo Transfer",
+        "summary": "Frozen transfers (FET) are now as successful as — and sometimes better than — fresh transfers.",
+        "analytical": "Freeze-all allows the uterine lining to recover from stimulation. FET success rates are comparable to or slightly better than fresh in many studies. OHSS risk is eliminated with freeze-all.",
+        "emotional": "Being told to 'freeze all' can feel like a delay. But it's usually because your body needs time to recover.",
+        "practical": "FET typically happens 1-2 months after retrieval. The FET process is much simpler — no sedation needed.",
+    },
+    "miscarriage_info": {
+        "keywords": ["miscarriage", "pregnancy loss", "missed miscarriage", "recurrent loss"],
+        "name": "Understanding Pregnancy Loss",
+        "summary": "Miscarriage after IVF is heartbreaking but not uncommon. It is not your fault.",
+        "analytical": "Miscarriage rate after IVF is ~15-25%, similar to natural conception. Most are due to chromosomal abnormalities. Recurrent loss warrants investigation. PGT-A can reduce risk in subsequent cycles.",
+        "emotional": "A miscarriage after everything it took to get there is devastating. The grief is real. You're allowed to mourn, to be angry, and when ready, to try again.",
+        "practical": "Allow yourself time to grieve. Ask about investigations before your next cycle. Many clinics offer counselling.",
+    },
+    "chemical_pregnancy": {
+        "keywords": ["chemical pregnancy", "biochemical pregnancy", "faint line then period"],
+        "name": "Chemical Pregnancy",
+        "summary": "A chemical pregnancy is a very early loss where hCG was briefly detected. It IS a real loss.",
+        "analytical": "Chemical pregnancies account for up to 50-75% of early losses. A chemical pregnancy confirms implantation occurred, which some specialists view as a positive prognostic sign.",
+        "emotional": "A chemical pregnancy can feel like a cruel trick — hope followed immediately by loss. Your feelings are valid, whatever they are.",
+        "practical": "Most clinics proceed after one normal period. If it happens repeatedly, ask about endometrial receptivity testing (ERA).",
+    },
+    "ohss": {
+        "keywords": ["ohss", "ovarian hyperstimulation", "bloating after retrieval", "swollen ovaries"],
+        "name": "OHSS (Ovarian Hyperstimulation Syndrome)",
+        "summary": "OHSS is when ovaries over-respond to stimulation. Mild is common; severe is rare and manageable.",
+        "analytical": "Mild OHSS (bloating, mild pain) affects ~20-30% of cycles. Moderate-severe (<5%) involves fluid shifts and weight gain. Risk factors: PCOS, high AFC, hCG trigger. Prevention: antagonist protocol, agonist trigger, freeze-all.",
+        "emotional": "Feeling bloated and uncomfortable after retrieval is incredibly common. If it gets worse, don't push through — call your clinic.",
+        "practical": "Monitor: weigh daily, track fluid intake/output. Drink electrolyte drinks. Eat salty, high-protein foods. Call clinic if weight gain >1kg/day or difficulty breathing.",
+    },
+    "natural_cycle": {
+        "keywords": ["natural cycle", "mini ivf", "mild stimulation", "natural ivf"],
+        "name": "Natural & Mini IVF",
+        "summary": "Natural and mini IVF use little or no medication, collecting 1-3 eggs. Gentler but may need more cycles.",
+        "analytical": "Natural IVF retrieves 0-1 eggs per cycle. Modified natural with mild stimulation gets 1-3 eggs. Success rates per cycle are lower but cumulative rates over multiple cycles can be comparable.",
+        "emotional": "Choosing a gentler approach can feel like taking care of yourself. But it can also mean more cycles, requiring patience and resilience.",
+        "practical": "Discuss whether natural/mini IVF suits your diagnosis. Costs per cycle are lower but you may need more cycles. Cancellation rates are higher.",
+    },
+}
+
+
+def detect_education_intent(message: str, patient_style: str, conversation_history: list = None) -> dict:
+    """Detect the education intent behind a patient's question.
+
+    Returns dict with intent, matched_topic, and confidence.
+    """
+    msg_lower = message.lower().strip()
+
+    # ── Match topic ──
+    matched_topic = None
+    best_keyword_count = 0
+    for topic_key, topic_data in COMMON_IVF_TOPICS.items():
+        hits = sum(1 for kw in topic_data["keywords"] if kw in msg_lower)
+        if hits > best_keyword_count:
+            best_keyword_count = hits
+            matched_topic = topic_key
+
+    # ── Detect intent from message signals ──
+    reassurance_signals = [
+        "is it normal", "should i worry", "is this okay", "am i okay",
+        "is this bad", "worried about", "scared", "nervous", "freaking out",
+        "panicking", "does this mean", "is it safe", "am i normal",
+        "is something wrong", "what if", "concerned", "anxious about",
+    ]
+    explain_signals = [
+        "how does", "what is", "what are", "explain", "tell me about",
+        "why do", "why does", "what happens", "how do they", "what's the difference",
+        "mechanism", "how it works", "the science", "technically",
+        "what does it mean", "can you explain", "walk me through",
+    ]
+    practical_signals = [
+        "what should i", "how do i", "tips", "advice", "prepare",
+        "when do i", "do i need to", "what to expect", "how to",
+        "side effects", "what to avoid", "can i", "should i take",
+        "how much", "how long", "schedule", "plan for", "steps",
+    ]
+
+    r_score = sum(1 for s in reassurance_signals if s in msg_lower)
+    e_score = sum(1 for s in explain_signals if s in msg_lower)
+    p_score = sum(1 for s in practical_signals if s in msg_lower)
+
+    # Style-weighted adjustment
+    if patient_style == "EMOTIONAL":
+        r_score += 1
+    elif patient_style == "ANALYTICAL":
+        e_score += 1
+
+    # Determine intent
+    intent = None
+    confidence = 0.0
+    total = r_score + e_score + p_score
+
+    if total > 0:
+        scores = {"REASSURANCE_FIRST": r_score, "EXPLAIN_FIRST": e_score, "PRACTICAL_FIRST": p_score}
+        intent = max(scores, key=scores.get)
+        confidence = scores[intent] / total
+    elif matched_topic:
+        if patient_style == "EMOTIONAL":
+            intent = "REASSURANCE_FIRST"
+            confidence = 0.5
+        elif patient_style == "ANALYTICAL":
+            intent = "EXPLAIN_FIRST"
+            confidence = 0.5
+        else:
+            intent = None
+            confidence = 0.3
+
+    return {
+        "intent": intent,
+        "matched_topic": matched_topic,
+        "confidence": confidence,
+    }
+
+
 # ── Psychometric Instruments ─────────────────────────────────────────
 
 PHQ2_QUESTIONS = [
@@ -1879,14 +2117,22 @@ async def chat(req: ChatRequest):
         _sync_escalation(req.patient_id, escalation)
         logger.warning(f"[{query_id}] ESCALATION: {escalation['level']} for patient={req.patient_id}")
 
-    # ── Education fork (Part D) ──
+    # ── Education fork with intent detection ──
     education_fork = None
+    edu_intent = None
     style = classify_patient_style(req.patient_id)
-    user_msg_count = len([m for m in conversations_db.get(req.patient_id, []) if m.get("role") == "user"])
 
-    if triage_category == 2 and user_msg_count <= 5 and style == "MIXED":
-        # Style not yet established — ask clarifying question
-        education_fork = "I can help with that — are you looking for reassurance, or do you want the clinical details?"
+    if triage_category == 2:
+        conv_history = conversations_db.get(req.patient_id, [])
+        edu_intent = detect_education_intent(req.message, style, conv_history)
+
+        if edu_intent["intent"] is None and edu_intent.get("matched_topic"):
+            topic_name = COMMON_IVF_TOPICS[edu_intent["matched_topic"]]["name"]
+            education_fork = f"I can help with {topic_name} — would you like reassurance that things are okay, the clinical details, or practical tips for what to do?"
+        elif edu_intent["intent"] is None and style == "MIXED":
+            user_msg_count = len([m for m in conv_history if m.get("role") == "user"])
+            if user_msg_count <= 5:
+                education_fork = "I can help with that — are you looking for reassurance, or do you want the clinical details?"
 
     # ── Step 3: Generate companion response ──
     # Retrieve education RAG content if this is an education query
@@ -1912,14 +2158,45 @@ If it's a negative word, validate first. If positive, mirror the energy gently.
 Keep it brief (2-3 sentences) and end with an open door: something like "Want to tell me more?" or "What's behind that?"
 This has been recorded as a check-in — no need to ask them to do a formal one."""
 
-    # Add education fork instruction to guide response style
-    if education_fork:
-        system_prompt += """
+    # Add education intent + topic knowledge to system prompt
+    if triage_category == 2 and edu_intent:
+        topic_data = COMMON_IVF_TOPICS.get(edu_intent.get("matched_topic", ""), {}) if edu_intent.get("matched_topic") else {}
+
+        if topic_data:
+            system_prompt += f"""
+
+TOPIC KNOWLEDGE — {topic_data.get('name', '')}:
+Summary: {topic_data.get('summary', '')}
+Clinical detail: {topic_data.get('analytical', '')}
+Emotional framing: {topic_data.get('emotional', '')}
+Practical tips: {topic_data.get('practical', '')}
+Use this knowledge to inform your answer. Do NOT dump it all — select what fits the patient's intent."""
+
+        if education_fork:
+            system_prompt += """
 
 EDUCATION STYLE FORK:
-This patient's communication style is not yet clear. After answering their question,
-gently ask if they'd prefer more clinical detail or more reassurance-focused answers going forward.
+This patient's communication style is not yet clear. After answering their question briefly,
+gently ask if they'd prefer more clinical detail, reassurance, or practical tips going forward.
 Weave this naturally into your response — don't make it a separate question."""
+        elif edu_intent.get("intent") == "REASSURANCE_FIRST":
+            system_prompt += """
+
+EDUCATION INTENT: REASSURANCE_FIRST
+Lead with emotional validation — "this is normal", "many women experience this". Then weave in
+relevant facts gently. End with something grounding. Do NOT lead with statistics or clinical jargon."""
+        elif edu_intent.get("intent") == "EXPLAIN_FIRST":
+            system_prompt += """
+
+EDUCATION INTENT: EXPLAIN_FIRST
+Lead with clear, accurate clinical information in plain language. Use helpful analogies.
+Include relevant numbers if available. End with "your specialist can give you specifics"."""
+        elif edu_intent.get("intent") == "PRACTICAL_FIRST":
+            system_prompt += """
+
+EDUCATION INTENT: PRACTICAL_FIRST
+Lead with concrete tips and what to expect. Tell them what to ask their specialist.
+Include timing, preparation, and "what to watch for". Keep it focused and useful."""
     elif triage_category == 2 and style == "ANALYTICAL":
         system_prompt += """
 

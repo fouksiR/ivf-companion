@@ -1416,6 +1416,7 @@ class ChatResponse(BaseModel):
     fertool_cards: Optional[list] = None
     one_word_checkin: Optional[dict] = None  # If message was mapped as a one-word check-in
     education_fork: Optional[str] = None  # Clarifying question for education queries
+    capability_hint: Optional[str] = None  # Contextual capability discovery hint
     query_id: str = ""
 
 class CheckInRequest(BaseModel):
@@ -1433,6 +1434,7 @@ class CheckInResponse(BaseModel):
     checkin_summary: dict
     escalation: Optional[dict] = None
     trigger_screening: Optional[str] = None
+    capability_hint: Optional[str] = None
 
 class ScreeningRequest(BaseModel):
     patient_id: str
@@ -1595,6 +1597,7 @@ async def onboard_patient(req: OnboardRequest):
     patient["cycle_number"] = req.cycle_number
     patient["partner_name"] = req.partner_name
     patient["clinic_name"] = req.clinic_name
+    patient["onboard_soft_spot_shown"] = req.treatment_stage  # Track which soft spot was shown during onboarding
 
     # Generate contextual welcome message using smart greeting + LLM
     stage_name = STAGE_DISPLAY.get(req.treatment_stage, req.treatment_stage)
@@ -1664,11 +1667,15 @@ async def get_smart_greeting(patient_id: str):
     # Check if full reflection is due
     needs_reflection = _should_generate_reflection(patient_id)
 
+    # Check for capability discovery hint
+    capability_hint = get_capability_discovery(patient_id)
+
     return {
         "greeting": greeting,
         "soft_spot": soft_spot,
         "micro_reflection": micro,
         "needs_reflection": needs_reflection,
+        "capability_hint": capability_hint,
         "patient_id": patient_id,
         "timestamp": utc_iso(),
     }
@@ -2243,6 +2250,45 @@ Context: {soft_spot['message']}
 {"Offer: " + soft_spot['what_helps'] if soft_spot.get('what_helps') else "Just be present. No fixing needed."}
 Weave this awareness naturally — don't announce it as a feature, just show you understand where they are."""
 
+    # Pattern observation hints (shown once per pattern type)
+    cap = patient.get("capability_discovery", {})
+    shown_patterns = set(cap.get("pattern_observations_shown", []))
+    pattern_hint = None
+
+    if "late_night" not in shown_patterns:
+        # Check for 3+ late night sessions this week
+        recent_convos = conversations_db.get(req.patient_id, [])[-20:]
+        late_count = sum(1 for m in recent_convos if m.get("timestamp", "")[11:13] in ("22", "23", "00", "01", "02", "03"))
+        if late_count >= 3:
+            pattern_hint = "late_night"
+            system_prompt += """
+
+PATTERN OBSERVATION (say this naturally, not as a feature announcement):
+You've noticed the patient has been coming by late at night recently. Gently mention:
+"I've noticed you've been coming by late at night this week. That's something I gently track to better support you — want to talk about what's keeping you up?"
+Say this ONCE, naturally woven into your response."""
+
+    if not pattern_hint and "anxiety_rising" not in shown_patterns:
+        recent_checkins = get_recent_checkins(req.patient_id)
+        if len(recent_checkins) >= 3:
+            last_3_anxiety = [c.get("anxiety", 5) for c in recent_checkins[-3:]]
+            if all(a >= 7 for a in last_3_anxiety):
+                pattern_hint = "anxiety_rising"
+                system_prompt += """
+
+PATTERN OBSERVATION (say this naturally):
+The patient's last 3 check-ins show consistently high anxiety (7+). Gently mention:
+"Your check-ins have been showing more anxiety lately. That makes sense given where you are. Want to unpack it?"
+Say this ONCE, naturally."""
+
+    if pattern_hint:
+        if "capability_discovery" not in patient:
+            patient["capability_discovery"] = {}
+        obs_list = patient["capability_discovery"].get("pattern_observations_shown", [])
+        obs_list.append(pattern_hint)
+        patient["capability_discovery"]["pattern_observations_shown"] = obs_list
+        firebase_db.save_patient(req.patient_id, patient)
+
     # Build conversation messages for Claude
     conv_messages = []
     for msg in get_conversation_context(req.patient_id, last_n=16):
@@ -2287,6 +2333,22 @@ Weave this awareness naturally — don't announce it as a feature, just show you
     if triage_category == 2:
         fertool_cards = match_fertool_cards(req.message, assistant_msg) or None
 
+    # Capability hint for education responses
+    cap_hint = None
+    cap = patient.get("capability_discovery", {})
+    if triage_category == 2 and not cap.get("first_education_hint_shown"):
+        cap_hint = "I can go deeper on any of this — ask me anything."
+        if "capability_discovery" not in patient:
+            patient["capability_discovery"] = {}
+        patient["capability_discovery"]["first_education_hint_shown"] = True
+        firebase_db.save_patient(req.patient_id, patient)
+    elif fertool_cards and (cap.get("fertool_hints_count", 0) < 3):
+        cap_hint = "I have more tools like this — try asking about AMH, egg freezing, or embryo grading."
+        if "capability_discovery" not in patient:
+            patient["capability_discovery"] = {}
+        patient["capability_discovery"]["fertool_hints_count"] = cap.get("fertool_hints_count", 0) + 1
+        firebase_db.save_patient(req.patient_id, patient)
+
     return ChatResponse(
         response=assistant_msg,
         patient_id=req.patient_id,
@@ -2296,6 +2358,7 @@ Weave this awareness naturally — don't announce it as a feature, just show you
         fertool_cards=fertool_cards,
         one_word_checkin=one_word_checkin,
         education_fork=education_fork,
+        capability_hint=cap_hint,
         query_id=query_id,
     )
 
@@ -2383,12 +2446,23 @@ Don't list back all the numbers — respond to the feeling, not the data."""
         "type": "checkin_response",
     })
 
+    # First check-in capability hint
+    checkin_hint = None
+    cap = patient.get("capability_discovery", {})
+    if not cap.get("first_checkin_hint_shown") and len(checkins_db.get(req.patient_id, [])) <= 1:
+        checkin_hint = "Thanks for checking in. I use these to understand how you're tracking over time — not to judge, just to notice patterns and support you better."
+        if "capability_discovery" not in patient:
+            patient["capability_discovery"] = {}
+        patient["capability_discovery"]["first_checkin_hint_shown"] = True
+        firebase_db.save_patient(req.patient_id, patient)
+
     return CheckInResponse(
         message=melod_msg,
         patient_id=req.patient_id,
         checkin_summary=checkin,
         escalation=escalation,
         trigger_screening=trigger_screening,
+        capability_hint=checkin_hint,
     )
 
 
@@ -2772,6 +2846,96 @@ async def debug_create_test_patient():
 
 # ── Daily Nudge System ───────────────────────────────────────────────
 
+# ── Anticipatory Nudges ─────────────────────────────────────────────
+# These trigger based on days_in_stage, BEFORE the difficult moment arrives.
+# Key: (stage, day_in_stage) → nudge message
+ANTICIPATORY_NUDGES = {
+    ("stimulation", 5): "Tomorrow and the next few days are when stimulation starts to feel heavy for most people. If that happens, come talk to me — it's normal.",
+    ("stimulation", 9): "You're getting close to the end of stims. The bloating and tiredness peak around now. Hang in there — your body is doing incredible work.",
+    ("early_tww", 5): "You're entering the hardest stretch of the wait. The next few days before your test, symptom spotting goes into overdrive. I can help you sort real from anxiety.",
+    ("late_tww", 1): "You're in the deep end of the TWW now. Every sensation feels like a sign. That's completely normal — and exhausting.",
+    ("late_tww", 4): "Tomorrow might be close to result day. Whatever you're feeling right now — that's valid. Want to talk tonight?",
+    ("embryo_development", 0): "The fertilisation call usually comes this morning. However it goes, I'm here to help you understand what it means.",
+    ("embryo_development", 2): "Day 3 embryo updates can bring a mix of emotions. Some embryos stop developing — that's normal attrition, not failure. I'll help you make sense of the report.",
+    ("embryo_development", 4): "Day 5 is when blastocysts form. Not all embryos make it — the drop can feel devastating. Whatever the number, I'm here.",
+    ("before_retrieval", 0): "Tomorrow your body does something amazing. Try to rest tonight. The nerves are normal — your clinic does this every day.",
+    ("retrieval_day", 0): "Retrieval day. You've earned every bit of rest afterwards. I'll be here when you're ready to talk.",
+    ("before_transfer", 0): "Transfer is coming up. The procedure itself is usually quick and painless. It's everything around it — the hope, the fear — that's the hard part.",
+    ("transfer_day", 0): "A tiny passenger is on board. Now begins the wait. Whatever you need — distraction, reassurance, or just someone to talk to — I'm here.",
+    ("result_day", 0): "Today is the day. Whatever comes, you won't face it alone.",
+    ("negative_result", 2): "Checking in. No pressure to talk. Just letting you know I'm here.",
+    ("negative_result", 5): "It's been a few days. Grief doesn't follow a schedule. Whatever you're feeling right now is exactly right.",
+    ("failed_cycle_acute", 2): "Checking in gently. You don't have to have a plan or feel ready. Just... I'm here.",
+    ("chemical_pregnancy", 1): "A chemical pregnancy is a real loss. If people tell you 'at least it implanted,' you're allowed to feel angry about that.",
+    ("miscarriage", 2): "I'm thinking of you. There's no timeline for this. Whenever you're ready, I'm here.",
+}
+
+# ── Capability Discovery ────────────────────────────────────────────
+# Contextual hints that help patients discover features naturally.
+WEEKLY_CAPABILITY_HINTS = {
+    "checkin_prompt": "By the way, if you tap the egg, you can do a quick emotional check-in. It helps me understand how you're tracking.",
+    "education_prompt": "Did you know you can ask me about any medication, procedure, or IVF topic? I'm like a fertility encyclopedia that speaks human.",
+    "late_night_prompt": "I'm here 24/7 — even at 2am when the anxiety hits and you don't want to wake your partner.",
+    "journey_prompt": "Have you explored the Journey tab? It shows where you are in the process and what's coming next.",
+}
+
+def get_capability_discovery(patient_id: str) -> dict | None:
+    """Check if any capability hint should be shown to this patient."""
+    patient = get_or_create_patient(patient_id)
+    cap = patient.get("capability_discovery", {})
+
+    # Weekly hint: only one per week
+    last_weekly = cap.get("last_weekly_hint_date")
+    if last_weekly:
+        try:
+            last_dt = datetime.fromisoformat(last_weekly)
+            if (datetime.now() - last_dt).days < 7:
+                return None  # Too soon for another weekly hint
+        except (ValueError, TypeError):
+            pass
+
+    # Figure out what the patient hasn't used
+    shown = set(cap.get("weekly_hints_shown", []))
+    conversations = conversations_db.get(patient_id, [])
+    checkins = checkins_db.get(patient_id, [])
+    user_msgs = [m for m in conversations if m.get("role") == "user"]
+
+    # Check usage patterns
+    has_checkin = len(checkins) > 0
+    has_education = any(m.get("triage") == 2 for m in conversations if m.get("role") == "assistant")
+    has_late_night = any(
+        "T2" in m.get("timestamp", "") or "T0" in m.get("timestamp", "")[:14]
+        for m in conversations if m.get("timestamp")
+    )
+
+    # Pick a hint for something they haven't used
+    candidates = []
+    if not has_checkin and "checkin_prompt" not in shown:
+        candidates.append("checkin_prompt")
+    if not has_education and "education_prompt" not in shown and len(user_msgs) >= 3:
+        candidates.append("education_prompt")
+    if not has_late_night and "late_night_prompt" not in shown and len(user_msgs) >= 5:
+        candidates.append("late_night_prompt")
+    if "journey_prompt" not in shown and len(user_msgs) >= 2:
+        candidates.append("journey_prompt")
+
+    if not candidates:
+        return None
+
+    hint_key = candidates[0]
+    hint_text = WEEKLY_CAPABILITY_HINTS[hint_key]
+
+    # Update tracking
+    if "capability_discovery" not in patient:
+        patient["capability_discovery"] = {}
+    patient["capability_discovery"]["last_weekly_hint_date"] = utc_iso()
+    shown_list = patient["capability_discovery"].get("weekly_hints_shown", [])
+    shown_list.append(hint_key)
+    patient["capability_discovery"]["weekly_hints_shown"] = shown_list
+    firebase_db.save_patient(patient_id, patient)
+
+    return {"hint": hint_text, "type": hint_key}
+
 # Stage-aware nudge messages: each stage has contextual, gentle prompts
 STAGE_NUDGES = {
     "consultation": [
@@ -2937,13 +3101,29 @@ async def get_daily_nudge(patient_id: str):
     # Pick the right nudge
     nudges = []
 
-    # 1. Stage-specific nudge (always)
-    stage_msgs = STAGE_NUDGES.get(stage, STAGE_NUDGES["consultation"])
-    import random
-    nudges.append(random.choice(stage_msgs))
+    # 0. Anticipatory nudge — check if we're at a known anticipation point
+    stage_start = patient.get("stage_start_date")
+    days_in_stage = None
+    if stage_start:
+        try:
+            start_dt = datetime.fromisoformat(stage_start.replace("Z", "+00:00"))
+            days_in_stage = (datetime.now(start_dt.tzinfo or None) - start_dt).days if start_dt.tzinfo else (datetime.now() - start_dt.replace(tzinfo=None)).days
+        except (ValueError, TypeError):
+            days_in_stage = None
+
+    anticipatory = None
+    if days_in_stage is not None:
+        anticipatory = ANTICIPATORY_NUDGES.get((stage, days_in_stage))
+
+    if anticipatory:
+        nudges.append(anticipatory)  # Anticipatory nudge takes priority
+    else:
+        # 1. Stage-specific nudge (fallback)
+        stage_msgs = STAGE_NUDGES.get(stage, STAGE_NUDGES["consultation"])
+        nudges.append(random.choice(stage_msgs))
 
     # 2. Procedure nudge (only for key procedure days)
-    if stage in PROCEDURE_NUDGES:
+    if stage in PROCEDURE_NUDGES and not anticipatory:
         nudges.append(PROCEDURE_NUDGES[stage])
 
     # 3. If they've been away 2+ days, add a gentle re-engagement
@@ -2958,10 +3138,12 @@ async def get_daily_nudge(patient_id: str):
 
     return {
         "nudge": nudges[0],  # Primary nudge
-        "extra": nudges[1] if len(nudges) > 1 else None,  # Optional second
+        "extra": nudges[1] if len(nudges) > 1 else None,
         "stage": stage,
         "stage_display": STAGE_DISPLAY.get(stage, stage),
         "days_since_checkin": days_since,
+        "days_in_stage": days_in_stage,
+        "is_anticipatory": anticipatory is not None,
         "checked_in_today": False,
     }
 

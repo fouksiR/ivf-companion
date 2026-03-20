@@ -184,33 +184,38 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 .nudge-btn-dismiss{background:none;color:var(--text-soft);border:1px solid var(--border)}
 .nudge-btn-dismiss:hover{border-color:var(--text-soft)}
 
-/* ── Egg Companion ─────────────────────────────────── */
-.egg-companion{position:fixed;bottom:74px;left:16px;z-index:50;display:none;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer;transition:all .5s cubic-bezier(.34,1.56,.64,1)}
+/* ── Egg Companion — 3D Minimal ────────────────────── */
+.egg-companion{position:fixed;bottom:74px;left:16px;z-index:50;display:none;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer;transition:all .6s cubic-bezier(.25,1,.5,1)}
 .egg-companion.visible{display:block}
 .egg-companion.centered{bottom:45%;left:50%;transform:translate(-50%,50%)}
-.egg-companion svg{filter:drop-shadow(0 4px 12px rgba(45,142,142,.15))}
-.egg-companion.idle svg{animation:eggFloat 4s ease-in-out infinite,eggLook 8s ease-in-out infinite}
-@keyframes eggFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3.5px)}}
-@keyframes eggLook{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-1.5deg)}75%{transform:rotate(1.5deg)}}
-.egg-companion.idle::after{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:40px;height:6px;background:radial-gradient(ellipse,rgba(0,0,0,.06),transparent 70%);border-radius:50%;animation:eggShadow 4s ease-in-out infinite;pointer-events:none}
-@keyframes eggShadow{0%,100%{transform:translateX(-50%) scale(1);opacity:.6}50%{transform:translateX(-50%) scale(.9);opacity:.4}}
+.egg-companion svg{filter:drop-shadow(0 6px 20px rgba(122,172,172,.18)) drop-shadow(0 2px 6px rgba(0,0,0,.06))}
+.egg-companion.idle svg{animation:eggBreathe 5s ease-in-out infinite,eggFloat 7s ease-in-out infinite}
+@keyframes eggBreathe{0%,100%{transform:scaleX(1) scaleY(1)}50%{transform:scaleX(1.012) scaleY(1.018)}}
+@keyframes eggFloat{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-2.5px) rotate(-0.6deg)}50%{transform:translateY(-4px) rotate(0deg)}75%{transform:translateY(-2px) rotate(0.6deg)}}
+.egg-companion.idle::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:44px;height:8px;background:radial-gradient(ellipse,rgba(0,0,0,.05),transparent 72%);border-radius:50%;animation:eggShadow 5s ease-in-out infinite;pointer-events:none}
+@keyframes eggShadow{0%,100%{transform:translateX(-50%) scale(1);opacity:.5}50%{transform:translateX(-50%) scale(.88);opacity:.35}}
 .egg-companion.active svg{animation:none}
-/* ── Sperm Buddy ─────────────────────────────────────── */
-.sperm-buddy{position:absolute;width:14px;height:14px;pointer-events:none;opacity:0;z-index:49;will-change:transform,opacity}
-.sperm-buddy.swimming{opacity:1}
-.sperm-head{width:7px;height:8px;background:radial-gradient(ellipse at 40% 35%,#fff,#f5eed8);border-radius:50% 50% 45% 45%;position:absolute;left:0;top:3px;box-shadow:0 0 3px rgba(245,238,216,.4)}
-.sperm-tail{position:absolute;left:7px;top:5px;width:20px;height:4px;overflow:visible}
-.sperm-tail svg{width:20px;height:6px}
-.sperm-tail path{stroke:#e8dfc8;stroke-width:1.2;fill:none;stroke-linecap:round;animation:tailWave .6s ease-in-out infinite}
-@keyframes tailWave{0%{d:path('M0,3 C4,0 8,6 12,3 C16,0 20,4 24,3')}50%{d:path('M0,3 C4,6 8,0 12,3 C16,6 20,2 24,3')}100%{d:path('M0,3 C4,0 8,6 12,3 C16,0 20,4 24,3')}}
+/* ── Ambient aura (connection glow) ───────────────── */
+.egg-companion::before{content:'';position:absolute;inset:-12px;border-radius:50%;background:radial-gradient(circle,rgba(122,172,172,.08),transparent 68%);pointer-events:none;opacity:0;transition:opacity 1.2s ease;animation:auraBreath 6s ease-in-out infinite}
+.egg-companion.idle::before{opacity:1}
+.egg-companion.active::before,.egg-companion.centered::before{opacity:0}
+@keyframes auraBreath{0%,100%{transform:scale(1);opacity:0}50%{transform:scale(1.08);opacity:1}}
+/* ── Sperm Buddy — minimal soft ────────────────────── */
+.sperm-buddy{position:absolute;width:16px;height:16px;pointer-events:none;opacity:0;z-index:49;will-change:transform,opacity;transition:opacity .8s ease}
+.sperm-buddy.swimming{opacity:.65}
+.sperm-head{width:6px;height:7px;background:radial-gradient(ellipse at 38% 32%,#faf6ef,#ede4d4);border-radius:50%;position:absolute;left:0;top:4px;box-shadow:0 0 4px rgba(237,228,212,.5)}
+.sperm-tail{position:absolute;left:6px;top:5.5px;width:22px;height:5px;overflow:visible}
+.sperm-tail svg{width:22px;height:5px}
+.sperm-tail path{stroke:#ddd5c4;stroke-width:1;fill:none;stroke-linecap:round;opacity:.7;animation:tailWave .9s ease-in-out infinite}
+@keyframes tailWave{0%{d:path('M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5')}50%{d:path('M0,2.5 C5,5 10,0 15,2.5 C18,4 21,1.5 24,2.5')}100%{d:path('M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5')}}
 /* ── Egg proximity glow ──────────────────────────────── */
-.egg-glow{position:absolute;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(255,243,224,.35),transparent 70%);pointer-events:none;opacity:0;transition:opacity .6s ease;top:0;left:0;transform:translate(-50%,-50%)}
+.egg-glow{position:absolute;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(122,172,172,.12),rgba(255,248,240,.08) 50%,transparent 72%);pointer-events:none;opacity:0;transition:opacity .8s ease;top:0;left:0;transform:translate(-50%,-50%)}
 .egg-glow.active{opacity:1}
 /* ── Egg Welcome Bubble ──────────────────────────────── */
-.egg-welcome-bubble{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:240px;background:linear-gradient(135deg,#f0fafa,#e8f6f3);border:1px solid rgba(45,142,142,.18);border-radius:16px;padding:14px 16px;box-shadow:0 4px 20px rgba(45,142,142,.12),0 1px 3px rgba(0,0,0,.04);opacity:0;pointer-events:none;transition:opacity .8s ease,transform .8s cubic-bezier(.34,1.56,.64,1);transform:translateX(-50%) translateY(8px) scale(.95);z-index:52}
+.egg-welcome-bubble{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);width:220px;background:linear-gradient(145deg,#faf8f5,#f2edea);border:1px solid rgba(122,172,172,.14);border-radius:18px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,.05),0 1px 3px rgba(0,0,0,.03);opacity:0;pointer-events:none;transition:opacity 1s ease,transform 1s cubic-bezier(.25,1,.5,1);transform:translateX(-50%) translateY(6px) scale(.96);z-index:52}
 .egg-welcome-bubble.visible{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
-.egg-welcome-bubble::after{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #e8f6f3;filter:drop-shadow(0 1px 1px rgba(0,0,0,.03))}
-.egg-welcome-bubble p{font-family:'Montserrat',sans-serif;font-size:12.5px;line-height:1.55;color:#2a6b6b;text-align:center;margin:0;font-weight:400}
+.egg-welcome-bubble::after{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid #f2edea;filter:drop-shadow(0 1px 1px rgba(0,0,0,.02))}
+.egg-welcome-bubble p{font-family:'Montserrat',sans-serif;font-size:12px;line-height:1.6;color:#5a7a7a;text-align:center;margin:0;font-weight:400;letter-spacing:.01em}
 /* ── Chat Input Pulse ────────────────────────────────── */
 @keyframes inputPulse{0%,100%{box-shadow:0 0 0 0 rgba(45,142,142,.25)}50%{box-shadow:0 0 0 6px rgba(45,142,142,0)}}
 .chat-composer textarea.pulse-hint{animation:inputPulse 2s ease-in-out 3}
@@ -321,46 +326,62 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 <div class="egg-results" id="eggResults"><h3>Here's how you're feeling</h3><p id="eggResultsSub">Your check-in has been recorded</p><div class="egg-rbubbles" id="eggRBubbles"></div><button class="egg-send-btn" id="eggSendBtn">Send to Melod·AI</button></div>
 <div class="egg-companion idle" id="eggCompanion">
   <div class="egg-welcome-bubble" id="eggWelcomeBubble">
-    <p>Ask me anything — about your treatment, your medications, or just how you're feeling. I'm here for you 💛</p>
+    <p>I'm here whenever you're ready — about your treatment, your feelings, or anything on your mind.</p>
   </div>
-  <svg id="eggSvg" width="64" height="80" viewBox="0 0 200 250">
+  <svg id="eggSvg" width="64" height="84" viewBox="0 0 200 260">
     <defs>
-      <radialGradient id="egG" cx="40%" cy="35%" r="60%"><stop offset="0%" id="egS1" stop-color="#FFF3E0"/><stop offset="100%" id="egS2" stop-color="#F5D9A8"/></radialGradient>
-      <radialGradient id="egSh" cx="35%" cy="30%" r="30%"><stop offset="0%" stop-color="rgba(255,255,255,0.6)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
+      <!-- Primary body gradient — warm ivory to blush beige, matte feel -->
+      <radialGradient id="egG" cx="42%" cy="32%" r="62%"><stop offset="0%" id="egS1" stop-color="#FFF8F0"/><stop offset="100%" id="egS2" stop-color="#F0E0CF"/></radialGradient>
+      <!-- Subtle 3D highlight — upper-left soft light -->
+      <radialGradient id="egHi" cx="32%" cy="25%" r="28%"><stop offset="0%" stop-color="rgba(255,255,255,0.55)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
+      <!-- Depth shadow — lower curve interior shadow -->
+      <radialGradient id="egDp" cx="50%" cy="85%" r="45%"><stop offset="0%" stop-color="rgba(180,160,140,.08)"/><stop offset="100%" stop-color="rgba(180,160,140,0)"/></radialGradient>
+      <!-- Rim light — subtle edge glow for 3D presence -->
+      <radialGradient id="egRim" cx="70%" cy="30%" r="50%"><stop offset="0%" stop-color="rgba(255,255,255,0)"/><stop offset="70%" stop-color="rgba(255,255,255,0)"/><stop offset="100%" stop-color="rgba(255,255,255,0.2)"/></radialGradient>
+      <!-- Shell cradle gradient -->
+      <radialGradient id="egCradle" cx="50%" cy="40%" r="55%"><stop offset="0%" stop-color="#f5ede4"/><stop offset="100%" stop-color="#e8ddd2"/></radialGradient>
     </defs>
-    <!-- Body -->
-    <path id="egBody" d="M100,230 C45,230 20,170 20,120 C20,50 55,20 100,20 C145,20 180,50 180,120 C180,170 155,230 100,230Z" fill="url(#egG)" stroke="rgba(0,0,0,0.04)" stroke-width="0.5"/>
-    <ellipse cx="75" cy="80" rx="25" ry="35" fill="url(#egSh)" opacity="0.5"/>
-    <!-- Face group (all features) -->
+    <!-- Shell cradle — subtle curved nest beneath egg -->
+    <ellipse cx="100" cy="236" rx="52" ry="10" fill="url(#egCradle)" opacity="0.5"/>
+    <path d="M56,232 Q100,248 144,232" stroke="#ddd2c6" stroke-width="0.8" fill="none" opacity="0.4"/>
+    <!-- Body — refined egg silhouette -->
+    <path id="egBody" d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#egG)" stroke="rgba(0,0,0,0.03)" stroke-width="0.5"/>
+    <!-- 3D depth layers -->
+    <ellipse cx="72" cy="75" rx="28" ry="40" fill="url(#egHi)" opacity="0.6"/>
+    <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#egDp)" opacity="1"/>
+    <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#egRim)" opacity="1"/>
+    <!-- Subtle inner warmth — barely visible warm center -->
+    <ellipse cx="100" cy="130" rx="35" ry="45" fill="rgba(245,220,195,.06)" opacity="1"/>
+    <!-- Face group — minimal, quiet, emotionally present -->
     <g id="egFace" transform="translate(0,10)">
-      <!-- Eyebrows -->
-      <path id="egBrowL" d="M66,105 Q72,103 82,105" stroke="#5a5a5a" fill="none" stroke-width="1.8" stroke-linecap="round" opacity="0"/>
-      <path id="egBrowR" d="M118,105 Q128,103 134,105" stroke="#5a5a5a" fill="none" stroke-width="1.8" stroke-linecap="round" opacity="0"/>
-      <!-- Eyes -->
-      <ellipse id="egEyeL" cx="78" cy="115" rx="4.5" ry="5" fill="#3a3a3a"/>
-      <ellipse id="egEyeR" cx="122" cy="115" rx="4.5" ry="5" fill="#3a3a3a"/>
-      <!-- Eye shine -->
-      <circle id="egShineL" cx="76" cy="113" r="1.8" fill="white"/>
-      <circle id="egShineR" cx="120" cy="113" r="1.8" fill="white"/>
+      <!-- Eyebrows (hidden default — appear during check-in) -->
+      <path id="egBrowL" d="M66,105 Q72,103 82,105" stroke="#8a8078" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
+      <path id="egBrowR" d="M118,105 Q128,103 134,105" stroke="#8a8078" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
+      <!-- Eyes — small, calm, aware (3.5rx vs old 4.5) -->
+      <ellipse id="egEyeL" cx="82" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
+      <ellipse id="egEyeR" cx="118" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
+      <!-- Eye shine — tiny warm highlights -->
+      <circle id="egShineL" cx="80.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
+      <circle id="egShineR" cx="116.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
       <!-- Tear drops (hidden by default) -->
-      <path id="egTearL" d="M72,122 Q70,130 72,136 Q74,130 72,122Z" fill="#8ec8e8" opacity="0"/>
-      <path id="egTearR" d="M128,122 Q126,130 128,136 Q130,130 128,122Z" fill="#8ec8e8" opacity="0"/>
-      <!-- Sweat drop (anxiety) -->
-      <path id="egSweat" d="M140,100 Q138,108 140,114 Q142,108 140,100Z" fill="#a8d8ea" opacity="0"/>
+      <path id="egTearL" d="M76,124 Q74.5,131 76,136 Q77.5,131 76,124Z" fill="#a8c8d8" opacity="0"/>
+      <path id="egTearR" d="M124,124 Q122.5,131 124,136 Q125.5,131 124,124Z" fill="#a8c8d8" opacity="0"/>
+      <!-- Sweat drop (anxiety) — muted -->
+      <path id="egSweat" d="M138,103 Q136.5,109 138,114 Q139.5,109 138,103Z" fill="#b8d0dc" opacity="0"/>
       <!-- Dizzy spirals (uncertainty) -->
-      <path id="egSpiralL" d="M78,115 C74,111 82,109 80,115 C78,119 73,114 78,115" stroke="#888" fill="none" stroke-width="1" opacity="0"/>
-      <path id="egSpiralR" d="M122,115 C118,111 126,109 124,115 C122,119 117,114 122,115" stroke="#888" fill="none" stroke-width="1" opacity="0"/>
-      <!-- Star sparkles (hope) -->
+      <path id="egSpiralL" d="M82,118 C78,114 86,112 84,118 C82,122 77,117 82,118" stroke="#a09890" fill="none" stroke-width="0.8" opacity="0"/>
+      <path id="egSpiralR" d="M118,118 C114,114 122,112 120,118 C118,122 113,117 118,118" stroke="#a09890" fill="none" stroke-width="0.8" opacity="0"/>
+      <!-- Star sparkles (hope) — subtle dusty teal -->
       <g id="egStars" opacity="0">
-        <text x="55" y="100" font-size="12" fill="#C4943D">✦</text>
-        <text x="140" y="98" font-size="10" fill="#C4943D">✦</text>
-        <text x="100" y="85" font-size="8" fill="#C4943D">✦</text>
+        <circle cx="58" cy="100" r="2" fill="#7aacac" opacity=".6"/>
+        <circle cx="142" cy="98" r="1.5" fill="#7aacac" opacity=".5"/>
+        <circle cx="100" cy="86" r="1.2" fill="#7aacac" opacity=".4"/>
       </g>
-      <!-- Cheeks -->
-      <ellipse class="eg-cheek" cx="65" cy="130" rx="10" ry="6" fill="#F5C4B8" opacity="0.45"/>
-      <ellipse class="eg-cheek" cx="135" cy="130" rx="10" ry="6" fill="#F5C4B8" opacity="0.45"/>
-      <!-- Mouth -->
-      <path id="egMouth" d="M90,138 Q100,148 110,138" stroke="#3a3a3a" fill="none" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- Cheeks — soft warm blush, barely visible -->
+      <ellipse class="eg-cheek" cx="68" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
+      <ellipse class="eg-cheek" cx="132" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
+      <!-- Mouth — small, gentle, quiet smile -->
+      <path id="egMouth" d="M92,138 Q100,144 108,138" stroke="#8a8078" fill="none" stroke-width="1.2" stroke-linecap="round"/>
     </g>
   </svg>
   <div class="egg-glow" id="eggGlow"></div>
@@ -581,16 +602,16 @@ var egg=document.getElementById('eggCompanion'),svg=document.getElementById('egg
     body=document.getElementById('egBody'),face=document.getElementById('egFace');
 
 var DIMS=[
-  {key:'mood',name:'Mood',prompt:"How's your overall mood?",icon:'☀',cLow:'#C25D5D',cMid:'#C4943D',cHigh:'#5B9E5B',inv:false},
-  {key:'anxiety',name:'Anxiety',prompt:'How anxious are you feeling?',icon:'⚡',cLow:'#5B9E5B',cMid:'#C4943D',cHigh:'#C25D5D',inv:true},
-  {key:'loneliness',name:'Loneliness',prompt:'How isolated do you feel?',icon:'🫧',cLow:'#5B9E5B',cMid:'#8B6BA8',cHigh:'#C25D5D',inv:true},
-  {key:'uncertainty',name:'Uncertainty',prompt:'How uncertain do things feel?',icon:'◌',cLow:'#2D8E8E',cMid:'#C4943D',cHigh:'#C25D5D',inv:true},
-  {key:'hope',name:'Hope',prompt:'How hopeful are you?',icon:'✦',cLow:'#C25D5D',cMid:'#C4943D',cHigh:'#2D8E8E',inv:false}
+  {key:'mood',name:'Mood',prompt:"How's your overall mood?",icon:'☀',cLow:'#b07070',cMid:'#b8a07a',cHigh:'#6a9e8a',inv:false},
+  {key:'anxiety',name:'Anxiety',prompt:'How anxious are you feeling?',icon:'⚡',cLow:'#6a9e8a',cMid:'#b8a07a',cHigh:'#b07070',inv:true},
+  {key:'loneliness',name:'Loneliness',prompt:'How isolated do you feel?',icon:'🫧',cLow:'#6a9e8a',cMid:'#9088a8',cHigh:'#b07070',inv:true},
+  {key:'uncertainty',name:'Uncertainty',prompt:'How uncertain do things feel?',icon:'◌',cLow:'#7aacac',cMid:'#b8a07a',cHigh:'#b07070',inv:true},
+  {key:'hope',name:'Hope',prompt:'How hopeful are you?',icon:'✦',cLow:'#b07070',cMid:'#b8a07a',cHigh:'#7aacac',inv:false}
 ];
 
 var isOpen=false,isHolding=false,holdStart=0,holdVal=0,prevVal=-1,holdAF=null,HOLD_MAX=3000;
 var curDim=-1,scores={},showingResults=false;
-var smallW=64,smallH=80,bigW=180,bigH=225;
+var smallW=64,smallH=84,bigW=180,bigH=234;
 var idleAF=null,idleTick=0,blinkTimer=null;
 
 // ── Color helpers ──
@@ -606,141 +627,127 @@ function hideAllSpecials(){
   sweat.setAttribute('opacity','0');
   spiralL.setAttribute('opacity','0');spiralR.setAttribute('opacity','0');
   stars.setAttribute('opacity','0');
-  eyeL.setAttribute('rx','4.5');eyeL.setAttribute('ry','5');
-  eyeR.setAttribute('rx','4.5');eyeR.setAttribute('ry','5');
-  shineL.setAttribute('r','1.8');shineR.setAttribute('r','1.8');
+  eyeL.setAttribute('rx','3.2');eyeL.setAttribute('ry','3.5');
+  eyeR.setAttribute('rx','3.2');eyeR.setAttribute('ry','3.5');
+  shineL.setAttribute('r','1.3');shineR.setAttribute('r','1.3');
   face.setAttribute('transform','translate(0,10)');
-  body.setAttribute('d','M100,230 C45,230 20,170 20,120 C20,50 55,20 100,20 C145,20 180,50 180,120 C180,170 155,230 100,230Z');
+  body.setAttribute('d','M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z');
 }
 
-// ── PER-DIMENSION face transforms ──
+// ── PER-DIMENSION face transforms (3D minimal) ──
 function applyDimFace(dimKey,t,val){
   hideAllSpecials();
   var chk=document.querySelectorAll('.eg-cheek');
   if(dimKey==='mood'){
-    // LOW mood: droopy eyes, frown, tears at high hold
-    // HIGH mood: big smile, rosy cheeks, sparkly eyes
     if(val<=4){
-      // Sad face — eyes droop, eyebrows sad, tears appear
-      browL.setAttribute('d','M68,104 Q74,108 82,106');browL.setAttribute('opacity',(t*.8).toFixed(2));
-      browR.setAttribute('d','M118,106 Q126,108 132,104');browR.setAttribute('opacity',(t*.8).toFixed(2));
-      eyeL.setAttribute('ry',(5-t*1.5).toFixed(1));eyeR.setAttribute('ry',(5-t*1.5).toFixed(1));
-      mouth.setAttribute('d','M88,142 Q100,'+(142-t*8).toFixed(1)+' 112,142');
-      if(val<=2){tearL.setAttribute('opacity',(t*.7).toFixed(2));tearR.setAttribute('opacity',(t*.6).toFixed(2))}
-      // Body shrinks slightly (sad huddle)
-      face.setAttribute('transform','translate(0,'+(10+t*6).toFixed(1)+')');
-      chk.forEach(function(c){c.setAttribute('opacity','0.2')});
+      // Sad — eyes soften, gentle frown, quiet tears
+      browL.setAttribute('d','M70,106 Q76,110 86,108');browL.setAttribute('opacity',(t*.6).toFixed(2));
+      browR.setAttribute('d','M114,108 Q124,110 130,106');browR.setAttribute('opacity',(t*.6).toFixed(2));
+      eyeL.setAttribute('ry',(3.5-t*1).toFixed(1));eyeR.setAttribute('ry',(3.5-t*1).toFixed(1));
+      mouth.setAttribute('d','M90,142 Q100,'+(142-t*6).toFixed(1)+' 110,142');
+      if(val<=2){tearL.setAttribute('opacity',(t*.5).toFixed(2));tearR.setAttribute('opacity',(t*.4).toFixed(2))}
+      face.setAttribute('transform','translate(0,'+(10+t*5).toFixed(1)+')');
+      chk.forEach(function(c){c.setAttribute('opacity','0.15')});
     }else{
-      // Happy — wide eyes, big smile, sparkle
-      eyeL.setAttribute('ry',(5+t*1.5).toFixed(1));eyeR.setAttribute('ry',(5+t*1.5).toFixed(1));
-      shineL.setAttribute('r',(1.8+t*1.2).toFixed(1));shineR.setAttribute('r',(1.8+t*1.2).toFixed(1));
-      mouth.setAttribute('d','M85,136 Q100,'+(148+t*6).toFixed(1)+' 115,136');
-      mouth.setAttribute('stroke-width',(1.5+t*.5).toFixed(1));
-      chk.forEach(function(c){c.setAttribute('opacity',(0.4+t*.5).toFixed(2));c.setAttribute('rx',(10+t*3).toFixed(1))});
-      if(val>=8)stars.setAttribute('opacity',(t*.6).toFixed(2));
+      // Warm — gentle brightening, soft smile
+      eyeL.setAttribute('ry',(3.5+t*1.2).toFixed(1));eyeR.setAttribute('ry',(3.5+t*1.2).toFixed(1));
+      shineL.setAttribute('r',(1.3+t*.8).toFixed(1));shineR.setAttribute('r',(1.3+t*.8).toFixed(1));
+      mouth.setAttribute('d','M88,136 Q100,'+(144+t*5).toFixed(1)+' 112,136');
+      mouth.setAttribute('stroke-width',(1.2+t*.3).toFixed(1));
+      chk.forEach(function(c){c.setAttribute('opacity',(0.25+t*.35).toFixed(2));c.setAttribute('rx',(9+t*2).toFixed(1))});
+      if(val>=8)stars.setAttribute('opacity',(t*.5).toFixed(2));
     }
   }else if(dimKey==='anxiety'){
-    // Anxious: wide panicked eyes, sweat drops, eyebrows raised, body trembles
-    browL.setAttribute('d','M66,'+(106-t*6).toFixed(1)+' Q74,'+(103-t*6).toFixed(1)+' 82,'+(106-t*4).toFixed(1));
-    browR.setAttribute('d','M118,'+(106-t*4).toFixed(1)+' Q126,'+(103-t*6).toFixed(1)+' 134,'+(106-t*6).toFixed(1));
-    browL.setAttribute('opacity',(t*.9).toFixed(2));browR.setAttribute('opacity',(t*.9).toFixed(2));
-    // Eyes go wide and small pupil
-    eyeL.setAttribute('ry',(5+t*3).toFixed(1));eyeR.setAttribute('ry',(5+t*3).toFixed(1));
-    eyeL.setAttribute('rx',(4.5+t).toFixed(1));eyeR.setAttribute('rx',(4.5+t).toFixed(1));
-    shineL.setAttribute('r',(1.8-t*.8).toFixed(1));shineR.setAttribute('r',(1.8-t*.8).toFixed(1));
-    // Wavy worried mouth
-    mouth.setAttribute('d','M88,140 Q94,'+(138-t*3).toFixed(1)+' 100,140 Q106,'+(142+t*3).toFixed(1)+' 112,140');
-    // Sweat drops
-    sweat.setAttribute('opacity',(t*.7).toFixed(2));
-    if(val>=7){
-      var jx=Math.sin(Date.now()*0.02)*t*2;
-      face.setAttribute('transform','translate('+jx.toFixed(1)+',10)');
-    }
-    chk.forEach(function(c){c.setAttribute('opacity',(0.3+t*.3).toFixed(2))});
+    // Anxious — eyes widen subtly, brows lift, gentle tremor
+    browL.setAttribute('d','M68,'+(108-t*5).toFixed(1)+' Q76,'+(105-t*5).toFixed(1)+' 86,'+(108-t*3).toFixed(1));
+    browR.setAttribute('d','M114,'+(108-t*3).toFixed(1)+' Q124,'+(105-t*5).toFixed(1)+' 132,'+(108-t*5).toFixed(1));
+    browL.setAttribute('opacity',(t*.7).toFixed(2));browR.setAttribute('opacity',(t*.7).toFixed(2));
+    eyeL.setAttribute('ry',(3.5+t*2.5).toFixed(1));eyeR.setAttribute('ry',(3.5+t*2.5).toFixed(1));
+    eyeL.setAttribute('rx',(3.2+t*.8).toFixed(1));eyeR.setAttribute('rx',(3.2+t*.8).toFixed(1));
+    shineL.setAttribute('r',(1.3-t*.5).toFixed(1));shineR.setAttribute('r',(1.3-t*.5).toFixed(1));
+    mouth.setAttribute('d','M90,140 Q95,'+(139-t*2).toFixed(1)+' 100,140 Q105,'+(141+t*2).toFixed(1)+' 110,140');
+    sweat.setAttribute('opacity',(t*.5).toFixed(2));
+    if(val>=7){var jx=Math.sin(Date.now()*0.015)*t*1.5;face.setAttribute('transform','translate('+jx.toFixed(1)+',10)')}
+    chk.forEach(function(c){c.setAttribute('opacity',(0.2+t*.2).toFixed(2))});
   }else if(dimKey==='loneliness'){
-    // Lonely: eyes look down, body shrinks inward, small mouth, hiding in shell
-    eyeL.setAttribute('cy',(115+t*4).toFixed(1));eyeR.setAttribute('cy',(115+t*4).toFixed(1));
-    shineL.setAttribute('cy',(113+t*3).toFixed(1));shineR.setAttribute('cy',(113+t*3).toFixed(1));
-    eyeL.setAttribute('ry',(5-t*1.5).toFixed(1));eyeR.setAttribute('ry',(5-t*1.5).toFixed(1));
-    // Tiny closed mouth
-    mouth.setAttribute('d','M94,140 Q100,'+(140+t*2).toFixed(1)+' 106,140');
-    mouth.setAttribute('stroke-width',(1.5-t*.3).toFixed(1));
-    // Sink into shell
-    face.setAttribute('transform','translate(0,'+(10+t*12).toFixed(1)+')');
-    // Body squishes down (hiding)
-    var sq=t*15;
-    body.setAttribute('d','M100,'+(230+sq).toFixed(0)+' C45,'+(230+sq).toFixed(0)+' 20,170 20,'+(120+sq).toFixed(0)+' C20,'+(50+sq).toFixed(0)+' 55,'+(20+sq).toFixed(0)+' 100,'+(20+sq).toFixed(0)+' C145,'+(20+sq).toFixed(0)+' 180,'+(50+sq).toFixed(0)+' 180,'+(120+sq).toFixed(0)+' C180,170 155,'+(230+sq).toFixed(0)+' 100,'+(230+sq).toFixed(0)+'Z');
-    chk.forEach(function(c){c.setAttribute('opacity',(0.45-t*.3).toFixed(2))});
-    if(val<=3){tearL.setAttribute('opacity',(t*.4).toFixed(2))}
+    // Lonely — eyes drift down, body sinks into cradle
+    eyeL.setAttribute('cy',(118+t*3.5).toFixed(1));eyeR.setAttribute('cy',(118+t*3.5).toFixed(1));
+    shineL.setAttribute('cy',(116.5+t*2.5).toFixed(1));shineR.setAttribute('cy',(116.5+t*2.5).toFixed(1));
+    eyeL.setAttribute('ry',(3.5-t*1).toFixed(1));eyeR.setAttribute('ry',(3.5-t*1).toFixed(1));
+    mouth.setAttribute('d','M94,140 Q100,'+(140+t*1.5).toFixed(1)+' 106,140');
+    mouth.setAttribute('stroke-width',(1.2-t*.2).toFixed(1));
+    face.setAttribute('transform','translate(0,'+(10+t*10).toFixed(1)+')');
+    var sq=t*14;
+    body.setAttribute('d','M100,'+(232+sq).toFixed(0)+' C42,'+(232+sq).toFixed(0)+' 18,168 18,'+(118+sq).toFixed(0)+' C18,'+(46+sq).toFixed(0)+' 54,'+(16+sq).toFixed(0)+' 100,'+(16+sq).toFixed(0)+' C146,'+(16+sq).toFixed(0)+' 182,'+(46+sq).toFixed(0)+' 182,'+(118+sq).toFixed(0)+' C182,168 158,'+(232+sq).toFixed(0)+' 100,'+(232+sq).toFixed(0)+'Z');
+    chk.forEach(function(c){c.setAttribute('opacity',(0.25-t*.2).toFixed(2))});
+    if(val<=3){tearL.setAttribute('opacity',(t*.35).toFixed(2))}
   }else if(dimKey==='uncertainty'){
-    // Confused: spiral eyes, tilted, question-mark mouth, dizzy
-    spiralL.setAttribute('opacity',(t*.7).toFixed(2));spiralR.setAttribute('opacity',(t*.7).toFixed(2));
-    eyeL.setAttribute('opacity',(1-t*.7).toFixed(2));eyeR.setAttribute('opacity',(1-t*.7).toFixed(2));
-    browL.setAttribute('d','M68,106 Q72,103 80,107');browL.setAttribute('opacity',(t*.6).toFixed(2));
-    browR.setAttribute('d','M120,107 Q128,103 132,106');browR.setAttribute('opacity',(t*.6).toFixed(2));
-    // Wobbly asymmetric mouth
-    mouth.setAttribute('d','M90,'+(138+t*2).toFixed(1)+' Q98,'+(140-t*4).toFixed(1)+' 106,'+(138+t*3).toFixed(1));
-    // Tilt body
-    var tilt=Math.sin(Date.now()*0.003)*t*5;
-    svg.style.transform='scale('+(1+t*.35).toFixed(3)+') rotate('+tilt.toFixed(1)+'deg)';
-    chk.forEach(function(c){c.setAttribute('opacity',(0.3+t*.2).toFixed(2))});
+    // Uncertain — spiral eyes, gentle tilt, asymmetric mouth
+    spiralL.setAttribute('opacity',(t*.55).toFixed(2));spiralR.setAttribute('opacity',(t*.55).toFixed(2));
+    eyeL.setAttribute('opacity',(1-t*.6).toFixed(2));eyeR.setAttribute('opacity',(1-t*.6).toFixed(2));
+    browL.setAttribute('d','M70,108 Q74,105 84,109');browL.setAttribute('opacity',(t*.5).toFixed(2));
+    browR.setAttribute('d','M116,109 Q126,105 130,108');browR.setAttribute('opacity',(t*.5).toFixed(2));
+    mouth.setAttribute('d','M92,'+(138+t*1.5).toFixed(1)+' Q100,'+(140-t*3).toFixed(1)+' 108,'+(138+t*2).toFixed(1));
+    var tilt=Math.sin(Date.now()*0.003)*t*4;
+    svg.style.transform='scale('+(1+t*.3).toFixed(3)+') rotate('+tilt.toFixed(1)+'deg)';
+    chk.forEach(function(c){c.setAttribute('opacity',(0.2+t*.15).toFixed(2))});
   }else if(dimKey==='hope'){
-    // Hopeful: bright eyes, warm smile, stars, body stretches up
     if(val>=5){
-      stars.setAttribute('opacity',(t*.8).toFixed(2));
-      eyeL.setAttribute('ry',(5+t*2).toFixed(1));eyeR.setAttribute('ry',(5+t*2).toFixed(1));
-      shineL.setAttribute('r',(1.8+t*1.5).toFixed(1));shineR.setAttribute('r',(1.8+t*1.5).toFixed(1));
-      mouth.setAttribute('d','M84,135 Q100,'+(150+t*5).toFixed(1)+' 116,135');
-      mouth.setAttribute('stroke-width',(1.5+t*.8).toFixed(1));
-      // Stretch upward
-      face.setAttribute('transform','translate(0,'+(10-t*4).toFixed(1)+')');
-      chk.forEach(function(c){c.setAttribute('opacity',(0.5+t*.4).toFixed(2));c.setAttribute('rx',(10+t*4).toFixed(1))});
+      // Hopeful — gentle lift, warm teal stars, eyes brighten
+      stars.setAttribute('opacity',(t*.6).toFixed(2));
+      eyeL.setAttribute('ry',(3.5+t*1.8).toFixed(1));eyeR.setAttribute('ry',(3.5+t*1.8).toFixed(1));
+      shineL.setAttribute('r',(1.3+t*1.2).toFixed(1));shineR.setAttribute('r',(1.3+t*1.2).toFixed(1));
+      mouth.setAttribute('d','M86,136 Q100,'+(146+t*4).toFixed(1)+' 114,136');
+      mouth.setAttribute('stroke-width',(1.2+t*.6).toFixed(1));
+      face.setAttribute('transform','translate(0,'+(10-t*3.5).toFixed(1)+')');
+      chk.forEach(function(c){c.setAttribute('opacity',(0.3+t*.35).toFixed(2));c.setAttribute('rx',(9+t*3).toFixed(1))});
     }else{
-      // Low hope: flat mouth, dimmed eyes
-      eyeL.setAttribute('ry',(5-t).toFixed(1));eyeR.setAttribute('ry',(5-t).toFixed(1));
-      mouth.setAttribute('d','M92,140 Q100,140 108,140');
-      face.setAttribute('transform','translate(0,'+(10+t*3).toFixed(1)+')');
-      chk.forEach(function(c){c.setAttribute('opacity',(0.45-t*.2).toFixed(2))});
+      // Low hope — still, flat expression
+      eyeL.setAttribute('ry',(3.5-t*.8).toFixed(1));eyeR.setAttribute('ry',(3.5-t*.8).toFixed(1));
+      mouth.setAttribute('d','M94,140 Q100,140 106,140');
+      face.setAttribute('transform','translate(0,'+(10+t*2.5).toFixed(1)+')');
+      chk.forEach(function(c){c.setAttribute('opacity',(0.25-t*.15).toFixed(2))});
     }
   }
 }
 
-// ── Idle animations ──
+// ── Idle animations — slow, calm, aware ──
 var idleWanderTimer=null;
 function startIdleFace(){
   stopIdleFace();hideAllSpecials();
-  // Blink cycle
+  // Blink — slow, gentle, human-like
   function blink(){
-    eyeL.setAttribute('ry','0.8');eyeR.setAttribute('ry','0.8');
-    setTimeout(function(){eyeL.setAttribute('ry','5');eyeR.setAttribute('ry','5')},140);
-    // Double blink sometimes
-    if(Math.random()>.6)setTimeout(function(){
-      eyeL.setAttribute('ry','0.8');eyeR.setAttribute('ry','0.8');
-      setTimeout(function(){eyeL.setAttribute('ry','5');eyeR.setAttribute('ry','5')},120);
-    },250);
-    blinkTimer=setTimeout(blink,2500+Math.random()*4000);
+    eyeL.setAttribute('ry','0.6');eyeR.setAttribute('ry','0.6');
+    setTimeout(function(){eyeL.setAttribute('ry','3.5');eyeR.setAttribute('ry','3.5')},160);
+    // Rare double blink
+    if(Math.random()>.75)setTimeout(function(){
+      eyeL.setAttribute('ry','0.6');eyeR.setAttribute('ry','0.6');
+      setTimeout(function(){eyeL.setAttribute('ry','3.5');eyeR.setAttribute('ry','3.5')},140);
+    },280);
+    blinkTimer=setTimeout(blink,3500+Math.random()*5000);
   }
-  blinkTimer=setTimeout(blink,1500);
-  // Wander position (Headspace hop)
+  blinkTimer=setTimeout(blink,2000);
+  // Gentle presence drift (not hop — slow, meditative)
   function wander(){
-    var bx=Math.random()*30-15,by=Math.random()*12-6;
-    egg.style.transition='transform .8s cubic-bezier(.34,1.56,.64,1)';
+    var bx=Math.random()*16-8,by=Math.random()*6-3;
+    egg.style.transition='transform 1.5s cubic-bezier(.25,1,.5,1)';
     egg.style.transform='translate('+bx+'px,'+by+'px)';
-    idleWanderTimer=setTimeout(wander,2500+Math.random()*3000);
+    idleWanderTimer=setTimeout(wander,4000+Math.random()*4000);
   }
-  if(!isOpen)idleWanderTimer=setTimeout(wander,2000);
-  // Eyes + mouth life
+  if(!isOpen)idleWanderTimer=setTimeout(wander,3000);
+  // Eye gaze + subtle mouth breathing — slow, calm
   function idleLoop(){
-    idleTick++;var t=idleTick*0.012;
-    var ex=Math.sin(t*.7)*4,ey=Math.sin(t*.5)*2;
-    eyeL.setAttribute('cx',(78+ex).toFixed(1));eyeR.setAttribute('cx',(122+ex).toFixed(1));
-    eyeL.setAttribute('cy',(115+ey).toFixed(1));eyeR.setAttribute('cy',(115+ey).toFixed(1));
-    shineL.setAttribute('cx',(76+ex).toFixed(1));shineR.setAttribute('cx',(120+ex).toFixed(1));
-    shineL.setAttribute('cy',(113+ey).toFixed(1));shineR.setAttribute('cy',(113+ey).toFixed(1));
-    var mPhase=Math.sin(t*.25);
-    if(mPhase>.7){mouth.setAttribute('d','M93,140 Q100,136 107,140');mouth.setAttribute('stroke-width','1.2')}
-    else if(mPhase<-.8){mouth.setAttribute('d','M88,136 Q100,150 112,136');mouth.setAttribute('stroke-width','1.8')}
-    else{mouth.setAttribute('d','M90,138 Q100,146 110,138');mouth.setAttribute('stroke-width','1.5')}
+    idleTick++;var t=idleTick*0.008;
+    var ex=Math.sin(t*.5)*3,ey=Math.sin(t*.35)*1.5;
+    eyeL.setAttribute('cx',(82+ex).toFixed(1));eyeR.setAttribute('cx',(118+ex).toFixed(1));
+    eyeL.setAttribute('cy',(118+ey).toFixed(1));eyeR.setAttribute('cy',(118+ey).toFixed(1));
+    shineL.setAttribute('cx',(80.5+ex).toFixed(1));shineR.setAttribute('cx',(116.5+ex).toFixed(1));
+    shineL.setAttribute('cy',(116.5+ey).toFixed(1));shineR.setAttribute('cy',(116.5+ey).toFixed(1));
+    // Quiet mouth — subtle shifts between resting smile variations
+    var mPhase=Math.sin(t*.18);
+    if(mPhase>.7){mouth.setAttribute('d','M93,139 Q100,142 107,139');mouth.setAttribute('stroke-width','1.1')}
+    else if(mPhase<-.7){mouth.setAttribute('d','M90,137 Q100,145 110,137');mouth.setAttribute('stroke-width','1.3')}
+    else{mouth.setAttribute('d','M92,138 Q100,144 108,138');mouth.setAttribute('stroke-width','1.2')}
     idleAF=requestAnimationFrame(idleLoop);
   }
   idleAF=requestAnimationFrame(idleLoop);
@@ -748,11 +755,11 @@ function startIdleFace(){
 function stopIdleFace(){
   cancelAnimationFrame(idleAF);clearTimeout(blinkTimer);clearTimeout(idleWanderTimer);idleTick=0;
   egg.style.transform='';
-  eyeL.setAttribute('cx','78');eyeR.setAttribute('cx','122');
-  eyeL.setAttribute('cy','115');eyeR.setAttribute('cy','115');
-  eyeL.setAttribute('ry','5');eyeR.setAttribute('ry','5');
-  shineL.setAttribute('cx','76');shineR.setAttribute('cx','120');
-  shineL.setAttribute('cy','113');shineR.setAttribute('cy','113');
+  eyeL.setAttribute('cx','82');eyeR.setAttribute('cx','118');
+  eyeL.setAttribute('cy','118');eyeR.setAttribute('cy','118');
+  eyeL.setAttribute('ry','3.5');eyeR.setAttribute('ry','3.5');
+  shineL.setAttribute('cx','80.5');shineR.setAttribute('cx','116.5');
+  shineL.setAttribute('cy','116.5');shineR.setAttribute('cy','116.5');
 }
 
 // ── Sperm Buddy Controller ──
@@ -764,7 +771,7 @@ var spermActive=false;
 function createSpermEl(){
   var el=document.createElement('div');
   el.className='sperm-buddy';
-  el.innerHTML='<div class="sperm-head"></div><div class="sperm-tail"><svg viewBox="0 0 24 6"><path d="M0,3 C4,0 8,6 12,3 C16,0 20,4 24,3"/></svg></div>';
+  el.innerHTML='<div class="sperm-head"></div><div class="sperm-tail"><svg viewBox="0 0 24 5"><path d="M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5"/></svg></div>';
   return el;
 }
 
@@ -780,13 +787,13 @@ function spawnSpermVisit(){
     sperms.push(s);
   }
 
-  // Animate each sperm on a wobbly orbit path around the egg
+  // Animate each sperm on a gentle drift path around the egg
   var startAngle=Math.random()*Math.PI*2;
-  var duration=5000+Math.random()*3000;
+  var duration=7000+Math.random()*4000; // slower, more meditative
   var startTime=Date.now();
-  var orbitRx=50+Math.random()*15; // horizontal radius
-  var orbitRy=40+Math.random()*10; // vertical radius
-  var wobble=Math.random()*8;
+  var orbitRx=55+Math.random()*12; // horizontal radius
+  var orbitRy=42+Math.random()*8;  // vertical radius
+  var wobble=Math.random()*5;      // less wobble
   var direction=Math.random()>.5?1:-1;
 
   function animateSperm(){
@@ -809,8 +816,9 @@ function spawnSpermVisit(){
       return;
     }
 
-    // Fade in during first 15%
-    var opacity=progress<0.15?progress/0.15:(progress>0.85?(1-progress)/0.15:1);
+    // Slow fade in/out — gentle presence
+    var opacity=progress<0.2?progress/0.2:(progress>0.8?(1-progress)/0.2:1);
+    opacity*=0.55; // never fully opaque — subtle companion presence
 
     sperms.forEach(function(s,idx){
       var angleOffset=idx*0.4;
@@ -826,16 +834,16 @@ function spawnSpermVisit(){
       s.classList.add('swimming');
     });
 
-    // Proximity glow — show when sperm is close
+    // Ambient connection glow — warm response when sperm is near
     var mainAngle=startAngle+direction*(progress*Math.PI*2.2);
     var dist=Math.sqrt(Math.pow(Math.cos(mainAngle)*orbitRx,2)+Math.pow(Math.sin(mainAngle)*orbitRy,2));
-    if(dist<45&&opacity>0.5){
+    if(dist<48&&opacity>0.2){
       eggGlow.classList.add('active');
-      var gx=32+Math.cos(mainAngle)*25;
-      var gy=40+Math.sin(mainAngle)*20;
+      var gx=32+Math.cos(mainAngle)*22;
+      var gy=40+Math.sin(mainAngle)*18;
       eggGlow.style.left=gx+'px';eggGlow.style.top=gy+'px';
-      // Subtle smile when near
-      mouth.setAttribute('d','M88,136 Q100,150 112,136');mouth.setAttribute('stroke-width','1.8');
+      // Quiet warmth — slightly wider smile
+      mouth.setAttribute('d','M90,137 Q100,146 110,137');mouth.setAttribute('stroke-width','1.3');
     }else{
       eggGlow.classList.remove('active');
     }
@@ -849,7 +857,7 @@ function scheduleNextSperm(){
   if(spermTimer)clearTimeout(spermTimer);
   spermTimer=setTimeout(function(){
     spawnSpermVisit();
-  },30000+Math.random()*30000); // 30-60s
+  },35000+Math.random()*40000); // 35-75s — unhurried presence
 }
 
 function stopSperm(){
@@ -1059,7 +1067,7 @@ function onUp(e){
 function openEgg(){
   isOpen=true;overlay.classList.add('visible');egg.classList.add('centered');
   svg.setAttribute('width',bigW);svg.setAttribute('height',bigH);
-  svg.style.filter='drop-shadow(0 8px 30px rgba(45,142,142,.2))';
+  svg.style.filter='drop-shadow(0 8px 30px rgba(122,172,172,.15))';
   dismissBtn.classList.add('visible');badge.classList.add('visible');dots.classList.add('visible');
 }
 function showDim(idx){
@@ -1118,7 +1126,7 @@ function fullReset(){
   overlay.classList.remove('visible');egg.classList.remove('centered');
   egg.style.display='';egg.style.animation='';
   svg.setAttribute('width',smallW);svg.setAttribute('height',smallH);
-  svg.style.filter='drop-shadow(0 4px 12px rgba(45,142,142,.15))';
+  svg.style.filter='drop-shadow(0 6px 20px rgba(122,172,172,.18)) drop-shadow(0 2px 6px rgba(0,0,0,.06))';
   label.classList.remove('visible');badge.classList.remove('visible');
   dots.classList.remove('visible');dismissBtn.classList.remove('visible');
   results.classList.remove('visible');
@@ -1139,9 +1147,9 @@ function animHold(){
   var sc=1+t*.35;
   if(d.key!=='uncertainty')svg.style.transform='scale('+sc.toFixed(3)+')';
   svg.style.filter='drop-shadow(0 '+(8+t*16)+'px '+(30+t*20)+'px '+color+'40)';
-  // Gradient
-  s1.setAttribute('stop-color',mix('#FFF3E0',color,t*.5));
-  s2.setAttribute('stop-color',mix('#F5D9A8',color,t*.65));
+  // Gradient — blend from warm ivory base
+  s1.setAttribute('stop-color',mix('#FFF8F0',color,t*.4));
+  s2.setAttribute('stop-color',mix('#F0E0CF',color,t*.55));
   // ── Per-dimension face ──
   applyDimFace(d.key,t,holdVal);
   // Badge
@@ -1162,12 +1170,12 @@ function animHold(){
   holdAF=requestAnimationFrame(animHold);
 }
 function resetEggVisuals(){
-  svg.style.transform='scale(1)';svg.style.filter='drop-shadow(0 8px 30px rgba(45,142,142,.2))';
-  s1.setAttribute('stop-color','#FFF3E0');s2.setAttribute('stop-color','#F5D9A8');
-  mouth.setAttribute('d','M90,138 Q100,148 110,138');mouth.setAttribute('stroke-width','1.5');
-  eyeL.setAttribute('cx','78');eyeL.setAttribute('cy','115');eyeL.setAttribute('rx','4.5');eyeL.setAttribute('ry','5');eyeL.setAttribute('opacity','1');
-  eyeR.setAttribute('cx','122');eyeR.setAttribute('cy','115');eyeR.setAttribute('rx','4.5');eyeR.setAttribute('ry','5');eyeR.setAttribute('opacity','1');
-  document.querySelectorAll('.eg-cheek').forEach(function(c){c.setAttribute('opacity','0.45');c.setAttribute('rx','10')});
+  svg.style.transform='scale(1)';svg.style.filter='drop-shadow(0 8px 30px rgba(122,172,172,.15))';
+  s1.setAttribute('stop-color','#FFF8F0');s2.setAttribute('stop-color','#F0E0CF');
+  mouth.setAttribute('d','M92,138 Q100,144 108,138');mouth.setAttribute('stroke-width','1.2');
+  eyeL.setAttribute('cx','82');eyeL.setAttribute('cy','118');eyeL.setAttribute('rx','3.2');eyeL.setAttribute('ry','3.5');eyeL.setAttribute('opacity','1');
+  eyeR.setAttribute('cx','118');eyeR.setAttribute('cy','118');eyeR.setAttribute('rx','3.2');eyeR.setAttribute('ry','3.5');eyeR.setAttribute('opacity','1');
+  document.querySelectorAll('.eg-cheek').forEach(function(c){c.setAttribute('opacity','0.25');c.setAttribute('rx','9')});
   egg.style.transform='';labelTitle.style.color='';badgeNum.style.transform='scale(1)';
   hideAllSpecials();
 }

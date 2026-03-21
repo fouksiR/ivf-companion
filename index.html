@@ -311,10 +311,6 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .egg-companion.active::before,.egg-companion.centered::before{opacity:0}
 @keyframes auraBreath{0%,100%{transform:scale(1);opacity:0}50%{transform:scale(1.08);opacity:1}}
 /* ── Sperm Buddy — minimal soft ────────────────────── */
-.sperm-buddy{position:absolute;width:38px;height:10px;pointer-events:none;opacity:0;z-index:49;will-change:transform,opacity;transition:opacity .8s ease}
-.sperm-buddy.swimming{opacity:.65}
-.sperm-tail-path{animation:tailWave .9s ease-in-out infinite}
-@keyframes tailWave{0%{d:path('M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5')}50%{d:path('M0,2.5 C5,5 10,0 15,2.5 C18,4 21,1.5 24,2.5')}100%{d:path('M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5')}}
 /* ── Egg proximity glow ──────────────────────────────── */
 .egg-glow{position:absolute;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(122,172,172,.12),rgba(255,248,240,.08) 50%,transparent 72%);pointer-events:none;opacity:0;transition:opacity .8s ease;top:0;left:0;transform:translate(-50%,-50%)}
 .egg-glow.active{opacity:1}
@@ -381,8 +377,6 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .edu-quick-pill:hover{background:#2D8E8E;color:white;transform:translateY(-1px)}
 .edu-quick-pill:active{transform:scale(.96)}
 .edu-quick-pill svg{width:14px;height:14px;flex-shrink:0}
-.soft-spot-overlay{position:fixed;inset:0;background:rgba(252,249,244,.95);backdrop-filter:blur(12px);z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px;opacity:0;transition:opacity .6s ease}
-.soft-spot-overlay.visible{display:flex;opacity:1}
 .soft-spot-text{max-width:340px;font-family:'Cormorant Garamond',serif;font-size:17px;line-height:1.7;color:#3A3A3A;text-align:center;min-height:100px;margin-top:24px}
 .soft-spot-text .ss-cursor{display:inline-block;width:2px;height:18px;background:#2D8E8E;animation:ssCursorBlink .8s infinite;vertical-align:text-bottom;margin-left:2px}
 @keyframes ssCursorBlink{0%,50%{opacity:1}51%,100%{opacity:0}}
@@ -590,11 +584,10 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   </div>
   <div class="steps-indicator"><div class="step-dot active" id="sd1"></div><div class="step-dot" id="sd2"></div><div class="step-dot" id="sd3"></div></div>
   <div class="onboard-card active" id="step1"><h2>Welcome</h2><p class="card-desc">Let's get to know each other. What should we call you?</p><div class="field"><label>Your first name</label><input type="text" id="ob-name" placeholder="e.g. Sarah" autofocus></div><div class="field"><label>Partner's name (optional)</label><input type="text" id="ob-partner" placeholder="e.g. James"></div><button class="btn btn-primary" id="btn-step1" disabled onclick="goStep(2)">Continue</button></div>
-  <div class="onboard-card" id="step2"><div id="step2-age" class="step2-sub active"><h2>And how old are you?</h2><p class="card-desc">This helps us personalise your experience.</p><div class="onboard-age-picker"><div class="age-display" id="ageDisplay">32</div><input type="range" class="age-slider" id="ageSlider" min="20" max="50" value="32" oninput="document.getElementById('ageDisplay').textContent=this.value"></div><button class="btn btn-primary" onclick="showMotivational()">Confirm</button></div><div id="step2-motiv" class="step2-sub" style="display:none"><div class="motivational-screen"><button class="motivational-skip" onclick="showStageGrid()">Skip &gt;&gt;</button><h2 class="motivational-text">This journey takes courage. We're here to walk it with you — every injection, every wait, every hope.</h2><button class="motivational-continue" onclick="showStageGrid()">Tap to Continue &gt;</button></div></div><div id="step2-stages" class="step2-sub" style="display:none"><h2>Where are you?</h2><p class="card-desc">Select the stage that best describes where you are right now.</p><div class="stage-picker" id="stage-grid"></div><div class="btn-row" style="margin-top:16px"><button class="btn btn-secondary btn-back" onclick="goStep(1)">Back</button><button class="btn btn-primary" id="btn-step2" disabled onclick="goStep(3)">Continue</button></div></div></div>
-  <div class="onboard-card" id="step3"><h2>A few more details</h2><p class="card-desc">This helps Melod·AI tailor support to your situation.</p><div class="field"><label>Treatment type</label><select id="ob-treatment"><option value="ivf">IVF</option><option value="icsi">ICSI</option><option value="fet">Frozen Embryo Transfer</option><option value="iui">IUI</option><option value="egg_freezing">Egg Freezing</option><option value="other">Other</option></select></div><div class="field"><label>Which cycle is this?</label><select id="ob-cycle"><option value="1">First cycle</option><option value="2">Second cycle</option><option value="3">Third cycle</option><option value="4">Fourth or more</option></select></div><div class="field"><label>Clinic name (optional)</label><input type="text" id="ob-clinic" placeholder="e.g. Melbourne IVF"></div><div class="btn-row"><button class="btn btn-secondary btn-back" onclick="goStep(2)">Back</button><button class="btn btn-primary" onclick="completeOnboarding()">Get started</button></div></div>
+  <div class="onboard-card" id="step2"><h2>A bit about you</h2><p class="card-desc">This helps us personalise your experience.</p><div class="onboard-age-picker"><label style="font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.8px">Your age</label><div class="age-display" id="ageDisplay">32</div><input type="range" class="age-slider" id="ageSlider" min="20" max="50" value="32" oninput="document.getElementById('ageDisplay').textContent=this.value"></div><div class="field"><label>Treatment type</label><select id="ob-treatment"><option value="ivf">IVF</option><option value="icsi">ICSI</option><option value="fet">Frozen Embryo Transfer</option><option value="iui">IUI</option><option value="egg_freezing">Egg Freezing</option><option value="other">Other</option></select></div><div class="field"><label>Which cycle is this?</label><select id="ob-cycle"><option value="1">First cycle</option><option value="2">Second cycle</option><option value="3">Third cycle</option><option value="4">Fourth or more</option></select></div><div class="field"><label>Clinic name (optional)</label><input type="text" id="ob-clinic" placeholder="e.g. Melbourne IVF"></div><div class="btn-row"><button class="btn btn-secondary btn-back" onclick="goStep(1)">Back</button><button class="btn btn-primary" onclick="goStep(3)">Continue</button></div></div>
+  <div class="onboard-card" id="step3"><h2>Where are you?</h2><p class="card-desc">Select the stage that best describes where you are right now.</p><div class="stage-picker" id="stage-grid"></div><div class="btn-row" style="margin-top:16px"><button class="btn btn-secondary btn-back" onclick="goStep(2)">Back</button><button class="btn btn-primary" id="btn-step2" disabled onclick="completeOnboarding()">Get started</button></div></div>
 </div></div>
 
-<div class="soft-spot-overlay" id="softSpotOverlay"></div>
 
 <div id="screen-app" class="screen">
   <div class="app-header"><div class="brand"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="22" stroke="#2D8E8E" stroke-width="2" fill="none"/><path d="M16 28C16 28 19 20 24 20C29 20 32 28 32 28" stroke="#2D8E8E" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="16" r="2.5" fill="#2D8E8E"/><path d="M20 32L24 36L28 32" stroke="#2D8E8E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="brand-text">Melod<span>·AI</span></div></div><button class="stage-pill" id="header-stage" onclick="openStageModal()">Loading</button></div>
@@ -757,7 +750,6 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     </g>
   </svg>
   <div class="egg-glow" id="eggGlow"></div>
-  <div id="spermContainer"></div>
 </div>
 
 <script>
@@ -996,8 +988,8 @@ var ov=document.getElementById('softSpotOverlay');
 ov.classList.remove('visible');
 setTimeout(function(){ov.style.display='none'},600);
 if(window._softSpotDone)window._softSpotDone()}
-function goStep(n){if(n===2){state.name=document.getElementById('ob-name').value.trim();state.partnerName=document.getElementById('ob-partner').value.trim();document.getElementById('step2-age').style.display='block';document.getElementById('step2-motiv').style.display='none';document.getElementById('step2-stages').style.display='none'}if(n===3){showSoftSpotMoment(function(){document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));document.getElementById('step'+n).classList.add('active');for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}});return}document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));document.getElementById('step'+n).classList.add('active');for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}}
-async function completeOnboarding(){state.treatment=document.getElementById('ob-treatment').value;state.cycle=parseInt(document.getElementById('ob-cycle').value);state.clinic=document.getElementById('ob-clinic').value.trim();
+function goStep(n){if(n===2){state.name=document.getElementById('ob-name').value.trim();state.partnerName=document.getElementById('ob-partner').value.trim()}document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));document.getElementById('step'+n).classList.add('active');for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}}
+async function completeOnboarding(){state.treatment=document.getElementById('ob-treatment')?document.getElementById('ob-treatment').value:'ivf';state.cycle=document.getElementById('ob-cycle')?parseInt(document.getElementById('ob-cycle').value):1;state.clinic=document.getElementById('ob-clinic')?document.getElementById('ob-clinic').value.trim():'';
 var fallback=function(){state.patientId=state.patientId||('demo-'+Math.random().toString(36).slice(2,8));showApp();addMsg('ai','Hi '+state.name+". I\u2019m Melod\u00b7AI \u2014 here to walk alongside you through this journey.\n\nYou\u2019re at the "+getStageName(state.stage)+' stage, cycle '+state.cycle+". Whether you want to talk about what you\u2019re feeling, ask questions about what\u2019s happening, or just vent \u2014 I\u2019m here.\n\nHow are you doing today?",null,{showOneWord:true})};
 if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(function(){ctrl.abort()},8000);const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null}),signal:ctrl.signal});clearTimeout(timer);const d=await r.json();state.patientId=d.patient_id;showApp();if(d.message)addMsg('ai',d.message,null,{showOneWord:true});return}catch(e){console.warn('API unavailable:',e)}}fallback()}
 function showApp(){try{document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();
@@ -1863,123 +1855,6 @@ function stopIdleFace(){
   shineL.setAttribute('cy','116.5');shineR.setAttribute('cy','116.5');
 }
 
-// ── Sperm Buddy Controller ──
-var spermContainer=document.getElementById('spermContainer');
-var eggGlow=document.getElementById('eggGlow');
-var spermTimer=null;
-var spermActive=false;
-
-function createSpermEl(){
-  var el=document.createElement('div');
-  el.className='sperm-buddy';
-  el.innerHTML='<svg width="38" height="10" viewBox="0 0 38 10" style="overflow:visible"><ellipse cx="5" cy="5" rx="5" ry="3.5" fill="rgba(255,255,255,0.85)" stroke="rgba(45,142,142,0.3)" stroke-width="0.8"/><path d="M10,5 C14,2 18,8 22,5 C25,3 28,7 31,5 C33,4 35,6 38,5" stroke="rgba(45,142,142,0.35)" stroke-width="1.2" fill="none" stroke-linecap="round" class="sperm-tail-path"/></svg>';
-  return el;
-}
-
-function spawnSpermVisit(){
-  if(isOpen||showingResults||!egg.classList.contains('visible')||!egg.classList.contains('idle'))return;
-  spermActive=true;
-  var isGroup=Math.random()<0.2;
-  var count=isGroup?(2+Math.floor(Math.random()*2)):1;
-  var sperms=[];
-  for(var i=0;i<count;i++){
-    var s=createSpermEl();
-    spermContainer.appendChild(s);
-    sperms.push(s);
-  }
-
-  // Animate each sperm on a gentle drift path around the egg
-  var startAngle=Math.random()*Math.PI*2;
-  var duration=7000+Math.random()*4000; // slower, more meditative
-  var startTime=Date.now();
-  var orbitRx=55+Math.random()*12; // horizontal radius
-  var orbitRy=42+Math.random()*8;  // vertical radius
-  var wobble=Math.random()*5;      // less wobble
-  var direction=Math.random()>.5?1:-1;
-
-  function animateSperm(){
-    if(!spermActive)return;
-    var elapsed=Date.now()-startTime;
-    var progress=elapsed/duration;
-    if(progress>=1){
-      // Swim off screen
-      sperms.forEach(function(s){
-        s.style.transition='opacity .5s ease, transform .5s ease';
-        s.style.opacity='0';
-        s.style.transform+=' translateX('+(direction*80)+'px)';
-      });
-      setTimeout(function(){
-        sperms.forEach(function(s){s.remove()});
-        spermActive=false;
-        eggGlow.classList.remove('active');
-        scheduleNextSperm();
-      },600);
-      return;
-    }
-
-    // Slow fade in/out — gentle presence
-    var opacity=progress<0.2?progress/0.2:(progress>0.8?(1-progress)/0.2:1);
-    opacity*=0.55; // never fully opaque — subtle companion presence
-
-    sperms.forEach(function(s,idx){
-      var angleOffset=idx*0.4;
-      var angle=startAngle+direction*(progress*Math.PI*2.2)+angleOffset;
-      var wx=Math.sin(angle*3+wobble)*4;
-      var wy=Math.cos(angle*2.5)*3;
-      var x=Math.cos(angle)*orbitRx+wx;
-      var y=Math.sin(angle)*orbitRy+wy;
-      // Rotation to face direction of travel
-      var rot=(direction>0?-1:1)*(angle*180/Math.PI+90);
-      s.style.opacity=opacity.toFixed(2);
-      s.style.transform='translate('+(32+x)+'px,'+(40+y)+'px) rotate('+rot.toFixed(0)+'deg) scale('+(.8+idx*0.05).toFixed(2)+')';
-      s.classList.add('swimming');
-    });
-
-    // Ambient connection glow — warm response when sperm is near
-    var mainAngle=startAngle+direction*(progress*Math.PI*2.2);
-    var dist=Math.sqrt(Math.pow(Math.cos(mainAngle)*orbitRx,2)+Math.pow(Math.sin(mainAngle)*orbitRy,2));
-    if(dist<48&&opacity>0.2){
-      eggGlow.classList.add('active');
-      var gx=32+Math.cos(mainAngle)*22;
-      var gy=40+Math.sin(mainAngle)*18;
-      eggGlow.style.left=gx+'px';eggGlow.style.top=gy+'px';
-      // Quiet warmth — slightly wider smile
-      mouth.setAttribute('d','M90,137 Q100,146 110,137');mouth.setAttribute('stroke-width','1.3');
-    }else{
-      eggGlow.classList.remove('active');
-    }
-
-    requestAnimationFrame(animateSperm);
-  }
-  requestAnimationFrame(animateSperm);
-}
-
-function scheduleNextSperm(){
-  if(spermTimer)clearTimeout(spermTimer);
-  spermTimer=setTimeout(function(){
-    spawnSpermVisit();
-  },35000+Math.random()*40000); // 35-75s — unhurried presence
-}
-
-function stopSperm(){
-  spermActive=false;
-  if(spermTimer){clearTimeout(spermTimer);spermTimer=null}
-  var existing=spermContainer.querySelectorAll('.sperm-buddy');
-  existing.forEach(function(s){s.remove()});
-  eggGlow.classList.remove('active');
-}
-
-// Hook into startIdleFace/stopIdleFace
-var _origStartIdle=startIdleFace;
-startIdleFace=function(){
-  _origStartIdle();
-  scheduleNextSperm();
-};
-var _origStopIdle=stopIdleFace;
-stopIdleFace=function(){
-  _origStopIdle();
-  stopSperm();
-};
 
 // ── Particles & Vapors ──
 function spawnP(color,count,intensity){
@@ -2320,11 +2195,6 @@ function handleSquishDown(e){
     svg.style.transition='none';
     svg.style.animation='eggWobble .6s ease';
     if(navigator.vibrate)navigator.vibrate([8,30,8,30,8]);
-    // Secret 5-tap: force spawn sperm
-    if(!spermActive){
-      console.log('[Sperm] Force-spawned via 5-tap');
-      spawnSpermVisit();
-    }
     setTimeout(function(){
       svg.style.animation='';squishState.wobbling=false;
       svg.style.transform='scale(1)';
@@ -2352,50 +2222,6 @@ svg.addEventListener('mousedown',handleSquishDown);
 svg.addEventListener('touchstart',handleSquishDown,{passive:true});
 document.addEventListener('mouseup',handleSquishUp);
 document.addEventListener('touchend',handleSquishUp,{passive:true});
-
-/* ── FEATURE 2: Sperm Animation Fix ──────────────────────────── */
-// The sperm code exists but scheduleNextSperm() only fires when
-// startIdleFace is called. The hook at line ~910 wraps startIdleFace
-// to call scheduleNextSperm. However, the egg becomes visible + idle
-// AFTER showApp runs (1500ms delay). The hook is set up before that.
-// Potential issue: if startIdleFace is called before the hook is wired,
-// or the guard conditions block it. Let's add explicit debug logging
-// and ensure scheduling starts reliably.
-
-var _origScheduleNext=scheduleNextSperm;
-scheduleNextSperm=function(){
-  if(spermTimer)clearTimeout(spermTimer);
-  var delay=25000+Math.random()*35000; // 25-60s for testing
-  console.log('[Sperm] Scheduled next visit in '+(delay/1000).toFixed(0)+'s');
-  spermTimer=setTimeout(function(){
-    console.log('[Sperm] Spawning visit now');
-    spawnSpermVisit();
-  },delay);
-};
-
-var _origSpawnSperm=spawnSpermVisit;
-spawnSpermVisit=function(){
-  if(isOpen||showingResults||!egg.classList.contains('visible')||!egg.classList.contains('idle')){
-    console.log('[Sperm] Blocked — egg state:',{isOpen:isOpen,showingResults:showingResults,visible:egg.classList.contains('visible'),idle:egg.classList.contains('idle')});
-    scheduleNextSperm(); // retry later instead of giving up
-    return;
-  }
-  console.log('[Sperm] Spawned!');
-  _origSpawnSperm();
-};
-
-// Force an initial schedule after egg becomes visible, as a safety net
-var _showAppForSperm=window.showApp;
-window.showApp=function(){
-  _showAppForSperm.apply(this,arguments);
-  // After egg appears (1500ms), ensure sperm is scheduled
-  setTimeout(function(){
-    if(!spermTimer){
-      console.log('[Sperm] Safety-net: initial schedule');
-      scheduleNextSperm();
-    }
-  },2000);
-};
 
 /* ── FEATURE 3: Welcome Intro Screen ─────────────────────────── */
 var WELCOME_TEXT="Hi there \uD83D\uDC9B\n\nI'm Melod\u00b7AI \u2014 your companion through IVF.\n\nI'm here to support you emotionally, answer your questions about treatment and medications, and help you feel less alone through this journey.\n\nEverything you share stays private. I use gentle background tracking \u2014 like how you're feeling over time \u2014 only to better support YOU. Never for marketing, never shared without your consent.\n\nThink of me as a knowledgeable friend who's always available, powered by AI and guided by fertility specialists.";
@@ -2525,9 +2351,49 @@ function startTour(){dismissTour();/* Tour steps would go here — for now just 
 function updateJarCounts(){var chatArea=document.getElementById('chat-area');var chats=chatArea?chatArea.querySelectorAll('.msg-ai').length:0;var checkins=state.checkins?state.checkins.length:0;try{var el;el=document.getElementById('jarChats');if(el)el.textContent=chats||0;el=document.getElementById('jarCheckins');if(el)el.textContent=checkins||0;el=document.getElementById('jarJournals');if(el)el.textContent=checkins||0}catch(e){}}
 // Show floating icons when app is visible
 var _origShowApp=showApp;
-showApp=function(){_origShowApp.apply(this,arguments);document.getElementById('floatingIcons').style.display='flex';document.getElementById('musicToggle').style.display='flex';document.getElementById('communityFab').style.display='none';setTimeout(showTourOffer,2000);buildCalendar();updateJarCounts()};
+showApp=function(){_origShowApp.apply(this,arguments);document.getElementById('floatingIcons').style.display='flex';document.getElementById('musicToggle').style.display='flex';document.getElementById('communityFab').style.display='none';setTimeout(showTourOffer,2000);buildCalendar();updateJarCounts();try{if(state.patientId)localStorage.setItem('melodai_patient_id',state.patientId);if(state.name)localStorage.setItem('melodai_name',state.name);if(state.stage)localStorage.setItem('melodai_stage',state.stage);if(state.cycle)localStorage.setItem('melodai_cycle',String(state.cycle));if(state.treatment)localStorage.setItem('melodai_treatment',state.treatment)}catch(e){}};
 
 initOnboarding();
+// === SPERM BUDDY — MINIMAL SELF-CONTAINED IMPLEMENTATION ===
+(function spermBuddy(){
+  var style=document.createElement('style');
+  style.textContent='.sperm-swim{position:fixed;z-index:9999;pointer-events:none;width:40px;height:12px;opacity:0.6}.sperm-swim .sh{position:absolute;left:0;top:1px;width:10px;height:10px;background:radial-gradient(circle,#fff 40%,#2D8E8E 100%);border-radius:50%}.sperm-swim .st{position:absolute;left:10px;top:3px;width:30px;height:6px}.sperm-swim .st svg{width:30px;height:6px}.sperm-swim .st path{stroke:#2D8E8E;stroke-width:1.5;fill:none;animation:stWag .5s ease-in-out infinite alternate}@keyframes stWag{0%{d:path("M0,3 Q8,0 15,3 Q22,6 30,3")}100%{d:path("M0,3 Q8,6 15,3 Q22,0 30,3")}}@keyframes swimPath{0%{transform:translate(110vw,50vh) rotate(180deg);opacity:0}5%{opacity:0.6}15%{transform:translate(70vw,30vh) rotate(200deg)}30%{transform:translate(40vw,60vh) rotate(160deg)}50%{transform:translate(20vw,40vh) rotate(190deg)}70%{transform:translate(50vw,55vh) rotate(170deg)}85%{transform:translate(80vw,35vh) rotate(185deg)}95%{opacity:0.6}100%{transform:translate(110vw,50vh) rotate(180deg);opacity:0}}';
+  document.head.appendChild(style);
+  function launch(){
+    var app=document.getElementById('screen-app');
+    if(!app||!app.classList.contains('active'))return;
+    var egg=document.getElementById('eggCompanion');
+    if(!egg||!egg.classList.contains('idle'))return;
+    console.log('SPERM LAUNCHED');
+    var s=document.createElement('div');
+    s.className='sperm-swim';
+    s.innerHTML='<div class="sh"></div><div class="st"><svg viewBox="0 0 30 6"><path d="M0,3 Q8,0 15,3 Q22,6 30,3"/></svg></div>';
+    s.style.animation='swimPath 7s linear forwards';
+    document.body.appendChild(s);
+    setTimeout(function(){if(s.parentNode)s.parentNode.removeChild(s)},7500);
+  }
+  setTimeout(launch,5000);
+  setInterval(function(){launch()},40000+Math.random()*20000);
+})();
+// Returning user detection — skip onboarding if already completed
+(function(){
+  var existing=null;
+  try{existing=localStorage.getItem('melodai_patient_id')}catch(e){}
+  if(existing){
+    try{
+      state.patientId=existing;
+      state.name=localStorage.getItem('melodai_name')||'there';
+      state.stage=localStorage.getItem('melodai_stage')||'consultation';
+      state.cycle=parseInt(localStorage.getItem('melodai_cycle')||'1');
+      state.treatment=localStorage.getItem('melodai_treatment')||'ivf';
+      // Skip onboarding, go straight to app
+      document.getElementById('screen-onboard').classList.remove('active');
+      document.getElementById('screen-app').classList.add('active');
+      showApp();
+      addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+    }catch(e){console.warn('Return user init failed:',e)}
+  }
+})();
 </script>
 </body>
 </html>

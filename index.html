@@ -2354,26 +2354,118 @@ var _origShowApp=showApp;
 showApp=function(){_origShowApp.apply(this,arguments);document.getElementById('floatingIcons').style.display='flex';document.getElementById('musicToggle').style.display='flex';document.getElementById('communityFab').style.display='none';setTimeout(showTourOffer,2000);buildCalendar();updateJarCounts();try{if(state.patientId)localStorage.setItem('melodai_patient_id',state.patientId);if(state.name)localStorage.setItem('melodai_name',state.name);if(state.stage)localStorage.setItem('melodai_stage',state.stage);if(state.cycle)localStorage.setItem('melodai_cycle',String(state.cycle));if(state.treatment)localStorage.setItem('melodai_treatment',state.treatment)}catch(e){}};
 
 initOnboarding();
-// === SPERM BUDDY — MINIMAL SELF-CONTAINED IMPLEMENTATION ===
-(function spermBuddy(){
-  var style=document.createElement('style');
-  style.textContent='.sperm-swim{position:fixed;z-index:9999;pointer-events:none;width:40px;height:12px;opacity:0.6}.sperm-swim .sh{position:absolute;left:0;top:1px;width:10px;height:10px;background:radial-gradient(circle,#fff 40%,#2D8E8E 100%);border-radius:50%}.sperm-swim .st{position:absolute;left:10px;top:3px;width:30px;height:6px}.sperm-swim .st svg{width:30px;height:6px}.sperm-swim .st path{stroke:#2D8E8E;stroke-width:1.5;fill:none;animation:stWag .5s ease-in-out infinite alternate}@keyframes stWag{0%{d:path("M0,3 Q8,0 15,3 Q22,6 30,3")}100%{d:path("M0,3 Q8,6 15,3 Q22,0 30,3")}}@keyframes swimPath{0%{transform:translate(110vw,50vh) rotate(180deg);opacity:0}5%{opacity:0.6}15%{transform:translate(70vw,30vh) rotate(200deg)}30%{transform:translate(40vw,60vh) rotate(160deg)}50%{transform:translate(20vw,40vh) rotate(190deg)}70%{transform:translate(50vw,55vh) rotate(170deg)}85%{transform:translate(80vw,35vh) rotate(185deg)}95%{opacity:0.6}100%{transform:translate(110vw,50vh) rotate(180deg);opacity:0}}';
-  document.head.appendChild(style);
-  function launch(){
-    var app=document.getElementById('screen-app');
-    if(!app||!app.classList.contains('active'))return;
+// === CANVAS SPERM ANIMATION ===
+(function spermCanvas(){
+  var canvas,ctx,raf,running=false;
+  var dpr=window.devicePixelRatio||1;
+  var sperms=[];
+  var NUM_SPERM=4;
+  function init(){
     var egg=document.getElementById('eggCompanion');
-    if(!egg||!egg.classList.contains('idle'))return;
-    console.log('SPERM LAUNCHED');
-    var s=document.createElement('div');
-    s.className='sperm-swim';
-    s.innerHTML='<div class="sh"></div><div class="st"><svg viewBox="0 0 30 6"><path d="M0,3 Q8,0 15,3 Q22,6 30,3"/></svg></div>';
-    s.style.animation='swimPath 7s linear forwards';
-    document.body.appendChild(s);
-    setTimeout(function(){if(s.parentNode)s.parentNode.removeChild(s)},7500);
+    if(!egg)return;
+    canvas=document.createElement('canvas');
+    canvas.id='spermCanvas';
+    canvas.style.cssText='position:fixed;bottom:74px;left:16px;width:160px;height:160px;pointer-events:none;z-index:49;';
+    canvas.width=160*dpr;canvas.height=160*dpr;
+    egg.parentElement.insertBefore(canvas,egg);
+    ctx=canvas.getContext('2d');
+    ctx.scale(dpr,dpr);
+    // Create sperm with varied orbits
+    for(var i=0;i<NUM_SPERM;i++){
+      sperms.push({
+        angle:Math.random()*Math.PI*2,
+        speed:0.008+Math.random()*0.006,
+        radius:50+Math.random()*30,
+        wobbleAmp:5+Math.random()*5,
+        wobbleFreq:0.3+Math.random()*0.3,
+        tailPhase:Math.random()*Math.PI*2,
+        dir:Math.random()>0.5?1:-1
+      });
+    }
   }
-  setTimeout(launch,5000);
-  setInterval(function(){launch()},40000+Math.random()*20000);
+  function draw(){
+    if(!running||!ctx)return;
+    var w=160,h=160,cx=w/2,cy=h/2;
+    ctx.clearRect(0,0,w,h);
+    var app=document.getElementById('screen-app');
+    var egg=document.getElementById('eggCompanion');
+    if(!app||!app.classList.contains('active')||!egg||!egg.classList.contains('idle')){
+      raf=requestAnimationFrame(draw);return;
+    }
+    sperms.forEach(function(s){
+      s.angle+=s.speed*s.dir;
+      s.tailPhase+=0.15;
+      var wobble=Math.sin(s.angle*s.wobbleFreq)*s.wobbleAmp;
+      var r=s.radius+wobble;
+      var x=cx+Math.cos(s.angle)*r;
+      var y=cy+Math.sin(s.angle)*r;
+      var nextX=cx+Math.cos(s.angle+0.1*s.dir)*(s.radius+Math.sin((s.angle+0.1)*s.wobbleFreq)*s.wobbleAmp);
+      var nextY=cy+Math.sin(s.angle+0.1*s.dir)*(s.radius+Math.sin((s.angle+0.1)*s.wobbleFreq)*s.wobbleAmp);
+      var rot=Math.atan2(nextY-y,nextX-x);
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(rot);
+      // Head — white oval with teal stroke
+      ctx.beginPath();
+      ctx.ellipse(0,0,5,3.5,0,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,0.85)';
+      ctx.fill();
+      ctx.strokeStyle='rgba(45,142,142,0.3)';
+      ctx.lineWidth=0.8;
+      ctx.stroke();
+      // Tail — sinusoidal segments
+      ctx.beginPath();
+      ctx.moveTo(5,0);
+      for(var seg=0;seg<12;seg++){
+        var tx=5+seg*2.5;
+        var amp=0.8+seg*0.35;
+        var ty=Math.sin(s.tailPhase+seg*0.6)*amp;
+        ctx.lineTo(tx,ty);
+      }
+      ctx.strokeStyle='rgba(45,142,142,0.35)';
+      ctx.lineWidth=1.2;
+      ctx.lineCap='round';
+      ctx.stroke();
+      ctx.restore();
+    });
+    raf=requestAnimationFrame(draw);
+  }
+  function start(){if(running)return;running=true;if(!canvas)init();draw();console.log('SPERM CANVAS STARTED')}
+  function stop(){running=false;if(raf)cancelAnimationFrame(raf)}
+  // Start 3 seconds after app loads
+  setTimeout(function(){
+    var app=document.getElementById('screen-app');
+    if(app&&app.classList.contains('active'))start();
+  },3000);
+  // Re-check every 5s in case app appeared later
+  setInterval(function(){
+    var app=document.getElementById('screen-app');
+    if(app&&app.classList.contains('active')&&!running)start();
+  },5000);
+})();
+// === MOOD-REACTIVE OOCYTE ===
+(function moodOocyte(){
+  function setOocyteMood(mood){
+    var rays=document.getElementById('egRays');
+    var cheeks=document.querySelectorAll('.eg-cheek');
+    var stars=document.getElementById('egStars');
+    if(!rays)return;
+    var raysOp=0.3,cheekOp=0.25,starsOp=0;
+    if(mood==='happy'){raysOp=0.5;cheekOp=0.8;starsOp=0.6}
+    else if(mood==='hopeful'){raysOp=0.4;cheekOp=0.6;starsOp=0.4}
+    else if(mood==='content'){raysOp=0.3;cheekOp=0.4;starsOp=0}
+    else if(mood==='anxious'){raysOp=0.18;cheekOp=0.2;starsOp=0}
+    else if(mood==='sad'){raysOp=0.12;cheekOp=0.1;starsOp=0}
+    rays.setAttribute('opacity',raysOp);
+    cheeks.forEach(function(c){c.setAttribute('opacity',cheekOp)});
+    if(stars)stars.setAttribute('opacity',starsOp);
+  }
+  // Expose globally for check-in system
+  window.setOocyteMood=setOocyteMood;
+  // Map average check-in score to mood name
+  window.scoreToMood=function(avg){
+    if(avg>=9)return'happy';if(avg>=7)return'hopeful';if(avg>=5)return'content';if(avg>=3)return'anxious';return'sad';
+  };
 })();
 // Returning user detection — skip onboarding if already completed
 (function(){

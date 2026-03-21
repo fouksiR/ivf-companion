@@ -1105,13 +1105,14 @@ def match_fertool_cards(message: str, response_text: str, max_cards: int = 2) ->
     scored.sort(key=lambda x: -x[0])
     return [
         {
+            "key": k,
             "title": c["title"],
             "description": c["description"],
             "url": c["url"],
             "icon": c["icon"],
             "embed": c.get("embed", False),
         }
-        for _, _, c in scored[:max_cards]
+        for _, k, c in scored[:max_cards]
     ]
 
 

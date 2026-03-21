@@ -96,24 +96,48 @@ h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 .reflection-card .rc-btn:hover{border-color:var(--accent);color:var(--accent)}
 .reflection-card .rc-btn.hearted{border-color:#E07A5F;color:#E07A5F;background:rgba(224,122,95,.06)}
 .reflection-card .rc-btn svg{width:14px;height:14px}
-/* ── Fertool Embed ── */
-.fertool-embed-card{border-radius:16px;border:1px solid var(--border-light);border-left:4px solid var(--accent);box-shadow:0 2px 12px rgba(0,0,0,.06);overflow:hidden;margin-top:8px;background:var(--white)}
-.fertool-embed-header{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border-light)}
-.fertool-embed-icon{font-size:18px}
-.fertool-embed-title{flex:1;font-weight:600;font-size:13px;color:var(--text)}
-.fertool-expand-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--white);color:var(--accent);cursor:pointer;font-family:inherit;transition:all .2s}
-.fertool-expand-btn:hover{background:var(--accent);color:white;border-color:var(--accent)}
-.fertool-embed-body{position:relative;min-height:100px}
-.fertool-embed-body iframe{width:100%;height:400px;border:none}
-.fertool-loading{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;background:var(--bg)}
-.fertool-spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.fertool-embed-footer{padding:6px 14px;font-size:10px;color:var(--text-soft);text-align:center;background:var(--bg);border-top:1px solid var(--border-light)}
-.fertool-fullscreen{position:fixed!important;top:0!important;left:0!important;right:0!important;bottom:0!important;z-index:200!important;border-radius:0!important;margin:0!important;border:none!important;max-width:100%!important;width:100%!important}
-.fertool-fullscreen .fertool-embed-body iframe{height:calc(100vh - 80px)!important}
-.fertool-fullscreen .fertool-expand-btn{background:var(--accent);color:white;border-color:var(--accent)}
-.fertool-fallback{display:block;padding:40px;text-align:center;color:var(--accent);text-decoration:none;font-weight:500}
-@media(max-width:600px){.fertool-embed-body iframe{height:350px}}
+/* ── Fertool Native Widgets ── */
+.ft-widget{border-radius:16px;border:1px solid var(--border-light);border-left:4px solid var(--accent);box-shadow:0 2px 12px rgba(0,0,0,.06);overflow:visible;margin-top:10px;background:var(--white);opacity:0;animation:ftSlideUp .4s ease .2s forwards;flex-shrink:0}
+@keyframes ftSlideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.ft-widget-title{font-weight:600;font-size:14px;padding:12px 16px 8px;color:var(--text);display:flex;align-items:center;gap:8px}
+.ft-widget-title .ft-icon{font-size:18px}
+.ft-widget-body{padding:0 16px 12px}
+.ft-widget-footer{padding:8px 16px;font-size:10px;color:var(--text-soft);border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
+.ft-widget-footer a{color:var(--accent);text-decoration:none;font-weight:500;font-size:11px}
+.ft-input-row{display:flex;gap:8px;align-items:flex-end;margin-top:10px;flex-wrap:wrap}
+.ft-input-group{display:flex;flex-direction:column;gap:2px}
+.ft-input-group label{font-size:10px;color:var(--text-soft);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.ft-input-group input,.ft-input-group select{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:90px;background:var(--bg)}
+.ft-input-group select{width:auto;min-width:90px}
+.ft-btn{padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:500;white-space:nowrap}
+.ft-btn:hover{background:#247575}
+.ft-result{margin-top:8px;padding:8px 12px;background:var(--bg);border-radius:8px;font-size:13px;line-height:1.5;color:var(--text)}
+.ft-result strong{color:var(--accent)}
+/* AMH chart */
+.amh-chart-svg{width:100%;height:auto;max-height:280px;display:block}
+/* Egg freezing table */
+.ft-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;border-radius:10px;overflow:hidden}
+.ft-table th{background:var(--accent);color:white;padding:8px 10px;font-weight:600;font-size:11px;text-align:center}
+.ft-table th:first-child{text-align:left}
+.ft-table td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border-light)}
+.ft-table td:first-child{text-align:left;font-weight:500;color:var(--text)}
+.ft-table tr:nth-child(even) td{background:rgba(45,142,142,.03)}
+.ft-table .ft-high{color:#2D7D2D;font-weight:700}
+.ft-table .ft-low{color:#B8860B}
+.ft-table .ft-hl{outline:2px solid var(--accent);border-radius:4px;background:rgba(45,142,142,.08)!important}
+.ft-source{font-size:10px;color:var(--text-soft);margin-top:6px;font-style:italic}
+/* Endo card */
+.ft-bullets{list-style:none;padding:0;margin:8px 0 0}
+.ft-bullets li{padding:6px 0;font-size:13px;line-height:1.5;border-bottom:1px solid var(--border-light);display:flex;gap:8px}
+.ft-bullets li:last-child{border:none}
+.ft-bullets .ft-bullet-icon{color:var(--accent);flex-shrink:0}
+/* Assessment checklist */
+.ft-check-item{padding:8px 0;border-bottom:1px solid var(--border-light);cursor:pointer}
+.ft-check-item:last-child{border:none}
+.ft-check-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500}
+.ft-check-head .ft-check-icon{color:var(--accent);font-size:15px}
+.ft-check-detail{font-size:12px;color:var(--text-soft);padding:4px 0 0 26px;display:none;line-height:1.5}
+.ft-check-item.open .ft-check-detail{display:block}
 /* ── Micro-reflection ── */
 .micro-reflection{font-style:italic;font-size:13px;color:var(--text-soft);margin-bottom:6px;opacity:0;animation:microIn .8s ease .2s forwards;align-self:flex-start}
 @keyframes microIn{from{opacity:0}to{opacity:.8}}
@@ -892,12 +916,177 @@ function addMicroReflection(text){
   if(a.firstChild)a.insertBefore(d,a.firstChild);else a.appendChild(d);
 }
 /* ═══ END REFLECTIONS ═══════════════════════════════════════════════ */
-function toggleFertoolFullscreen(btn){var card=btn.closest('.fertool-embed-card');if(card.classList.contains('fertool-fullscreen')){card.classList.remove('fertool-fullscreen');btn.textContent='Full screen'}else{card.classList.add('fertool-fullscreen');btn.textContent='✕ Close'}}
+/* ═══ NATIVE FERTOOL WIDGETS ═══════════════════════════════════════ */
+function renderFertoolWidget(card){
+  var key=card.key||'';
+  if(key==='amh')return renderAMHChart(card);
+  if(key==='egg_freezing')return renderEggFreezingTable(card);
+  if(key==='endometriosis')return renderEndoCard(card);
+  if(key==='fertility_assessment')return renderAssessmentChecklist(card);
+  return null;
+}
+function renderAMHChart(card){
+  var W=340,H=240,pad={t:20,r:20,b:35,l:42};
+  var cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  function sx(age){return pad.l+((age-20)/25)*cw}
+  function sy(amh){return pad.t+ch-(amh/60)*ch}
+  // Percentile data: [age, amh]
+  var p90=[[20,48],[25,42],[28,35],[30,30],[33,24],[35,20],[37,16],[39,12],[41,9],[43,7],[45,5]];
+  var p50=[[20,24],[25,20],[28,16],[30,14],[33,10],[35,8],[37,6],[39,4],[41,3],[43,2],[45,1.5]];
+  var p10=[[20,10],[25,8],[28,6],[30,4.5],[33,3],[35,2],[37,1.5],[39,1],[41,0.7],[43,0.5],[45,0.3]];
+  function curvePath(pts){var d='M'+sx(pts[0][0])+','+sy(pts[0][1]);for(var i=1;i<pts.length;i++){var p=pts[i-1],c=pts[i];var mx=(sx(p[0])+sx(c[0]))/2;d+=' C'+mx+','+sy(p[1])+' '+mx+','+sy(c[1])+' '+sx(c[0])+','+sy(c[1])}return d}
+  // Zone fills
+  var zoneAbove='M'+sx(20)+','+sy(60);p90.forEach(function(p){zoneAbove+=' L'+sx(p[0])+','+sy(p[1])});zoneAbove+=' L'+sx(45)+','+sy(60)+' Z';
+  var zoneMid='';p90.forEach(function(p,i){zoneMid+=(i?'L':'M')+sx(p[0])+','+sy(p[1])});for(var i=p10.length-1;i>=0;i--)zoneMid+=' L'+sx(p10[i][0])+','+sy(p10[i][1]);zoneMid+=' Z';
+  var zoneBelow='';p10.forEach(function(p,i){zoneBelow+=(i?'L':'M')+sx(p[0])+','+sy(p[1])});zoneBelow+=' L'+sx(45)+','+sy(0)+' L'+sx(20)+','+sy(0)+' Z';
+
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" class="amh-chart-svg" xmlns="http://www.w3.org/2000/svg">';
+  // Zones
+  svg+='<path d="'+zoneAbove+'" fill="rgba(76,175,80,.08)"/>';
+  svg+='<path d="'+zoneMid+'" fill="rgba(45,142,142,.05)"/>';
+  svg+='<path d="'+zoneBelow+'" fill="rgba(244,67,54,.06)"/>';
+  // Gridlines
+  [0,10,20,30,40,50,60].forEach(function(v){svg+='<line x1="'+pad.l+'" y1="'+sy(v)+'" x2="'+(W-pad.r)+'" y2="'+sy(v)+'" stroke="#eee" stroke-width=".5"/>'});
+  [20,25,30,35,40,45].forEach(function(v){svg+='<line x1="'+sx(v)+'" y1="'+pad.t+'" x2="'+sx(v)+'" y2="'+(H-pad.b)+'" stroke="#eee" stroke-width=".5"/>'});
+  // Curves
+  svg+='<path d="'+curvePath(p90)+'" fill="none" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,3" opacity=".6"/>';
+  svg+='<path d="'+curvePath(p50)+'" fill="none" stroke="#2D8E8E" stroke-width="2"/>';
+  svg+='<path d="'+curvePath(p10)+'" fill="none" stroke="#E57373" stroke-width="1.5" stroke-dasharray="4,3" opacity=".6"/>';
+  // Zone labels
+  svg+='<text x="'+(pad.l+5)+'" y="'+(sy(55)+4)+'" font-size="8" fill="#4CAF50" font-family="Montserrat,sans-serif" opacity=".7">Consider PCOS</text>';
+  svg+='<text x="'+(pad.l+5)+'" y="'+(sy(15)+4)+'" font-size="8" fill="#2D8E8E" font-family="Montserrat,sans-serif" opacity=".5">Typical range</text>';
+  svg+='<text x="'+(pad.l+5)+'" y="'+(sy(1.5)+4)+'" font-size="8" fill="#E57373" font-family="Montserrat,sans-serif" opacity=".7">Low reserve</text>';
+  // Axes labels
+  [0,10,20,30,40,50,60].forEach(function(v){svg+='<text x="'+(pad.l-4)+'" y="'+(sy(v)+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="Montserrat,sans-serif">'+v+'</text>'});
+  [20,25,30,35,40,45].forEach(function(v){svg+='<text x="'+sx(v)+'" y="'+(H-pad.b+12)+'" text-anchor="middle" font-size="9" fill="#999" font-family="Montserrat,sans-serif">'+v+'</text>'});
+  svg+='<text x="'+(W/2)+'" y="'+(H-3)+'" text-anchor="middle" font-size="9" fill="#999" font-family="Montserrat,sans-serif">Age</text>';
+  svg+='<text x="12" y="'+(H/2)+'" text-anchor="middle" font-size="9" fill="#999" font-family="Montserrat,sans-serif" transform="rotate(-90,12,'+(H/2)+')">AMH (pmol/L)</text>';
+  // Legend
+  svg+='<line x1="'+(W-pad.r-100)+'" y1="'+(pad.t+4)+'" x2="'+(W-pad.r-85)+'" y2="'+(pad.t+4)+'" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,3"/>';
+  svg+='<text x="'+(W-pad.r-82)+'" y="'+(pad.t+7)+'" font-size="8" fill="#666" font-family="Montserrat,sans-serif">90th</text>';
+  svg+='<line x1="'+(W-pad.r-100)+'" y1="'+(pad.t+16)+'" x2="'+(W-pad.r-85)+'" y2="'+(pad.t+16)+'" stroke="#2D8E8E" stroke-width="2"/>';
+  svg+='<text x="'+(W-pad.r-82)+'" y="'+(pad.t+19)+'" font-size="8" fill="#666" font-family="Montserrat,sans-serif">50th</text>';
+  svg+='<line x1="'+(W-pad.r-100)+'" y1="'+(pad.t+28)+'" x2="'+(W-pad.r-85)+'" y2="'+(pad.t+28)+'" stroke="#E57373" stroke-width="1.5" stroke-dasharray="4,3"/>';
+  svg+='<text x="'+(W-pad.r-82)+'" y="'+(pad.t+31)+'" font-size="8" fill="#666" font-family="Montserrat,sans-serif">10th</text>';
+  // Dot placeholder
+  svg+='<circle id="amhDot" cx="0" cy="0" r="5" fill="#E57373" stroke="white" stroke-width="1.5" style="display:none"/>';
+  svg+='</svg>';
+  // Interactive inputs
+  var uid='amh'+Date.now();
+  var inputs='<div class="ft-input-row">';
+  inputs+='<div class="ft-input-group"><label>Your age</label><input type="number" id="'+uid+'Age" min="20" max="45" placeholder="30"></div>';
+  inputs+='<div class="ft-input-group"><label>AMH (pmol/L)</label><input type="number" id="'+uid+'Val" min="0" max="60" step="0.1" placeholder="8"></div>';
+  inputs+='<button class="ft-btn" onclick="plotAMH(\''+uid+'\','+W+','+H+','+pad.l+','+pad.r+','+pad.t+','+pad.b+')">Show on chart</button>';
+  inputs+='</div><div class="ft-result" id="'+uid+'Result" style="display:none"></div>';
+  var el=document.createElement('div');el.className='ft-widget';
+  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+svg+inputs+'</div><div class="ft-widget-footer"><span>Percentile curves based on age-specific AMH reference ranges</span><a href="'+escHtml(card.url)+'" target="_blank">Full tool \u2192</a></div>';
+  return el;
+}
+function plotAMH(uid,W,H,pl,pr,pt,pb){
+  var age=parseFloat(document.getElementById(uid+'Age').value);
+  var amh=parseFloat(document.getElementById(uid+'Val').value);
+  if(isNaN(age)||isNaN(amh)||age<20||age>45||amh<0)return;
+  var cw=W-pl-pr,ch=H-pt-pb;
+  var cx=pl+((age-20)/25)*cw,cy=pt+ch-(amh/60)*ch;
+  var dot=document.getElementById('amhDot');
+  if(dot){dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.style.display='block'}
+  // Interpolate percentiles at this age
+  function interpAt(data,a){for(var i=0;i<data.length-1;i++){if(a>=data[i][0]&&a<=data[i+1][0]){var t=(a-data[i][0])/(data[i+1][0]-data[i][0]);return data[i][1]+(data[i+1][1]-data[i][1])*t}}return data[data.length-1][1]}
+  var p90=[[20,48],[25,42],[28,35],[30,30],[33,24],[35,20],[37,16],[39,12],[41,9],[43,7],[45,5]];
+  var p50=[[20,24],[25,20],[28,16],[30,14],[33,10],[35,8],[37,6],[39,4],[41,3],[43,2],[45,1.5]];
+  var p10=[[20,10],[25,8],[28,6],[30,4.5],[33,3],[35,2],[37,1.5],[39,1],[41,0.7],[43,0.5],[45,0.3]];
+  var v90=interpAt(p90,age),v50=interpAt(p50,age),v10=interpAt(p10,age);
+  var r=document.getElementById(uid+'Result');r.style.display='block';
+  if(amh>v90)r.innerHTML='<strong>Above 90th percentile for age '+age+'.</strong> This is above the typical range \u2014 your specialist may want to check for PCOS.';
+  else if(amh>=v50)r.innerHTML='<strong>Normal range for age '+age+'.</strong> This is within the typical range for your age.';
+  else if(amh>=v10)r.innerHTML='<strong>Lower end of normal for age '+age+'.</strong> This is on the lower end but still within range.';
+  else r.innerHTML='<strong>Below 10th percentile for age '+age+'.</strong> This suggests lower ovarian reserve \u2014 talk to your specialist about what this means for you.';
+}
+function renderEggFreezingTable(card){
+  var data=[
+    {age:'<35',  vals:[48,44,77,84]},
+    {age:'35-37',vals:[37,47,53,73]},
+    {age:'38-40',vals:[19,41,41,57]},
+    {age:'>40',  vals:[ 5,25,32,27]}
+  ];
+  function cellClass(v){return v>=60?'ft-high':v<30?'ft-low':''}
+  var uid='ef'+Date.now();
+  var t='<table class="ft-table"><thead><tr><th>Age at Freeze</th><th>1\u20139 eggs</th><th>10\u201314 eggs</th><th>15\u201319 eggs</th><th>20+ eggs</th></tr></thead><tbody>';
+  data.forEach(function(row,ri){
+    t+='<tr>';t+='<td>'+row.age+'</td>';
+    row.vals.forEach(function(v,ci){t+='<td id="'+uid+'_'+ri+'_'+ci+'" class="'+cellClass(v)+'">'+v+'%</td>'});
+    t+='</tr>';
+  });
+  t+='</tbody></table>';
+  t+='<div class="ft-source">Source: Cobo et al. RBMO 2025 (n=2,891 patients)</div>';
+  t+='<div class="ft-input-row">';
+  t+='<div class="ft-input-group"><label>Your age</label><select id="'+uid+'Age"><option value="">Select</option><option value="0">&lt;35</option><option value="1">35-37</option><option value="2">38-40</option><option value="3">&gt;40</option></select></div>';
+  t+='<div class="ft-input-group"><label>Eggs frozen</label><select id="'+uid+'Eggs"><option value="">Select</option><option value="0">1-9</option><option value="1">10-14</option><option value="2">15-19</option><option value="3">20+</option></select></div>';
+  t+='<button class="ft-btn" onclick="highlightEggCell(\''+uid+'\')">Show my rate</button>';
+  t+='</div><div class="ft-result" id="'+uid+'Result" style="display:none"></div>';
+  var el=document.createElement('div');el.className='ft-widget';
+  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+t+'</div><div class="ft-widget-footer"><span>Live birth rates per warming cycle</span><a href="'+escHtml(card.url)+'" target="_blank">Full calculator \u2192</a></div>';
+  return el;
+}
+function highlightEggCell(uid){
+  var data=[[48,44,77,84],[37,47,53,73],[19,41,41,57],[5,25,32,27]];
+  var ri=document.getElementById(uid+'Age').value,ci=document.getElementById(uid+'Eggs').value;
+  if(ri===''||ci==='')return;
+  ri=parseInt(ri);ci=parseInt(ci);
+  // Clear previous highlights
+  document.querySelectorAll('.ft-hl').forEach(function(el){el.classList.remove('ft-hl')});
+  var cell=document.getElementById(uid+'_'+ri+'_'+ci);
+  if(cell)cell.classList.add('ft-hl');
+  var val=data[ri][ci];
+  var r=document.getElementById(uid+'Result');r.style.display='block';
+  r.innerHTML='Your estimated live birth rate: <strong>'+val+'%</strong> per warming cycle.';
+}
+function renderEndoCard(card){
+  // Simple SVG showing 4 stages as concentric arcs
+  var svg='<svg viewBox="0 0 280 120" style="width:100%;max-width:280px;display:block;margin:0 auto 8px" xmlns="http://www.w3.org/2000/svg">';
+  var stages=[{r:50,label:'Severe (IV)',color:'#C44040'},{r:40,label:'Moderate (III)',color:'#E57373'},{r:30,label:'Mild (II)',color:'#FFAB91'},{r:20,label:'Minimal (I)',color:'#FFE0B2'}];
+  stages.forEach(function(s,i){
+    svg+='<path d="M140,'+(90-s.r)+' A'+s.r+','+s.r+' 0 0,1 '+(140+s.r)+',90" fill="none" stroke="'+s.color+'" stroke-width="6" stroke-linecap="round" opacity=".7"/>';
+    svg+='<text x="'+(145+s.r)+'" y="'+(94-s.r*0.3)+'" font-size="8" fill="'+s.color+'" font-family="Montserrat,sans-serif" font-weight="600">'+s.label+'</text>';
+  });
+  svg+='</svg>';
+  var bullets='<ul class="ft-bullets">';
+  var facts=[
+    ['✓','Stage I\u2013II: Often no impact on fertility'],
+    ['⚠','Stage III\u2013IV: May reduce egg reserve and implantation'],
+    ['💊','Surgery can improve natural conception chances in some cases'],
+    ['🌱','IVF success rates are generally good even with endometriosis']
+  ];
+  facts.forEach(function(f){bullets+='<li><span class="ft-bullet-icon">'+f[0]+'</span><span>'+f[1]+'</span></li>'});
+  bullets+='</ul>';
+  var el=document.createElement('div');el.className='ft-widget';
+  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+svg+bullets+'</div><div class="ft-widget-footer"><span>Simplified overview for patient education</span><a href="'+escHtml(card.url)+'" target="_blank">Learn more \u2192</a></div>';
+  return el;
+}
+function renderAssessmentChecklist(card){
+  var items=[
+    {name:'Blood tests: AMH, FSH, LH, Estradiol, TSH, Prolactin',detail:'These hormones help assess ovarian reserve, thyroid function, and overall reproductive health. Usually done on day 2\u20134 of your cycle.'},
+    {name:'Ultrasound: Antral follicle count (AFC)',detail:'A transvaginal ultrasound counts small follicles in your ovaries. Combined with AMH, this gives the best picture of your ovarian reserve.'},
+    {name:'Tubal assessment: HSG or HyCoSy',detail:'Checks whether your fallopian tubes are open. HSG uses X-ray with dye; HyCoSy uses ultrasound with saline or foam.'},
+    {name:'Semen analysis (partner)',detail:'Assesses sperm count, motility (movement), and morphology (shape). One of the most important and simplest fertility tests.'},
+    {name:'Genetic screening (if indicated)',detail:'Carrier screening for conditions like cystic fibrosis, thalassemia, or fragile X. Recommended based on family history or ethnic background.'}
+  ];
+  var html='';
+  items.forEach(function(item){
+    html+='<div class="ft-check-item" onclick="this.classList.toggle(\'open\')">';
+    html+='<div class="ft-check-head"><span class="ft-check-icon">\u2713</span><span>'+escHtml(item.name)+'</span></div>';
+    html+='<div class="ft-check-detail">'+escHtml(item.detail)+'</div>';
+    html+='</div>';
+  });
+  var el=document.createElement('div');el.className='ft-widget';
+  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+html+'</div><div class="ft-widget-footer"><span>Tap each item for details</span><a href="'+escHtml(card.url)+'" target="_blank">Full assessment \u2192</a></div>';
+  return el;
+}
 function switchTab(t){var prev=document.querySelector('.nav-item.active');var prevTab=prev?prev.textContent.trim().toLowerCase():'';
 document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));var idx=t==='chat'?1:t==='checkin'?2:3;document.querySelector('.nav-item:nth-child('+idx+')').classList.add('active');document.getElementById('panel-'+t).classList.add('active');
 if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart()}
 var _oneWordShown=false;
-function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){html+='<div class="fertool-cards" id="fc-'+Date.now()+'">'+fertoolCards.map(function(c){if(c.embed){return '<div class="fertool-embed-card"><div class="fertool-embed-header"><span class="fertool-embed-icon">'+c.icon+'</span><span class="fertool-embed-title">'+escHtml(c.title)+'</span><button class="fertool-expand-btn" onclick="event.stopPropagation();toggleFertoolFullscreen(this)">Full screen</button></div><div class="fertool-embed-body"><div class="fertool-loading"><div class="fertool-spinner"></div></div><iframe src="'+escHtml(c.url)+'" width="100%" height="400" frameborder="0" style="border-radius:0 0 12px 12px;display:block" sandbox="allow-scripts allow-same-origin allow-forms" loading="lazy" onload="this.previousElementSibling.style.display=\'none\'" onerror="this.parentElement.innerHTML=\'<a href=\x22'+escHtml(c.url)+'\x22 target=_blank class=fertool-fallback>Open '+escHtml(c.title)+' \u2192</a>\'"></iframe></div><div class="fertool-embed-footer">Interactive tool — scroll and tap to explore</div></div>'}else{return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}}).join('')+'</div>'}
+function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();html+='<div class="fertool-cards" id="'+_ftId+'">'+fertoolCards.filter(function(c){return!c.embed}).map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>';var _ftEmbed=fertoolCards.filter(function(c){return c.embed});if(_ftEmbed.length>0){setTimeout(function(){var container=document.getElementById(_ftId);if(!container)container=d;_ftEmbed.forEach(function(c){var widget=renderFertoolWidget(c);if(widget)container.parentElement.appendChild(widget)})},50)}}
 // Add one-word check-in pill after first greeting
 if((opts&&opts.showOneWord)||false){if(!_oneWordShown){_oneWordShown=true;html+='<div class="one-word-pill" onclick="triggerOneWord(this)">One word \u2014 how do you feel?</div>'}}
 // Education quick-reply pills

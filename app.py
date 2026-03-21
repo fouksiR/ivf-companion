@@ -2782,6 +2782,25 @@ Mark this as delivered after including it in your response."""
         conv_summary["emotional_tone"] = "positive"
     firebase_db.save_conversation_summary(req.patient_id, conv_summary)
 
+    # Auto-flag unresolved questions for clinician
+    if triage_category == 2:  # Education question
+        unresolved = detect_unresolved_questions(req.patient_id)
+        for q in unresolved:
+            if q["times_asked"] >= 3 and not q.get("escalated_to_clinician"):
+                flag = {
+                    "type": "patient_question_needs_clinician",
+                    "question": q["topic"],
+                    "context": f"Asked {q['times_asked']} times. AI explanation not fully resolving concern.",
+                    "ai_interim_response": "Provided general education",
+                    "urgency": "moderate" if q["times_asked"] < 5 else "high",
+                    "status": "pending",
+                    "assigned_to": None,
+                    "response_deadline": utc_iso(),
+                    "created_at": utc_iso(),
+                }
+                clinician_flags_db.setdefault(req.patient_id, []).append(flag)
+                q["escalated_to_clinician"] = True
+
     # Suggested education topics
     stage = patient["treatment_stage"]
     suggested = EDUCATION_TOPICS.get(stage, [])[:3] if triage_category == 2 else None
@@ -3377,6 +3396,46 @@ async def verify_clinician_api_key(x_api_key: str = Header(None)):
     """Dependency: reject requests without a valid clinician API key."""
     if not CLINICIAN_API_KEY or x_api_key != CLINICIAN_API_KEY:
         raise HTTPException(status_code=403, detail={"error": "Invalid API key"})
+
+
+# ── Clinician Settings Endpoints ─────────────────────────────────────
+
+@app.post("/clinician/settings")
+async def save_clinician_settings(
+    request: Request,
+    x_api_key: str = Header(None),
+):
+    """Create or update clinician settings."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    body = await request.json()
+    clinician_id = body.get("clinician_id", "default")
+    settings = {
+        "clinician_id": clinician_id,
+        "name": body.get("name", clinician_id),
+        "role": body.get("role", "doctor"),
+        "default_involvement": body.get("default_involvement", "moderate"),
+        "response_window_hours": body.get("response_window_hours", 24),
+        "notification_preferences": body.get("notification_preferences", {
+            "red_alerts_only": False,
+            "daily_digest": True,
+            "immediate_flags": True,
+        }),
+    }
+    firebase_db.save_patient(f"clinician_{clinician_id}", settings)
+    return {"status": "saved", "clinician_id": clinician_id, "settings": settings}
+
+
+@app.get("/clinician/settings/{clinician_id}")
+async def get_clinician_settings(
+    clinician_id: str,
+    x_api_key: str = Header(None),
+):
+    """Get clinician settings."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    settings = _get_clinician_settings(clinician_id)
+    return settings
 
 
 # ── Clinician Dashboard Endpoints ────────────────────────────────────

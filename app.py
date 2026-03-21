@@ -2673,6 +2673,34 @@ Say this ONCE, naturally."""
         patient["capability_discovery"]["pattern_observations_shown"] = obs_list
         firebase_db.save_patient(req.patient_id, patient)
 
+    # Inject clinician topic flags into system prompt
+    active_flags = [f for f in topic_flags_db.get(req.patient_id, []) if not f.get("delivered")]
+    if active_flags:
+        urgent = [f for f in active_flags if f["priority"] == "next_session"]
+        natural = [f for f in active_flags if f["priority"] != "next_session"]
+        flags_to_inject = urgent or natural[:1]  # Prioritize urgent, else one natural
+        for flag in flags_to_inject:
+            system_prompt += f"""
+
+CLINICIAN FLAG (weave this in naturally — the clinician asked you to address this):
+Topic: {flag['topic']}
+Instruction: {flag['instruction']}
+Priority: {flag['priority']}
+Do NOT say 'your clinician flagged this' — instead say something like 'By the way...' or 'I know {flag['topic']} has been on your mind...'"""
+            flag["delivered"] = True
+
+    # Inject pending clinician messages
+    pending_msgs = [m for m in clinician_messages_db.get(req.patient_id, []) if not m.get("delivered") and m.get("role") == "clinician"]
+    if pending_msgs:
+        for pm in pending_msgs:
+            system_prompt += f"""
+
+CLINICIAN MESSAGE TO DELIVER:
+A message from the patient's {pm.get('from_role', 'doctor')} needs to be delivered.
+Say: "Your {pm.get('from_role', 'doctor')} wanted me to pass along a message: {pm['content']}"
+Mark this as delivered after including it in your response."""
+            pm["delivered"] = True
+
     # Build conversation messages for Claude
     conv_messages = []
     for msg in get_conversation_context(req.patient_id, last_n=16):
@@ -3009,6 +3037,311 @@ async def get_trends(patient_id: str):
 
 # ── Clinician Auth ───────────────────────────────────────────────────
 
+# ── Multi-Role Clinician System ─────────────────────────────────────
+
+# Default clinician settings (stored in Firebase per clinician)
+DEFAULT_CLINICIAN_SETTINGS = {
+    "default_involvement": "moderate",  # high | moderate | low
+    "response_window_hours": 24,
+    "notification_preferences": {
+        "red_alerts_only": False,
+        "daily_digest": True,
+        "immediate_flags": True,
+    },
+}
+
+# In-memory stores for clinician features
+clinician_flags_db: dict = {}   # patient_id -> list of flags
+unresolved_questions_db: dict = {}  # patient_id -> dict of topic_key -> question data
+clinician_messages_db: dict = {}  # patient_id -> list of clinician messages
+topic_flags_db: dict = {}  # patient_id -> list of topic flags from clinicians
+
+
+def _get_clinician_settings(clinician_id: str) -> dict:
+    """Load clinician settings from Firebase or return defaults."""
+    settings = firebase_db.load_patient(f"clinician_{clinician_id}")  # reuse patient store
+    if settings:
+        return settings
+    return {"clinician_id": clinician_id, "name": clinician_id, "role": "doctor", **DEFAULT_CLINICIAN_SETTINGS}
+
+
+def detect_unresolved_questions(patient_id: str) -> list:
+    """Detect questions the AI hasn't fully resolved based on conversation patterns."""
+    conv = conversations_db.get(patient_id, [])
+    if len(conv) < 4:
+        return []
+
+    # Track topics asked by user across sessions
+    topic_counts: dict = {}
+    uncertainty_signals = {"but", "still don't understand", "are you sure", "hmm", "not sure",
+                          "confused", "what do you mean", "i don't get", "doesn't make sense",
+                          "that doesn't help", "yes but", "ok but"}
+
+    user_msgs = [(i, m) for i, m in enumerate(conv) if m.get("role") == "user"]
+
+    for idx, msg in user_msgs:
+        text = msg.get("content", "").lower()
+        # Check for education-type questions
+        if "?" in text or any(w in text for w in ["what is", "how does", "why do", "tell me about", "explain"]):
+            # Extract rough topic
+            topic_keywords = {
+                "pgt": "PGT-A/PGS testing", "pgta": "PGT-A/PGS testing", "pgs": "PGT-A/PGS testing",
+                "progesterone": "Progesterone", "estrogen": "Estrogen levels",
+                "amh": "AMH levels", "embryo grad": "Embryo grading",
+                "trigger shot": "Trigger shot", "clexane": "Clexane injections",
+                "egg freez": "Egg freezing", "icsi": "ICSI vs IVF",
+                "transfer": "Embryo transfer", "retrieval": "Egg retrieval",
+                "tww": "Two-week wait", "symptom": "TWW symptoms",
+                "implant": "Implantation", "miscarr": "Miscarriage",
+                "chemical pregn": "Chemical pregnancy", "fsh": "FSH levels",
+                "follicle": "Follicle count", "endometri": "Endometriosis",
+                "pcos": "PCOS", "sperm": "Male factor", "donor": "Donor path",
+                "frozen": "Fresh vs frozen transfer", "fet": "FET protocol",
+                "medication": "Medications", "side effect": "Side effects",
+                "injection": "Injection technique",
+            }
+            matched_topic = None
+            for kw, topic in topic_keywords.items():
+                if kw in text:
+                    matched_topic = topic
+                    break
+            if not matched_topic:
+                continue
+
+            topic_key = matched_topic.lower().replace(" ", "_").replace("/", "_")
+            if topic_key not in topic_counts:
+                topic_counts[topic_key] = {
+                    "topic": matched_topic,
+                    "first_asked": msg.get("timestamp", ""),
+                    "times_asked": 0,
+                    "patient_messages": [],
+                    "has_uncertainty": False,
+                }
+            topic_counts[topic_key]["times_asked"] += 1
+            topic_counts[topic_key]["patient_messages"].append(text[:120])
+
+        # Check for uncertainty after AI response
+        for sig in uncertainty_signals:
+            if sig in text:
+                # Find what topic the previous AI message was about
+                if idx > 0 and conv[idx - 1].get("role") == "assistant":
+                    ai_text = conv[idx - 1].get("content", "").lower()
+                    for kw, topic in topic_keywords.items():
+                        tk = topic.lower().replace(" ", "_").replace("/", "_")
+                        if kw in ai_text and tk in topic_counts:
+                            topic_counts[tk]["has_uncertainty"] = True
+                            break
+
+    # Filter to unresolved: asked 2+ times OR has uncertainty signal
+    unresolved = []
+    for tk, data in topic_counts.items():
+        if data["times_asked"] >= 2 or data["has_uncertainty"]:
+            unresolved.append({
+                "topic_key": tk,
+                "topic": data["topic"],
+                "first_asked": data["first_asked"],
+                "times_asked": data["times_asked"],
+                "ai_responses_given": data["times_asked"],
+                "resolution_status": "unresolved",
+                "has_uncertainty_signals": data["has_uncertainty"],
+                "patient_messages": data["patient_messages"][-5:],
+                "escalated_to_clinician": False,
+            })
+
+    # Store in memory
+    unresolved_questions_db[patient_id] = {q["topic_key"]: q for q in unresolved}
+    return unresolved
+
+
+def build_role_briefing(patient_id: str, role: str) -> dict:
+    """Build a role-specific briefing for a clinician."""
+    patient = patients_db.get(patient_id)
+    if not patient:
+        return {}
+
+    name = patient.get("name", "Unknown")
+    stage = patient.get("treatment_stage", "consultation")
+    stage_name = STAGE_DISPLAY.get(stage, stage)
+
+    # Base data
+    checkins = get_recent_checkins(patient_id, last_n=7)
+    conv = conversations_db.get(patient_id, [])
+    style = classify_patient_style(patient_id)
+    unresolved = detect_unresolved_questions(patient_id)
+
+    # Last active
+    last_active = "unknown"
+    for m in reversed(conv):
+        if m.get("timestamp"):
+            try:
+                ts = datetime.fromisoformat(m["timestamp"].replace("Z", "+00:00"))
+                delta = utc_now() - ts
+                if delta.days > 0:
+                    last_active = f"{delta.days} days ago"
+                else:
+                    hours = int(delta.total_seconds() / 3600)
+                    last_active = f"{hours} hours ago" if hours > 0 else "just now"
+            except (ValueError, TypeError):
+                pass
+            break
+
+    # Emotional state
+    emotional_state = "neutral"
+    if checkins:
+        last = checkins[-1]
+        mood = last.get("mood", 5)
+        anxiety = last.get("anxiety", 5)
+        if mood <= 3:
+            emotional_state = "struggling"
+        elif anxiety >= 7:
+            emotional_state = "anxious"
+        elif mood >= 7:
+            emotional_state = "positive"
+        elif last.get("loneliness", 5) >= 7:
+            emotional_state = "lonely"
+
+    # SECRETARY briefing
+    if role == "secretary":
+        flag_reason = None
+        readiness = "READY"
+        if unresolved:
+            flag_reason = f"Patient has {len(unresolved)} unresolved concern{'s' if len(unresolved) > 1 else ''}: {', '.join(q['topic'] for q in unresolved[:2])}"
+            readiness = "NEEDS_ATTENTION"
+        elif emotional_state in ("struggling", "anxious"):
+            flag_reason = f"Patient is feeling {emotional_state}"
+            readiness = "FLAG"
+
+        prep_notes = []
+        if unresolved:
+            prep_notes.append(f"May ask about {unresolved[0]['topic']}")
+        if style == "ANALYTICAL":
+            prep_notes.append("Prefers detailed, data-driven explanations")
+        elif style == "EMOTIONAL":
+            prep_notes.append("Responds best to warmth and validation first")
+
+        return {
+            "role": "secretary",
+            "patient_name": name,
+            "appointment_readiness": readiness,
+            "flag_reason": flag_reason,
+            "emotional_state": emotional_state,
+            "last_contact": last_active,
+            "suggested_greeting": f"{name} has been feeling {emotional_state} recently — a warm welcome will help" if emotional_state != "neutral" else f"Welcome {name} warmly",
+            "prep_notes": prep_notes,
+            "treatment_stage": stage_name,
+        }
+
+    # NURSE briefing - build emotional summary and care priorities
+    # Get phenotype flags
+    phenotype_flags = []
+    engagement = patient.get("engagement", {})
+    cap = patient.get("capability_discovery", {})
+    shown_patterns = cap.get("pattern_observations_shown", [])
+    if "late_night" in shown_patterns:
+        phenotype_flags.append("Multiple late-night sessions detected")
+    if "anxiety_rising" in shown_patterns:
+        phenotype_flags.append("Anxiety trend rising across recent check-ins")
+
+    # Compute emotional summary
+    emotional_summary = f"{name} is currently at the {stage_name} stage."
+    if checkins:
+        avg_mood = sum(c.get("mood", 5) for c in checkins) / len(checkins)
+        avg_anxiety = sum(c.get("anxiety", 5) for c in checkins) / len(checkins)
+        if avg_anxiety >= 7:
+            emotional_summary += f" Anxiety averaging {avg_anxiety:.0f}/10 over the last {len(checkins)} check-ins."
+        if avg_mood <= 3:
+            emotional_summary += f" Mood consistently low (avg {avg_mood:.0f}/10)."
+
+    # Care priorities from AI
+    care_priorities = []
+    topics_to_raise = []
+    topics_to_avoid = []
+    suggested_opener = f"How are you feeling about your {stage_name} journey?"
+
+    # Use Haiku to generate nurse-specific guidance
+    user_msgs = [m["content"] for m in conv if m.get("role") == "user"][-8:]
+    if user_msgs:
+        try:
+            nurse_prompt = f"""Based on this IVF patient's recent messages, generate nurse briefing data as JSON.
+Patient: {name}, Stage: {stage_name}, Emotional state: {emotional_state}
+Recent messages: {'; '.join(user_msgs[-5:])}
+Unresolved questions: {', '.join(q['topic'] for q in unresolved) if unresolved else 'None'}
+
+Return JSON with:
+- care_priorities: list of 3 strings (numbered action items for the nurse)
+- topics_to_raise: list of 2-3 strings
+- topics_to_avoid: list of 0-2 strings (sensitive topics)
+- suggested_opener: string (one warm opening question)
+Return ONLY valid JSON, no markdown."""
+            resp = client.messages.create(model=HAIKU_MODEL, max_tokens=400, messages=[{"role": "user", "content": nurse_prompt}])
+            import json
+            nurse_data = json.loads(resp.content[0].text.strip())
+            care_priorities = nurse_data.get("care_priorities", care_priorities)
+            topics_to_raise = nurse_data.get("topics_to_raise", topics_to_raise)
+            topics_to_avoid = nurse_data.get("topics_to_avoid", topics_to_avoid)
+            suggested_opener = nurse_data.get("suggested_opener", suggested_opener)
+        except Exception:
+            care_priorities = [f"Check on emotional state ({emotional_state})", f"Review {stage_name} progress", "Assess support network"]
+
+    nurse_briefing = {
+        "role": "nurse",
+        "patient_name": name,
+        "emotional_summary": emotional_summary,
+        "care_priorities": care_priorities,
+        "topics_to_raise": topics_to_raise,
+        "topics_to_avoid": topics_to_avoid,
+        "communication_style": style,
+        "suggested_opener": suggested_opener,
+        "unresolved_questions": [{
+            "question": q["topic"],
+            "times_asked": q["times_asked"],
+            "ai_answered": True,
+            "needs_clinician": q["times_asked"] >= 3 or q["has_uncertainty_signals"],
+            "reason": "Repeated asking suggests AI answer didn't fully resolve concern" if q["times_asked"] >= 3 else "Patient showed uncertainty after AI explanation",
+        } for q in unresolved],
+        "phenotype_flags": phenotype_flags,
+        "treatment_stage": stage_name,
+        "last_contact": last_active,
+    }
+
+    if role == "nurse":
+        return nurse_briefing
+
+    # DOCTOR briefing — everything nurse gets plus clinical recommendations
+    # Generate clinical recommendations via Haiku
+    clinical_recs = []
+    patient_confidence = {"in_treatment_plan": "MODERATE", "evidence": "", "trend": "stable"}
+    ai_handled = []
+
+    if user_msgs:
+        try:
+            doc_prompt = f"""Based on this IVF patient's data, generate doctor briefing as JSON.
+Patient: {name}, Stage: {stage_name}, Style: {style}
+Emotional state: {emotional_state}
+Recent messages: {'; '.join(user_msgs[-5:])}
+Unresolved questions: {json.dumps([q['topic'] for q in unresolved])}
+Check-in averages: mood={sum(c.get('mood',5) for c in checkins)/max(len(checkins),1):.1f}, anxiety={sum(c.get('anxiety',5) for c in checkins)/max(len(checkins),1):.1f}, hope={sum(c.get('hope',5) for c in checkins)/max(len(checkins),1):.1f}
+
+Return JSON with:
+- clinical_recommendations: list of objects with type (clarification_needed|comprehension_gap|emotional_impact_on_clinical|psych_recommendation), topic, detail, priority (high|medium|low), suggested_action
+- patient_confidence: object with in_treatment_plan (HIGH|MODERATE|LOW), evidence (string), trend (improving|declining|stable)
+- ai_handled_topics: list of objects with topic, status (resolved|unresolved), patient_satisfied (bool)
+Return ONLY valid JSON, no markdown."""
+            resp = client.messages.create(model=HAIKU_MODEL, max_tokens=600, messages=[{"role": "user", "content": doc_prompt}])
+            doc_data = json.loads(resp.content[0].text.strip())
+            clinical_recs = doc_data.get("clinical_recommendations", [])
+            patient_confidence = doc_data.get("patient_confidence", patient_confidence)
+            ai_handled = doc_data.get("ai_handled_topics", [])
+        except Exception:
+            pass
+
+    doctor_briefing = {**nurse_briefing, "role": "doctor"}
+    doctor_briefing["clinical_recommendations"] = clinical_recs
+    doctor_briefing["patient_confidence"] = patient_confidence
+    doctor_briefing["ai_handled_topics"] = ai_handled
+    return doctor_briefing
+
+
 CLINICIAN_API_KEY = os.getenv("CLINICIAN_API_KEY", "")
 
 async def verify_clinician_api_key(x_api_key: str = Header(None)):
@@ -3195,17 +3528,348 @@ Conversations:
     }
 
 
-@app.get("/clinician/patient/{patient_id}/briefing", dependencies=[Depends(verify_clinician_api_key)])
-async def clinician_preconsult_briefing(patient_id: str):
-    """
-    Pre-consultation briefing for clinicians.
-    Returns communication style, stress level, main concerns, and suggested approach.
-    """
+@app.get("/clinician/patient/{patient_id}/briefing")
+async def clinician_preconsult_briefing(
+    patient_id: str,
+    role: str = "doctor",
+    x_api_key: str = Header(None),
+):
+    """Role-aware pre-consult briefing."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
     if patient_id not in patients_db:
         raise HTTPException(status_code=404, detail="Patient not found")
 
-    briefing = build_preconsult_briefing(patient_id)
-    return briefing
+    # Use new role-based system
+    if role in ("secretary", "nurse", "doctor"):
+        return build_role_briefing(patient_id, role)
+
+    # Fallback to original briefing for backward compatibility
+    return build_preconsult_briefing(patient_id)
+
+
+# ── Clinician Action Endpoints ──────────────────────────────────────
+
+@app.post("/clinician/patient/{patient_id}/send-message")
+async def clinician_send_message(
+    patient_id: str,
+    request: Request,
+    x_api_key: str = Header(None),
+):
+    """Clinician sends a message to patient via the AI companion."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    body = await request.json()
+    msg_text = body.get("message", "")
+    from_role = body.get("from_role", "doctor")
+    msg_type = body.get("type", "personal")
+
+    if not msg_text:
+        raise HTTPException(status_code=400, detail="Message is required")
+
+    # Store as a special clinician message
+    clinician_msg = {
+        "role": "clinician",
+        "from_role": from_role,
+        "content": msg_text,
+        "type": msg_type,
+        "timestamp": utc_iso(),
+        "delivered": False,
+    }
+    clinician_messages_db.setdefault(patient_id, []).append(clinician_msg)
+
+    # Also store in conversation history so it appears in the chat
+    _sync_conversation(patient_id, {
+        "role": "assistant",
+        "content": f"[From your {from_role}]: {msg_text}",
+        "timestamp": utc_iso(),
+        "from_clinician": True,
+        "clinician_role": from_role,
+    })
+
+    return {"status": "sent", "patient_id": patient_id, "from_role": from_role}
+
+
+@app.post("/clinician/patient/{patient_id}/flag-topic")
+async def clinician_flag_topic(
+    patient_id: str,
+    request: Request,
+    x_api_key: str = Header(None),
+):
+    """Flag a topic for the AI to bring up in the next conversation."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    body = await request.json()
+    topic = body.get("topic", "")
+    instruction = body.get("instruction", "")
+    priority = body.get("priority", "when_natural")  # next_session | within_3_days | when_natural
+
+    if not topic:
+        raise HTTPException(status_code=400, detail="Topic is required")
+
+    flag = {
+        "topic": topic,
+        "instruction": instruction,
+        "priority": priority,
+        "created_at": utc_iso(),
+        "delivered": False,
+    }
+    topic_flags_db.setdefault(patient_id, []).append(flag)
+
+    return {"status": "flagged", "patient_id": patient_id, "topic": topic, "priority": priority}
+
+
+@app.post("/clinician/patient/{patient_id}/schedule-nudge")
+async def clinician_schedule_nudge(
+    patient_id: str,
+    request: Request,
+    x_api_key: str = Header(None),
+):
+    """Schedule a custom nudge for a patient."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    body = await request.json()
+    message = body.get("message", "")
+    deliver_at = body.get("deliver_at", utc_iso())
+    from_role = body.get("from", "nurse")
+
+    scheduled = {
+        "message": message,
+        "deliver_at": deliver_at,
+        "from": from_role,
+        "created_at": utc_iso(),
+        "delivered": False,
+    }
+    clinician_messages_db.setdefault(patient_id, []).append(scheduled)
+
+    return {"status": "scheduled", "patient_id": patient_id, "deliver_at": deliver_at}
+
+
+@app.post("/clinician/patient/{patient_id}/resolve-concern")
+async def clinician_resolve_concern(
+    patient_id: str,
+    request: Request,
+    x_api_key: str = Header(None),
+):
+    """Mark an unresolved question as resolved by clinician."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    body = await request.json()
+    topic_key = body.get("topic_key", "")
+    resolution_note = body.get("resolution_note", "")
+    resolved_by = body.get("resolved_by", "doctor")
+
+    # Update in memory
+    patient_qs = unresolved_questions_db.get(patient_id, {})
+    if topic_key in patient_qs:
+        patient_qs[topic_key]["resolution_status"] = "resolved"
+        patient_qs[topic_key]["clinician_resolved"] = True
+        patient_qs[topic_key]["resolved_by"] = resolved_by
+        patient_qs[topic_key]["resolution_note"] = resolution_note
+        patient_qs[topic_key]["resolved_at"] = utc_iso()
+
+    # Store a follow-up flag so AI mentions it
+    topic_name = patient_qs.get(topic_key, {}).get("topic", topic_key)
+    topic_flags_db.setdefault(patient_id, []).append({
+        "topic": topic_name,
+        "instruction": f"The patient's {resolved_by} has addressed their question about {topic_name}. Gently mention: 'I heard your {resolved_by} talked through the {topic_name} question with you — do you feel clearer about it?'",
+        "priority": "next_session",
+        "created_at": utc_iso(),
+        "delivered": False,
+    })
+
+    return {"status": "resolved", "topic_key": topic_key, "resolved_by": resolved_by}
+
+
+@app.get("/clinician/patient/{patient_id}/unresolved")
+async def get_unresolved_questions(
+    patient_id: str,
+    x_api_key: str = Header(None),
+):
+    """Get unresolved questions for a patient."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    unresolved = detect_unresolved_questions(patient_id)
+    return {"patient_id": patient_id, "unresolved": unresolved}
+
+
+@app.get("/clinician/digest")
+async def clinician_daily_digest(
+    x_api_key: str = Header(None),
+):
+    """Generate a morning digest for the clinician."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+
+    red_patients = []
+    amber_patients = []
+    green_patients = []
+    pending_actions = 0
+    total_flags = 0
+
+    for pid, patient in patients_db.items():
+        name = patient.get("name", pid)
+        stage = STAGE_DISPLAY.get(patient.get("treatment_stage", ""), "")
+        checkins = get_recent_checkins(pid, last_n=3)
+        esc = check_daily_escalation(pid)
+        unresolved = detect_unresolved_questions(pid)
+        engagement = patient.get("engagement", {})
+        last_date = engagement.get("last_interaction_date", "")
+
+        # Calculate gap
+        gap_days = 0
+        try:
+            gap_days = (date.today() - date.fromisoformat(last_date)).days
+        except (ValueError, TypeError):
+            pass
+
+        summary_parts = []
+        if checkins:
+            avg_anxiety = sum(c.get("anxiety", 5) for c in checkins) / len(checkins)
+            avg_mood = sum(c.get("mood", 5) for c in checkins) / len(checkins)
+            if avg_anxiety >= 7:
+                summary_parts.append(f"anxiety high ({avg_anxiety:.0f}/10)")
+            if avg_mood <= 3:
+                summary_parts.append(f"mood low ({avg_mood:.0f}/10)")
+        if unresolved:
+            summary_parts.append(f"{len(unresolved)} unresolved question{'s' if len(unresolved)>1 else ''}")
+            pending_actions += len(unresolved)
+        if gap_days >= 2:
+            summary_parts.append(f"hasn't engaged in {gap_days} days")
+        total_flags += len(unresolved)
+
+        info = {"name": name, "stage": stage, "summary": ", ".join(summary_parts) if summary_parts else "tracking well", "patient_id": pid}
+
+        if esc["level"] == "RED":
+            red_patients.append(info)
+        elif esc["level"] == "AMBER":
+            amber_patients.append(info)
+        else:
+            green_patients.append(info)
+
+    # Generate digest text via Haiku
+    digest_data = {
+        "red": red_patients, "amber": amber_patients,
+        "green_count": len(green_patients), "pending_actions": pending_actions,
+        "total_flags": total_flags,
+    }
+
+    try:
+        digest_prompt = f"""Generate a warm, concise morning clinician digest. Data:
+RED patients ({len(red_patients)}): {json.dumps(red_patients)}
+AMBER patients ({len(amber_patients)}): {json.dumps(amber_patients)}
+GREEN patients: {len(green_patients)} tracking well
+Pending actions: {pending_actions}
+
+Format as a brief morning message. Use emoji sparingly (🔴🟡🟢). List RED patients individually with name and concern. Summarize AMBER patients briefly. Just count GREEN patients. End with pending action count.
+Keep it under 200 words. Be professional but warm."""
+        resp = client.messages.create(model=HAIKU_MODEL, max_tokens=300, messages=[{"role": "user", "content": digest_prompt}])
+        digest_text = resp.content[0].text.strip()
+    except Exception:
+        # Fallback
+        lines = []
+        if red_patients:
+            lines.append(f"🔴 {len(red_patients)} patient{'s' if len(red_patients)>1 else ''} need{'s' if len(red_patients)==1 else ''} attention:")
+            for p in red_patients:
+                lines.append(f"   {p['name']} — {p['summary']}")
+        if amber_patients:
+            lines.append(f"🟡 {len(amber_patients)} patient{'s' if len(amber_patients)>1 else ''} to monitor:")
+            for p in amber_patients:
+                lines.append(f"   {p['name']} — {p['summary']}")
+        lines.append(f"🟢 {len(green_patients)} patient{'s' if len(green_patients)>1 else ''} tracking well.")
+        if pending_actions:
+            lines.append(f"\nActions pending your response: {pending_actions}")
+        digest_text = "\n".join(lines)
+
+    return {
+        "digest": digest_text,
+        "red_count": len(red_patients),
+        "amber_count": len(amber_patients),
+        "green_count": len(green_patients),
+        "pending_actions": pending_actions,
+        "total_flags": total_flags,
+        "red_patients": red_patients,
+        "amber_patients": amber_patients,
+        "date": date.today().isoformat(),
+    }
+
+
+@app.get("/clinician/patient/{patient_id}/conversations")
+async def get_patient_conversations(
+    patient_id: str,
+    x_api_key: str = Header(None),
+):
+    """Get conversation summaries for the clinician conversations tab."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    if patient_id not in patients_db:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    conv = conversations_db.get(patient_id, [])
+    # Group into sessions
+    sessions = []
+    current = []
+    last_ts = None
+    for msg in conv:
+        ts_str = msg.get("timestamp", "")
+        try:
+            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            ts = None
+        if last_ts and ts and (ts - last_ts).total_seconds() > 7200:
+            if current:
+                sessions.append(current)
+            current = [msg]
+        else:
+            current.append(msg)
+        if ts:
+            last_ts = ts
+    if current:
+        sessions.append(current)
+
+    summaries = []
+    for session in sessions[-20:]:
+        user_msgs = [m["content"] for m in session if m.get("role") == "user"]
+        ts = session[0].get("timestamp", "")
+        triage = None
+        for m in session:
+            if m.get("triage"):
+                triage = m["triage"]
+
+        # Quick tone
+        all_text = " ".join(user_msgs).lower()
+        tone = "neutral"
+        if any(w in all_text for w in ["sad", "scared", "anxious", "worried", "alone"]):
+            tone = "anxious" if "anxious" in all_text or "worried" in all_text else "struggling"
+        elif any(w in all_text for w in ["happy", "hopeful", "good", "better"]):
+            tone = "positive"
+
+        summaries.append({
+            "date": ts,
+            "message_count": len(session),
+            "user_messages": user_msgs[:3],
+            "one_line": user_msgs[0][:100] if user_msgs else "No messages",
+            "emotional_tone": tone,
+            "triage_category": triage,
+            "full_conversation": session,
+        })
+
+    return {"patient_id": patient_id, "sessions": list(reversed(summaries))}
 
 
 @app.get("/clinician/patient/{patient_id}/phenotype-history", dependencies=[Depends(verify_clinician_api_key)])

@@ -779,11 +779,17 @@ async flush(){if(!this.patientId||(!this.buffer.length&&!this._hasDerived()))ret
 const d=this._derive();const p={patient_id:this.patientId,session_id:this.sessionId,signals:[...this.buffer],derived_features:d,
 session_metadata:{start:this.m.sessionStartTime,duration_ms:Date.now()-this.sessionStart,hour_of_day:this.m.sessionStartHour,is_late_night:this.m.isLateNight,day_of_week:this.m.dayOfWeek,
 user_agent:navigator.userAgent,screen_width:screen.width,screen_height:screen.height,viewport_width:window.innerWidth,viewport_height:window.innerHeight,
-timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,language:navigator.language}};
+timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,language:navigator.language},
+session_metrics:{duration_seconds:Math.round((Date.now()-this.sessionStart)/1000),screens_visited:Object.keys(this.m.panelVisits),messages_sent:this.m.messagesSent,checkin_done:!!this.m.checkinCompletionTime,idle_count:this._idleCount||0},
+weekly_behavior:this._getWeeklyBehavior()};
 const n=this.buffer.length;this.buffer=[];
 try{await fetch(this.apiBase+'/passive-signals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
 if(this.debug)console.log('[Phenotyping] Flushed',n,'signals')}catch(e){this.buffer=[...p.signals,...this.buffer];if(this.debug)console.warn('[Phenotyping] Flush failed:',e.message)}}
 async endSession(){this.record('session_end',Date.now()-this.sessionStart,{total_touches:this.m.totalTouches,total_messages:this.m.messagesSent});await this.flush();this._unbind();clearInterval(this._ft)}
+
+// ── SESSION LOG (weekly behavior tracking) ──
+_getWeeklyBehavior(){try{var log=JSON.parse(localStorage.getItem('melodai_session_log')||'[]');return log.slice(-7)}catch(e){return[]}}
+_updateSessionLog(){try{var log=JSON.parse(localStorage.getItem('melodai_session_log')||'[]');var today=new Date().toISOString().slice(0,10);var entry=log.find(function(e){return e.date===today});if(!entry){entry={date:today,sessions:0,total_minutes:0,hours:[],checkins:0,messages:0};log.push(entry)}entry.sessions++;var h=new Date().getHours();if(entry.hours.indexOf(h)===-1)entry.hours.push(h);entry.total_minutes=Math.round((Date.now()-this.sessionStart)/60000);entry.messages=this.m.messagesSent;if(this.m.checkinCompletionTime)entry.checkins++;if(log.length>14)log=log.slice(-14);localStorage.setItem('melodai_session_log',JSON.stringify(log))}catch(e){}}
 
 // ── HOOKS (called from app code) ──
 onMessageSent(text){this.m.messagesSent++;this.m.messageLengths.push(text.length);
@@ -884,7 +890,7 @@ b.addEventListener('levelchange',()=>{this.m.batteryLevel=Math.round(b.level*100
 b.addEventListener('chargingchange',()=>{this.m.batteryCharging=b.charging})}catch(e){}}
 if(navigator.connection){this.m.connectionType=navigator.connection.effectiveType;navigator.connection.addEventListener('change',()=>{this.m.connectionType=navigator.connection.effectiveType;this.record('connection_change',navigator.connection.effectiveType)})}
 if(screen.orientation)this.m.screenOrientation=screen.orientation.type}
-_startFlush(){this._ft=setInterval(()=>this.flush(),this.flushInterval)}
+_startFlush(){this._updateSessionLog();this._idleCount=0;var self=this;var idleTimer=null;function resetIdle(){if(idleTimer)clearTimeout(idleTimer);idleTimer=setTimeout(function(){self._idleCount=(self._idleCount||0)+1},30000)}document.addEventListener('pointerdown',resetIdle);document.addEventListener('keydown',resetIdle);resetIdle();this._ft=setInterval(()=>{this._updateSessionLog();this.flush()},this.flushInterval)}
 _uuid(){return'xxxx-xxxx'.replace(/x/g,()=>((Math.random()*16)|0).toString(16))}
 _mean(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:0}
 _median(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
@@ -2327,20 +2333,61 @@ function submitPost(){var text=document.getElementById('postText').value.trim();
 function loadWorldPosts(){var feed=document.getElementById('world-feed');var posts=JSON.parse(localStorage.getItem('melodai_posts')||'[]');if(!posts.length){feed.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">No posts yet. Be the first to share!</div>';return}feed.innerHTML=posts.slice(0,20).map(function(p){var ago=timeAgoShort(p.timestamp);return '<div class="post-card"><div class="post-header"><div class="post-avatar">&#x1F95A;</div><span>'+(p.anonymous?'Anonymous':'You')+'</span><span>&middot;</span><span>'+ago+'</span></div><div class="post-body">'+escHtml(p.text)+'</div><div class="post-actions"><button class="post-action-btn">&#x2764;&#xFE0F; Support</button><button class="post-action-btn">&#x1F4AC; Reply</button></div></div>'}).join('')}
 function timeAgoShort(ts){try{var d=(Date.now()-new Date(ts))/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m';if(d<86400)return Math.floor(d/3600)+'h';return Math.floor(d/86400)+'d'}catch(e){return ''}}
 // Calendar
-function buildCalendar(){var container=document.getElementById('calendarContainer');if(!container)return;var now=new Date();var year=now.getFullYear(),month=now.getMonth();var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];var firstDay=new Date(year,month,1).getDay();var daysInMonth=new Date(year,month+1,0).getDate();var today=now.getDate();
+var _calYear,_calMonth,_calEvents=[];
+function buildCalendar(){var container=document.getElementById('calendarContainer');if(!container)return;var now=new Date();if(!_calYear){_calYear=now.getFullYear();_calMonth=now.getMonth()}var year=_calYear,month=_calMonth;var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];var firstDay=new Date(year,month,1).getDay();var daysInMonth=new Date(year,month+1,0).getDate();var today=now.getDate();var isCurrentMonth=(year===now.getFullYear()&&month===now.getMonth());
+// Load events from localStorage
+try{_calEvents=JSON.parse(localStorage.getItem('melodai_cycle_events')||'[]')}catch(e){_calEvents=[]}
+var evtIcons={injection:'💉',scan:'🔬',retrieval:'🥚',transfer:'🔄',iui:'🟢',medication:'💊',result:'📋',tww_start:'⏳',appointment:'📅',other:'·'};
 var html='<div class="cal-header"><button class="cal-nav" onclick="calNav(-1)">&lt;</button><h3>'+monthNames[month]+' '+year+'</h3><button class="cal-nav" onclick="calNav(1)">&gt;</button></div>';
 html+='<div class="cal-grid">';
 ['S','M','T','W','T','F','S'].forEach(function(d){html+='<div class="cal-day-header">'+d+'</div>'});
 for(var i=0;i<firstDay;i++)html+='<div class="cal-cell"></div>';
-for(var d=1;d<=daysInMonth;d++){var cls='cal-cell';var isFuture=d>today;if(d===today)cls+=' today';if(isFuture)cls+=' future';
+for(var d=1;d<=daysInMonth;d++){var cls='cal-cell';var isFuture=isCurrentMonth&&d>today;if(isCurrentMonth&&d===today)cls+=' today';if(isFuture)cls+=' future';
 var moodDot='';var eventDot='';
 var dateStr=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+// Mood dot from check-ins
 if(state.checkins){var ci=state.checkins.find(function(c){return (c.date||'').substring(0,10)===dateStr});if(ci){var m=ci.mood||5;moodDot='<div class="cal-mood '+(m>=7?'good':m>=4?'tough':'hard')+'"></div>'}}
-html+='<div class="'+cls+'" data-date="'+dateStr+'"><div class="cal-num">'+d+'</div>'+moodDot+eventDot+'</div>'}
+// Event icons
+var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
+if(dayEvts.length>0){eventDot='<div class="cal-event">'+dayEvts.slice(0,2).map(function(e){return evtIcons[e.type]||'·'}).join('')+(dayEvts.length>2?'+':'')+'</div>'}
+html+='<div class="'+cls+'" data-date="'+dateStr+'" onclick="showDayDetail(\''+dateStr+'\')"><div class="cal-num">'+d+'</div>'+moodDot+eventDot+'</div>'}
 html+='</div>';
-html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4ade80"></span>Good day</span><span><span class="leg-dot" style="background:#fbbf24"></span>Tough day</span><span><span class="leg-dot" style="background:#f87171"></span>Hard day</span></div>';
-container.innerHTML=html}
-function calNav(dir){/* placeholder for month navigation */}
+html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4ade80"></span>Good</span><span><span class="leg-dot" style="background:#fbbf24"></span>Tough</span><span><span class="leg-dot" style="background:#f87171"></span>Hard</span><span>💉Inj</span><span>🔬Scan</span><span>🥚Ret</span></div>';
+html+='<div id="dayDetailPanel" style="display:none"></div>';
+container.innerHTML=html;
+// Also try loading events from API
+if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events').then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.events&&d.events.length){_calEvents=d.events;localStorage.setItem('melodai_cycle_events',JSON.stringify(_calEvents));buildCalendar()}}).catch(function(){})}}
+function calNav(dir){_calMonth+=dir;if(_calMonth<0){_calMonth=11;_calYear--}if(_calMonth>11){_calMonth=0;_calYear++}buildCalendar()}
+function showDayDetail(dateStr){var panel=document.getElementById('dayDetailPanel');if(!panel)return;
+var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
+var ci=state.checkins?state.checkins.find(function(c){return(c.date||'').substring(0,10)===dateStr}):null;
+var evtIcons={injection:'💉',scan:'🔬',retrieval:'🥚',transfer:'🔄',iui:'🟢',medication:'💊',result:'📋',tww_start:'⏳',appointment:'📅',other:'📌'};
+var html='<div style="padding:12px;background:var(--white);border-radius:12px;border:1px solid var(--border-light);margin-top:8px">';
+html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>'+dateStr+'</strong><button style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px" onclick="openAddEvent(\''+dateStr+'\')">+ Add event</button></div>';
+if(ci){var m=ci.mood||5;html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px"><span class="cal-mood '+(m>=7?'good':m>=4?'tough':'hard')+'" style="display:inline-block"></span> Mood: '+m+'/10</div>'}
+if(dayEvts.length){dayEvts.forEach(function(e){html+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border-light)"><span>'+(evtIcons[e.type]||'·')+'</span><span><strong>'+escHtml(e.label||e.type)+'</strong>'+(e.time?' at '+e.time:'')+(e.notes?' — '+escHtml(e.notes):'')+'</span></div>'})}else if(!ci){html+='<div style="font-size:12px;color:var(--text-soft);text-align:center;padding:8px">No entries for this day</div>'}
+html+='</div>';
+panel.style.display='block';panel.innerHTML=html}
+function openAddEvent(dateStr){
+var types=[{k:'injection',l:'💉 Injection'},{k:'scan',l:'🔬 Scan'},{k:'retrieval',l:'🥚 Retrieval'},{k:'transfer',l:'🔄 Transfer'},{k:'medication',l:'💊 Medication'},{k:'result',l:'📋 Result'},{k:'appointment',l:'📅 Appointment'},{k:'other',l:'📌 Other'}];
+var html='<div style="position:fixed;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:24px;max-height:60vh;overflow-y:auto;z-index:200;box-shadow:0 -4px 24px rgba(0,0,0,.1)" id="addEventSheet">';
+html+='<h3 style="font-family:var(--serif,Playfair Display,serif);margin:0 0 12px">Add Event</h3>';
+html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'+types.map(function(t){return '<button style="padding:8px 4px;border:1px solid var(--border-light,#eee);border-radius:10px;background:white;cursor:pointer;font-size:11px;text-align:center" onclick="selectEvtType(\''+t.k+'\')" data-type="'+t.k+'">'+t.l+'</button>'}).join('')+'</div>';
+html+='<input type="hidden" id="evtType" value="other">';
+html+='<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#999">Date</label><input type="date" id="evtDate" value="'+dateStr+'" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"></div>';
+html+='<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#999">Label</label><input type="text" id="evtLabel" placeholder="e.g. Gonal-F 225iu" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"></div>';
+html+='<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#999">Time (optional)</label><input type="time" id="evtTime" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"></div>';
+html+='<div style="margin-bottom:12px"><label style="font-size:11px;font-weight:600;color:#999">Notes (optional)</label><textarea id="evtNotes" placeholder="Any notes..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;min-height:50px;resize:none"></textarea></div>';
+html+='<div style="display:flex;gap:8px"><button onclick="closeAddEvent()" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:50px;background:white;cursor:pointer;font-size:13px">Cancel</button>';
+html+='<button onclick="saveNewEvent()" style="flex:1;padding:10px;border:none;border-radius:50px;background:#2D8E8E;color:white;cursor:pointer;font-size:13px;font-weight:600">Save</button></div>';
+html+='</div><div onclick="closeAddEvent()" style="position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199" id="addEventBg"></div>';
+document.body.insertAdjacentHTML('beforeend',html)}
+function selectEvtType(type){document.getElementById('evtType').value=type;document.querySelectorAll('#addEventSheet [data-type]').forEach(function(b){b.style.borderColor=b.dataset.type===type?'#2D8E8E':'#eee';b.style.background=b.dataset.type===type?'rgba(45,142,142,.06)':'white'})}
+function closeAddEvent(){var s=document.getElementById('addEventSheet');if(s)s.remove();var b=document.getElementById('addEventBg');if(b)b.remove()}
+function saveNewEvent(){var evt={id:'evt_'+Date.now(),date:document.getElementById('evtDate').value,type:document.getElementById('evtType').value,label:document.getElementById('evtLabel').value.trim()||document.getElementById('evtType').value,notes:document.getElementById('evtNotes').value.trim(),time:document.getElementById('evtTime').value,source:'patient',created_at:new Date().toISOString()};
+_calEvents.push(evt);localStorage.setItem('melodai_cycle_events',JSON.stringify(_calEvents));
+if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(evt)}).catch(function(){})}
+closeAddEvent();buildCalendar();showDayDetail(evt.date)}
 // Music toggle
 function toggleMusic(){var btn=document.getElementById('musicToggle');btn.classList.toggle('active');localStorage.setItem('melodai_calm_mode',btn.classList.contains('active')?'1':'0')}
 // Tour

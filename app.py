@@ -2718,8 +2718,20 @@ Priority: {flag['priority']}
 Do NOT say 'your clinician flagged this' — instead say something like 'By the way...' or 'I know {flag['topic']} has been on your mind...'"""
             flag["delivered"] = True
 
-    # Inject pending clinician messages
+    # Inject pending clinician messages (from memory + Firebase)
     pending_msgs = [m for m in clinician_messages_db.get(req.patient_id, []) if not m.get("delivered") and m.get("role") == "clinician"]
+    # Also check Firebase for messages not in memory
+    try:
+        if firebase_db.ready:
+            fb_msgs = firebase_db._fb_ref.child('care_team_messages').child(req.patient_id).get()
+            if fb_msgs and isinstance(fb_msgs, dict):
+                for key, msg in fb_msgs.items():
+                    if isinstance(msg, dict) and not msg.get("delivered") and msg.get("role") == "clinician":
+                        if not any(m.get("timestamp") == msg.get("timestamp") for m in pending_msgs):
+                            pending_msgs.append(msg)
+                            msg["_fb_key"] = key  # Track for marking delivered
+    except Exception:
+        pass
     if pending_msgs:
         for pm in pending_msgs:
             system_prompt += f"""
@@ -2729,6 +2741,12 @@ A message from the patient's {pm.get('from_role', 'doctor')} needs to be deliver
 Say: "Your {pm.get('from_role', 'doctor')} wanted me to pass along a message: {pm['content']}"
 Mark this as delivered after including it in your response."""
             pm["delivered"] = True
+            # Mark delivered in Firebase
+            if pm.get("_fb_key"):
+                try:
+                    firebase_db._fb_ref.child('care_team_messages').child(req.patient_id).child(pm["_fb_key"]).update({"delivered": True, "delivered_at": utc_iso()})
+                except Exception:
+                    pass
 
     # Build conversation messages for Claude
     conv_messages = []
@@ -3669,6 +3687,12 @@ async def clinician_send_message(
     }
     clinician_messages_db.setdefault(patient_id, []).append(clinician_msg)
 
+    # Persist to Firebase
+    try:
+        firebase_db._fb_ref and firebase_db._fb_ref.child('care_team_messages').child(patient_id).push(clinician_msg) if firebase_db.ready else None
+    except Exception:
+        pass
+
     # Also store in conversation history so it appears in the chat
     _sync_conversation(patient_id, {
         "role": "assistant",
@@ -3709,6 +3733,12 @@ async def clinician_flag_topic(
         "delivered": False,
     }
     topic_flags_db.setdefault(patient_id, []).append(flag)
+
+    # Persist to Firebase
+    try:
+        firebase_db._fb_ref and firebase_db._fb_ref.child('ai_flags').child(patient_id).push(flag) if firebase_db.ready else None
+    except Exception:
+        pass
 
     return {"status": "flagged", "patient_id": patient_id, "topic": topic, "priority": priority}
 
@@ -3958,6 +3988,115 @@ async def get_patient_conversations(
         })
 
     return {"patient_id": patient_id, "sessions": list(reversed(summaries))}
+
+
+# ── Cycle Event Endpoints ───────────────────────────────────────────
+
+@app.post("/patient/{patient_id}/cycle-events")
+async def save_cycle_event(patient_id: str, request: Request):
+    """Save a cycle event for a patient."""
+    body = await request.json()
+    event_id = body.get("id", f"evt_{utc_iso().replace(':', '').replace('-', '')[:12]}")
+    event = {
+        "id": event_id,
+        "date": body.get("date", ""),
+        "type": body.get("type", "other"),
+        "label": body.get("label", ""),
+        "notes": body.get("notes", ""),
+        "time": body.get("time", ""),
+        "recurring": body.get("recurring", False),
+        "source": body.get("source", "patient"),
+        "created_at": utc_iso(),
+    }
+    try:
+        if firebase_db.ready:
+            firebase_db._fb_ref.child('cycle_events').child(patient_id).child(event_id).set(event)
+    except Exception as e:
+        logger.warning(f"Cycle event save failed: {e}")
+    return {"status": "saved", "event": event}
+
+
+@app.get("/patient/{patient_id}/cycle-events")
+async def list_cycle_events(patient_id: str):
+    """List cycle events for a patient."""
+    events = []
+    try:
+        if firebase_db.ready:
+            result = firebase_db._fb_ref.child('cycle_events').child(patient_id).get()
+            if result and isinstance(result, dict):
+                events = list(result.values())
+    except Exception:
+        pass
+    return {"patient_id": patient_id, "events": sorted(events, key=lambda e: e.get("date", ""))}
+
+
+@app.delete("/patient/{patient_id}/cycle-events/{event_id}")
+async def delete_cycle_event(patient_id: str, event_id: str):
+    """Delete a cycle event."""
+    try:
+        if firebase_db.ready:
+            firebase_db._fb_ref.child('cycle_events').child(patient_id).child(event_id).remove()
+    except Exception as e:
+        logger.warning(f"Cycle event delete failed: {e}")
+    return {"status": "deleted", "event_id": event_id}
+
+
+@app.post("/clinician/patient/{patient_id}/add-cycle-event")
+async def clinician_add_cycle_event(
+    patient_id: str,
+    request: Request,
+    x_api_key: str = Header(None),
+):
+    """Clinician adds a cycle event for a patient."""
+    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    body = await request.json()
+    body["source"] = "clinician"
+    event_id = body.get("id", f"evt_{utc_iso().replace(':', '').replace('-', '')[:12]}")
+    event = {
+        "id": event_id,
+        "date": body.get("date", ""),
+        "type": body.get("type", "other"),
+        "label": body.get("label", ""),
+        "notes": body.get("notes", ""),
+        "time": body.get("time", ""),
+        "source": "clinician",
+        "created_at": utc_iso(),
+    }
+    try:
+        if firebase_db.ready:
+            firebase_db._fb_ref.child('cycle_events').child(patient_id).child(event_id).set(event)
+    except Exception as e:
+        logger.warning(f"Clinician cycle event save failed: {e}")
+    return {"status": "saved", "event": event}
+
+
+@app.get("/patient/{patient_id}/checkin-history")
+async def get_checkin_history(patient_id: str):
+    """Get check-in history grouped by date for calendar display."""
+    checkins = checkins_db.get(patient_id, [])
+    by_date = {}
+    for ci in checkins:
+        date_str = ci.get("date", "")[:10]
+        if date_str:
+            if date_str not in by_date:
+                by_date[date_str] = []
+            by_date[date_str].append({
+                "mood": ci.get("mood", 5),
+                "anxiety": ci.get("anxiety", 5),
+                "hope": ci.get("hope", 5),
+                "time": ci.get("date", "")[11:16],
+            })
+    # Compute daily averages
+    daily = {}
+    for date_str, cis in by_date.items():
+        avg_mood = sum(c["mood"] for c in cis) / len(cis)
+        daily[date_str] = {
+            "avg_mood": round(avg_mood, 1),
+            "checkin_count": len(cis),
+            "checkins": cis,
+        }
+    return {"patient_id": patient_id, "daily": daily}
 
 
 @app.get("/clinician/patient/{patient_id}/phenotype-history", dependencies=[Depends(verify_clinician_api_key)])
@@ -4642,6 +4781,67 @@ async def get_passive_summary(patient_id: str):
         "patient_id": patient_id,
         "summary": summary,
     }
+
+
+# ── Behavioral Pattern Analysis ─────────────────────────────────────
+
+def analyze_behavioral_patterns(weekly_behavior: list) -> list:
+    """Analyze weekly session behavior for clinical flags."""
+    flags = []
+    if not weekly_behavior or len(weekly_behavior) < 2:
+        return flags
+
+    recent_3 = weekly_behavior[-3:] if len(weekly_behavior) >= 3 else weekly_behavior
+    prior = weekly_behavior[:-3] if len(weekly_behavior) > 3 else []
+
+    # WITHDRAWAL: sessions dropped >50%
+    if prior:
+        prior_avg = sum(d.get("sessions", 0) for d in prior) / len(prior)
+        recent_avg = sum(d.get("sessions", 0) for d in recent_3) / len(recent_3)
+        if prior_avg > 0 and recent_avg < prior_avg * 0.5:
+            flags.append({
+                "flag": "WITHDRAWAL",
+                "severity": "moderate",
+                "evidence": f"Sessions dropped from avg {prior_avg:.0f}/day to {recent_avg:.0f}/day",
+                "recommendation": "Consider gentle re-engagement nudge",
+            })
+
+    # INSOMNIA_PATTERN: >2 sessions between 11pm-4am in last 3 days
+    late_count = 0
+    for d in recent_3:
+        for h in d.get("hours", []):
+            if h >= 23 or h < 4:
+                late_count += 1
+    if late_count >= 2:
+        flags.append({
+            "flag": "INSOMNIA_PATTERN",
+            "severity": "moderate",
+            "evidence": f"{late_count} late-night sessions in last 3 days",
+            "recommendation": "Consider asking about sleep in next interaction",
+        })
+
+    # AVOIDANCE: no check-ins for 3+ days despite app opens
+    no_checkin_days = sum(1 for d in recent_3 if d.get("sessions", 0) > 0 and d.get("checkins", 0) == 0)
+    if no_checkin_days >= 3:
+        flags.append({
+            "flag": "AVOIDANCE",
+            "severity": "low",
+            "evidence": f"Opened app {no_checkin_days} days without checking in",
+            "recommendation": "Patient may be avoiding emotional engagement",
+        })
+
+    # HYPER_ENGAGEMENT: >6 sessions per day
+    for d in recent_3:
+        if d.get("sessions", 0) > 6:
+            flags.append({
+                "flag": "HYPER_ENGAGEMENT",
+                "severity": "low",
+                "evidence": f"{d['sessions']} sessions on {d.get('date', 'recent day')}",
+                "recommendation": "May indicate anxiety-driven checking behavior",
+            })
+            break
+
+    return flags
 
 
 # ── Run ───────────────────────────────────────────────────────────────

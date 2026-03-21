@@ -1182,20 +1182,24 @@ ANZARD_CHARTS = {
 
 
 def match_anzard_charts(message: str, response_text: str, max_charts: int = 2) -> list[dict]:
-    """Match patient message + AI response against ANZARD chart triggers."""
+    """Match patient message + AI response against ANZARD chart triggers.
+    Requires at least one full phrase match (score >= 2) to avoid false positives.
+    """
     combined = (message + " " + response_text).lower()
     scored = []
     for key, chart in ANZARD_CHARTS.items():
         hits = 0
+        has_phrase_match = False
         for tag in chart["tags"]:
             if tag in combined:
                 hits += 2
+                has_phrase_match = True
             else:
                 tag_words = tag.split()
-                partial = sum(1 for w in tag_words if len(w) >= 3 and w in combined)
+                partial = sum(1 for w in tag_words if len(w) >= 4 and w in combined)
                 if partial > 0:
                     hits += partial
-        if hits > 0:
+        if hits >= 2 and has_phrase_match:
             scored.append((hits, key, chart))
     scored.sort(key=lambda x: -x[0])
     return [{"key": c["key"], "title": c["title"], "subtitle": c["subtitle"]} for _, _, c in scored[:max_charts]]
@@ -2920,10 +2924,13 @@ Mark this as delivered after including it in your response."""
 
     # Match Fertool interactive cards for education queries
     fertool_cards = None
-    anzard_charts = None
     if triage_category == 2:
         fertool_cards = match_fertool_cards(req.message, assistant_msg) or None
-        anzard_charts = match_anzard_charts(req.message, assistant_msg) or None
+
+    # ANZARD charts — match on ALL messages (not just triage 2)
+    anzard_charts = match_anzard_charts(req.message, assistant_msg) or None
+    if anzard_charts:
+        logger.info(f"[ANZARD] Detected charts for message: {[c['key'] for c in anzard_charts]}")
 
     # Capability hint for education responses
     cap_hint = None

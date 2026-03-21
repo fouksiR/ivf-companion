@@ -311,12 +311,9 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .egg-companion.active::before,.egg-companion.centered::before{opacity:0}
 @keyframes auraBreath{0%,100%{transform:scale(1);opacity:0}50%{transform:scale(1.08);opacity:1}}
 /* ── Sperm Buddy — minimal soft ────────────────────── */
-.sperm-buddy{position:absolute;width:16px;height:16px;pointer-events:none;opacity:0;z-index:49;will-change:transform,opacity;transition:opacity .8s ease}
+.sperm-buddy{position:absolute;width:38px;height:10px;pointer-events:none;opacity:0;z-index:49;will-change:transform,opacity;transition:opacity .8s ease}
 .sperm-buddy.swimming{opacity:.65}
-.sperm-head{width:6px;height:7px;background:radial-gradient(ellipse at 38% 32%,#faf6ef,#ede4d4);border-radius:50%;position:absolute;left:0;top:4px;box-shadow:0 0 4px rgba(237,228,212,.5)}
-.sperm-tail{position:absolute;left:6px;top:5.5px;width:22px;height:5px;overflow:visible}
-.sperm-tail svg{width:22px;height:5px}
-.sperm-tail path{stroke:#ddd5c4;stroke-width:1;fill:none;stroke-linecap:round;opacity:.7;animation:tailWave .9s ease-in-out infinite}
+.sperm-tail-path{animation:tailWave .9s ease-in-out infinite}
 @keyframes tailWave{0%{d:path('M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5')}50%{d:path('M0,2.5 C5,5 10,0 15,2.5 C18,4 21,1.5 24,2.5')}100%{d:path('M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5')}}
 /* ── Egg proximity glow ──────────────────────────────── */
 .egg-glow{position:absolute;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(122,172,172,.12),rgba(255,248,240,.08) 50%,transparent 72%);pointer-events:none;opacity:0;transition:opacity .8s ease;top:0;left:0;transform:translate(-50%,-50%)}
@@ -529,58 +526,79 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   </div>
   <svg id="eggSvg" width="64" height="84" viewBox="0 0 200 260">
     <defs>
-      <!-- Primary body gradient — warm ivory to blush beige, matte feel -->
-      <radialGradient id="egG" cx="42%" cy="32%" r="62%"><stop offset="0%" id="egS1" stop-color="#FFF8F0"/><stop offset="100%" id="egS2" stop-color="#F0E0CF"/></radialGradient>
-      <!-- Subtle 3D highlight — upper-left soft light -->
-      <radialGradient id="egHi" cx="32%" cy="25%" r="28%"><stop offset="0%" stop-color="rgba(255,255,255,0.55)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
-      <!-- Depth shadow — lower curve interior shadow -->
-      <radialGradient id="egDp" cx="50%" cy="85%" r="45%"><stop offset="0%" stop-color="rgba(180,160,140,.08)"/><stop offset="100%" stop-color="rgba(180,160,140,0)"/></radialGradient>
-      <!-- Rim light — subtle edge glow for 3D presence -->
-      <radialGradient id="egRim" cx="70%" cy="30%" r="50%"><stop offset="0%" stop-color="rgba(255,255,255,0)"/><stop offset="70%" stop-color="rgba(255,255,255,0)"/><stop offset="100%" stop-color="rgba(255,255,255,0.2)"/></radialGradient>
-      <!-- Shell cradle gradient -->
-      <radialGradient id="egCradle" cx="50%" cy="40%" r="55%"><stop offset="0%" stop-color="#f5ede4"/><stop offset="100%" stop-color="#e8ddd2"/></radialGradient>
+      <!-- Zona pellucida gradient — translucent golden ring -->
+      <radialGradient id="egG" cx="50%" cy="50%" r="50%"><stop offset="60%" id="egS1" stop-color="#e8daa0" stop-opacity="0.6"/><stop offset="100%" id="egS2" stop-color="#c8b870" stop-opacity="0.3"/></radialGradient>
+      <!-- Inner ooplasm gradient — warm creamy center with highlight -->
+      <radialGradient id="egHi" cx="42%" cy="38%" r="55%"><stop offset="0%" stop-color="#fffef0"/><stop offset="50%" stop-color="#fff8dc"/><stop offset="100%" stop-color="#fef3c8"/></radialGradient>
+      <!-- Glow gradient for mood-reactive outer glow -->
+      <radialGradient id="egGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f5e6c4" stop-opacity="0.35"/><stop offset="100%" stop-color="#f5e6c4" stop-opacity="0"/></radialGradient>
     </defs>
-    <!-- Shell cradle — subtle curved nest beneath egg -->
-    <ellipse cx="100" cy="236" rx="52" ry="10" fill="url(#egCradle)" opacity="0.5"/>
-    <path d="M56,232 Q100,248 144,232" stroke="#ddd2c6" stroke-width="0.8" fill="none" opacity="0.4"/>
-    <!-- Body — refined egg silhouette -->
-    <path id="egBody" d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#egG)" stroke="rgba(0,0,0,0.03)" stroke-width="0.5"/>
-    <!-- 3D depth layers -->
-    <ellipse cx="72" cy="75" rx="28" ry="40" fill="url(#egHi)" opacity="0.6"/>
-    <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#egDp)" opacity="1"/>
-    <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#egRim)" opacity="1"/>
-    <!-- Subtle inner warmth — barely visible warm center -->
-    <ellipse cx="100" cy="130" rx="35" ry="45" fill="rgba(245,220,195,.06)" opacity="1"/>
-    <!-- Face group — minimal, quiet, emotionally present -->
+    <!-- Outer glow — mood-reactive -->
+    <circle cx="100" cy="128" r="105" fill="url(#egGlow)" opacity="0.5" style="transition:opacity 1s"/>
+    <!-- Sun-like rays (hidden by default, shown during hope/happy) -->
+    <g id="egRays" opacity="0.3" style="transition:opacity 0.8s">
+      <line x1="100" y1="22" x2="100" y2="6" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="140" y1="32" x2="150" y2="18" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="168" y1="60" x2="180" y2="50" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="178" y1="98" x2="192" y2="94" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="178" y1="140" x2="192" y2="144" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="168" y1="178" x2="180" y2="188" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="140" y1="206" x2="150" y2="218" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="60" y1="32" x2="50" y2="18" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="32" y1="60" x2="20" y2="50" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="22" y1="98" x2="8" y2="94" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="22" y1="140" x2="8" y2="144" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="32" y1="178" x2="20" y2="188" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
+      <line x1="60" y1="206" x2="50" y2="218" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="100" y1="234" x2="100" y2="248" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+    <!-- Zona pellucida — outer translucent ring -->
+    <circle cx="100" cy="128" r="90" fill="url(#egG)" style="transition:r 0.12s"/>
+    <!-- Zona ring outline -->
+    <circle cx="100" cy="128" r="86" fill="none" stroke="#c8b870" stroke-width="1.5" opacity="0.25"/>
+    <circle cx="100" cy="128" r="76" fill="none" stroke="#c8b870" stroke-width="0.8" opacity="0.15" stroke-dasharray="3 4"/>
+    <!-- Perivitelline space — subtle gap -->
+    <circle cx="100" cy="128" r="75" fill="rgba(255,255,240,0.3)"/>
+    <!-- Ooplasm — inner cell body (this is egBody, deformed during squish) -->
+    <circle id="egBody" cx="100" cy="128" r="73" fill="url(#egHi)" style="transition:r 0.12s"/>
+    <!-- Granular texture dots -->
+    <circle cx="78" cy="140" r="2" fill="#e8daa0" opacity="0.15"/>
+    <circle cx="118" cy="115" r="1.5" fill="#e8daa0" opacity="0.1"/>
+    <circle cx="125" cy="148" r="1.8" fill="#e8daa0" opacity="0.12"/>
+    <!-- Highlight / shine -->
+    <ellipse cx="82" cy="105" rx="22" ry="14" fill="#fff" opacity="0.25" transform="rotate(-20 82 105)"/>
+    <!-- Polar body — tiny circle on the zona -->
+    <circle cx="112" cy="42" r="4" fill="#fef3c8" stroke="#c8b870" stroke-width="0.8" opacity="0.6"/>
+    <!-- Face group — same IDs preserved for animation system -->
     <g id="egFace" transform="translate(0,10)">
       <!-- Eyebrows (hidden default — appear during check-in) -->
-      <path id="egBrowL" d="M66,105 Q72,103 82,105" stroke="#8a8078" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
-      <path id="egBrowR" d="M118,105 Q128,103 134,105" stroke="#8a8078" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
-      <!-- Eyes — small, calm, aware (3.5rx vs old 4.5) -->
-      <ellipse id="egEyeL" cx="82" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
-      <ellipse id="egEyeR" cx="118" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
-      <!-- Eye shine — tiny warm highlights -->
+      <path id="egBrowL" d="M66,105 Q72,103 82,105" stroke="#666" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
+      <path id="egBrowR" d="M118,105 Q128,103 134,105" stroke="#666" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
+      <!-- Eyes — small, calm dots -->
+      <ellipse id="egEyeL" cx="82" cy="118" rx="3.2" ry="3.5" fill="#555"/>
+      <ellipse id="egEyeR" cx="118" cy="118" rx="3.2" ry="3.5" fill="#555"/>
+      <!-- Eye shine — tiny highlights -->
       <circle id="egShineL" cx="80.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
       <circle id="egShineR" cx="116.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
       <!-- Tear drops (hidden by default) -->
       <path id="egTearL" d="M76,124 Q74.5,131 76,136 Q77.5,131 76,124Z" fill="#a8c8d8" opacity="0"/>
       <path id="egTearR" d="M124,124 Q122.5,131 124,136 Q125.5,131 124,124Z" fill="#a8c8d8" opacity="0"/>
-      <!-- Sweat drop (anxiety) — muted -->
+      <!-- Sweat drop (anxiety) -->
       <path id="egSweat" d="M138,103 Q136.5,109 138,114 Q139.5,109 138,103Z" fill="#b8d0dc" opacity="0"/>
       <!-- Dizzy spirals (uncertainty) -->
       <path id="egSpiralL" d="M82,118 C78,114 86,112 84,118 C82,122 77,117 82,118" stroke="#a09890" fill="none" stroke-width="0.8" opacity="0"/>
       <path id="egSpiralR" d="M118,118 C114,114 122,112 120,118 C118,122 113,117 118,118" stroke="#a09890" fill="none" stroke-width="0.8" opacity="0"/>
-      <!-- Star sparkles (hope) — subtle dusty teal -->
+      <!-- Star sparkles (hope) -->
       <g id="egStars" opacity="0">
-        <circle cx="58" cy="100" r="2" fill="#7aacac" opacity=".6"/>
-        <circle cx="142" cy="98" r="1.5" fill="#7aacac" opacity=".5"/>
-        <circle cx="100" cy="86" r="1.2" fill="#7aacac" opacity=".4"/>
+        <circle cx="58" cy="100" r="2" fill="#D4A843" opacity=".6"/>
+        <circle cx="142" cy="98" r="1.5" fill="#D4A843" opacity=".5"/>
+        <circle cx="100" cy="86" r="1.2" fill="#D4A843" opacity=".4"/>
       </g>
-      <!-- Cheeks — soft warm blush, barely visible -->
-      <ellipse class="eg-cheek" cx="68" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
-      <ellipse class="eg-cheek" cx="132" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
-      <!-- Mouth — small, gentle, quiet smile -->
-      <path id="egMouth" d="M92,138 Q100,144 108,138" stroke="#8a8078" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+      <!-- Blush cheeks — warm coral, mood-reactive -->
+      <ellipse class="eg-cheek" cx="68" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
+      <ellipse class="eg-cheek" cx="132" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
+      <!-- Mouth — gentle quiet smile -->
+      <path id="egMouth" d="M92,138 Q100,144 108,138" stroke="#666" fill="none" stroke-width="1.2" stroke-linecap="round"/>
     </g>
   </svg>
   <div class="egg-glow" id="eggGlow"></div>
@@ -1698,7 +1716,7 @@ var spermActive=false;
 function createSpermEl(){
   var el=document.createElement('div');
   el.className='sperm-buddy';
-  el.innerHTML='<div class="sperm-head"></div><div class="sperm-tail"><svg viewBox="0 0 24 5"><path d="M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5"/></svg></div>';
+  el.innerHTML='<svg width="38" height="10" viewBox="0 0 38 10" style="overflow:visible"><ellipse cx="5" cy="5" rx="5" ry="3.5" fill="rgba(255,255,255,0.85)" stroke="rgba(45,142,142,0.3)" stroke-width="0.8"/><path d="M10,5 C14,2 18,8 22,5 C25,3 28,7 31,5 C33,4 35,6 38,5" stroke="rgba(45,142,142,0.35)" stroke-width="1.2" fill="none" stroke-linecap="round" class="sperm-tail-path"/></svg>';
   return el;
 }
 

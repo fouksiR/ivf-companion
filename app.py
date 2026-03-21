@@ -1116,6 +1116,91 @@ def match_fertool_cards(message: str, response_text: str, max_cards: int = 2) ->
     ]
 
 
+# ── ANZARD 2023 Infographic Charts ───────────────────────────────────
+# Source: Kotevski DP et al. 2025. ART in Australia and New Zealand 2023. NPESU, UNSW Sydney.
+
+ANZARD_CHARTS = {
+    "age_outcomes": {
+        "key": "age_outcomes",
+        "title": "What are my chances by age?",
+        "subtitle": "Live birth rate per initiated cycle, ANZARD 2023",
+        "tags": ["chances", "success rate", "what are my chances", "how likely", "ivf success",
+                 "live birth rate", "does age matter", "too old", "age", "over 40", "over 35",
+                 "under 30", "chances at", "success at my age"],
+    },
+    "cumulative": {
+        "key": "cumulative",
+        "title": "Does persistence pay off?",
+        "subtitle": "Cumulative live birth rate over multiple cycles",
+        "tags": ["how many cycles", "how many rounds", "keep trying", "cumulative",
+                 "multiple cycles", "first cycle", "second cycle", "didn't work",
+                 "failed cycle", "should i try again", "persistence", "give up",
+                 "chances over time", "stop trying"],
+    },
+    "fresh_vs_frozen": {
+        "key": "fresh_vs_frozen",
+        "title": "Fresh vs Frozen embryo transfers",
+        "subtitle": "Autologous cycle outcomes, 2023",
+        "tags": ["fresh", "frozen", "freeze all", "freeze my embryos", "fet",
+                 "should i freeze", "vitrification", "better fresh or frozen",
+                 "thaw cycle", "frozen embryo transfer"],
+    },
+    "causes": {
+        "key": "causes",
+        "title": "Why people seek fertility treatment",
+        "subtitle": "Cause of infertility, female-male couples, 2023",
+        "tags": ["why infertile", "cause of infertility", "unexplained infertility",
+                 "male factor", "is it me or my partner", "whose fault",
+                 "why isn't it working", "common causes", "can't get pregnant"],
+    },
+    "baby_outcomes": {
+        "key": "baby_outcomes",
+        "title": "Healthy baby outcomes",
+        "subtitle": "Over 20,000 babies born via ART in 2023",
+        "tags": ["healthy baby", "ivf baby", "birth defects", "preterm", "premature",
+                 "birthweight", "twins", "multiple", "is ivf safe", "risks to baby",
+                 "baby outcomes", "are ivf babies normal", "worried about baby"],
+    },
+    "trends": {
+        "key": "trends",
+        "title": "IVF success is improving over time",
+        "subtitle": "Live birth rate per embryo transfer, 2019–2023",
+        "tags": ["getting better", "improving", "trends", "over time", "better than before",
+                 "technology", "compared to years ago", "has ivf improved", "advances",
+                 "new techniques"],
+    },
+    "egg_freezing_stats": {
+        "key": "egg_freezing_stats",
+        "title": "Egg freezing is surging",
+        "subtitle": "Fertility preservation cycles, 2023",
+        "tags": ["egg freezing", "freeze my eggs", "fertility preservation",
+                 "social freezing", "not ready", "don't have a partner",
+                 "oocyte cryopreservation", "should i freeze my eggs",
+                 "what age to freeze", "is egg freezing worth it"],
+    },
+}
+
+
+def match_anzard_charts(message: str, response_text: str, max_charts: int = 2) -> list[dict]:
+    """Match patient message + AI response against ANZARD chart triggers."""
+    combined = (message + " " + response_text).lower()
+    scored = []
+    for key, chart in ANZARD_CHARTS.items():
+        hits = 0
+        for tag in chart["tags"]:
+            if tag in combined:
+                hits += 2
+            else:
+                tag_words = tag.split()
+                partial = sum(1 for w in tag_words if len(w) >= 3 and w in combined)
+                if partial > 0:
+                    hits += partial
+        if hits > 0:
+            scored.append((hits, key, chart))
+    scored.sort(key=lambda x: -x[0])
+    return [{"key": c["key"], "title": c["title"], "subtitle": c["subtitle"]} for _, _, c in scored[:max_charts]]
+
+
 # ── In-Memory Patient Store (Phase 1 — will move to PostgreSQL) ──────
 
 patients_db: dict = {}
@@ -1621,6 +1706,7 @@ class ChatResponse(BaseModel):
     one_word_checkin: Optional[dict] = None  # If message was mapped as a one-word check-in
     education_fork: Optional[str] = None  # Clarifying question for education queries
     capability_hint: Optional[str] = None  # Contextual capability discovery hint
+    anzard_charts: Optional[list] = None  # ANZARD 2023 infographic charts to show
     query_id: str = ""
 
 class CheckInRequest(BaseModel):
@@ -2834,8 +2920,10 @@ Mark this as delivered after including it in your response."""
 
     # Match Fertool interactive cards for education queries
     fertool_cards = None
+    anzard_charts = None
     if triage_category == 2:
         fertool_cards = match_fertool_cards(req.message, assistant_msg) or None
+        anzard_charts = match_anzard_charts(req.message, assistant_msg) or None
 
     # Capability hint for education responses
     cap_hint = None
@@ -2863,6 +2951,7 @@ Mark this as delivered after including it in your response."""
         one_word_checkin=one_word_checkin,
         education_fork=education_fork,
         capability_hint=cap_hint,
+        anzard_charts=anzard_charts,
         query_id=query_id,
     )
 

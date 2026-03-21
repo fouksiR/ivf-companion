@@ -1030,38 +1030,49 @@ EDUCATION_TOPICS = {
 
 FERTOOL_CARDS = {
     "amh": {
-        "title": "AMH Guide — Interactive Normogram",
-        "description": "See where your AMH sits for your age, with percentile curves",
+        "title": "Your AMH Explained",
+        "description": "Interactive normogram — see where your AMH sits for your age",
         "url": "https://fouksir.github.io/Fertool/amh-guide.html",
         "icon": "\U0001f4ca",
-        "tags": ["amh", "ovarian reserve", "egg count", "anti-mullerian", "hormone levels", "amh level"],
+        "embed": True,
+        "tags": ["amh", "ovarian reserve", "egg count", "anti-mullerian",
+                 "hormone levels", "reserve", "how many eggs", "egg reserve",
+                 "low amh", "high amh", "pcos", "amh level"],
     },
     "egg_freezing": {
-        "title": "Egg Freezing Calculator",
-        "description": "Explore success rates based on your age and number of eggs frozen",
+        "title": "Egg Freezing Outcomes",
+        "description": "Success rates based on your age and number of eggs",
         "url": "https://fouksir.github.io/Fertool/egg-freezing-calculator.html",
         "icon": "\u2744\ufe0f",
-        "tags": ["egg freezing", "freeze", "cryopreservation", "oocyte", "fertility preservation", "social freezing"],
+        "embed": True,
+        "tags": ["egg freezing", "freeze", "cryopreservation", "oocyte",
+                 "fertility preservation", "social freezing", "how many eggs to freeze",
+                 "success rate", "live birth chance", "egg freeze success"],
     },
     "endometriosis": {
         "title": "Endometriosis & Fertility",
-        "description": "Understand how endometriosis affects fertility and your options",
+        "description": "Understanding how endometriosis affects your fertility",
         "url": "https://fouksir.github.io/Fertool/endometriosis-landing.html",
         "icon": "\U0001f52c",
-        "tags": ["endometriosis", "endo", "adenomyosis", "chocolate cyst", "endometrioma"],
+        "embed": True,
+        "tags": ["endometriosis", "endo", "pain", "adenomyosis", "chocolate cyst",
+                 "endometrioma", "endo and fertility", "stage 3", "stage 4", "deep endo"],
     },
     "fertility_assessment": {
-        "title": "Fertility Assessment Tool",
+        "title": "Fertility Assessment",
         "description": "Interactive assessment to understand your fertility picture",
         "url": "https://fouksir.github.io/Fertool/fertility-assessment.html",
         "icon": "\U0001f4cb",
-        "tags": ["assessment", "fertility check", "workup", "testing", "evaluation", "investigation"],
+        "embed": True,
+        "tags": ["assessment", "fertility check", "workup", "testing", "evaluation",
+                 "what tests do i need", "investigation", "blood test", "scan"],
     },
     "fertool_search": {
         "title": "Search Fertool Knowledge Base",
         "description": "Search our clinical fertility database for detailed information",
         "url": "https://fouksir.github.io/Fertool/index.html",
         "icon": "\U0001f50d",
+        "embed": False,
         "tags": ["fertool", "search", "lookup"],
     },
 }
@@ -1070,19 +1081,36 @@ FERTOOL_CARDS = {
 def match_fertool_cards(message: str, response_text: str, max_cards: int = 2) -> list[dict]:
     """Match patient message + AI response against Fertool card tags.
 
-    Returns up to max_cards matching cards, sorted by relevance (number
-    of tag hits). Only call this for triage category 2 (education).
+    Returns up to max_cards matching cards, sorted by relevance.
+    Uses partial word matching for broader coverage.
+    Only call this for triage category 2 (education).
     """
     combined = (message + " " + response_text).lower()
     scored = []
     for key, card in FERTOOL_CARDS.items():
-        hits = sum(1 for tag in card["tags"] if tag in combined)
+        hits = 0
+        for tag in card["tags"]:
+            # Exact phrase match
+            if tag in combined:
+                hits += 2
+            else:
+                # Partial word matching — each word in tag checked individually
+                tag_words = tag.split()
+                partial_hits = sum(1 for w in tag_words if len(w) >= 3 and w in combined)
+                if partial_hits > 0:
+                    hits += partial_hits
         if hits > 0:
             scored.append((hits, key, card))
 
     scored.sort(key=lambda x: -x[0])
     return [
-        {"title": c["title"], "description": c["description"], "url": c["url"], "icon": c["icon"]}
+        {
+            "title": c["title"],
+            "description": c["description"],
+            "url": c["url"],
+            "icon": c["icon"],
+            "embed": c.get("embed", False),
+        }
         for _, _, c in scored[:max_cards]
     ]
 

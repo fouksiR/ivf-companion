@@ -1261,6 +1261,102 @@ function renderAssessmentChecklist(card){
   el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+html+'</div><div class="ft-widget-footer"><span>Tap each item for details</span><a href="'+escHtml(card.url)+'" target="_blank">Full assessment \u2192</a></div>';
   return el;
 }
+/* ═══ ANZARD 2023 INFOGRAPHIC CHARTS ═══════════════════════════════ */
+function renderAnzardChart(key){
+  var fn={age_outcomes:renderAnzardAge,cumulative:renderAnzardCumulative,fresh_vs_frozen:renderAnzardFreshFrozen,causes:renderAnzardCauses,baby_outcomes:renderAnzardBaby,trends:renderAnzardTrends,egg_freezing_stats:renderAnzardEggFreeze};
+  return fn[key]?fn[key]():null;
+}
+function _anzardCard(title,subtitle,body,source){
+  var el=document.createElement('div');el.className='ft-widget';
+  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">📊</span>'+escHtml(title)+'</div><div style="padding:0 16px 2px;font-size:11px;color:var(--text-soft)">'+escHtml(subtitle)+'</div><div class="ft-widget-body">'+body+'</div><div class="ft-widget-footer"><span>'+escHtml(source||'Source: ANZARD 2023 Report (NPESU, UNSW Sydney)')+'</span></div>';
+  return el;
+}
+function renderAnzardAge(){
+  var data=[{age:'<30',fresh:25.0,thaw:37.8},{age:'30–34',fresh:24.8,thaw:37.8},{age:'35–39',fresh:15.7,thaw:33.0},{age:'40–44',fresh:4.8,thaw:22.4},{age:'45+',fresh:0.9,thaw:12.6}];
+  var maxV=40;var W=300,H=180,pl=36,pr=10,pt=10,pb=30;var cw=W-pl-pr,ch=H-pt-pb;
+  var bw=cw/data.length*0.35;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-height:200px;display:block" xmlns="http://www.w3.org/2000/svg">';
+  // Grid
+  [0,10,20,30,40].forEach(function(v){var y=pt+ch-(v/maxV)*ch;svg+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eee" stroke-width=".5"/>';svg+='<text x="'+(pl-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'%</text>'});
+  data.forEach(function(d,i){
+    var x=pl+(i+0.5)*cw/data.length;
+    var hF=(d.fresh/maxV)*ch,hT=(d.thaw/maxV)*ch;
+    svg+='<rect x="'+(x-bw-1)+'" y="'+(pt+ch-hF)+'" width="'+bw+'" height="'+hF+'" rx="3" fill="#2dd4bf"/>';
+    svg+='<rect x="'+(x+1)+'" y="'+(pt+ch-hT)+'" width="'+bw+'" height="'+hT+'" rx="3" fill="#0f766e"/>';
+    svg+='<text x="'+x+'" y="'+(H-pb+14)+'" text-anchor="middle" font-size="9" fill="#666" font-family="DM Sans,sans-serif">'+d.age+'</text>';
+  });
+  svg+='</svg>';
+  svg+='<div style="display:flex;gap:14px;justify-content:center;font-size:11px;color:#666;margin-top:4px"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#2dd4bf;display:inline-block"></span>Fresh</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#0f766e;display:inline-block"></span>Frozen</span></div>';
+  svg+='<div class="ft-result" style="display:block;margin-top:8px"><strong>Key:</strong> Age is the strongest predictor of IVF success. Frozen cycles generally outperform fresh on a per-cycle basis.</div>';
+  return _anzardCard('What are my chances by age?','Live birth rate per initiated cycle, 2023',svg);
+}
+function renderAnzardCumulative(){
+  var data=[{c:1,all:39},{c:2,all:51.4},{c:3,all:56.3},{c:4,all:58.3},{c:5,all:59.3},{c:6,all:59.7}];
+  var W=300,H=160,pl=36,pr=10,pt=10,pb=28;var cw=W-pl-pr,ch=H-pt-pb;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-height:180px;display:block" xmlns="http://www.w3.org/2000/svg">';
+  [0,20,40,60,80].forEach(function(v){var y=pt+ch-(v/80)*ch;svg+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eee" stroke-width=".5"/>';svg+='<text x="'+(pl-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'%</text>'});
+  // Area fill
+  var path='M';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var y=pt+ch-(d.all/80)*ch;path+=(i?'L':'')+ x+','+y});
+  path+='L'+(pl+(data.length-1)*cw/(data.length-1))+','+(pt+ch)+'L'+pl+','+(pt+ch)+'Z';
+  svg+='<path d="'+path+'" fill="#14b8a6" opacity=".12"/>';
+  // Line
+  var line='';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var y=pt+ch-(d.all/80)*ch;line+=(i?'L':'M')+x+','+y;svg+='<circle cx="'+x+'" cy="'+y+'" r="3.5" fill="#0d9488" stroke="white" stroke-width="1.5"/>';svg+='<text x="'+x+'" y="'+(y-8)+'" text-anchor="middle" font-size="9" fill="#0d9488" font-weight="700" font-family="DM Sans,sans-serif">'+d.all+'%</text>'});
+  svg+='<path d="'+line+'" fill="none" stroke="#0d9488" stroke-width="2.5"/>';
+  data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);svg+='<text x="'+x+'" y="'+(H-pb+13)+'" text-anchor="middle" font-size="9" fill="#666" font-family="DM Sans,sans-serif">Cycle '+d.c+'</text>'});
+  svg+='</svg>';
+  svg+='<div class="ft-result" style="display:block;margin-top:8px"><strong>39%</strong> succeed on cycle 1. By cycle 6, nearly <strong>60%</strong> have had a baby. Each cycle adds meaningful chance.</div>';
+  return _anzardCard('Does persistence pay off?','Cumulative live birth rate over multiple cycles',svg);
+}
+function renderAnzardFreshFrozen(){
+  var rows=[{label:'Live birth per ET',fresh:'25.4%',frozen:'33.0%'},{label:'Clinical pregnancy per ET',fresh:'33.0%',frozen:'40.8%'},{label:'Live birth per initiated cycle',fresh:'14.5%',frozen:'32.6%'}];
+  var html='<div style="display:flex;flex-direction:column;gap:8px">';
+  rows.forEach(function(r){html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f0fdfa;border-radius:12px"><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800;color:#2dd4bf">'+r.fresh+'</div><div style="font-size:10px;color:#0d9488;font-weight:600">Fresh</div></div><div style="flex:1.5;text-align:center;font-size:11px;font-weight:700;color:#0f766e;line-height:1.3">'+r.label+'</div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800;color:#0f766e">'+r.frozen+'</div><div style="font-size:10px;color:#0d9488;font-weight:600">Frozen ❄️</div></div></div>'});
+  html+='</div>';
+  html+='<div class="ft-result" style="display:block;margin-top:8px"><strong>71.5%</strong> of all ART live births in 2023 came from frozen cycles. Modern vitrification makes frozen embryos highly successful.</div>';
+  return _anzardCard('Fresh vs Frozen embryo transfers','Autologous cycle outcomes, 2023',html);
+}
+function renderAnzardCauses(){
+  var data=[{name:'Female factors',pct:44.4,color:'#0d9488'},{name:'Unexplained',pct:24.5,color:'#5eead4'},{name:'Combined F+M',pct:15.2,color:'#14b8a6'},{name:'Male factor',pct:10.4,color:'#99f6e4'},{name:'Not infertility',pct:5.4,color:'#ccfbf1'}];
+  var html='<div style="display:flex;flex-direction:column;gap:6px">';
+  data.forEach(function(d){html+='<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:'+d.color+';flex-shrink:0"></div><div style="flex:1;font-size:12px;font-weight:600;color:#115e59">'+d.name+'</div><div style="font-size:14px;font-weight:800;color:'+d.color+'">'+d.pct+'%</div><div style="flex:2;height:8px;background:#f0fdfa;border-radius:4px;overflow:hidden"><div style="width:'+d.pct+'%;height:100%;background:'+d.color+';border-radius:4px"></div></div></div>'});
+  html+='</div>';
+  html+='<div class="ft-result" style="display:block;margin-top:8px">Nearly <strong>1 in 4</strong> couples have unexplained infertility — no clear cause found. This is common and doesn\'t mean treatment won\'t work.</div>';
+  return _anzardCard('Why people seek fertility treatment','Cause of infertility, female-male couples, 2023',html);
+}
+function renderAnzardBaby(){
+  var stats=[{v:'83%',l:'Full-term, normal weight',e:'💚'},{v:'20,174',l:'Liveborn babies in 2023',e:'👣'},{v:'2.2%',l:'Multiple birth rate',e:'👯'},{v:'3,262g',l:'Average birthweight',e:'⚖️'},{v:'38 wks',l:'Median gestational age',e:'📅'},{v:'6.3%',l:'Of all AU births are ART',e:'🏥'}];
+  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+  stats.forEach(function(s){html+='<div style="text-align:center;padding:10px 6px;background:linear-gradient(160deg,#f0fdfa,#ccfbf120);border-radius:12px"><div style="font-size:16px;margin-bottom:2px">'+s.e+'</div><div style="font-size:18px;font-weight:800;color:#0d9488">'+s.v+'</div><div style="font-size:9px;color:#0f766e;font-weight:600;margin-top:2px;line-height:1.2">'+s.l+'</div></div>'});
+  html+='</div>';
+  html+='<div class="ft-result" style="display:block;margin-top:8px">The vast majority of IVF babies are born healthy. Slightly higher preterm rates are partly explained by older average maternal age (36 vs 31 years).</div>';
+  return _anzardCard('Healthy baby outcomes','Over 20,000 babies born via ART in 2023',html);
+}
+function renderAnzardTrends(){
+  var data=[{y:'2019',f:25.5,t:29.7},{y:'2020',f:25.4,t:31.2},{y:'2021',f:25.5,t:31.4},{y:'2022',f:25.9,t:32.1},{y:'2023',f:25.7,t:32.8}];
+  var W=300,H=150,pl=36,pr=10,pt=10,pb=25;var cw=W-pl-pr,ch=H-pt-pb;
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-height:170px;display:block" xmlns="http://www.w3.org/2000/svg">';
+  [20,24,28,32,36].forEach(function(v){var y=pt+ch-((v-20)/16)*ch;svg+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eee" stroke-width=".5"/>';svg+='<text x="'+(pl-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'%</text>'});
+  // Frozen line
+  var lineT='';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var y=pt+ch-((d.t-20)/16)*ch;lineT+=(i?'L':'M')+x+','+y;svg+='<circle cx="'+x+'" cy="'+y+'" r="3" fill="#0f766e" stroke="white" stroke-width="1.5"/>'});
+  svg+='<path d="'+lineT+'" fill="none" stroke="#0f766e" stroke-width="2.5"/>';
+  // Fresh line
+  var lineF='';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var y=pt+ch-((d.f-20)/16)*ch;lineF+=(i?'L':'M')+x+','+y;svg+='<circle cx="'+x+'" cy="'+y+'" r="2.5" fill="#5eead4" stroke="white" stroke-width="1"/>'});
+  svg+='<path d="'+lineF+'" fill="none" stroke="#5eead4" stroke-width="2"/>';
+  data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);svg+='<text x="'+x+'" y="'+(H-pb+12)+'" text-anchor="middle" font-size="9" fill="#666" font-family="DM Sans,sans-serif">'+d.y+'</text>'});
+  svg+='</svg>';
+  svg+='<div style="display:flex;gap:14px;justify-content:center;font-size:11px;color:#666;margin-top:4px"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;border-radius:2px;background:#5eead4;display:inline-block"></span>Fresh ET</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;border-radius:2px;background:#0f766e;display:inline-block"></span>Frozen ET</span></div>';
+  svg+='<div class="ft-result" style="display:block;margin-top:8px">Frozen embryo transfer success has improved steadily — from 29.7% in 2019 to <strong>32.8%</strong> in 2023.</div>';
+  return _anzardCard('IVF success is improving over time','Live birth rate per embryo transfer, 2019–2023',svg);
+}
+function renderAnzardEggFreeze(){
+  var html='<div style="text-align:center;padding:8px 0"><div style="font-size:42px;font-weight:900;background:linear-gradient(135deg,#0d9488,#2dd4bf);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1">8,827</div><div style="font-size:13px;font-weight:700;color:#0f766e;margin-top:4px">fertility preservation cycles in 2023</div><div style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#dcfce7,#d1fae5);padding:5px 12px;border-radius:16px;margin-top:8px"><span style="font-size:14px">⬆️</span><span style="font-size:13px;font-weight:800;color:#166534">+27.9% from 2022</span></div></div>';
+  html+='<div style="display:flex;gap:6px;margin-top:12px">';
+  [{pct:'53.9%',l:'Medical reasons',c:'#0d9488'},{pct:'38.1%',l:'Non-medical (social)',c:'#fbbf6a'},{pct:'8.1%',l:'Cancer diagnosis',c:'#f97066'}].forEach(function(d){html+='<div style="flex:1;text-align:center;padding:8px 4px;background:'+d.c+'12;border-radius:10px;border-left:3px solid '+d.c+'"><div style="font-size:18px;font-weight:800;color:'+d.c+'">'+d.pct+'</div><div style="font-size:9px;color:#0f766e;font-weight:600;margin-top:2px;line-height:1.2">'+d.l+'</div></div>'});
+  html+='</div>';
+  html+='<div class="ft-result" style="display:block;margin-top:8px">Egg freezing grew <strong>28%</strong> in one year. Over a third freeze for non-medical reasons — most commonly not having a partner yet.</div>';
+  return _anzardCard('Egg freezing is surging','Fertility preservation cycles, 2023',html);
+}
+/* ═══ END ANZARD CHARTS ════════════════════════════════════════════ */
 function switchTab(t){var prev=document.querySelector('.nav-item.active');var prevTab=prev?prev.textContent.trim().toLowerCase():'';
 document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));var idx=t==='chat'?1:t==='checkin'?2:t==='circle'?3:4;document.querySelector('.nav-item:nth-child('+idx+')').classList.add('active');document.getElementById('panel-'+t).classList.add('active');
 var fab=document.getElementById('communityFab');if(fab)fab.style.display=t==='circle'?'block':'none';

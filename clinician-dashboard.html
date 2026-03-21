@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Melod·AI — Clinician Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --white: #ffffff;
-            --off-white: #fafaf9;
+            --off-white: #f0f7f7;
             --warm-gray-50: #f5f4f2;
             --warm-gray-100: #eae8e4;
             --warm-gray-200: #d4d0ca;
@@ -39,8 +39,8 @@
             --shadow-sm: 0 1px 2px rgba(42,39,34,0.04);
             --shadow-md: 0 2px 8px rgba(42,39,34,0.06);
             --shadow-lg: 0 4px 16px rgba(42,39,34,0.08);
-            --serif: 'Cormorant Garamond', Georgia, serif;
-            --sans: 'Montserrat', -apple-system, sans-serif;
+            --serif: 'Playfair Display', Georgia, serif;
+            --sans: 'DM Sans', -apple-system, sans-serif;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -323,6 +323,15 @@
       <label>API Key</label>
       <input id="apiKey" type="password">
       <button class="btn-connect" onclick="startPolling()">Connect</button>
+      <hr style="margin:12px 0;border:none;border-top:1px solid #eee">
+      <label>Clinician Name</label>
+      <input id="clinicianName" type="text" value="Dr Fouks">
+      <label>Involvement Level</label>
+      <select id="involvementLevel"><option value="high">High — see everything</option><option value="moderate" selected>Moderate — daily digest + flags</option><option value="low">Low — RED alerts only</option></select>
+      <label>Response Window</label>
+      <select id="responseWindow"><option value="12">12 hours</option><option value="24" selected>24 hours</option><option value="48">48 hours</option></select>
+      <div style="margin-top:8px"><label style="display:flex;align-items:center;gap:6px;margin:4px 0"><input type="checkbox" id="prefDigest" checked> Daily digest</label><label style="display:flex;align-items:center;gap:6px;margin:4px 0"><input type="checkbox" id="prefFlags" checked> Immediate flags</label><label style="display:flex;align-items:center;gap:6px;margin:4px 0"><input type="checkbox" id="prefRedOnly"> RED alerts only</label></div>
+      <button class="btn-connect" style="margin-top:8px;width:100%" onclick="saveClinicianSettings()">Save Settings</button>
     </div>
     <div class="poll-info" id="pollInfo"></div>
   </div>
@@ -1015,6 +1024,29 @@ function timeAgo(ts) {
     if (d < 86400) return Math.floor(d / 3600) + 'h ago';
     return Math.floor(d / 86400) + 'd ago';
   } catch (e) { return ts; }
+}
+
+// Save clinician settings
+async function saveClinicianSettings() {
+  try {
+    await authFetch(API_BASE + '/clinician/settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clinician_id: 'default',
+        name: document.getElementById('clinicianName').value,
+        role: selectedRole,
+        default_involvement: document.getElementById('involvementLevel').value,
+        response_window_hours: parseInt(document.getElementById('responseWindow').value),
+        notification_preferences: {
+          daily_digest: document.getElementById('prefDigest').checked,
+          immediate_flags: document.getElementById('prefFlags').checked,
+          red_alerts_only: document.getElementById('prefRedOnly').checked
+        }
+      })
+    });
+    showToast('Settings saved');
+    document.getElementById('settingsDropdown').style.display = 'none';
+  } catch (e) { showToast('Failed to save settings', true); }
 }
 
 // INIT

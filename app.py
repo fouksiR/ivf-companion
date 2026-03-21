@@ -1078,28 +1078,27 @@ FERTOOL_CARDS = {
 }
 
 
-def match_fertool_cards(message: str, response_text: str, max_cards: int = 2) -> list[dict]:
+def match_fertool_cards(message: str, response_text: str, max_cards: int = 1) -> list[dict]:
     """Match patient message + AI response against Fertool card tags.
 
-    Returns up to max_cards matching cards, sorted by relevance.
-    Uses partial word matching for broader coverage.
-    Only call this for triage category 2 (education).
+    Returns up to max_cards (default 1) matching cards.
+    Requires at least one full phrase match to avoid false positives.
     """
     combined = (message + " " + response_text).lower()
     scored = []
     for key, card in FERTOOL_CARDS.items():
         hits = 0
+        has_phrase_match = False
         for tag in card["tags"]:
-            # Exact phrase match
             if tag in combined:
                 hits += 2
+                has_phrase_match = True
             else:
-                # Partial word matching — each word in tag checked individually
                 tag_words = tag.split()
-                partial_hits = sum(1 for w in tag_words if len(w) >= 3 and w in combined)
+                partial_hits = sum(1 for w in tag_words if len(w) >= 4 and w in combined)
                 if partial_hits > 0:
                     hits += partial_hits
-        if hits > 0:
+        if hits >= 2 and has_phrase_match:
             scored.append((hits, key, card))
 
     scored.sort(key=lambda x: -x[0])
@@ -2922,15 +2921,15 @@ Mark this as delivered after including it in your response."""
         elif escalation["level"] == "AMBER":
             escalation["alerts"].append("Alert: Nurse dashboard notification")
 
-    # Match Fertool interactive cards for education queries
-    fertool_cards = None
-    if triage_category == 2:
-        fertool_cards = match_fertool_cards(req.message, assistant_msg) or None
-
-    # ANZARD charts — match on ALL messages (not just triage 2)
+    # ANZARD charts — match on ALL messages, take priority over Fertool
     anzard_charts = match_anzard_charts(req.message, assistant_msg) or None
     if anzard_charts:
         logger.info(f"[ANZARD] Detected charts for message: {[c['key'] for c in anzard_charts]}")
+
+    # Match Fertool cards ONLY if no ANZARD charts matched (never show both)
+    fertool_cards = None
+    if not anzard_charts and triage_category == 2:
+        fertool_cards = match_fertool_cards(req.message, assistant_msg) or None
 
     # Capability hint for education responses
     cap_hint = None

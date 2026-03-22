@@ -10,16 +10,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#2D8E8E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--white:#FFF;--bg:#eaf9f4;--bg-warm:#fff9ed;--bg-top:#d4f1f1;--bg-mid:#e0f5f0;--bg-bot:#eaf9f4;--border:#E8E6E3;--border-light:rgba(45,142,142,0.1);--text:#1a3a3a;--text-mid:#3a7070;--text-soft:#6a9e9e;--text-faint:#b8e6e6;--accent:#2D8E8E;--accent-light:#b8e6e6;--accent-hover:#1e6b6b;--warm:#D4886B;--warm-light:#FDF3EF;--green:#6ec9a0;--green-light:#c8f0dd;--amber:#D4A843;--amber-light:#f5e6c4;--red:#C25D5D;--red-light:#FDF0F0;--gold:#D4A843;--gold-soft:#f5e6c4;--cream:#fff9ed;--blush:#f4a89a;--card-bg:rgba(255,255,255,0.75);--card-border:rgba(45,142,142,0.1);--shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 2px 12px rgba(0,0,0,.06);--shadow-lg:0 4px 24px rgba(0,0,0,.08);--radius:16px;--radius-sm:10px;--radius-xs:6px;--oocyte-outer:#c8b870;--oocyte-zona:#e8daa0;--oocyte-inner:#fef3c8;--oocyte-core:#fff8dc;--oocyte-highlight:#fffef0}
+:root{--white:#FFF;--bg:#FAFAFA;--bg-warm:#F8F7F5;--border:#E8E6E3;--border-light:#F0EEEC;--text:#1A1A1A;--text-mid:#5C5C5C;--text-soft:#999;--text-faint:#CCC;--accent:#2D8E8E;--accent-light:#E8F4F4;--accent-hover:#257676;--warm:#D4886B;--warm-light:#FDF3EF;--green:#5B9E5B;--green-light:#EDF5ED;--amber:#C4943D;--amber-light:#FFF8ED;--red:#C25D5D;--red-light:#FDF0F0;--shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 2px 12px rgba(0,0,0,.06);--shadow-lg:0 4px 24px rgba(0,0,0,.08);--radius:12px;--radius-sm:8px;--radius-xs:6px}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'DM Sans','Montserrat',-apple-system,sans-serif;background:linear-gradient(175deg,var(--bg-top) 0%,var(--bg-mid) 35%,var(--bg-bot) 100%);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.6}
-h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-weight:400}
+body{font-family:'Montserrat',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.6}
+h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:400}
 .screen{display:none;min-height:100vh}.screen.active{display:flex;flex-direction:column}
 
-#screen-onboard{background:linear-gradient(175deg,#FBF8F4 0%,#F0F7F7 50%,#eaf9f4 100%);align-items:center;justify-content:center;padding:24px}
+#screen-onboard{background:var(--white);align-items:center;justify-content:center;padding:24px}
 .onboard-container{max-width:420px;width:100%}
 .onboard-hero{text-align:center;margin-bottom:40px}
 .brand-mark{display:flex;align-items:center;justify-content:center;margin-bottom:20px}
@@ -28,28 +28,28 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .onboard-hero h1 span{color:var(--accent)}
 .onboard-hero .tagline{font-size:13px;color:var(--text-soft);margin-top:8px;letter-spacing:.3px}
 .steps-indicator{display:flex;justify-content:center;gap:6px;margin-bottom:32px}
-.step-dot{width:8px;height:8px;border-radius:50%;background:rgba(45,142,142,.2);transition:all .3s}
-.step-dot.active{width:28px;border-radius:4px;background:var(--accent)}
+.step-dot{width:6px;height:6px;border-radius:50%;background:var(--border);transition:all .3s}
+.step-dot.active{width:28px;border-radius:3px;background:var(--accent)}
 .step-dot.done{background:var(--accent)}
-.onboard-card{background:rgba(255,255,255,.88);border:none;border-radius:18px;padding:32px 28px;display:none;animation:fadeUp .35s ease;backdrop-filter:blur(12px);box-shadow:0 4px 20px rgba(45,142,142,.08)}
+.onboard-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:32px 28px;display:none;animation:fadeUp .35s ease}
 .onboard-card.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .onboard-card h2{font-size:24px;color:var(--text);margin-bottom:4px}
 .onboard-card .card-desc{font-size:13px;color:var(--text-mid);margin-bottom:24px}
 .field{margin-bottom:18px}
 .field label{display:block;font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
-.field input,.field select{width:100%;padding:12px 16px;border:1.5px solid rgba(45,142,142,.15);border-radius:12px;font-family:'DM Sans','Montserrat',sans-serif;font-size:14px;color:var(--text);background:white;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none}
-.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,142,142,.08)}
+.field input,.field select{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Montserrat',sans-serif;font-size:14px;color:var(--text);background:var(--white);outline:none;transition:border-color .2s;-webkit-appearance:none}
+.field input:focus,.field select:focus{border-color:var(--accent)}
 .field input::placeholder{color:var(--text-faint)}
 .stage-picker{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.stage-option{padding:14px 12px;border:2px solid transparent;border-radius:16px;cursor:pointer;transition:all .25s ease;text-align:left;background:white;display:flex;align-items:center;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,.03)}
-.stage-option:hover{border-color:rgba(45,142,142,.2);background:rgba(45,142,142,0.03)}
-.stage-option.selected{border-left:3px solid var(--accent);background:#E8F5F5;transform:scale(1.02)}
+.stage-option{padding:14px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;text-align:left;background:var(--white);display:flex;align-items:center;gap:10px}
+.stage-option:hover{border-color:var(--accent);background:var(--accent-light)}
+.stage-option.selected{border-color:var(--accent);background:var(--accent-light)}
 .stage-option .stage-icon{flex-shrink:0;width:20px;height:20px}
 .stage-option .stage-icon svg{width:20px;height:20px}
 .stage-option .stage-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.4}
 .stage-option .stage-sub{font-size:10px;color:var(--text-soft);margin-top:2px}
-.btn{width:100%;padding:14px;border:none;border-radius:16px;font-family:'DM Sans','Montserrat',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;letter-spacing:.3px;height:50px;display:flex;align-items:center;justify-content:center}
+.btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;letter-spacing:.3px}
 .btn:active{transform:scale(.98)}.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .btn-primary{background:var(--accent);color:var(--white)}
 .btn-primary:hover:not(:disabled){background:var(--accent-hover)}
@@ -57,30 +57,29 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .btn-row{display:flex;gap:8px;margin-top:8px}.btn-row .btn{flex:1}.btn-row .btn-back{flex:.6}
 
 #screen-app{max-width:520px;margin:0 auto;background:var(--bg);height:100vh}
-.app-header{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--card-border);position:sticky;top:0;z-index:20}
+.app-header{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;background:var(--white);border-bottom:1px solid var(--border-light);position:sticky;top:0;z-index:20}
 .app-header .brand{display:flex;align-items:center;gap:8px}
 .app-header .brand svg{width:28px;height:28px}
-.app-header .brand-text{font-family:'Playfair Display','Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text);letter-spacing:-.3px}
-.app-header .brand-text span{color:var(--text-soft)}
-.stage-pill{font-size:10px;font-weight:500;padding:4px 14px;border-radius:20px;background:rgba(45,142,142,0.12);color:var(--accent);text-transform:uppercase;letter-spacing:.5px;cursor:pointer;transition:background .15s;border:none;font-family:'DM Sans',sans-serif}
-.stage-pill:hover{background:rgba(45,142,142,0.18)}
-.app-nav{display:flex;background:rgba(255,255,255,0.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(184,230,230,0.27);position:fixed;bottom:0;left:0;right:0;z-index:19;padding-bottom:env(safe-area-inset-bottom,6px);justify-content:space-around;align-items:center;height:64px}
-.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;position:relative;transition:color .2s;color:var(--text-soft);font-size:9px;font-weight:400;font-family:'DM Sans',sans-serif;padding:4px 6px;background:transparent;border:none;flex:1;min-width:0}
-.nav-item.active{color:var(--accent);font-weight:600}
-.nav-item::after{display:none}
-.nav-item svg{width:20px;height:20px;stroke:var(--text-faint);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s}
-.nav-item.active svg{stroke:var(--accent)}
-.tab-panel{display:none;flex:1;overflow-y:auto;padding-bottom:70px}.tab-panel.active{display:flex;flex-direction:column}
+.app-header .brand-text{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text);letter-spacing:-.3px}
+.app-header .brand-text span{color:var(--accent)}
+.stage-pill{font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;background:var(--accent-light);color:var(--accent);text-transform:uppercase;letter-spacing:.5px;cursor:pointer;transition:background .15s;border:none;font-family:'Montserrat',sans-serif}
+.stage-pill:hover{background:#D3EBEB}
+.app-nav{display:flex;background:var(--white);border-bottom:1px solid var(--border-light);position:sticky;top:52px;z-index:19}
+.nav-item{flex:1;text-align:center;padding:10px 0;cursor:pointer;position:relative;transition:color .2s;color:var(--text-soft);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;font-family:'Montserrat',sans-serif}
+.nav-item.active{color:var(--accent)}
+.nav-item::after{content:'';position:absolute;bottom:0;left:20%;width:60%;height:2px;background:var(--accent);transform:scaleX(0);transition:transform .2s}
+.nav-item.active::after{transform:scaleX(1)}
+.tab-panel{display:none;flex:1;overflow-y:auto}.tab-panel.active{display:flex;flex-direction:column}
 
 #panel-chat{background:var(--bg-warm)}
 .chat-area{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:12px}
 .msg{max-width:82%;animation:msgIn .3s ease}
 @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .msg-ai{align-self:flex-start}
-.msg-ai .msg-bubble{background:var(--card-bg);color:var(--text);padding:14px 18px;border-radius:18px 18px 18px 4px;border:1px solid var(--card-border);font-size:13.5px;line-height:1.55}
+.msg-ai .msg-bubble{background:var(--white);color:var(--text);padding:14px 18px;border-radius:var(--radius) var(--radius) var(--radius) 3px;border:1px solid var(--border-light);font-size:14px;line-height:1.65}
 .msg-ai .msg-sender{font-size:10px;font-weight:600;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
 .msg-user{align-self:flex-end}
-.msg-user .msg-bubble{background:var(--accent);color:var(--white);padding:14px 18px;border-radius:18px 18px 4px 18px;font-size:13.5px;line-height:1.55}
+.msg-user .msg-bubble{background:var(--accent);color:var(--white);padding:14px 18px;border-radius:var(--radius) var(--radius) 3px var(--radius);font-size:14px;line-height:1.65}
 .msg-system{align-self:center;max-width:90%}
 .msg-system .msg-bubble{background:var(--accent-light);color:var(--accent);padding:6px 16px;border-radius:var(--radius-xs);font-size:11px;text-align:center;font-weight:500}
 .one-word-pill{display:inline-block;margin-top:10px;padding:8px 20px;background:rgba(45,142,142,.08);border:1px solid rgba(45,142,142,.2);border-radius:20px;font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#2D8E8E;cursor:pointer;transition:all .3s ease;opacity:0;animation:pillFadeIn .8s ease .5s forwards}
@@ -88,7 +87,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .one-word-pill:active{transform:scale(.97)}
 @keyframes pillFadeIn{to{opacity:1}}
 /* ── Reflection Card ── */
-.reflection-card{background:var(--card-bg);border-radius:18px;padding:20px 22px;border:1px solid var(--card-border);border-left:3px solid var(--accent);box-shadow:0 2px 12px rgba(0,0,0,.04);margin-bottom:4px;opacity:0;animation:reflectionIn 1s ease .3s forwards;max-width:92%;align-self:flex-start;backdrop-filter:blur(8px)}
+.reflection-card{background:#FBF8F4;border-radius:16px;padding:20px 22px;border:1px solid rgba(45,142,142,.1);border-left:3px solid #2D8E8E;box-shadow:0 2px 12px rgba(0,0,0,.04);margin-bottom:4px;opacity:0;animation:reflectionIn 1s ease .3s forwards;max-width:92%;align-self:flex-start}
 @keyframes reflectionIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .reflection-card .rc-text{font-family:Georgia,'Cormorant Garamond',serif;font-size:15px;line-height:1.7;color:#2a2a2a;margin:0}
 .reflection-card .rc-zone{font-size:11px;color:#999;font-style:italic;margin-top:10px}
@@ -97,78 +96,24 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .reflection-card .rc-btn:hover{border-color:var(--accent);color:var(--accent)}
 .reflection-card .rc-btn.hearted{border-color:#E07A5F;color:#E07A5F;background:rgba(224,122,95,.06)}
 .reflection-card .rc-btn svg{width:14px;height:14px}
-/* ── Fertool Native Widgets ── */
-.ft-widget{border-radius:16px;border:1px solid var(--border-light);border-left:4px solid var(--accent);box-shadow:0 2px 12px rgba(0,0,0,.06);overflow:visible;margin-top:10px;background:var(--white);opacity:0;animation:ftSlideUp .4s ease .2s forwards;flex-shrink:0}
-@keyframes ftSlideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.ft-widget-title{font-weight:600;font-size:14px;padding:12px 16px 8px;color:var(--text);display:flex;align-items:center;gap:8px}
-.ft-widget-title .ft-icon{font-size:18px}
-.ft-widget-body{padding:0 16px 12px}
-.ft-widget-footer{padding:8px 16px;font-size:10px;color:var(--text-soft);border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center}
-.ft-widget-footer a{color:var(--accent);text-decoration:none;font-weight:500;font-size:11px}
-.ft-input-row{display:flex;gap:8px;align-items:flex-end;margin-top:10px;flex-wrap:wrap}
-.ft-input-group{display:flex;flex-direction:column;gap:2px}
-.ft-input-group label{font-size:10px;color:var(--text-soft);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
-.ft-input-group input,.ft-input-group select{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;width:90px;background:var(--bg)}
-.ft-input-group select{width:auto;min-width:90px}
-.ft-btn{padding:6px 14px;background:var(--accent);color:white;border:none;border-radius:8px;font-size:12px;font-family:inherit;cursor:pointer;font-weight:500;white-space:nowrap}
-.ft-btn:hover{background:#247575}
-.ft-result{margin-top:8px;padding:8px 12px;background:var(--bg);border-radius:8px;font-size:13px;line-height:1.5;color:var(--text)}
-.ft-result strong{color:var(--accent)}
-/* AMH chart */
-.amh-chart-svg{width:100%;height:auto;max-height:280px;display:block}
-/* Egg freezing table */
-.ft-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;border-radius:10px;overflow:hidden}
-.ft-table th{background:var(--accent);color:white;padding:8px 10px;font-weight:600;font-size:11px;text-align:center}
-.ft-table th:first-child{text-align:left}
-.ft-table td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--border-light)}
-.ft-table td:first-child{text-align:left;font-weight:500;color:var(--text)}
-.ft-table tr:nth-child(even) td{background:rgba(45,142,142,.03)}
-.ft-table .ft-high{color:#2D7D2D;font-weight:700}
-.ft-table .ft-low{color:#B8860B}
-.ft-table .ft-hl{outline:2px solid var(--accent);border-radius:4px;background:rgba(45,142,142,.08)!important}
-.ft-source{font-size:10px;color:var(--text-soft);margin-top:6px;font-style:italic}
-/* Endo card */
-.ft-bullets{list-style:none;padding:0;margin:8px 0 0}
-.ft-bullets li{padding:6px 0;font-size:13px;line-height:1.5;border-bottom:1px solid var(--border-light);display:flex;gap:8px}
-.ft-bullets li:last-child{border:none}
-.ft-bullets .ft-bullet-icon{color:var(--accent);flex-shrink:0}
-/* Assessment checklist */
-.ft-check-item{padding:8px 0;border-bottom:1px solid var(--border-light);cursor:pointer}
-.ft-check-item:last-child{border:none}
-.ft-check-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500}
-.ft-check-head .ft-check-icon{color:var(--accent);font-size:15px}
-.ft-check-detail{font-size:12px;color:var(--text-soft);padding:4px 0 0 26px;display:none;line-height:1.5}
-.ft-check-item.open .ft-check-detail{display:block}
 /* ── Micro-reflection ── */
 .micro-reflection{font-style:italic;font-size:13px;color:var(--text-soft);margin-bottom:6px;opacity:0;animation:microIn .8s ease .2s forwards;align-self:flex-start}
 @keyframes microIn{from{opacity:0}to{opacity:.8}}
-/* ── Daily Insight (morning card) ── */
-.daily-insight{font-family:Georgia,'Cormorant Garamond',serif;font-size:18px;line-height:1.6;color:#3a3a3a;text-align:center;padding:28px 24px 20px;opacity:0;animation:insightIn 1s ease .3s forwards;cursor:pointer;transition:opacity .4s ease,transform .4s ease}
-@keyframes insightIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.daily-insight.dismissed{opacity:0;transform:translateY(-16px);pointer-events:none}
-.daily-insight-sep{width:40px;height:1px;background:var(--accent);margin:0 auto 16px;opacity:0;animation:insightIn 1s ease .8s forwards}
-/* ── Evening Wind-Down ── */
-.evening-card{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);max-width:340px;width:calc(100% - 48px);background:linear-gradient(145deg,#faf8f5,#f5ede4);border:1px solid rgba(122,172,172,.12);border-radius:16px;padding:16px 20px;box-shadow:0 4px 24px rgba(0,0,0,.06);z-index:40;opacity:0;animation:eveningIn .8s ease forwards;cursor:pointer;font-family:Georgia,'Cormorant Garamond',serif;font-size:15px;line-height:1.5;color:#3a3a3a;text-align:center}
-@keyframes eveningIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-.evening-card.dismissed{opacity:0;transform:translateX(-50%) translateY(12px);pointer-events:none}
-/* ── Still Here Whisper ── */
-.still-here-whisper{position:absolute;bottom:92px;left:50%;transform:translateX(-50%);background:linear-gradient(145deg,#faf8f5,#f2edea);border:1px solid rgba(122,172,172,.1);border-radius:14px;padding:10px 16px;box-shadow:0 2px 12px rgba(0,0,0,.04);opacity:0;transition:opacity 1.5s ease;pointer-events:none;z-index:51;font-family:'Montserrat',sans-serif;font-size:12px;color:#5a7a7a;text-align:center;white-space:nowrap}
-.still-here-whisper.visible{opacity:1}
 .typing-dots{align-self:flex-start;padding:14px 20px;background:var(--white);border-radius:var(--radius) var(--radius) var(--radius) 3px;border:1px solid var(--border-light);display:none}
 .typing-dots span{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin:0 2px;animation:bounce 1.3s infinite}
 .typing-dots span:nth-child(2){animation-delay:.15s}
 .typing-dots span:nth-child(3){animation-delay:.3s}
 @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.3}40%{transform:translateY(-5px);opacity:1}}
-.chat-composer{padding:10px 14px 14px;background:transparent;display:flex;align-items:flex-end;gap:8px}
-.chat-composer textarea{flex:1;border:1px solid var(--card-border);border-radius:50px;padding:11px 18px;font-family:'DM Sans','Montserrat',sans-serif;font-size:13.5px;color:var(--text);background:#f2f9f9;outline:none;resize:none;max-height:100px;min-height:42px;line-height:1.5;transition:border-color .2s}
+.chat-composer{padding:10px 14px 14px;background:var(--white);border-top:1px solid var(--border-light);display:flex;align-items:flex-end;gap:8px}
+.chat-composer textarea{flex:1;border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;font-family:'Montserrat',sans-serif;font-size:14px;color:var(--text);background:var(--bg);outline:none;resize:none;max-height:100px;min-height:42px;line-height:1.5;transition:border-color .2s}
 .chat-composer textarea:focus{border-color:var(--accent);background:var(--white)}
-.chat-composer textarea::placeholder{color:var(--text-soft)}
+.chat-composer textarea::placeholder{color:var(--text-faint)}
 .send-btn{width:42px;height:42px;border:none;border-radius:50%;background:var(--accent);color:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .send-btn:hover{background:var(--accent-hover)}
 .send-btn:active{transform:scale(.93)}
 .send-btn svg{width:18px;height:18px}
 
-#panel-checkin{padding:20px 16px;gap:12px;align-items:center;background:transparent}
+#panel-checkin{padding:20px 16px;gap:12px;align-items:center;background:var(--bg)}
 .checkin-hero{text-align:center;padding:4px 0}
 .checkin-hero h2{font-size:24px;color:var(--text)}
 .checkin-hero p{font-size:12px;color:var(--text-soft);margin-top:2px}
@@ -207,19 +152,11 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .journey-hero h2{font-size:24px;color:var(--text)}
 .journey-hero p{font-size:12px;color:var(--text-soft);margin-top:2px}
 /* ── Emotional Landscape ── */
-.landscape-wrap{position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;margin:0;scrollbar-width:none;touch-action:pan-x pinch-zoom;height:400px;min-height:400px;flex-shrink:0}
+.landscape-wrap{position:relative;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;margin:0;scrollbar-width:none;touch-action:pan-x pinch-zoom;height:320px;min-height:320px;flex-shrink:0}
 .landscape-wrap::-webkit-scrollbar{display:none}
-.landscape-svg{display:block;height:400px;min-width:2400px}
+.landscape-svg{display:block;height:320px;min-width:1800px}
 .landscape-zone{cursor:pointer;opacity:1;transition:opacity .3s}
-.landscape-zone.future-zone{opacity:.4}
-@keyframes treeSway{0%,100%{transform:rotate(0deg)}50%{transform:rotate(2deg)}}
-@keyframes waterShimmer{0%,100%{opacity:.15}50%{opacity:.25}}
-@keyframes fogDrift{0%{transform:translateX(0)}50%{transform:translateX(20px)}100%{transform:translateX(0)}}
-@keyframes eggGlow{0%,100%{filter:drop-shadow(0 0 3px rgba(45,142,142,.3))}50%{filter:drop-shadow(0 0 8px rgba(45,142,142,.5))}}
-.landscape-tree{transform-origin:bottom center;animation:treeSway 6s ease-in-out infinite}
-.landscape-water{animation:waterShimmer 4s ease-in-out infinite}
-.landscape-fog{animation:fogDrift 12s ease-in-out infinite}
-.landscape-egg{animation:eggGlow 3s ease-in-out infinite}
+.landscape-zone.future-zone{opacity:.45}
 .landscape-zone:hover{opacity:1}
 .landscape-marker{cursor:pointer;transition:transform .2s}
 .landscape-marker:hover{transform:scale(1.15)}
@@ -295,13 +232,6 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .egg-companion.idle svg{animation:eggBreathe 5s ease-in-out infinite,eggFloat 7s ease-in-out infinite}
 @keyframes eggBreathe{0%,100%{transform:scaleX(1) scaleY(1)}50%{transform:scaleX(1.012) scaleY(1.018)}}
 @keyframes eggFloat{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-2.5px) rotate(-0.6deg)}50%{transform:translateY(-4px) rotate(0deg)}75%{transform:translateY(-2px) rotate(0.6deg)}}
-@keyframes glowPulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.06);opacity:.7}}
-@keyframes rayPulse{0%,100%{opacity:.35}50%{opacity:.65}}
-@keyframes heartBeat{0%,100%{transform:scale(1)}15%{transform:scale(1.15)}30%{transform:scale(1)}45%{transform:scale(1.08)}}
-@keyframes twinkle{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:.8;transform:scale(1.2)}}
-@keyframes cloudDrift{0%{transform:translateX(0)}100%{transform:translateX(12px)}}
-@keyframes eggEntrance{0%{opacity:0;transform:scale(.4) translateY(25px)}100%{opacity:1;transform:scale(1) translateY(0)}}
-@keyframes fadeSlideUp{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
 .egg-companion.idle::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:44px;height:8px;background:radial-gradient(ellipse,rgba(0,0,0,.05),transparent 72%);border-radius:50%;animation:eggShadow 5s ease-in-out infinite;pointer-events:none}
 @keyframes eggShadow{0%,100%{transform:translateX(-50%) scale(1);opacity:.5}50%{transform:translateX(-50%) scale(.88);opacity:.35}}
 .egg-companion.active svg{animation:none}
@@ -311,6 +241,13 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .egg-companion.active::before,.egg-companion.centered::before{opacity:0}
 @keyframes auraBreath{0%,100%{transform:scale(1);opacity:0}50%{transform:scale(1.08);opacity:1}}
 /* ── Sperm Buddy — minimal soft ────────────────────── */
+.sperm-buddy{position:absolute;width:16px;height:16px;pointer-events:none;opacity:0;z-index:49;will-change:transform,opacity;transition:opacity .8s ease}
+.sperm-buddy.swimming{opacity:.65}
+.sperm-head{width:6px;height:7px;background:radial-gradient(ellipse at 38% 32%,#faf6ef,#ede4d4);border-radius:50%;position:absolute;left:0;top:4px;box-shadow:0 0 4px rgba(237,228,212,.5)}
+.sperm-tail{position:absolute;left:6px;top:5.5px;width:22px;height:5px;overflow:visible}
+.sperm-tail svg{width:22px;height:5px}
+.sperm-tail path{stroke:#ddd5c4;stroke-width:1;fill:none;stroke-linecap:round;opacity:.7;animation:tailWave .9s ease-in-out infinite}
+@keyframes tailWave{0%{d:path('M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5')}50%{d:path('M0,2.5 C5,5 10,0 15,2.5 C18,4 21,1.5 24,2.5')}100%{d:path('M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5')}}
 /* ── Egg proximity glow ──────────────────────────────── */
 .egg-glow{position:absolute;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(122,172,172,.12),rgba(255,248,240,.08) 50%,transparent 72%);pointer-events:none;opacity:0;transition:opacity .8s ease;top:0;left:0;transform:translate(-50%,-50%)}
 .egg-glow.active{opacity:1}
@@ -337,7 +274,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 100%{transform:rotate(0deg)}
 }
 /* ── Welcome Intro Screen ────────────────────────────── */
-#screen-welcome{background:linear-gradient(175deg,var(--bg-top) 0%,var(--bg-mid) 35%,var(--bg-bot) 100%);align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+#screen-welcome{background:var(--white);align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
 #screen-welcome .welcome-inner{max-width:420px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;z-index:2}
 #screen-welcome .welcome-egg{width:200px;height:260px;margin-bottom:24px}
 #screen-welcome .welcome-egg svg{filter:drop-shadow(0 6px 20px rgba(122,172,172,.18)) drop-shadow(0 2px 6px rgba(0,0,0,.06));animation:eggBreathe 5s ease-in-out infinite,eggFloat 7s ease-in-out infinite}
@@ -377,14 +314,6 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .edu-quick-pill:hover{background:#2D8E8E;color:white;transform:translateY(-1px)}
 .edu-quick-pill:active{transform:scale(.96)}
 .edu-quick-pill svg{width:14px;height:14px;flex-shrink:0}
-.soft-spot-text{max-width:340px;font-family:'Cormorant Garamond',serif;font-size:17px;line-height:1.7;color:#3A3A3A;text-align:center;min-height:100px;margin-top:24px}
-.soft-spot-text .ss-cursor{display:inline-block;width:2px;height:18px;background:#2D8E8E;animation:ssCursorBlink .8s infinite;vertical-align:text-bottom;margin-left:2px}
-@keyframes ssCursorBlink{0%,50%{opacity:1}51%,100%{opacity:0}}
-.soft-spot-ready{margin-top:28px;padding:10px 28px;background:#2D8E8E;color:white;border:none;border-radius:24px;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;opacity:0;transform:translateY(8px);transition:opacity .4s ease,transform .4s ease}
-.soft-spot-ready.visible{opacity:1;transform:translateY(0)}
-.soft-spot-ready:hover{background:#247575}
-.capability-hint{font-size:11.5px;color:#999;font-style:italic;margin-top:8px;opacity:0;animation:hintFadeIn .6s ease .3s forwards}
-@keyframes hintFadeIn{to{opacity:1}}
 .egg-overlay{position:fixed;inset:0;background:rgba(250,250,249,.88);backdrop-filter:blur(8px);z-index:45;display:none;opacity:0;transition:opacity .4s ease}
 .egg-overlay.visible{display:block;opacity:1}
 .egg-feeling-label{position:fixed;top:12%;left:0;right:0;text-align:center;z-index:51;opacity:0;transition:all .5s cubic-bezier(.34,1.56,.64,1);pointer-events:none;transform:translateY(10px) scale(.9)}
@@ -420,158 +349,37 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .egg-particle{position:fixed;pointer-events:none;z-index:52;border-radius:50%;opacity:0}
 .egg-vapor{position:fixed;pointer-events:none;z-index:49;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle,rgba(45,142,142,.12),transparent);filter:blur(4px)}
 @keyframes eggShake{0%,100%{transform:translate(-50%,50%) rotate(0deg)}10%{transform:translate(-50%,50%) rotate(-2deg)}20%{transform:translate(-50%,50%) rotate(2deg)}30%{transform:translate(-50%,50%) rotate(-1deg)}40%{transform:translate(-50%,50%) rotate(1deg)}50%{transform:translate(-50%,50%) rotate(0deg)}}
-/* ── V3 Landing Page ── */
-.v3-landing{min-height:100vh;min-height:100dvh;background:linear-gradient(180deg,#d4f1f1 0%,#e0f5f0 50%,#eaf9f4 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px 32px;position:relative;overflow:hidden}
-.landing-clouds{position:absolute;top:0;left:0;right:0;height:60%;pointer-events:none}
-.cloud{position:absolute;background:white;border-radius:50%;opacity:0.2}
-.c1{width:200px;height:60px;top:8%;left:-30px;animation:cloudDrift 25s ease-in-out infinite}
-.c2{width:160px;height:50px;top:18%;right:-20px;animation:cloudDrift 30s ease-in-out infinite reverse;opacity:0.15}
-.c3{width:120px;height:40px;top:30%;left:20%;animation:cloudDrift 20s ease-in-out infinite;opacity:0.25;animation-delay:5s}
-@keyframes cloudDrift{0%,100%{transform:translateX(0)}50%{transform:translateX(30px)}}
-.landing-mascot{margin-bottom:20px;animation:mascotEntry .8s cubic-bezier(.34,1.56,.64,1) forwards;transform:scale(0.4);opacity:0}
-@keyframes mascotEntry{to{transform:scale(1);opacity:1}}
-.landing-title{font-family:'Playfair Display',Georgia,serif;font-size:32px;font-weight:700;color:#1a3a3a;margin:0;letter-spacing:-.5px}
-.landing-title .dot{color:#2D8E8E}
-.landing-tagline{font-family:'DM Sans','Montserrat',sans-serif;font-size:15px;color:#6a9e9e;margin:6px 0 20px;text-align:center}
-.landing-dots{display:flex;gap:8px;margin-bottom:32px}
-.ld-dot{width:8px;height:8px;border-radius:50%;background:rgba(45,142,142,.2)}
-.ld-dot.active{background:#2D8E8E;width:24px;border-radius:4px}
-.landing-buttons{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;animation:btnFadeUp .6s ease .4s both}
-@keyframes btnFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.landing-btn{width:100%;height:52px;border-radius:50px;font-family:'DM Sans','Montserrat',sans-serif;font-size:16px;font-weight:600;cursor:pointer;transition:all .2s;border:none}
-.landing-btn-primary{background:#2D8E8E;color:white}
-.landing-btn-primary:hover{background:#247575}
-.landing-btn-secondary{background:transparent;color:#2D8E8E;border:1.5px solid #2D8E8E}
-.landing-btn-secondary:hover{background:rgba(45,142,142,.06)}
-/* ── V3 Onboarding Enhancements ── */
-.step2-sub{display:none}.step2-sub.active{display:block}
-.onboard-age-picker{text-align:center;padding:20px 0}
-.age-display{font-family:'Playfair Display',Georgia,serif;font-size:48px;font-weight:700;color:var(--accent);background:rgba(45,142,142,.06);border-radius:16px;padding:12px 32px;display:inline-block;margin:16px 0}
-.age-slider{width:80%;max-width:260px;margin:16px auto;display:block;-webkit-appearance:none;height:6px;border-radius:3px;background:rgba(45,142,142,.15);outline:none}
-.age-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:white;border:2px solid var(--accent);cursor:pointer;box-shadow:0 2px 8px rgba(45,142,142,.2)}
-.age-slider::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:white;border:2px solid var(--accent);cursor:pointer}
-.motivational-screen{text-align:center;padding:40px 20px}
-.motivational-text{font-family:'Playfair Display',Georgia,serif;font-size:24px;color:#1a3a3a;line-height:1.6;max-width:300px;margin:0 auto 24px;font-weight:400}
-.motivational-skip{position:absolute;top:16px;right:16px;font-size:13px;color:#2D8E8E;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
-.motivational-continue{font-size:14px;color:#2D8E8E;cursor:pointer;font-family:'DM Sans',sans-serif;background:none;border:none}
-/* ── Tour Offer ── */
-.tour-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center;animation:fadeIn .3s}
-.tour-card{background:white;border-radius:20px;padding:24px;max-width:300px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.15);text-align:center}
-.tour-label{display:inline-block;background:#2D8E8E;color:white;font-size:10px;font-weight:700;padding:2px 10px;border-radius:10px;margin-bottom:12px;font-family:'DM Sans',sans-serif;letter-spacing:.05em}
-.tour-text{font-size:14px;line-height:1.6;color:#3a3a3a;margin-bottom:16px;font-family:'DM Sans',sans-serif}
-.tour-btns{display:flex;gap:10px;justify-content:center}
-.tour-btn{padding:8px 20px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
-.tour-btn-later{background:transparent;border:1.5px solid #ccc;color:#666}
-.tour-btn-sure{background:#2D8E8E;border:none;color:white}
-/* ── Floating notification icons ── */
-.floating-icons{position:fixed;right:12px;top:120px;display:flex;flex-direction:column;gap:10px;z-index:50}
-.float-icon{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border:1px solid rgba(45,142,142,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.06);position:relative;transition:transform .2s}
-.float-icon:hover{transform:scale(1.08)}
-.float-icon svg{width:20px;height:20px;stroke:#2D8E8E;fill:none;stroke-width:1.8}
-.float-badge{position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:#f87171;color:white;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-family:'DM Sans',sans-serif}
-/* ── Music toggle ── */
-.music-toggle{position:fixed;top:16px;left:16px;width:38px;height:38px;border-radius:50%;border:1.5px solid #2D8E8E;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:55;transition:background .2s}
-.music-toggle.active{background:#2D8E8E}
-.music-toggle svg{width:18px;height:18px;stroke:#2D8E8E;fill:none;stroke-width:1.8}
-.music-toggle.active svg{stroke:white}
-/* ── IVF Calendar ── */
-.cal-header{display:flex;align-items:center;justify-content:space-between;padding:0 4px;margin-bottom:12px}
-.cal-header h3{font-family:'Playfair Display',Georgia,serif;font-size:18px;margin:0;color:var(--text)}
-.cal-nav{background:none;border:none;font-size:18px;cursor:pointer;color:var(--accent);padding:4px 8px}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-family:'DM Sans','Montserrat',sans-serif;font-size:12px}
-.cal-day-header{font-weight:600;color:var(--text-soft);padding:4px;font-size:10px}
-.cal-cell{padding:6px 2px;min-height:38px;border-radius:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:background .15s}
-.cal-cell:hover{background:rgba(45,142,142,.05)}
-.cal-cell.today{background:rgba(45,142,142,.1);font-weight:700}
-.cal-cell.today .cal-num{color:#2D8E8E}
-.cal-cell.future{opacity:.4}
-.cal-num{font-size:12px;color:var(--text)}
-.cal-mood{width:6px;height:6px;border-radius:50%}
-.cal-mood.good{background:#4ade80}
-.cal-mood.tough{background:#fbbf24}
-.cal-mood.hard{background:#f87171}
-.cal-event{font-size:8px;line-height:1}
-.cal-legend{display:flex;gap:12px;flex-wrap:wrap;padding:8px 0;font-size:9px;color:var(--text-soft)}
-.cal-legend span{display:flex;align-items:center;gap:3px}
-.cal-legend .leg-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
-/* ── Community Circle ── */
-.community-tabs{display:flex;gap:0;margin-bottom:16px}
-.community-tab{flex:1;padding:10px;text-align:center;font-family:'DM Sans','Montserrat',sans-serif;font-size:13px;font-weight:500;color:var(--text-soft);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer}
-.community-tab.active{color:#2D8E8E;border-bottom-color:#2D8E8E;font-weight:600}
-.community-invite{background:linear-gradient(135deg,#e0f5f0,#d4f1f1);border-radius:16px;padding:20px;margin-bottom:16px;text-align:center}
-.community-invite h3{font-family:'Playfair Display',Georgia,serif;font-size:18px;margin:0 0 6px;color:#1a3a3a}
-.community-invite p{font-size:12px;color:#6a9e9e;margin:0 0 12px}
-.community-invite-btn{background:#2D8E8E;color:white;border:none;border-radius:50px;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer}
-.post-card{background:var(--white);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid var(--border-light);box-shadow:0 1px 4px rgba(0,0,0,.03)}
-.post-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:var(--text-soft)}
-.post-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#fff8dc,#e8daa0);display:flex;align-items:center;justify-content:center;font-size:14px}
-.post-body{font-size:13px;line-height:1.6;color:var(--text);margin-bottom:8px}
-.post-actions{display:flex;gap:12px}
-.post-action-btn{background:none;border:none;font-size:12px;color:var(--text-soft);cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:4px}
-.community-fab{position:fixed;bottom:80px;right:16px;width:50px;height:50px;border-radius:50%;background:#2D8E8E;color:white;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(45,142,142,.3);z-index:45;display:none}
-/* ── Insights sub-tabs ── */
-.insights-tabs{display:flex;gap:0;border-bottom:1px solid var(--border-light);margin-bottom:12px}
-.insights-tab{flex:1;padding:8px;text-align:center;font-size:12px;font-weight:500;color:var(--text-soft);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:'DM Sans','Montserrat',sans-serif}
-.insights-tab.active{color:#2D8E8E;border-bottom-color:#2D8E8E;font-weight:600}
-.insights-panel{display:none}
-.insights-panel.active{display:block}
-.goal-banner{background:linear-gradient(135deg,#2D8E8E,#3da8a8);border-radius:14px;padding:16px;margin-bottom:16px;color:white}
-.goal-banner h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;opacity:.7;margin:0 0 4px}
-.goal-banner p{font-size:14px;margin:0;line-height:1.5}
-.memory-jar{text-align:center;padding:16px;background:var(--white);border-radius:14px;border:1px solid var(--border-light);margin-bottom:16px}
-.memory-jar h3{font-family:'Playfair Display',Georgia,serif;font-size:16px;margin:0 0 8px}
-.jar-stats{display:flex;justify-content:center;gap:16px;font-size:12px;color:var(--text-soft)}
-.jar-stat{display:flex;flex-direction:column;align-items:center;gap:2px}
-.jar-stat .jar-num{font-size:20px;font-weight:700;color:#2D8E8E}
-.daily-entry{background:var(--white);border-radius:12px;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border-light)}
-.daily-entry-time{font-size:11px;color:var(--text-soft);margin-bottom:4px}
-.daily-entry-mood{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.mood-pill{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
-.mood-pill.good{background:rgba(74,222,128,.15);color:#16a34a}
-.mood-pill.tough{background:rgba(251,191,36,.15);color:#d97706}
-.mood-pill.hard{background:rgba(248,113,113,.15);color:#dc2626}
-/* ── Post creation modal ── */
-.post-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
-.post-modal-overlay.active{display:flex}
-.post-modal{background:white;border-radius:20px 20px 0 0;width:100%;max-width:500px;padding:24px;max-height:60vh}
-.post-modal h3{font-family:'Playfair Display',Georgia,serif;font-size:18px;margin:0 0 12px}
-.post-modal textarea{width:100%;min-height:100px;border:1px solid var(--border);border-radius:12px;padding:12px;font-family:'DM Sans','Montserrat',sans-serif;font-size:14px;resize:none;margin-bottom:12px}
-.post-modal-actions{display:flex;justify-content:space-between;align-items:center}
-.post-modal-anon{font-size:12px;color:var(--text-soft);display:flex;align-items:center;gap:6px}
-.post-modal-send{background:#2D8E8E;color:white;border:none;border-radius:50px;padding:8px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
 </style>
 </head>
 <body>
 <!-- Welcome Intro Screen (first-time only) -->
 <div id="screen-welcome" class="screen">
-<div class="v3-landing">
-  <div class="landing-clouds"><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>
-  <div class="landing-mascot">
-    <svg viewBox="0 0 200 260" width="200" height="260" xmlns="http://www.w3.org/2000/svg">
-      <defs><radialGradient id="wG" cx="50%" cy="50%" r="50%"><stop offset="60%" stop-color="#e8daa0" stop-opacity="0.6"/><stop offset="100%" stop-color="#c8b870" stop-opacity="0.3"/></radialGradient>
-      <radialGradient id="wHi" cx="42%" cy="38%" r="55%"><stop offset="0%" stop-color="#fffef0"/><stop offset="50%" stop-color="#fff8dc"/><stop offset="100%" stop-color="#fef3c8"/></radialGradient></defs>
-      <circle cx="100" cy="128" r="90" fill="url(#wG)"/>
-      <circle cx="100" cy="128" r="73" fill="url(#wHi)"/>
-      <ellipse cx="82" cy="105" rx="22" ry="14" fill="#fff" opacity="0.25" transform="rotate(-20 82 105)"/>
-      <circle cx="112" cy="42" r="4" fill="#fef3c8" stroke="#c8b870" stroke-width="0.8" opacity="0.6"/>
+<div class="welcome-ambient"><div class="welcome-orb"></div><div class="welcome-orb"></div><div class="welcome-orb"></div></div>
+<div class="welcome-inner">
+  <div class="welcome-egg">
+    <svg viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="wG" cx="42%" cy="32%" r="62%"><stop offset="0%" stop-color="#FFF8F0"/><stop offset="100%" stop-color="#F0E0CF"/></radialGradient>
+        <radialGradient id="wHi" cx="32%" cy="25%" r="28%"><stop offset="0%" stop-color="rgba(255,255,255,0.55)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
+        <radialGradient id="wDp" cx="50%" cy="85%" r="45%"><stop offset="0%" stop-color="rgba(180,160,140,.08)"/><stop offset="100%" stop-color="rgba(180,160,140,0)"/></radialGradient>
+      </defs>
+      <ellipse cx="100" cy="236" rx="52" ry="10" fill="#f5ede4" opacity="0.5"/>
+      <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#wG)" stroke="rgba(0,0,0,0.03)" stroke-width="0.5"/>
+      <ellipse cx="72" cy="75" rx="28" ry="40" fill="url(#wHi)" opacity="0.6"/>
+      <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#wDp)"/>
       <g transform="translate(0,10)">
-        <ellipse cx="82" cy="118" rx="3.2" ry="3.5" fill="#555"/>
-        <ellipse cx="118" cy="118" rx="3.2" ry="3.5" fill="#555"/>
+        <ellipse cx="82" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
+        <ellipse cx="118" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
         <circle cx="80.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
         <circle cx="116.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
-        <ellipse cx="68" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
-        <ellipse cx="132" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
-        <path d="M88,138 Q100,148 112,138" stroke="#666" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+        <ellipse cx="68" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
+        <ellipse cx="132" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
+        <path d="M92,138 Q100,144 108,138" stroke="#8a8078" fill="none" stroke-width="1.2" stroke-linecap="round"/>
       </g>
     </svg>
   </div>
-  <h1 class="landing-title">Melod<span class="dot">·</span>AI</h1>
-  <p class="landing-tagline">Your companion through the IVF journey</p>
-  <div class="landing-dots"><span class="ld-dot active"></span><span class="ld-dot"></span><span class="ld-dot"></span></div>
-  <div class="landing-buttons">
-    <button class="landing-btn landing-btn-primary" onclick="dismissWelcome()">Create Account</button>
-    <button class="landing-btn landing-btn-secondary" onclick="dismissWelcome()">Log in</button>
-  </div>
+  <div class="welcome-text" id="welcomeText"></div>
+  <div class="welcome-cta" id="welcomeCta"><button onclick="dismissWelcome()">Get Started &rarr;</button></div>
 </div>
 </div>
 
@@ -584,13 +392,12 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   </div>
   <div class="steps-indicator"><div class="step-dot active" id="sd1"></div><div class="step-dot" id="sd2"></div><div class="step-dot" id="sd3"></div></div>
   <div class="onboard-card active" id="step1"><h2>Welcome</h2><p class="card-desc">Let's get to know each other. What should we call you?</p><div class="field"><label>Your first name</label><input type="text" id="ob-name" placeholder="e.g. Sarah" autofocus></div><div class="field"><label>Partner's name (optional)</label><input type="text" id="ob-partner" placeholder="e.g. James"></div><button class="btn btn-primary" id="btn-step1" disabled onclick="goStep(2)">Continue</button></div>
-  <div class="onboard-card" id="step2"><h2>A bit about you</h2><p class="card-desc">This helps us personalise your experience.</p><div class="onboard-age-picker"><label style="font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.8px">Your age</label><div class="age-display" id="ageDisplay">32</div><input type="range" class="age-slider" id="ageSlider" min="20" max="50" value="32" oninput="document.getElementById('ageDisplay').textContent=this.value"></div><div class="field"><label>Treatment type</label><select id="ob-treatment"><option value="ivf">IVF</option><option value="icsi">ICSI</option><option value="fet">Frozen Embryo Transfer</option><option value="iui">IUI</option><option value="egg_freezing">Egg Freezing</option><option value="other">Other</option></select></div><div class="field"><label>Which cycle is this?</label><select id="ob-cycle"><option value="1">First cycle</option><option value="2">Second cycle</option><option value="3">Third cycle</option><option value="4">Fourth or more</option></select></div><div class="field"><label>Clinic name (optional)</label><input type="text" id="ob-clinic" placeholder="e.g. Melbourne IVF"></div><div class="btn-row"><button class="btn btn-secondary btn-back" onclick="goStep(1)">Back</button><button class="btn btn-primary" onclick="goStep(3)">Continue</button></div></div>
-  <div class="onboard-card" id="step3"><h2>Where are you?</h2><p class="card-desc">Select the stage that best describes where you are right now.</p><div class="stage-picker" id="stage-grid"></div><div class="btn-row" style="margin-top:16px"><button class="btn btn-secondary btn-back" onclick="goStep(2)">Back</button><button class="btn btn-primary" id="btn-step2" disabled onclick="completeOnboarding()">Get started</button></div></div>
+  <div class="onboard-card" id="step2"><h2>Where are you?</h2><p class="card-desc">Select the stage that best describes where you are right now.</p><div class="stage-picker" id="stage-grid"></div><div class="btn-row" style="margin-top:16px"><button class="btn btn-secondary btn-back" onclick="goStep(1)">Back</button><button class="btn btn-primary" id="btn-step2" disabled onclick="goStep(3)">Continue</button></div></div>
+  <div class="onboard-card" id="step3"><h2>A few more details</h2><p class="card-desc">This helps Melod·AI tailor support to your situation.</p><div class="field"><label>Treatment type</label><select id="ob-treatment"><option value="ivf">IVF</option><option value="icsi">ICSI</option><option value="fet">Frozen Embryo Transfer</option><option value="iui">IUI</option><option value="egg_freezing">Egg Freezing</option><option value="other">Other</option></select></div><div class="field"><label>Which cycle is this?</label><select id="ob-cycle"><option value="1">First cycle</option><option value="2">Second cycle</option><option value="3">Third cycle</option><option value="4">Fourth or more</option></select></div><div class="field"><label>Clinic name (optional)</label><input type="text" id="ob-clinic" placeholder="e.g. Melbourne IVF"></div><div class="btn-row"><button class="btn btn-secondary btn-back" onclick="goStep(2)">Back</button><button class="btn btn-primary" onclick="completeOnboarding()">Get started</button></div></div>
 </div></div>
 
-
 <div id="screen-app" class="screen">
-  <div class="app-header"><div class="brand"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="22" stroke="#2D8E8E" stroke-width="2" fill="none"/><path d="M16 28C16 28 19 20 24 20C29 20 32 28 32 28" stroke="#2D8E8E" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="16" r="2.5" fill="#2D8E8E"/><path d="M20 32L24 36L28 32" stroke="#2D8E8E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="brand-text">Melod<span>·AI</span></div></div><div style="display:flex;align-items:center;gap:8px"><button class="stage-pill" id="header-stage" onclick="openStageModal()">Loading</button><button onclick="logout()" style="background:none;border:none;cursor:pointer;padding:4px;opacity:0.5" title="Log out"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D8E8E" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button></div></div>
+  <div class="app-header"><div class="brand"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="22" stroke="#2D8E8E" stroke-width="2" fill="none"/><path d="M16 28C16 28 19 20 24 20C29 20 32 28 32 28" stroke="#2D8E8E" stroke-width="2" stroke-linecap="round"/><circle cx="24" cy="16" r="2.5" fill="#2D8E8E"/><path d="M20 32L24 36L28 32" stroke="#2D8E8E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="brand-text">Melod<span>·AI</span></div></div><button class="stage-pill" id="header-stage" onclick="openStageModal()">Loading</button></div>
   <!-- Daily Nudge -->
   <div class="nudge-card" id="nudgeCard">
     <div class="nudge-stage" id="nudgeStage"></div>
@@ -601,7 +408,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
       <button class="nudge-btn nudge-btn-dismiss" onclick="dismissNudge()">Later</button>
     </div>
   </div>
-  <div class="app-nav"><button class="nav-item active" onclick="switchTab('chat')"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</button><button class="nav-item" onclick="switchTab('checkin')"><svg viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>Check-in</button><button class="nav-item" onclick="switchTab('circle')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Circle</button><button class="nav-item" onclick="switchTab('journey')"><svg viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h1M2 12h1m16.66 7.66l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Insights</button></div>
+  <div class="app-nav"><div class="nav-item active" onclick="switchTab('chat')">Chat</div><div class="nav-item" onclick="switchTab('checkin')">Check-in</div><div class="nav-item" onclick="switchTab('journey')">Journey</div></div>
   <div class="tab-panel active" id="panel-chat"><div class="chat-area" id="chat-area"></div><div class="typing-dots" id="typing"><span></span><span></span><span></span></div><div class="chat-composer"><textarea id="chat-input" rows="1" placeholder="Ask about your treatment, medications, or share how you're feeling..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea><button class="send-btn" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div></div>
   <div class="tab-panel" id="panel-checkin">
     <div class="checkin-hero"><h2>Daily Check-in</h2><p>How are you feeling today?</p></div>
@@ -615,51 +422,17 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     <div class="checkin-btn-area"><button class="btn btn-primary" id="btn-checkin" onclick="submitCheckin()">Submit check-in</button></div>
     <div class="ai-response" id="ci-response"><div class="ar-label">Melod·AI</div><div class="ar-text" id="ci-response-text"></div></div>
   </div>
-  <div class="tab-panel" id="panel-circle" style="padding:16px">
-    <div class="community-tabs"><button class="community-tab active" onclick="switchCommunityTab('buddies')">Buddies</button><button class="community-tab" onclick="switchCommunityTab('world')">World</button></div>
-    <div id="community-buddies">
-      <div class="community-invite"><h3>Journey Together!</h3><p>Celebrate, support, and lean on each other every step of the way</p><button class="community-invite-btn">Invite a Buddy</button></div>
-      <div id="buddies-feed"><div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">No buddies yet. Invite someone to share the journey!</div></div>
-    </div>
-    <div id="community-world" style="display:none">
-      <div class="community-invite"><h3>You're Not Alone</h3><p>Connect with others on the same path — anonymously and safely</p></div>
-      <div id="world-feed"></div>
-    </div>
-    <button class="community-fab" id="communityFab" onclick="openPostModal()">+</button>
-  </div>
   <div class="tab-panel" id="panel-journey">
-    <div class="insights-tabs"><button class="insights-tab active" onclick="switchInsightsTab('summary')">Summary</button><button class="insights-tab" onclick="switchInsightsTab('weekly')">Weekly</button><button class="insights-tab" onclick="switchInsightsTab('daily')">Daily</button><button class="insights-tab" onclick="switchInsightsTab('chats')">Chats</button></div>
-    <div class="insights-panel active" id="insight-summary">
-    <div class="goal-banner"><h4>Your Focus</h4><p id="goalText">Stay present, one day at a time</p></div>
-    <div class="memory-jar"><h3>Memory Jar</h3><div class="jar-stats"><div class="jar-stat"><span class="jar-num" id="jarJournals">0</span><span>Journals</span></div><div class="jar-stat"><span class="jar-num" id="jarChats">0</span><span>Chats</span></div><div class="jar-stat"><span class="jar-num" id="jarCheckins">0</span><span>Check-ins</span></div></div></div>
-    <div style="padding:0 4px"><div id="calendarContainer"></div></div>
     <div class="journey-hero"><h2>Your Journey</h2><p>An emotional map of where you've been and where you are</p></div>
     <div style="padding:0 16px"><div class="trend-panel"><h3>Mood &amp; Anxiety</h3><div class="chart-wrap"><canvas id="trend-chart"></canvas></div></div></div>
     <div class="landscape-wrap" id="landscapeWrap">
       <div id="landscapeContainer" style="position:relative;display:inline-block"></div>
     </div>
     <div class="edu-section" style="padding:0 16px"><h3>Learn More</h3><div class="edu-grid" id="edu-grid"></div></div>
-    </div><!-- end insight-summary -->
-    <div class="insights-panel" id="insight-weekly"><div style="padding:16px;text-align:center;color:var(--text-soft)"><h3 style="font-family:'Playfair Display',serif">This Week</h3><p>Your weekly mood summary will appear here after a few check-ins.</p><div id="weeklyContent"></div></div></div>
-    <div class="insights-panel" id="insight-daily"><div style="padding:16px"><h3 style="font-family:'Playfair Display',serif;margin:0 0 12px">Daily Journal</h3><div id="dailyEntries"><div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">No entries yet today. Tap the oocyte to check in!</div></div></div></div>
-    <div class="insights-panel" id="insight-chats"><div style="padding:16px"><h3 style="font-family:'Playfair Display',serif;margin:0 0 12px">Chat History</h3><div id="chatHistory"><div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">Your chat sessions will appear here.</div></div></div></div>
   </div>
 </div>
 
 <div class="modal-bg" id="stage-modal" onclick="if(event.target===this)closeStageModal()"><div class="modal-panel"><h3>Update your stage</h3><p class="modal-desc">Select where you are in your treatment journey.</p><div class="modal-stages" id="modal-stages"></div><button class="modal-close" onclick="closeStageModal()">Cancel</button></div></div>
-
-<!-- Floating notification icons -->
-<div class="floating-icons" id="floatingIcons" style="display:none">
-  <div class="float-icon" onclick="switchTab('journey');switchInsightsTab('summary')"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-  <div class="float-icon" onclick="switchTab('journey');switchInsightsTab('summary')"><svg viewBox="0 0 24 24"><path d="M8 2h8l4 10H4L8 2z"/><rect x="6" y="12" width="12" height="8" rx="1"/><line x1="12" y1="12" x2="12" y2="20"/></svg></div>
-  <div class="float-icon" onclick="switchTab('circle')"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-</div>
-<!-- Music toggle -->
-<button class="music-toggle" id="musicToggle" onclick="toggleMusic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>
-<!-- Post creation modal -->
-<div class="post-modal-overlay" id="postModal"><div class="post-modal"><h3>Share with the community</h3><textarea id="postText" placeholder="What's on your mind?"></textarea><div class="post-modal-actions"><label class="post-modal-anon"><input type="checkbox" id="postAnon" checked> Anonymous</label><button class="post-modal-send" onclick="submitPost()">Post</button></div></div></div>
-<!-- Tour offer -->
-<div class="tour-overlay" id="tourOverlay" style="display:none"><div class="tour-card"><div class="tour-label">MELOD</div><p class="tour-text">Since you're new here, want a quick tour of the app? I'd love to show you around!</p><div class="tour-btns"><button class="tour-btn tour-btn-later" onclick="dismissTour()">Later</button><button class="tour-btn tour-btn-sure" onclick="startTour()">Sure!</button></div></div></div>
 
 <!-- Egg Companion -->
 <div class="egg-overlay" id="eggOverlay" onclick="eggDismiss()"></div>
@@ -674,82 +447,62 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   </div>
   <svg id="eggSvg" width="64" height="84" viewBox="0 0 200 260">
     <defs>
-      <!-- Zona pellucida gradient — translucent golden ring -->
-      <radialGradient id="egG" cx="50%" cy="50%" r="50%"><stop offset="60%" id="egS1" stop-color="#e8daa0" stop-opacity="0.6"/><stop offset="100%" id="egS2" stop-color="#c8b870" stop-opacity="0.3"/></radialGradient>
-      <!-- Inner ooplasm gradient — warm creamy center with highlight -->
-      <radialGradient id="egHi" cx="42%" cy="38%" r="55%"><stop offset="0%" stop-color="#fffef0"/><stop offset="50%" stop-color="#fff8dc"/><stop offset="100%" stop-color="#fef3c8"/></radialGradient>
-      <!-- Glow gradient for mood-reactive outer glow -->
-      <radialGradient id="egGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f5e6c4" stop-opacity="0.35"/><stop offset="100%" stop-color="#f5e6c4" stop-opacity="0"/></radialGradient>
+      <!-- Primary body gradient — warm ivory to blush beige, matte feel -->
+      <radialGradient id="egG" cx="42%" cy="32%" r="62%"><stop offset="0%" id="egS1" stop-color="#FFF8F0"/><stop offset="100%" id="egS2" stop-color="#F0E0CF"/></radialGradient>
+      <!-- Subtle 3D highlight — upper-left soft light -->
+      <radialGradient id="egHi" cx="32%" cy="25%" r="28%"><stop offset="0%" stop-color="rgba(255,255,255,0.55)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
+      <!-- Depth shadow — lower curve interior shadow -->
+      <radialGradient id="egDp" cx="50%" cy="85%" r="45%"><stop offset="0%" stop-color="rgba(180,160,140,.08)"/><stop offset="100%" stop-color="rgba(180,160,140,0)"/></radialGradient>
+      <!-- Rim light — subtle edge glow for 3D presence -->
+      <radialGradient id="egRim" cx="70%" cy="30%" r="50%"><stop offset="0%" stop-color="rgba(255,255,255,0)"/><stop offset="70%" stop-color="rgba(255,255,255,0)"/><stop offset="100%" stop-color="rgba(255,255,255,0.2)"/></radialGradient>
+      <!-- Shell cradle gradient -->
+      <radialGradient id="egCradle" cx="50%" cy="40%" r="55%"><stop offset="0%" stop-color="#f5ede4"/><stop offset="100%" stop-color="#e8ddd2"/></radialGradient>
     </defs>
-    <!-- Outer glow — mood-reactive -->
-    <circle cx="100" cy="128" r="105" fill="url(#egGlow)" opacity="0.5" style="transition:opacity 1s"/>
-    <!-- Sun-like rays (hidden by default, shown during hope/happy) -->
-    <g id="egRays" opacity="0.3" style="transition:opacity 0.8s">
-      <line x1="100" y1="22" x2="100" y2="6" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="140" y1="32" x2="150" y2="18" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
-      <line x1="168" y1="60" x2="180" y2="50" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="178" y1="98" x2="192" y2="94" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
-      <line x1="178" y1="140" x2="192" y2="144" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="168" y1="178" x2="180" y2="188" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
-      <line x1="140" y1="206" x2="150" y2="218" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="60" y1="32" x2="50" y2="18" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
-      <line x1="32" y1="60" x2="20" y2="50" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="22" y1="98" x2="8" y2="94" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
-      <line x1="22" y1="140" x2="8" y2="144" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="32" y1="178" x2="20" y2="188" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
-      <line x1="60" y1="206" x2="50" y2="218" stroke="#c8b870" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="100" y1="234" x2="100" y2="248" stroke="#c8b870" stroke-width="1.8" stroke-linecap="round"/>
-    </g>
-    <!-- Zona pellucida — outer translucent ring -->
-    <circle cx="100" cy="128" r="90" fill="url(#egG)" style="transition:r 0.12s"/>
-    <!-- Zona ring outline -->
-    <circle cx="100" cy="128" r="86" fill="none" stroke="#c8b870" stroke-width="1.5" opacity="0.25"/>
-    <circle cx="100" cy="128" r="76" fill="none" stroke="#c8b870" stroke-width="0.8" opacity="0.15" stroke-dasharray="3 4"/>
-    <!-- Perivitelline space — subtle gap -->
-    <circle cx="100" cy="128" r="75" fill="rgba(255,255,240,0.3)"/>
-    <!-- Ooplasm — inner cell body (this is egBody, deformed during squish) -->
-    <circle id="egBody" cx="100" cy="128" r="73" fill="url(#egHi)" style="transition:r 0.12s"/>
-    <!-- Granular texture dots -->
-    <circle cx="78" cy="140" r="2" fill="#e8daa0" opacity="0.15"/>
-    <circle cx="118" cy="115" r="1.5" fill="#e8daa0" opacity="0.1"/>
-    <circle cx="125" cy="148" r="1.8" fill="#e8daa0" opacity="0.12"/>
-    <!-- Highlight / shine -->
-    <ellipse cx="82" cy="105" rx="22" ry="14" fill="#fff" opacity="0.25" transform="rotate(-20 82 105)"/>
-    <!-- Polar body — tiny circle on the zona -->
-    <circle cx="112" cy="42" r="4" fill="#fef3c8" stroke="#c8b870" stroke-width="0.8" opacity="0.6"/>
-    <!-- Face group — same IDs preserved for animation system -->
+    <!-- Shell cradle — subtle curved nest beneath egg -->
+    <ellipse cx="100" cy="236" rx="52" ry="10" fill="url(#egCradle)" opacity="0.5"/>
+    <path d="M56,232 Q100,248 144,232" stroke="#ddd2c6" stroke-width="0.8" fill="none" opacity="0.4"/>
+    <!-- Body — refined egg silhouette -->
+    <path id="egBody" d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#egG)" stroke="rgba(0,0,0,0.03)" stroke-width="0.5"/>
+    <!-- 3D depth layers -->
+    <ellipse cx="72" cy="75" rx="28" ry="40" fill="url(#egHi)" opacity="0.6"/>
+    <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#egDp)" opacity="1"/>
+    <path d="M100,232 C42,232 18,168 18,118 C18,46 54,16 100,16 C146,16 182,46 182,118 C182,168 158,232 100,232Z" fill="url(#egRim)" opacity="1"/>
+    <!-- Subtle inner warmth — barely visible warm center -->
+    <ellipse cx="100" cy="130" rx="35" ry="45" fill="rgba(245,220,195,.06)" opacity="1"/>
+    <!-- Face group — minimal, quiet, emotionally present -->
     <g id="egFace" transform="translate(0,10)">
       <!-- Eyebrows (hidden default — appear during check-in) -->
-      <path id="egBrowL" d="M66,105 Q72,103 82,105" stroke="#666" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
-      <path id="egBrowR" d="M118,105 Q128,103 134,105" stroke="#666" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
-      <!-- Eyes — small, calm dots -->
-      <ellipse id="egEyeL" cx="82" cy="118" rx="3.2" ry="3.5" fill="#555"/>
-      <ellipse id="egEyeR" cx="118" cy="118" rx="3.2" ry="3.5" fill="#555"/>
-      <!-- Eye shine — tiny highlights -->
+      <path id="egBrowL" d="M66,105 Q72,103 82,105" stroke="#8a8078" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
+      <path id="egBrowR" d="M118,105 Q128,103 134,105" stroke="#8a8078" fill="none" stroke-width="1.4" stroke-linecap="round" opacity="0"/>
+      <!-- Eyes — small, calm, aware (3.5rx vs old 4.5) -->
+      <ellipse id="egEyeL" cx="82" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
+      <ellipse id="egEyeR" cx="118" cy="118" rx="3.2" ry="3.5" fill="#4a4540"/>
+      <!-- Eye shine — tiny warm highlights -->
       <circle id="egShineL" cx="80.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
       <circle id="egShineR" cx="116.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
       <!-- Tear drops (hidden by default) -->
       <path id="egTearL" d="M76,124 Q74.5,131 76,136 Q77.5,131 76,124Z" fill="#a8c8d8" opacity="0"/>
       <path id="egTearR" d="M124,124 Q122.5,131 124,136 Q125.5,131 124,124Z" fill="#a8c8d8" opacity="0"/>
-      <!-- Sweat drop (anxiety) -->
+      <!-- Sweat drop (anxiety) — muted -->
       <path id="egSweat" d="M138,103 Q136.5,109 138,114 Q139.5,109 138,103Z" fill="#b8d0dc" opacity="0"/>
       <!-- Dizzy spirals (uncertainty) -->
       <path id="egSpiralL" d="M82,118 C78,114 86,112 84,118 C82,122 77,117 82,118" stroke="#a09890" fill="none" stroke-width="0.8" opacity="0"/>
       <path id="egSpiralR" d="M118,118 C114,114 122,112 120,118 C118,122 113,117 118,118" stroke="#a09890" fill="none" stroke-width="0.8" opacity="0"/>
-      <!-- Star sparkles (hope) -->
+      <!-- Star sparkles (hope) — subtle dusty teal -->
       <g id="egStars" opacity="0">
-        <circle cx="58" cy="100" r="2" fill="#D4A843" opacity=".6"/>
-        <circle cx="142" cy="98" r="1.5" fill="#D4A843" opacity=".5"/>
-        <circle cx="100" cy="86" r="1.2" fill="#D4A843" opacity=".4"/>
+        <circle cx="58" cy="100" r="2" fill="#7aacac" opacity=".6"/>
+        <circle cx="142" cy="98" r="1.5" fill="#7aacac" opacity=".5"/>
+        <circle cx="100" cy="86" r="1.2" fill="#7aacac" opacity=".4"/>
       </g>
-      <!-- Blush cheeks — warm coral, mood-reactive -->
-      <ellipse class="eg-cheek" cx="68" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
-      <ellipse class="eg-cheek" cx="132" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
-      <!-- Mouth — gentle quiet smile -->
-      <path id="egMouth" d="M92,138 Q100,144 108,138" stroke="#666" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+      <!-- Cheeks — soft warm blush, barely visible -->
+      <ellipse class="eg-cheek" cx="68" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
+      <ellipse class="eg-cheek" cx="132" cy="130" rx="9" ry="5" fill="#e8c8bc" opacity="0.25"/>
+      <!-- Mouth — small, gentle, quiet smile -->
+      <path id="egMouth" d="M92,138 Q100,144 108,138" stroke="#8a8078" fill="none" stroke-width="1.2" stroke-linecap="round"/>
     </g>
   </svg>
   <div class="egg-glow" id="eggGlow"></div>
+  <div id="spermContainer"></div>
 </div>
 
 <script>
@@ -779,17 +532,11 @@ async flush(){if(!this.patientId||(!this.buffer.length&&!this._hasDerived()))ret
 const d=this._derive();const p={patient_id:this.patientId,session_id:this.sessionId,signals:[...this.buffer],derived_features:d,
 session_metadata:{start:this.m.sessionStartTime,duration_ms:Date.now()-this.sessionStart,hour_of_day:this.m.sessionStartHour,is_late_night:this.m.isLateNight,day_of_week:this.m.dayOfWeek,
 user_agent:navigator.userAgent,screen_width:screen.width,screen_height:screen.height,viewport_width:window.innerWidth,viewport_height:window.innerHeight,
-timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,language:navigator.language},
-session_metrics:{duration_seconds:Math.round((Date.now()-this.sessionStart)/1000),screens_visited:Object.keys(this.m.panelVisits),messages_sent:this.m.messagesSent,checkin_done:!!this.m.checkinCompletionTime,idle_count:this._idleCount||0},
-weekly_behavior:this._getWeeklyBehavior()};
+timezone:Intl.DateTimeFormat().resolvedOptions().timeZone,language:navigator.language}};
 const n=this.buffer.length;this.buffer=[];
 try{await fetch(this.apiBase+'/passive-signals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
 if(this.debug)console.log('[Phenotyping] Flushed',n,'signals')}catch(e){this.buffer=[...p.signals,...this.buffer];if(this.debug)console.warn('[Phenotyping] Flush failed:',e.message)}}
 async endSession(){this.record('session_end',Date.now()-this.sessionStart,{total_touches:this.m.totalTouches,total_messages:this.m.messagesSent});await this.flush();this._unbind();clearInterval(this._ft)}
-
-// ── SESSION LOG (weekly behavior tracking) ──
-_getWeeklyBehavior(){try{var log=JSON.parse(localStorage.getItem('melodai_session_log')||'[]');return log.slice(-7)}catch(e){return[]}}
-_updateSessionLog(){try{var log=JSON.parse(localStorage.getItem('melodai_session_log')||'[]');var today=new Date().toISOString().slice(0,10);var entry=log.find(function(e){return e.date===today});if(!entry){entry={date:today,sessions:0,total_minutes:0,hours:[],checkins:0,messages:0};log.push(entry)}entry.sessions++;var h=new Date().getHours();if(entry.hours.indexOf(h)===-1)entry.hours.push(h);entry.total_minutes=Math.round((Date.now()-this.sessionStart)/60000);entry.messages=this.m.messagesSent;if(this.m.checkinCompletionTime)entry.checkins++;if(log.length>14)log=log.slice(-14);localStorage.setItem('melodai_session_log',JSON.stringify(log))}catch(e){}}
 
 // ── HOOKS (called from app code) ──
 onMessageSent(text){this.m.messagesSent++;this.m.messageLengths.push(text.length);
@@ -890,7 +637,7 @@ b.addEventListener('levelchange',()=>{this.m.batteryLevel=Math.round(b.level*100
 b.addEventListener('chargingchange',()=>{this.m.batteryCharging=b.charging})}catch(e){}}
 if(navigator.connection){this.m.connectionType=navigator.connection.effectiveType;navigator.connection.addEventListener('change',()=>{this.m.connectionType=navigator.connection.effectiveType;this.record('connection_change',navigator.connection.effectiveType)})}
 if(screen.orientation)this.m.screenOrientation=screen.orientation.type}
-_startFlush(){this._updateSessionLog();this._idleCount=0;var self=this;var idleTimer=null;function resetIdle(){if(idleTimer)clearTimeout(idleTimer);idleTimer=setTimeout(function(){self._idleCount=(self._idleCount||0)+1},30000)}document.addEventListener('pointerdown',resetIdle);document.addEventListener('keydown',resetIdle);resetIdle();this._ft=setInterval(()=>{this._updateSessionLog();this.flush()},this.flushInterval)}
+_startFlush(){this._ft=setInterval(()=>this.flush(),this.flushInterval)}
 _uuid(){return'xxxx-xxxx'.replace(/x/g,()=>((Math.random()*16)|0).toString(16))}
 _mean(a){return a.length?a.reduce((s,v)=>s+v,0)/a.length:0}
 _median(a){if(!a.length)return 0;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}
@@ -936,86 +683,21 @@ const STAGE_GROUPS=[{label:'Just starting',sub:'Consultation & workup',ids:['con
 let state={patientId:null,name:'',partnerName:'',stage:'consultation',cycle:1,treatment:'ivf',clinic:'',checkins:[]};
 
 function initOnboarding(){const g=document.getElementById('stage-grid');STAGE_GROUPS.forEach(s=>{const d=document.createElement('div');d.className='stage-option';var iconKey=GROUP_LABEL_MAP[s.label]||s.label;d.innerHTML='<div class="stage-icon">'+(STAGE_ICONS[iconKey]||'')+'</div><div><div class="stage-name">'+s.label+'</div><div class="stage-sub">'+s.sub+'</div></div>';d.onclick=()=>{g.querySelectorAll('.stage-option').forEach(e=>e.classList.remove('selected'));d.classList.add('selected');state.stage=s.ids[0];document.getElementById('btn-step2').disabled=false};g.appendChild(d)});document.getElementById('ob-name').addEventListener('input',e=>{document.getElementById('btn-step1').disabled=!e.target.value.trim()})}
-const SOFT_SPOT_MESSAGES={
-'just_starting':"Starting fertility investigations can feel overwhelming — there's so much to learn and so many unknowns. That's exactly why I'm here. I'll be paying extra attention as you navigate this.",
-'stimulation':"Stimulation is physically and emotionally intense. Around day 7, many people tell us the hormones start to feel heavy. I'll be watching for that and checking in.",
-'retrieval':"The days around retrieval are a whirlwind — nerves before, relief after, then the anxious wait for the fertilisation call. I'll be right here through all of it.",
-'embryo':"Waiting for embryo updates is a unique kind of torture. Every phone buzz matters. I'll help you make sense of the reports and hold the worry with you.",
-'transfer':"Transfer day itself is usually quick — it's everything around it that's hard. The hoping, the careful movements after, the wondering if it worked. I'll be here.",
-'tww':"The two-week wait is widely considered the hardest part of IVF. Symptom spotting, anxiety spikes, bargaining with the universe — all normal. I'll check in often.",
-'result':"Result day changes everything, one way or another. Whatever comes, you won't face it alone.",
-'loss':"There are no words that make this easier. I'm not going to try to fix it. I'm just going to be here, whenever you need.",
-'between_cycles':"The space between cycles is underestimated. Processing what happened, deciding what's next — that takes real energy. Take your time.",
-'donor_surrogacy':"The donor or surrogacy path brings its own unique emotions — grief for what you imagined, hope for what's possible. Both are valid.",
-'egg_freezing':"Freezing eggs is an act of self-care, but it can still feel loaded. I'll help you understand the process and sit with whatever comes up.",
-'early_pregnancy':"After everything it took to get here, early pregnancy after IVF often doesn't feel the way you expected. Anxiety instead of joy is incredibly common. I'll be here for that too."
-};
-const STAGE_TO_SOFTSPOT={
-'consultation':'just_starting','investigation':'just_starting','waiting_to_start':'just_starting',
-'downregulation':'stimulation','stimulation':'stimulation','monitoring':'stimulation','trigger':'stimulation',
-'before_retrieval':'retrieval','retrieval_day':'retrieval','post_retrieval':'retrieval',
-'fertilisation_report':'embryo','embryo_development':'embryo','freeze_all':'embryo',
-'before_transfer':'transfer','transfer_day':'transfer',
-'early_tww':'tww','late_tww':'tww',
-'result_day':'result','positive_result':'result','negative_result':'loss',
-'chemical_pregnancy':'loss','miscarriage':'loss',
-'failed_cycle_acute':'between_cycles','failed_cycle_processing':'between_cycles','wtf_appointment':'between_cycles',
-'between_cycles':'between_cycles','considering_stopping':'between_cycles',
-'donor_journey':'donor_surrogacy',
-'early_pregnancy':'early_pregnancy'
-};
-function showSoftSpotMoment(onDone){
-var key=STAGE_TO_SOFTSPOT[state.stage]||'just_starting';
-var msg=SOFT_SPOT_MESSAGES[key];
-if(!msg){onDone();return}
-var ov=document.getElementById('softSpotOverlay');
-// Build content
-ov.innerHTML='<svg width="80" height="96" viewBox="0 0 120 140" style="opacity:0;transition:opacity .6s ease"><defs><radialGradient id="sseg" cx="50%" cy="45%" r="50%"><stop offset="0%" stop-color="#FFF8F0"/><stop offset="100%" stop-color="#F5E6D0"/></radialGradient></defs><ellipse cx="60" cy="72" rx="44" ry="52" fill="url(#sseg)" stroke="#E8D5BC" stroke-width="1.5"/><circle cx="48" cy="64" r="2.5" fill="#3A3A3A" opacity=".6"/><circle cx="72" cy="64" r="2.5" fill="#3A3A3A" opacity=".6"/><path d="M52 76 Q60 82 68 76" stroke="#3A3A3A" stroke-width="1.5" fill="none" opacity=".4" stroke-linecap="round"/></svg><div class="soft-spot-text" id="ssText"></div><button class="soft-spot-ready" id="ssReady" onclick="dismissSoftSpot()">I\'m ready</button>';
-ov.style.display='flex';
-setTimeout(function(){ov.classList.add('visible');ov.querySelector('svg').style.opacity='1'},50);
-// Typewriter
-var el=document.getElementById('ssText');
-var cursor=document.createElement('span');
-cursor.className='ss-cursor';
-var i=0;
-function typeChar(){
-if(i>=msg.length){if(cursor.parentNode)cursor.parentNode.removeChild(cursor);setTimeout(function(){document.getElementById('ssReady').classList.add('visible')},400);return}
-var ch=msg[i];
-if(ch==='\n'){el.appendChild(document.createElement('br'))}else{el.appendChild(document.createTextNode(ch))}
-if(cursor.parentNode)cursor.parentNode.removeChild(cursor);
-el.appendChild(cursor);
-i++;
-var delay=30;if(ch==='.'||ch==='—')delay=60;if(ch===',')delay=45;
-setTimeout(typeChar,delay)}
-setTimeout(typeChar,600);
-window._softSpotDone=onDone}
-function dismissSoftSpot(){
-var ov=document.getElementById('softSpotOverlay');
-ov.classList.remove('visible');
-setTimeout(function(){ov.style.display='none'},600);
-if(window._softSpotDone)window._softSpotDone()}
 function goStep(n){if(n===2){state.name=document.getElementById('ob-name').value.trim();state.partnerName=document.getElementById('ob-partner').value.trim()}document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));document.getElementById('step'+n).classList.add('active');for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}}
-async function completeOnboarding(){state.treatment=document.getElementById('ob-treatment')?document.getElementById('ob-treatment').value:'ivf';state.cycle=document.getElementById('ob-cycle')?parseInt(document.getElementById('ob-cycle').value):1;state.clinic=document.getElementById('ob-clinic')?document.getElementById('ob-clinic').value.trim():'';
+async function completeOnboarding(){state.treatment=document.getElementById('ob-treatment').value;state.cycle=parseInt(document.getElementById('ob-cycle').value);state.clinic=document.getElementById('ob-clinic').value.trim();
 var fallback=function(){state.patientId=state.patientId||('demo-'+Math.random().toString(36).slice(2,8));showApp();addMsg('ai','Hi '+state.name+". I\u2019m Melod\u00b7AI \u2014 here to walk alongside you through this journey.\n\nYou\u2019re at the "+getStageName(state.stage)+' stage, cycle '+state.cycle+". Whether you want to talk about what you\u2019re feeling, ask questions about what\u2019s happening, or just vent \u2014 I\u2019m here.\n\nHow are you doing today?",null,{showOneWord:true})};
 if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(function(){ctrl.abort()},8000);const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null}),signal:ctrl.signal});clearTimeout(timer);const d=await r.json();state.patientId=d.patient_id;showApp();if(d.message)addMsg('ai',d.message,null,{showOneWord:true});return}catch(e){console.warn('API unavailable:',e)}}fallback()}
-function showApp(){try{var sw=document.getElementById('screen-welcome');if(sw)sw.classList.remove('active');document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();
-document.getElementById('chat-input').addEventListener('input',resetStillHere);
+function showApp(){try{document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();
 collector=new PassiveCollector({patientId:state.patientId,apiBase:API_BASE,debug:true,flushInterval:60000});collector.record('session_start',null,{stage:state.stage,cycle:state.cycle,treatment:state.treatment})}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
 /* ═══ REFLECTIONS ═══════════════════════════════════════════════════ */
 async function fetchReflection(){
   if(!state.patientId||!API_BASE)return;
   try{
-    // Fetch daily insight first (morning card)
-    fetchDailyInsight();
     // First check greeting for micro-reflection
     var gr=await fetch(API_BASE+'/greeting/'+state.patientId).then(function(r){return r.ok?r.json():null}).catch(function(){return null});
-    if(gr&&gr.gap_message){
-      addMicroReflection(gr.gap_message);
-    }
     if(gr&&gr.micro_reflection){
       addMicroReflection(gr.micro_reflection);
     }
-    if(gr&&gr.capability_hint&&gr.capability_hint.hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=gr.capability_hint.hint;a.appendChild(h);a.scrollTop=a.scrollHeight},2000)}
     // Then check if full reflection is due
     if(gr&&gr.needs_reflection){
       var ref=await fetch(API_BASE+'/reflection/'+state.patientId).then(function(r){return r.ok?r.json():null}).catch(function(){return null});
@@ -1023,52 +705,8 @@ async function fetchReflection(){
         addReflectionCard(ref.text,ref.zone_display||ref.landscape_zone||'',ref.mood_trend);
       }
     }
-    // Check evening prompt
-    fetchEveningPrompt();
   }catch(e){console.warn('Reflection fetch failed:',e)}
 }
-/* ═══ DAILY INSIGHT (Morning Card) ═════════════════════════════════ */
-var _insightShown=false;
-async function fetchDailyInsight(){
-  if(!state.patientId||!API_BASE||_insightShown)return;
-  try{
-    var r=await fetch(API_BASE+'/daily-insight/'+state.patientId);
-    if(!r.ok)return;
-    var d=await r.json();
-    if(d.insight){
-      _insightShown=true;
-      var a=document.getElementById('chat-area');
-      var di=document.createElement('div');di.className='daily-insight';
-      di.textContent=d.insight;
-      di.onclick=function(){di.classList.add('dismissed');var sep=di.nextElementSibling;if(sep&&sep.classList.contains('daily-insight-sep')){sep.style.opacity='0'}setTimeout(function(){di.remove();if(sep)sep.remove()},400)};
-      var sep=document.createElement('div');sep.className='daily-insight-sep';
-      if(a.firstChild){a.insertBefore(sep,a.firstChild);a.insertBefore(di,a.firstChild)}else{a.appendChild(di);a.appendChild(sep)}
-    }
-  }catch(e){console.warn('Daily insight fetch failed:',e)}
-}
-/* ═══ EVENING WIND-DOWN ════════════════════════════════════════════ */
-async function fetchEveningPrompt(){
-  if(!state.patientId||!API_BASE)return;
-  var h=new Date().getHours();
-  if(h<20||h>=23)return; // Only 8pm-11pm
-  try{
-    var r=await fetch(API_BASE+'/evening-prompt/'+state.patientId);
-    if(!r.ok)return;
-    var d=await r.json();
-    if(d.prompt){
-      var card=document.createElement('div');card.className='evening-card';
-      card.textContent=d.prompt;
-      card.onclick=function(){card.classList.add('dismissed');setTimeout(function(){card.remove()},400)};
-      document.body.appendChild(card);
-    }
-  }catch(e){console.warn('Evening prompt fetch failed:',e)}
-}
-/* ═══ STILL HERE — Passive Presence ════════════════════════════════ */
-var _stillHereShown=false;var _stillHereTimer=null;
-var STILL_HERE_MSGS=["No need to talk. Just sitting here with you.","Sometimes opening the app is enough.","I\u2019m here. Take your time.","You don\u2019t have to have words for it.","Just being here counts."];
-function initStillHere(){if(_stillHereShown)return;_stillHereTimer=setTimeout(function(){if(_stillHereShown)return;_stillHereShown=true;var egg=document.getElementById('eggCompanion');if(!egg)return;var w=document.createElement('div');w.className='still-here-whisper';w.textContent=STILL_HERE_MSGS[Math.floor(Math.random()*STILL_HERE_MSGS.length)];egg.appendChild(w);setTimeout(function(){w.classList.add('visible')},50);setTimeout(function(){w.classList.remove('visible');setTimeout(function(){w.remove()},1500)},10000)},30000)}
-function resetStillHere(){if(_stillHereTimer){clearTimeout(_stillHereTimer);_stillHereTimer=null}if(!_stillHereShown)initStillHere()}
-/* ═══ END STILL HERE ═══════════════════════════════════════════════ */
 function addReflectionCard(text,zone,trend){
   var a=document.getElementById('chat-area');
   var d=document.createElement('div');d.className='reflection-card';
@@ -1095,274 +733,11 @@ function addMicroReflection(text){
   if(a.firstChild)a.insertBefore(d,a.firstChild);else a.appendChild(d);
 }
 /* ═══ END REFLECTIONS ═══════════════════════════════════════════════ */
-/* ═══ NATIVE FERTOOL WIDGETS ═══════════════════════════════════════ */
-function renderFertoolWidget(card){
-  var key=card.key||'';
-  if(key==='amh')return renderAMHChart(card);
-  if(key==='egg_freezing')return renderEggFreezingTable(card);
-  if(key==='endometriosis')return renderEndoCard(card);
-  if(key==='fertility_assessment')return renderAssessmentChecklist(card);
-  return null;
-}
-function renderAMHChart(card){
-  var W=340,H=240,pad={t:20,r:20,b:35,l:42};
-  var cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
-  function sx(age){return pad.l+((age-20)/25)*cw}
-  function sy(amh){return pad.t+ch-(amh/60)*ch}
-  // Percentile data: [age, amh]
-  var p90=[[20,48],[25,42],[28,35],[30,30],[33,24],[35,20],[37,16],[39,12],[41,9],[43,7],[45,5]];
-  var p50=[[20,24],[25,20],[28,16],[30,14],[33,10],[35,8],[37,6],[39,4],[41,3],[43,2],[45,1.5]];
-  var p10=[[20,10],[25,8],[28,6],[30,4.5],[33,3],[35,2],[37,1.5],[39,1],[41,0.7],[43,0.5],[45,0.3]];
-  function curvePath(pts){var d='M'+sx(pts[0][0])+','+sy(pts[0][1]);for(var i=1;i<pts.length;i++){var p=pts[i-1],c=pts[i];var mx=(sx(p[0])+sx(c[0]))/2;d+=' C'+mx+','+sy(p[1])+' '+mx+','+sy(c[1])+' '+sx(c[0])+','+sy(c[1])}return d}
-  // Zone fills
-  var zoneAbove='M'+sx(20)+','+sy(60);p90.forEach(function(p){zoneAbove+=' L'+sx(p[0])+','+sy(p[1])});zoneAbove+=' L'+sx(45)+','+sy(60)+' Z';
-  var zoneMid='';p90.forEach(function(p,i){zoneMid+=(i?'L':'M')+sx(p[0])+','+sy(p[1])});for(var i=p10.length-1;i>=0;i--)zoneMid+=' L'+sx(p10[i][0])+','+sy(p10[i][1]);zoneMid+=' Z';
-  var zoneBelow='';p10.forEach(function(p,i){zoneBelow+=(i?'L':'M')+sx(p[0])+','+sy(p[1])});zoneBelow+=' L'+sx(45)+','+sy(0)+' L'+sx(20)+','+sy(0)+' Z';
-
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" class="amh-chart-svg" xmlns="http://www.w3.org/2000/svg">';
-  // Zones
-  svg+='<path d="'+zoneAbove+'" fill="rgba(76,175,80,.08)"/>';
-  svg+='<path d="'+zoneMid+'" fill="rgba(45,142,142,.05)"/>';
-  svg+='<path d="'+zoneBelow+'" fill="rgba(244,67,54,.06)"/>';
-  // Gridlines
-  [0,10,20,30,40,50,60].forEach(function(v){svg+='<line x1="'+pad.l+'" y1="'+sy(v)+'" x2="'+(W-pad.r)+'" y2="'+sy(v)+'" stroke="#eee" stroke-width=".5"/>'});
-  [20,25,30,35,40,45].forEach(function(v){svg+='<line x1="'+sx(v)+'" y1="'+pad.t+'" x2="'+sx(v)+'" y2="'+(H-pad.b)+'" stroke="#eee" stroke-width=".5"/>'});
-  // Curves
-  svg+='<path d="'+curvePath(p90)+'" fill="none" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,3" opacity=".6"/>';
-  svg+='<path d="'+curvePath(p50)+'" fill="none" stroke="#2D8E8E" stroke-width="2"/>';
-  svg+='<path d="'+curvePath(p10)+'" fill="none" stroke="#E57373" stroke-width="1.5" stroke-dasharray="4,3" opacity=".6"/>';
-  // Zone labels
-  svg+='<text x="'+(pad.l+5)+'" y="'+(sy(55)+4)+'" font-size="8" fill="#4CAF50" font-family="Montserrat,sans-serif" opacity=".7">Consider PCOS</text>';
-  svg+='<text x="'+(pad.l+5)+'" y="'+(sy(15)+4)+'" font-size="8" fill="#2D8E8E" font-family="Montserrat,sans-serif" opacity=".5">Typical range</text>';
-  svg+='<text x="'+(pad.l+5)+'" y="'+(sy(1.5)+4)+'" font-size="8" fill="#E57373" font-family="Montserrat,sans-serif" opacity=".7">Low reserve</text>';
-  // Axes labels
-  [0,10,20,30,40,50,60].forEach(function(v){svg+='<text x="'+(pad.l-4)+'" y="'+(sy(v)+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="Montserrat,sans-serif">'+v+'</text>'});
-  [20,25,30,35,40,45].forEach(function(v){svg+='<text x="'+sx(v)+'" y="'+(H-pad.b+12)+'" text-anchor="middle" font-size="9" fill="#999" font-family="Montserrat,sans-serif">'+v+'</text>'});
-  svg+='<text x="'+(W/2)+'" y="'+(H-3)+'" text-anchor="middle" font-size="9" fill="#999" font-family="Montserrat,sans-serif">Age</text>';
-  svg+='<text x="12" y="'+(H/2)+'" text-anchor="middle" font-size="9" fill="#999" font-family="Montserrat,sans-serif" transform="rotate(-90,12,'+(H/2)+')">AMH (pmol/L)</text>';
-  // Legend
-  svg+='<line x1="'+(W-pad.r-100)+'" y1="'+(pad.t+4)+'" x2="'+(W-pad.r-85)+'" y2="'+(pad.t+4)+'" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,3"/>';
-  svg+='<text x="'+(W-pad.r-82)+'" y="'+(pad.t+7)+'" font-size="8" fill="#666" font-family="Montserrat,sans-serif">90th</text>';
-  svg+='<line x1="'+(W-pad.r-100)+'" y1="'+(pad.t+16)+'" x2="'+(W-pad.r-85)+'" y2="'+(pad.t+16)+'" stroke="#2D8E8E" stroke-width="2"/>';
-  svg+='<text x="'+(W-pad.r-82)+'" y="'+(pad.t+19)+'" font-size="8" fill="#666" font-family="Montserrat,sans-serif">50th</text>';
-  svg+='<line x1="'+(W-pad.r-100)+'" y1="'+(pad.t+28)+'" x2="'+(W-pad.r-85)+'" y2="'+(pad.t+28)+'" stroke="#E57373" stroke-width="1.5" stroke-dasharray="4,3"/>';
-  svg+='<text x="'+(W-pad.r-82)+'" y="'+(pad.t+31)+'" font-size="8" fill="#666" font-family="Montserrat,sans-serif">10th</text>';
-  // Dot placeholder
-  svg+='<circle id="amhDot" cx="0" cy="0" r="5" fill="#E57373" stroke="white" stroke-width="1.5" style="display:none"/>';
-  svg+='</svg>';
-  // Interactive inputs
-  var uid='amh'+Date.now();
-  var inputs='<div class="ft-input-row">';
-  inputs+='<div class="ft-input-group"><label>Your age</label><input type="number" id="'+uid+'Age" min="20" max="45" placeholder="30"></div>';
-  inputs+='<div class="ft-input-group"><label>AMH (pmol/L)</label><input type="number" id="'+uid+'Val" min="0" max="60" step="0.1" placeholder="8"></div>';
-  inputs+='<button class="ft-btn" onclick="plotAMH(\''+uid+'\','+W+','+H+','+pad.l+','+pad.r+','+pad.t+','+pad.b+')">Show on chart</button>';
-  inputs+='</div><div class="ft-result" id="'+uid+'Result" style="display:none"></div>';
-  var el=document.createElement('div');el.className='ft-widget';
-  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+svg+inputs+'</div><div class="ft-widget-footer"><span>Percentile curves based on age-specific AMH reference ranges</span><a href="'+escHtml(card.url)+'" target="_blank">Full tool \u2192</a></div>';
-  return el;
-}
-function plotAMH(uid,W,H,pl,pr,pt,pb){
-  var age=parseFloat(document.getElementById(uid+'Age').value);
-  var amh=parseFloat(document.getElementById(uid+'Val').value);
-  if(isNaN(age)||isNaN(amh)||age<20||age>45||amh<0)return;
-  var cw=W-pl-pr,ch=H-pt-pb;
-  var cx=pl+((age-20)/25)*cw,cy=pt+ch-(amh/60)*ch;
-  var dot=document.getElementById('amhDot');
-  if(dot){dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.style.display='block'}
-  // Interpolate percentiles at this age
-  function interpAt(data,a){for(var i=0;i<data.length-1;i++){if(a>=data[i][0]&&a<=data[i+1][0]){var t=(a-data[i][0])/(data[i+1][0]-data[i][0]);return data[i][1]+(data[i+1][1]-data[i][1])*t}}return data[data.length-1][1]}
-  var p90=[[20,48],[25,42],[28,35],[30,30],[33,24],[35,20],[37,16],[39,12],[41,9],[43,7],[45,5]];
-  var p50=[[20,24],[25,20],[28,16],[30,14],[33,10],[35,8],[37,6],[39,4],[41,3],[43,2],[45,1.5]];
-  var p10=[[20,10],[25,8],[28,6],[30,4.5],[33,3],[35,2],[37,1.5],[39,1],[41,0.7],[43,0.5],[45,0.3]];
-  var v90=interpAt(p90,age),v50=interpAt(p50,age),v10=interpAt(p10,age);
-  var r=document.getElementById(uid+'Result');r.style.display='block';
-  if(amh>v90)r.innerHTML='<strong>Above 90th percentile for age '+age+'.</strong> This is above the typical range \u2014 your specialist may want to check for PCOS.';
-  else if(amh>=v50)r.innerHTML='<strong>Normal range for age '+age+'.</strong> This is within the typical range for your age.';
-  else if(amh>=v10)r.innerHTML='<strong>Lower end of normal for age '+age+'.</strong> This is on the lower end but still within range.';
-  else r.innerHTML='<strong>Below 10th percentile for age '+age+'.</strong> This suggests lower ovarian reserve \u2014 talk to your specialist about what this means for you.';
-}
-function renderEggFreezingTable(card){
-  var data=[
-    {age:'<35',  vals:[48,44,77,84]},
-    {age:'35-37',vals:[37,47,53,73]},
-    {age:'38-40',vals:[19,41,41,57]},
-    {age:'>40',  vals:[ 5,25,32,27]}
-  ];
-  function cellClass(v){return v>=60?'ft-high':v<30?'ft-low':''}
-  var uid='ef'+Date.now();
-  var t='<table class="ft-table"><thead><tr><th>Age at Freeze</th><th>1\u20139 eggs</th><th>10\u201314 eggs</th><th>15\u201319 eggs</th><th>20+ eggs</th></tr></thead><tbody>';
-  data.forEach(function(row,ri){
-    t+='<tr>';t+='<td>'+row.age+'</td>';
-    row.vals.forEach(function(v,ci){t+='<td id="'+uid+'_'+ri+'_'+ci+'" class="'+cellClass(v)+'">'+v+'%</td>'});
-    t+='</tr>';
-  });
-  t+='</tbody></table>';
-  t+='<div class="ft-source">Source: Cobo et al. RBMO 2025 (n=2,891 patients)</div>';
-  t+='<div class="ft-input-row">';
-  t+='<div class="ft-input-group"><label>Your age</label><select id="'+uid+'Age"><option value="">Select</option><option value="0">&lt;35</option><option value="1">35-37</option><option value="2">38-40</option><option value="3">&gt;40</option></select></div>';
-  t+='<div class="ft-input-group"><label>Eggs frozen</label><select id="'+uid+'Eggs"><option value="">Select</option><option value="0">1-9</option><option value="1">10-14</option><option value="2">15-19</option><option value="3">20+</option></select></div>';
-  t+='<button class="ft-btn" onclick="highlightEggCell(\''+uid+'\')">Show my rate</button>';
-  t+='</div><div class="ft-result" id="'+uid+'Result" style="display:none"></div>';
-  var el=document.createElement('div');el.className='ft-widget';
-  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+t+'</div><div class="ft-widget-footer"><span>Live birth rates per warming cycle</span><a href="'+escHtml(card.url)+'" target="_blank">Full calculator \u2192</a></div>';
-  return el;
-}
-function highlightEggCell(uid){
-  var data=[[48,44,77,84],[37,47,53,73],[19,41,41,57],[5,25,32,27]];
-  var ri=document.getElementById(uid+'Age').value,ci=document.getElementById(uid+'Eggs').value;
-  if(ri===''||ci==='')return;
-  ri=parseInt(ri);ci=parseInt(ci);
-  // Clear previous highlights
-  document.querySelectorAll('.ft-hl').forEach(function(el){el.classList.remove('ft-hl')});
-  var cell=document.getElementById(uid+'_'+ri+'_'+ci);
-  if(cell)cell.classList.add('ft-hl');
-  var val=data[ri][ci];
-  var r=document.getElementById(uid+'Result');r.style.display='block';
-  r.innerHTML='Your estimated live birth rate: <strong>'+val+'%</strong> per warming cycle.';
-}
-function renderEndoCard(card){
-  // Simple SVG showing 4 stages as concentric arcs
-  var svg='<svg viewBox="0 0 280 120" style="width:100%;max-width:280px;display:block;margin:0 auto 8px" xmlns="http://www.w3.org/2000/svg">';
-  var stages=[{r:50,label:'Severe (IV)',color:'#C44040'},{r:40,label:'Moderate (III)',color:'#E57373'},{r:30,label:'Mild (II)',color:'#FFAB91'},{r:20,label:'Minimal (I)',color:'#FFE0B2'}];
-  stages.forEach(function(s,i){
-    svg+='<path d="M140,'+(90-s.r)+' A'+s.r+','+s.r+' 0 0,1 '+(140+s.r)+',90" fill="none" stroke="'+s.color+'" stroke-width="6" stroke-linecap="round" opacity=".7"/>';
-    svg+='<text x="'+(145+s.r)+'" y="'+(94-s.r*0.3)+'" font-size="8" fill="'+s.color+'" font-family="Montserrat,sans-serif" font-weight="600">'+s.label+'</text>';
-  });
-  svg+='</svg>';
-  var bullets='<ul class="ft-bullets">';
-  var facts=[
-    ['✓','Stage I\u2013II: Often no impact on fertility'],
-    ['⚠','Stage III\u2013IV: May reduce egg reserve and implantation'],
-    ['💊','Surgery can improve natural conception chances in some cases'],
-    ['🌱','IVF success rates are generally good even with endometriosis']
-  ];
-  facts.forEach(function(f){bullets+='<li><span class="ft-bullet-icon">'+f[0]+'</span><span>'+f[1]+'</span></li>'});
-  bullets+='</ul>';
-  var el=document.createElement('div');el.className='ft-widget';
-  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+svg+bullets+'</div><div class="ft-widget-footer"><span>Simplified overview for patient education</span><a href="'+escHtml(card.url)+'" target="_blank">Learn more \u2192</a></div>';
-  return el;
-}
-function renderAssessmentChecklist(card){
-  var items=[
-    {name:'Blood tests: AMH, FSH, LH, Estradiol, TSH, Prolactin',detail:'These hormones help assess ovarian reserve, thyroid function, and overall reproductive health. Usually done on day 2\u20134 of your cycle.'},
-    {name:'Ultrasound: Antral follicle count (AFC)',detail:'A transvaginal ultrasound counts small follicles in your ovaries. Combined with AMH, this gives the best picture of your ovarian reserve.'},
-    {name:'Tubal assessment: HSG or HyCoSy',detail:'Checks whether your fallopian tubes are open. HSG uses X-ray with dye; HyCoSy uses ultrasound with saline or foam.'},
-    {name:'Semen analysis (partner)',detail:'Assesses sperm count, motility (movement), and morphology (shape). One of the most important and simplest fertility tests.'},
-    {name:'Genetic screening (if indicated)',detail:'Carrier screening for conditions like cystic fibrosis, thalassemia, or fragile X. Recommended based on family history or ethnic background.'}
-  ];
-  var html='';
-  items.forEach(function(item){
-    html+='<div class="ft-check-item" onclick="this.classList.toggle(\'open\')">';
-    html+='<div class="ft-check-head"><span class="ft-check-icon">\u2713</span><span>'+escHtml(item.name)+'</span></div>';
-    html+='<div class="ft-check-detail">'+escHtml(item.detail)+'</div>';
-    html+='</div>';
-  });
-  var el=document.createElement('div');el.className='ft-widget';
-  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+html+'</div><div class="ft-widget-footer"><span>Tap each item for details</span><a href="'+escHtml(card.url)+'" target="_blank">Full assessment \u2192</a></div>';
-  return el;
-}
-/* ═══ ANZARD 2023 INFOGRAPHIC CHARTS ═══════════════════════════════ */
-function renderAnzardChart(key){
-  var fn={age_outcomes:renderAnzardAge,cumulative:renderAnzardCumulative,fresh_vs_frozen:renderAnzardFreshFrozen,causes:renderAnzardCauses,baby_outcomes:renderAnzardBaby,trends:renderAnzardTrends,egg_freezing_stats:renderAnzardEggFreeze};
-  return fn[key]?fn[key]():null;
-}
-function _anzardCard(title,subtitle,body,source){
-  var el=document.createElement('div');el.className='ft-widget';
-  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">📊</span>'+escHtml(title)+'</div><div style="padding:0 16px 2px;font-size:11px;color:var(--text-soft)">'+escHtml(subtitle)+'</div><div class="ft-widget-body">'+body+'</div><div class="ft-widget-footer"><span>'+escHtml(source||'Source: ANZARD 2023 Report (NPESU, UNSW Sydney)')+'</span></div>';
-  return el;
-}
-function renderAnzardAge(){
-  var data=[{age:'<30',fresh:25.0,thaw:37.8},{age:'30–34',fresh:24.8,thaw:37.8},{age:'35–39',fresh:15.7,thaw:33.0},{age:'40–44',fresh:4.8,thaw:22.4},{age:'45+',fresh:0.9,thaw:12.6}];
-  var maxV=40;var W=300,H=180,pl=36,pr=10,pt=10,pb=30;var cw=W-pl-pr,ch=H-pt-pb;
-  var bw=cw/data.length*0.35;
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-height:200px;display:block" xmlns="http://www.w3.org/2000/svg">';
-  // Grid
-  [0,10,20,30,40].forEach(function(v){var y=pt+ch-(v/maxV)*ch;svg+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eee" stroke-width=".5"/>';svg+='<text x="'+(pl-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'%</text>'});
-  data.forEach(function(d,i){
-    var x=pl+(i+0.5)*cw/data.length;
-    var hF=(d.fresh/maxV)*ch,hT=(d.thaw/maxV)*ch;
-    svg+='<rect x="'+(x-bw-1)+'" y="'+(pt+ch-hF)+'" width="'+bw+'" height="'+hF+'" rx="3" fill="#2dd4bf"/>';
-    svg+='<rect x="'+(x+1)+'" y="'+(pt+ch-hT)+'" width="'+bw+'" height="'+hT+'" rx="3" fill="#0f766e"/>';
-    svg+='<text x="'+x+'" y="'+(H-pb+14)+'" text-anchor="middle" font-size="9" fill="#666" font-family="DM Sans,sans-serif">'+d.age+'</text>';
-  });
-  svg+='</svg>';
-  svg+='<div style="display:flex;gap:14px;justify-content:center;font-size:11px;color:#666;margin-top:4px"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#2dd4bf;display:inline-block"></span>Fresh</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#0f766e;display:inline-block"></span>Frozen</span></div>';
-  svg+='<div class="ft-result" style="display:block;margin-top:8px"><strong>Key:</strong> Age is the strongest predictor of IVF success. Frozen cycles generally outperform fresh on a per-cycle basis.</div>';
-  return _anzardCard('What are my chances by age?','Live birth rate per initiated cycle, 2023',svg);
-}
-function renderAnzardCumulative(){
-  var data=[{c:1,all:39},{c:2,all:51.4},{c:3,all:56.3},{c:4,all:58.3},{c:5,all:59.3},{c:6,all:59.7}];
-  var W=300,H=160,pl=36,pr=10,pt=10,pb=28;var cw=W-pl-pr,ch=H-pt-pb;
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-height:180px;display:block" xmlns="http://www.w3.org/2000/svg">';
-  [0,20,40,60,80].forEach(function(v){var y=pt+ch-(v/80)*ch;svg+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eee" stroke-width=".5"/>';svg+='<text x="'+(pl-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'%</text>'});
-  // Area fill
-  var path='M';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var y=pt+ch-(d.all/80)*ch;path+=(i?'L':'')+ x+','+y});
-  path+='L'+(pl+(data.length-1)*cw/(data.length-1))+','+(pt+ch)+'L'+pl+','+(pt+ch)+'Z';
-  svg+='<path d="'+path+'" fill="#14b8a6" opacity=".12"/>';
-  // Line
-  var line='';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var y=pt+ch-(d.all/80)*ch;line+=(i?'L':'M')+x+','+y;svg+='<circle cx="'+x+'" cy="'+y+'" r="3.5" fill="#0d9488" stroke="white" stroke-width="1.5"/>';svg+='<text x="'+x+'" y="'+(y-8)+'" text-anchor="middle" font-size="9" fill="#0d9488" font-weight="700" font-family="DM Sans,sans-serif">'+d.all+'%</text>'});
-  svg+='<path d="'+line+'" fill="none" stroke="#0d9488" stroke-width="2.5"/>';
-  data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);svg+='<text x="'+x+'" y="'+(H-pb+13)+'" text-anchor="middle" font-size="9" fill="#666" font-family="DM Sans,sans-serif">Cycle '+d.c+'</text>'});
-  svg+='</svg>';
-  svg+='<div class="ft-result" style="display:block;margin-top:8px"><strong>39%</strong> succeed on cycle 1. By cycle 6, nearly <strong>60%</strong> have had a baby. Each cycle adds meaningful chance.</div>';
-  return _anzardCard('Does persistence pay off?','Cumulative live birth rate over multiple cycles',svg);
-}
-function renderAnzardFreshFrozen(){
-  var rows=[{label:'Live birth per ET',fresh:'25.4%',frozen:'33.0%'},{label:'Clinical pregnancy per ET',fresh:'33.0%',frozen:'40.8%'},{label:'Live birth per initiated cycle',fresh:'14.5%',frozen:'32.6%'}];
-  var html='<div style="display:flex;flex-direction:column;gap:8px">';
-  rows.forEach(function(r){html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f0fdfa;border-radius:12px"><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800;color:#2dd4bf">'+r.fresh+'</div><div style="font-size:10px;color:#0d9488;font-weight:600">Fresh</div></div><div style="flex:1.5;text-align:center;font-size:11px;font-weight:700;color:#0f766e;line-height:1.3">'+r.label+'</div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800;color:#0f766e">'+r.frozen+'</div><div style="font-size:10px;color:#0d9488;font-weight:600">Frozen ❄️</div></div></div>'});
-  html+='</div>';
-  html+='<div class="ft-result" style="display:block;margin-top:8px"><strong>71.5%</strong> of all ART live births in 2023 came from frozen cycles. Modern vitrification makes frozen embryos highly successful.</div>';
-  return _anzardCard('Fresh vs Frozen embryo transfers','Autologous cycle outcomes, 2023',html);
-}
-function renderAnzardCauses(){
-  var data=[{name:'Female factors',pct:44.4,color:'#0d9488'},{name:'Unexplained',pct:24.5,color:'#5eead4'},{name:'Combined F+M',pct:15.2,color:'#14b8a6'},{name:'Male factor',pct:10.4,color:'#99f6e4'},{name:'Not infertility',pct:5.4,color:'#ccfbf1'}];
-  var html='<div style="display:flex;flex-direction:column;gap:6px">';
-  data.forEach(function(d){html+='<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:'+d.color+';flex-shrink:0"></div><div style="flex:1;font-size:12px;font-weight:600;color:#115e59">'+d.name+'</div><div style="font-size:14px;font-weight:800;color:'+d.color+'">'+d.pct+'%</div><div style="flex:2;height:8px;background:#f0fdfa;border-radius:4px;overflow:hidden"><div style="width:'+d.pct+'%;height:100%;background:'+d.color+';border-radius:4px"></div></div></div>'});
-  html+='</div>';
-  html+='<div class="ft-result" style="display:block;margin-top:8px">Nearly <strong>1 in 4</strong> couples have unexplained infertility — no clear cause found. This is common and doesn\'t mean treatment won\'t work.</div>';
-  return _anzardCard('Why people seek fertility treatment','Cause of infertility, female-male couples, 2023',html);
-}
-function renderAnzardBaby(){
-  var stats=[{v:'83%',l:'Full-term, normal weight',e:'💚'},{v:'20,174',l:'Liveborn babies in 2023',e:'👣'},{v:'2.2%',l:'Multiple birth rate',e:'👯'},{v:'3,262g',l:'Average birthweight',e:'⚖️'},{v:'38 wks',l:'Median gestational age',e:'📅'},{v:'6.3%',l:'Of all AU births are ART',e:'🏥'}];
-  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
-  stats.forEach(function(s){html+='<div style="text-align:center;padding:10px 6px;background:linear-gradient(160deg,#f0fdfa,#ccfbf120);border-radius:12px"><div style="font-size:16px;margin-bottom:2px">'+s.e+'</div><div style="font-size:18px;font-weight:800;color:#0d9488">'+s.v+'</div><div style="font-size:9px;color:#0f766e;font-weight:600;margin-top:2px;line-height:1.2">'+s.l+'</div></div>'});
-  html+='</div>';
-  html+='<div class="ft-result" style="display:block;margin-top:8px">The vast majority of IVF babies are born healthy. Slightly higher preterm rates are partly explained by older average maternal age (36 vs 31 years).</div>';
-  return _anzardCard('Healthy baby outcomes','Over 20,000 babies born via ART in 2023',html);
-}
-function renderAnzardTrends(){
-  var data=[{y:'2019',f:25.5,t:29.7},{y:'2020',f:25.4,t:31.2},{y:'2021',f:25.5,t:31.4},{y:'2022',f:25.9,t:32.1},{y:'2023',f:25.7,t:32.8}];
-  var W=300,H=150,pl=36,pr=10,pt=10,pb=25;var cw=W-pl-pr,ch=H-pt-pb;
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-height:170px;display:block" xmlns="http://www.w3.org/2000/svg">';
-  [20,24,28,32,36].forEach(function(v){var y=pt+ch-((v-20)/16)*ch;svg+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eee" stroke-width=".5"/>';svg+='<text x="'+(pl-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'%</text>'});
-  // Frozen line
-  var lineT='';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var y=pt+ch-((d.t-20)/16)*ch;lineT+=(i?'L':'M')+x+','+y;svg+='<circle cx="'+x+'" cy="'+y+'" r="3" fill="#0f766e" stroke="white" stroke-width="1.5"/>'});
-  svg+='<path d="'+lineT+'" fill="none" stroke="#0f766e" stroke-width="2.5"/>';
-  // Fresh line
-  var lineF='';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var y=pt+ch-((d.f-20)/16)*ch;lineF+=(i?'L':'M')+x+','+y;svg+='<circle cx="'+x+'" cy="'+y+'" r="2.5" fill="#5eead4" stroke="white" stroke-width="1"/>'});
-  svg+='<path d="'+lineF+'" fill="none" stroke="#5eead4" stroke-width="2"/>';
-  data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);svg+='<text x="'+x+'" y="'+(H-pb+12)+'" text-anchor="middle" font-size="9" fill="#666" font-family="DM Sans,sans-serif">'+d.y+'</text>'});
-  svg+='</svg>';
-  svg+='<div style="display:flex;gap:14px;justify-content:center;font-size:11px;color:#666;margin-top:4px"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;border-radius:2px;background:#5eead4;display:inline-block"></span>Fresh ET</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:3px;border-radius:2px;background:#0f766e;display:inline-block"></span>Frozen ET</span></div>';
-  svg+='<div class="ft-result" style="display:block;margin-top:8px">Frozen embryo transfer success has improved steadily — from 29.7% in 2019 to <strong>32.8%</strong> in 2023.</div>';
-  return _anzardCard('IVF success is improving over time','Live birth rate per embryo transfer, 2019–2023',svg);
-}
-function renderAnzardEggFreeze(){
-  var html='<div style="text-align:center;padding:8px 0"><div style="font-size:42px;font-weight:900;background:linear-gradient(135deg,#0d9488,#2dd4bf);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1">8,827</div><div style="font-size:13px;font-weight:700;color:#0f766e;margin-top:4px">fertility preservation cycles in 2023</div><div style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#dcfce7,#d1fae5);padding:5px 12px;border-radius:16px;margin-top:8px"><span style="font-size:14px">⬆️</span><span style="font-size:13px;font-weight:800;color:#166534">+27.9% from 2022</span></div></div>';
-  html+='<div style="display:flex;gap:6px;margin-top:12px">';
-  [{pct:'53.9%',l:'Medical reasons',c:'#0d9488'},{pct:'38.1%',l:'Non-medical (social)',c:'#fbbf6a'},{pct:'8.1%',l:'Cancer diagnosis',c:'#f97066'}].forEach(function(d){html+='<div style="flex:1;text-align:center;padding:8px 4px;background:'+d.c+'12;border-radius:10px;border-left:3px solid '+d.c+'"><div style="font-size:18px;font-weight:800;color:'+d.c+'">'+d.pct+'</div><div style="font-size:9px;color:#0f766e;font-weight:600;margin-top:2px;line-height:1.2">'+d.l+'</div></div>'});
-  html+='</div>';
-  html+='<div class="ft-result" style="display:block;margin-top:8px">Egg freezing grew <strong>28%</strong> in one year. Over a third freeze for non-medical reasons — most commonly not having a partner yet.</div>';
-  return _anzardCard('Egg freezing is surging','Fertility preservation cycles, 2023',html);
-}
-/* ═══ END ANZARD CHARTS ════════════════════════════════════════════ */
 function switchTab(t){var prev=document.querySelector('.nav-item.active');var prevTab=prev?prev.textContent.trim().toLowerCase():'';
-document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));var idx=t==='chat'?1:t==='checkin'?2:t==='circle'?3:4;document.querySelector('.nav-item:nth-child('+idx+')').classList.add('active');document.getElementById('panel-'+t).classList.add('active');
-var fab=document.getElementById('communityFab');if(fab)fab.style.display=t==='circle'?'block':'none';
-if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart();if(t==='journey'){buildCalendar();updateJarCounts()}}
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));var idx=t==='chat'?1:t==='checkin'?2:3;document.querySelector('.nav-item:nth-child('+idx+')').classList.add('active');document.getElementById('panel-'+t).classList.add('active');
+if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart()}
 var _oneWordShown=false;
-function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();html+='<div class="fertool-cards" id="'+_ftId+'">'+fertoolCards.filter(function(c){return!c.embed}).map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>';var _ftEmbed=fertoolCards.filter(function(c){return c.embed});if(_ftEmbed.length>0){setTimeout(function(){var container=document.getElementById(_ftId);if(!container)container=d;_ftEmbed.forEach(function(c){var widget=renderFertoolWidget(c);if(widget)container.parentElement.appendChild(widget)})},50)}}
+function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){html+='<div class="fertool-cards" id="fc-'+Date.now()+'">'+fertoolCards.map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>'}
 // Add one-word check-in pill after first greeting
 if((opts&&opts.showOneWord)||false){if(!_oneWordShown){_oneWordShown=true;html+='<div class="one-word-pill" onclick="triggerOneWord(this)">One word \u2014 how do you feel?</div>'}}
 // Education quick-reply pills
@@ -1370,11 +745,11 @@ if(opts&&opts.eduFork){html+='<div class="edu-quick-replies"><button class="edu-
 d.innerHTML=html}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'}a.appendChild(d);a.scrollTop=a.scrollHeight;if(fertoolCards&&fertoolCards.length>0){var fc=d.querySelector('.fertool-cards');if(fc){setTimeout(function(){fc.classList.add('visible')},200);if(opts&&opts.glowCards){var cards=fc.querySelectorAll('.fertool-card');cards.forEach(function(c){c.classList.add('glow')})}}}}
 function eduQuickReply(el,type){var replies={reassure:'Can you reassure me about this?',explain:'Can you explain the clinical details?',practical:'What should I actually do? Give me practical tips.'};var wrap=el.closest('.edu-quick-replies');if(wrap){var pills=wrap.querySelectorAll('.edu-quick-pill');pills.forEach(function(p){p.style.opacity='0.4';p.style.pointerEvents='none'});el.style.opacity='1';el.style.background='#2D8E8E';el.style.color='white'}var ci=document.getElementById('chat-input');ci.value=replies[type]||'';setTimeout(function(){sendMsg()},100)}
 function triggerOneWord(el){el.style.opacity='0.5';el.style.pointerEvents='none';var ci=document.getElementById('chat-input');ci.placeholder='Just one word is enough...';ci.focus();setTimeout(function(){el.remove()},300)}
-async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.capability_hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=d.capability_hint;a.appendChild(h);a.scrollTop=a.scrollHeight},800)}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
+async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
 function addSystemMsg(t){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-system';d.innerHTML='<div class="msg-bubble">'+t+'</div>';a.appendChild(d);a.scrollTop=a.scrollHeight}
 async function submitCheckin(){var b=document.getElementById('btn-checkin');b.disabled=true;b.textContent='Submitting...';var c={mood:+document.getElementById('v-mood').textContent,anxiety:+document.getElementById('v-anxiety').textContent,loneliness:+document.getElementById('v-lonely').textContent,uncertainty:+document.getElementById('v-uncertain').textContent,hope:+document.getElementById('v-hope').textContent,note:document.getElementById('ci-note').value.trim()};
 if(collector)collector.onCheckinComplete(c);
-state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message;if(d.capability_hint){setTimeout(function(){addSystemMsg(d.capability_hint)},1000)}}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Submit check-in';updateChart()}
+state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Submit check-in';updateChart()}
 function getStageName(id){var s=STAGES.find(function(s){return s.id===id});return s?s.name:id}
 function updateStageUI(){document.getElementById('header-stage').textContent=getStageName(state.stage);document.getElementById('ci-stage-name').textContent=getStageName(state.stage);document.getElementById('ci-stage-cycle').textContent='Cycle '+state.cycle+' \u00b7 '+state.treatment.toUpperCase()}
 function openStageModal(){if(collector)collector.onStageModalOpen();var c=document.getElementById('modal-stages');c.innerHTML='';STAGES.forEach(function(s){var b=document.createElement('button');b.className='modal-stage-btn'+(s.id===state.stage?' current':'');b.innerHTML='<span class="stage-icon">'+(stageIcon(s.id)||'')+'</span>'+s.name;b.onclick=function(){var oldStage=state.stage;state.stage=s.id;if(collector)collector.onStageChange(oldStage,s.id);updateStageUI();buildTimeline();buildEducation();closeStageModal();addSystemMsg('Stage updated to '+s.name)};c.appendChild(b)});document.getElementById('stage-modal').classList.add('open')}
@@ -1382,32 +757,32 @@ function closeStageModal(){document.getElementById('stage-modal').classList.remo
 function buildTimeline(){buildLandscape()}
 /* ═══ EMOTIONAL LANDSCAPE ═══════════════════════════════════════════ */
 var LANDSCAPE_ZONES=[
-  {id:'meadow',name:'The Quiet Meadow',desc:'A gentle beginning — taking the first steps.',stages:['consultation','investigation','waiting_to_start'],baseColor:'#B5D99C',x:0,w:400},
-  {id:'climb',name:'The Climb',desc:'Stimulation — the terrain gets steeper, but you\'re strong.',stages:['downregulation','stimulation','monitoring','trigger'],baseColor:'#8CB369',x:400,w:400},
-  {id:'peak',name:'The Peak',desc:'Retrieval — you made it to the summit.',stages:['before_retrieval','retrieval_day','post_retrieval'],baseColor:'#A8D5D3',x:800,w:250},
-  {id:'bridge',name:'The Bridge',desc:'Embryo stage — crossing through uncertainty, one step at a time.',stages:['fertilisation_report','embryo_development','freeze_all'],baseColor:'#9B8EC0',x:1050,w:300},
-  {id:'valley',name:'The Valley of Waiting',desc:'The two-week wait — quiet, foggy, and uniquely hard.',stages:['before_transfer','transfer_day','early_tww','late_tww'],baseColor:'#7A9EC0',x:1350,w:350},
-  {id:'fork',name:'The Fork',desc:'Result day — the path divides.',stages:['result_day'],baseColor:'#D4A843',x:1700,w:120},
-  {id:'garden',name:'The Garden',desc:'New life taking root — cautious hope blooms.',stages:['positive_result','early_pregnancy'],baseColor:'#E8C170',x:1820,w:280},
-  {id:'lake',name:'The Quiet Lake',desc:'A place to rest, reflect, and gather strength.',stages:['negative_result','chemical_pregnancy','miscarriage','failed_cycle_acute','failed_cycle_processing','wtf_appointment','between_cycles','considering_stopping','donor_journey'],baseColor:'#8BA7BF',x:2100,w:300}
+  {id:'meadow',name:'The Quiet Meadow',desc:'A gentle beginning — taking the first steps.',stages:['consultation','investigation','waiting_to_start'],baseColor:'#B5D99C',x:0,w:300},
+  {id:'climb',name:'The Climb',desc:'Stimulation — the terrain gets steeper, but you\'re strong.',stages:['downregulation','stimulation','monitoring','trigger'],baseColor:'#8CB369',x:300,w:350},
+  {id:'peak',name:'The Peak',desc:'Retrieval — you made it to the summit.',stages:['before_retrieval','retrieval_day','post_retrieval'],baseColor:'#A8D5D3',x:650,w:250},
+  {id:'bridge',name:'The Bridge',desc:'Embryo stage — crossing through uncertainty, one step at a time.',stages:['fertilisation_report','embryo_development','freeze_all'],baseColor:'#9B8EC0',x:900,w:280},
+  {id:'valley',name:'The Valley of Waiting',desc:'The two-week wait — quiet, foggy, and uniquely hard.',stages:['before_transfer','transfer_day','early_tww','late_tww'],baseColor:'#7A9EC0',x:1180,w:320},
+  {id:'fork',name:'The Fork',desc:'Result day — the path divides.',stages:['result_day'],baseColor:'#D4A843',x:1500,w:100},
+  {id:'garden',name:'The Garden',desc:'New life taking root — cautious hope blooms.',stages:['positive_result','early_pregnancy'],baseColor:'#E8C170',x:1600,w:200},
+  {id:'lake',name:'The Quiet Lake',desc:'A place to rest, reflect, and gather strength.',stages:['negative_result','chemical_pregnancy','miscarriage','failed_cycle_acute','failed_cycle_processing','wtf_appointment','between_cycles','considering_stopping','donor_journey'],baseColor:'#8BA7BF',x:1600,w:200}
 ];
 function getZoneForStage(stageId){for(var i=0;i<LANDSCAPE_ZONES.length;i++){if(LANDSCAPE_ZONES[i].stages.indexOf(stageId)!==-1)return i}return 0}
 function buildLandscape(){
   var container=document.getElementById('landscapeContainer');
   if(!container)return;
   var curZoneIdx=getZoneForStage(state.stage);
-  var W=2400,H=400;
-  // Path waypoints for the winding journey
+  var W=1800,H=320;
+  // Path waypoints (x,y) for the winding journey path
   var pathPoints=[
-    [60,310],[120,305],[180,298],[240,290],[300,280],
-    [360,265],[420,245],[480,225],[540,205],[600,185],
-    [660,165],[720,150],[780,140],[840,135],[900,140],
-    [960,148],[1020,158],[1080,165],[1140,160],[1200,155],
-    [1260,165],[1320,180],[1380,200],[1440,220],[1500,235],
-    [1560,245],[1620,250],[1680,248],[1740,240],[1800,230],
-    [1860,215],[1920,200],[1980,185],[2040,175],[2100,168],
-    [2160,160],[2220,155],[2280,150],[2340,148]
+    [40,240],[100,235],[160,230],[220,225],[280,220],
+    [340,210],[400,195],[460,175],[520,160],[560,150],
+    [620,135],[680,120],[720,110],[760,115],[800,125],
+    [860,130],[920,145],[960,155],[1000,160],[1040,155],
+    [1100,165],[1160,180],[1220,200],[1280,215],[1340,225],
+    [1400,230],[1460,225],[1520,220],
+    [1580,200],[1640,185],[1700,175],[1760,170]
   ];
+  // Build smooth path string
   function smoothPath(pts){
     if(pts.length<2)return'';
     var d='M'+pts[0][0]+','+pts[0][1];
@@ -1420,6 +795,7 @@ function buildLandscape(){
     return d;
   }
   var mainPath=smoothPath(pathPoints);
+  // Find patient position on path
   var allStagesFlat=[];
   LANDSCAPE_ZONES.forEach(function(z){z.stages.forEach(function(s){allStagesFlat.push(s)})});
   var stageIdx=allStagesFlat.indexOf(state.stage);
@@ -1433,6 +809,7 @@ function buildLandscape(){
     py=pathPoints[ptIdx][1]+(pathPoints[ptIdx+1][1]-pathPoints[ptIdx][1])*ptFrac;
   }else{px=pathPoints[ptIdx][0];py=pathPoints[ptIdx][1]}
 
+  // Recent mood for weather
   var recentMood=5,recentAnx=4;
   if(state.checkins.length>0){
     var last3=state.checkins.slice(-3);
@@ -1440,234 +817,178 @@ function buildLandscape(){
     recentAnx=last3.reduce(function(a,c){return a+(c.anxiety||4)},0)/last3.length;
   }
   var warmth=recentMood>=6?1:(recentMood<=3?0:0.5);
+  var cloudOpacity=recentMood<=3?0.3:(recentMood>=6?0:0.12);
 
   var svg='<svg class="landscape-svg" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">';
   svg+='<defs>';
-  // Rich gradients
-  svg+='<linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+(warmth>0.5?'#E3F2FD':'#D6DCE4')+'"/><stop offset="60%" stop-color="'+(warmth>0.5?'#FFF8E7':'#E8EBF0')+'"/><stop offset="100%" stop-color="'+(warmth>0.5?'#F5F0EA':'#E8EBF0')+'"/></linearGradient>';
-  svg+='<linearGradient id="meadowGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#B5D99C"/><stop offset="50%" stop-color="#8CB369"/><stop offset="100%" stop-color="#6B8F4E"/></linearGradient>';
-  svg+='<linearGradient id="climbGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#5A7A3B"/><stop offset="50%" stop-color="#8CB369"/><stop offset="100%" stop-color="#C9956B"/></linearGradient>';
-  svg+='<linearGradient id="peakSkyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E3F2FD"/><stop offset="100%" stop-color="#BBDEFB"/></linearGradient>';
-  svg+='<linearGradient id="bridgeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#B8C4DB"/><stop offset="100%" stop-color="#9B8EC0"/></linearGradient>';
-  svg+='<linearGradient id="valleyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#DDE3EA"/><stop offset="50%" stop-color="#C5CCD6"/><stop offset="100%" stop-color="#B0B8C4"/></linearGradient>';
-  svg+='<linearGradient id="gardenGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FFE0B2"/><stop offset="100%" stop-color="#FFCC80"/></linearGradient>';
-  svg+='<linearGradient id="lakeGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3D9E9E"/><stop offset="50%" stop-color="#2D7D7D"/><stop offset="100%" stop-color="#1A5E5E"/></linearGradient>';
-  svg+='<linearGradient id="trunkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8B7355"/><stop offset="100%" stop-color="#6B5535"/></linearGradient>';
-  svg+='<radialGradient id="sunGlow" cx="70%" cy="8%" r="35%"><stop offset="0%" stop-color="rgba(212,168,67,'+(0.1+warmth*0.15).toFixed(2)+')"/><stop offset="100%" stop-color="rgba(212,168,67,0)"/></radialGradient>';
-  svg+='<radialGradient id="flowerGrad" cx="50%" cy="30%" r="50%"><stop offset="0%" stop-color="#E07A5F"/><stop offset="100%" stop-color="#C95A3F"/></radialGradient>';
-  svg+='<radialGradient id="lanternGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFD700" stop-opacity=".6"/><stop offset="100%" stop-color="#D4A843" stop-opacity="0"/></radialGradient>';
+  // Gradients
+  svg+='<linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+(warmth>0.5?'#E8DDD0':'#D6DCE4')+'"/><stop offset="100%" stop-color="'+(warmth>0.5?'#F5F0EA':'#E8EBF0')+'"/></linearGradient>';
+  svg+='<linearGradient id="groundGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C8DDB8"/><stop offset="35%" stop-color="#B5D99C"/><stop offset="55%" stop-color="#9B8EC050"/><stop offset="75%" stop-color="#8BA7BF40"/><stop offset="100%" stop-color="#C8DDB8"/></linearGradient>';
+  svg+='<radialGradient id="sunGlow" cx="85%" cy="10%" r="30%"><stop offset="0%" stop-color="rgba(212,168,67,'+(0.08+warmth*0.12).toFixed(2)+')"/><stop offset="100%" stop-color="rgba(212,168,67,0)"/></radialGradient>';
   svg+='<filter id="softBlur"><feGaussianBlur stdDeviation="2"/></filter>';
-  svg+='<filter id="bgBlur"><feGaussianBlur stdDeviation="4"/></filter>';
-  svg+='<filter id="fogBlur"><feGaussianBlur stdDeviation="10"/></filter>';
-  svg+='<pattern id="grainTex" width="100" height="100" patternUnits="userSpaceOnUse"><rect width="100" height="100" fill="rgba(0,0,0,.015)"/><circle cx="20" cy="30" r=".5" fill="rgba(0,0,0,.02)"/><circle cx="60" cy="10" r=".3" fill="rgba(0,0,0,.02)"/><circle cx="80" cy="70" r=".4" fill="rgba(0,0,0,.015)"/><circle cx="40" cy="80" r=".3" fill="rgba(0,0,0,.02)"/></pattern>';
+  svg+='<filter id="fogBlur"><feGaussianBlur stdDeviation="8"/></filter>';
   svg+='</defs>';
 
-  // Sky with gradient
+  // Sky
   svg+='<rect width="'+W+'" height="'+H+'" fill="url(#skyGrad)"/>';
-  svg+='<rect width="'+W+'" height="'+H+'" fill="url(#grainTex)" opacity=".5"/>';
-  if(warmth>0.3)svg+='<circle cx="1900" cy="50" r="300" fill="url(#sunGlow)"/>';
-
-  // Helper: stylized tree with trunk + organic canopy
-  function drawTree(x,y,h,canopyR,trunkW,color1,color2,delay){
-    var s='<g class="landscape-tree" style="animation-delay:'+delay+'s">';
-    // Trunk
-    s+='<rect x="'+(x-trunkW/2)+'" y="'+(y-h*0.35)+'" width="'+trunkW+'" height="'+(h*0.4)+'" rx="'+(trunkW/3)+'" fill="url(#trunkGrad)" opacity=".7"/>';
-    // Canopy layers (3 overlapping ellipses for organic feel)
-    s+='<ellipse cx="'+x+'" cy="'+(y-h*0.55)+'" rx="'+(canopyR*1.1)+'" ry="'+(canopyR*0.8)+'" fill="'+color2+'" opacity=".4" filter="url(#softBlur)"/>';
-    s+='<ellipse cx="'+(x-canopyR*0.2)+'" cy="'+(y-h*0.6)+'" rx="'+(canopyR*0.9)+'" ry="'+(canopyR*0.7)+'" fill="'+color1+'" opacity=".7"/>';
-    s+='<ellipse cx="'+(x+canopyR*0.15)+'" cy="'+(y-h*0.65)+'" rx="'+(canopyR*0.7)+'" ry="'+(canopyR*0.55)+'" fill="'+color2+'" opacity=".5"/>';
-    s+='</g>';
-    return s;
+  // Sun glow
+  if(warmth>0.3)svg+='<circle cx="1530" cy="40" r="200" fill="url(#sunGlow)" class="weather-sun"/>';
+  // Clouds
+  if(cloudOpacity>0.05){
+    svg+='<g class="weather-cloud" opacity="'+cloudOpacity.toFixed(2)+'">';
+    svg+='<ellipse cx="300" cy="50" rx="80" ry="25" fill="#B4B9C3" filter="url(#fogBlur)"/>';
+    svg+='<ellipse cx="800" cy="35" rx="100" ry="30" fill="#B4B9C3" filter="url(#fogBlur)"/>';
+    svg+='<ellipse cx="1300" cy="55" rx="70" ry="22" fill="#B4B9C3" filter="url(#fogBlur)"/>';
+    svg+='</g>';
   }
 
-  // Helper: flower cluster
-  function drawFlower(x,y,color,size){
-    var s='<g opacity=".7">';
-    s+='<line x1="'+x+'" y1="'+y+'" x2="'+x+'" y2="'+(y+size*2.5)+'" stroke="#6B8F4E" stroke-width="'+(size*0.3)+'" opacity=".6"/>';
-    s+='<circle cx="'+x+'" cy="'+y+'" r="'+size+'" fill="'+color+'" opacity=".8"/>';
-    s+='<circle cx="'+x+'" cy="'+y+'" r="'+(size*0.4)+'" fill="#FFE0B2" opacity=".6"/>';
-    s+='</g>';
-    return s;
-  }
-
-  // ── Zone 1: Quiet Meadow (0-400) ──
-  svg+='<g class="landscape-zone" data-zone="0">';
-  // Background hills (blurred)
-  svg+='<path d="M0,280 Q100,250 200,260 Q300,240 400,255 L400,400 L0,400Z" fill="#C8DDB8" opacity=".4" filter="url(#bgBlur)"/>';
-  // Midground rolling hills
-  svg+='<path d="M0,300 Q60,280 120,290 Q180,275 240,285 Q300,270 360,280 Q400,275 400,280 L400,400 L0,400Z" fill="url(#meadowGrad)" opacity=".5"/>';
-  // Foreground grass
-  svg+='<path d="M0,310 Q80,300 160,305 Q240,295 320,302 Q380,298 400,300 L400,400 L0,400Z" fill="#B5D99C" opacity=".6"/>';
+  // ── Zone 1: Quiet Meadow (0-300) ──
+  svg+='<g class="landscape-zone'+(curZoneIdx<0?' future-zone':'')+'" data-zone="0">';
+  // Rolling hills
+  svg+='<path d="M0,250 Q50,230 100,240 Q150,220 200,235 Q250,225 300,240 L300,320 L0,320Z" fill="#C8DDB8" opacity=".6"/>';
+  svg+='<path d="M0,260 Q80,245 150,255 Q200,240 280,250 L300,260 L300,320 L0,320Z" fill="#B5D99C" opacity=".5"/>';
   // Wildflowers
-  svg+=drawFlower(70,298,'#E07A5F',3);svg+=drawFlower(130,292,'#D4A843',2.5);svg+=drawFlower(200,288,'#9B8EC0',2.5);
-  svg+=drawFlower(260,282,'#F4A0A0',3);svg+=drawFlower(320,278,'#E07A5F',2);svg+=drawFlower(370,276,'#D4A843',2.5);
-  // Trees
-  svg+=drawTree(100,305,50,18,4,'#8CB369','#B5D99C','0');
-  svg+=drawTree(250,290,45,15,3.5,'#6B8F4E','#8CB369','1.5');
-  svg+=drawTree(350,280,40,14,3,'#8CB369','#C8DDB8','3');
+  var flowers=[[50,238,'#E07A5F'],[90,233,'#D4A843'],[140,228,'#9B8EC0'],[190,233,'#E07A5F'],[240,225,'#D4A843'],[270,218,'#A8D5D3']];
+  flowers.forEach(function(f){svg+='<circle cx="'+f[0]+'" cy="'+f[1]+'" r="2.5" fill="'+f[2]+'" opacity=".7"/><line x1="'+f[0]+'" y1="'+f[1]+'" x2="'+f[0]+'" y2="'+(f[1]+6)+'" stroke="#8CB369" stroke-width=".8"/>'});
   svg+='</g>';
 
-  // ── Zone 2: The Climb (400-800) ──
+  // ── Zone 2: The Climb (300-650) ──
   svg+='<g class="landscape-zone'+(curZoneIdx<1?' future-zone':'')+'" data-zone="1">';
-  // Rising terrain
-  svg+='<path d="M400,280 Q500,250 600,210 Q700,175 800,155 L800,400 L400,400Z" fill="#5A7A3B" opacity=".2" filter="url(#bgBlur)"/>';
-  svg+='<path d="M380,290 Q480,260 580,220 Q680,185 780,165 L800,160 L800,400 L380,400Z" fill="url(#climbGrad)" opacity=".35"/>';
-  // Rocky terrain accents
-  svg+='<ellipse cx="520" cy="225" rx="8" ry="4" fill="#C0B8A8" opacity=".3"/>';
-  svg+='<ellipse cx="650" cy="185" rx="6" ry="3" fill="#B8B0A0" opacity=".3"/>';
-  // Trees getting sparser
-  svg+=drawTree(450,265,55,20,4.5,'#5A7A3B','#8CB369','0.5');
-  svg+=drawTree(550,230,50,17,4,'#6B8F4E','#8CB369','2');
-  svg+=drawTree(680,190,45,15,3.5,'#5A7A3B','#6B8F4E','3.5');
-  svg+=drawTree(750,172,35,12,3,'#6B8F4E','#8CB369','1');
+  // Hillside rising
+  svg+='<path d="M300,240 Q350,230 400,210 Q450,190 500,175 Q550,160 600,145 Q630,135 650,130 L650,320 L300,320Z" fill="#8CB36940"/>';
+  svg+='<path d="M280,250 Q350,240 400,220 Q480,195 550,170 Q600,155 650,140 L650,320 L280,320Z" fill="#B5D99C" opacity=".4"/>';
+  // Trees along the climb
+  var trees=[[330,225],[380,210],[440,192],[500,172],[570,155]];
+  trees.forEach(function(tr){svg+='<path d="M'+tr[0]+','+(tr[1]-5)+' L'+(tr[0]-6)+','+tr[1]+' L'+(tr[0]-2)+','+tr[1]+' L'+(tr[0]-2)+','+(tr[1]+8)+' L'+(tr[0]+2)+','+(tr[1]+8)+' L'+(tr[0]+2)+','+tr[1]+' L'+(tr[0]+6)+','+tr[1]+'Z" fill="#6B8F4E" opacity=".5"/>'});
+  // Small rocks
+  svg+='<ellipse cx="420" cy="205" rx="5" ry="3" fill="#C0B8A8" opacity=".4"/>';
+  svg+='<ellipse cx="530" cy="168" rx="4" ry="2.5" fill="#C0B8A8" opacity=".4"/>';
   svg+='</g>';
 
-  // ── Zone 3: The Peak (800-1050) ──
+  // ── Zone 3: The Peak (650-900) ──
   svg+='<g class="landscape-zone'+(curZoneIdx<2?' future-zone':'')+'" data-zone="2">';
-  // Summit backdrop
-  svg+='<path d="M800,155 Q860,138 920,132 Q980,130 1050,140 L1050,400 L800,400Z" fill="url(#peakSkyGrad)" opacity=".15"/>';
-  // Peak ground
-  svg+='<path d="M800,160 Q860,145 920,140 Q980,138 1050,148 L1050,400 L800,400Z" fill="#A8D5D3" opacity=".25"/>';
-  // Golden flag at summit
-  svg+='<line x1="920" y1="105" x2="920" y2="140" stroke="#8B7355" stroke-width="2"/>';
-  svg+='<path d="M920,105 L942,112 L920,119Z" fill="#D4A843" opacity=".8"/>';
-  svg+='<circle cx="920" cy="105" r="2" fill="#D4A843"/>';
-  // Expansive sky arc
-  svg+='<path d="M840,125 Q920,100 1000,125" fill="none" stroke="rgba(168,213,211,.2)" stroke-width="1.5" stroke-dasharray="4,4"/>';
-  // Wind lines
-  svg+='<path d="M850,115 Q880,112 910,115" fill="none" stroke="rgba(45,142,142,.1)" stroke-width="1"/>';
-  svg+='<path d="M940,110 Q970,108 1000,112" fill="none" stroke="rgba(45,142,142,.08)" stroke-width="1"/>';
+  // Summit
+  svg+='<path d="M650,130 Q700,115 740,110 Q780,108 820,115 Q860,122 900,135 L900,320 L650,320Z" fill="#A8D5D340"/>';
+  // Flag at peak
+  svg+='<line x1="740" y1="90" x2="740" y2="110" stroke="#2D8E8E" stroke-width="1.5"/>';
+  svg+='<path d="M740,90 L758,95 L740,100Z" fill="#2D8E8E" opacity=".7"/>';
+  // Open sky feeling — a subtle arc
+  svg+='<path d="M680,105 Q740,85 800,105" fill="none" stroke="rgba(168,213,211,.3)" stroke-width="1" stroke-dasharray="3,3"/>';
   svg+='</g>';
 
-  // ── Zone 4: The Bridge (1050-1350) ──
+  // ── Zone 4: The Bridge (900-1180) ──
   svg+='<g class="landscape-zone'+(curZoneIdx<3?' future-zone':'')+'" data-zone="3">';
-  // Misty backdrop
-  svg+='<ellipse cx="1200" cy="280" rx="180" ry="80" fill="#9B8EC0" opacity=".08" filter="url(#fogBlur)"/>';
-  svg+='<rect x="1050" y="200" width="300" height="200" fill="url(#bridgeGrad)" opacity=".06"/>';
-  // Bridge arch structure
-  svg+='<path d="M1050,148 Q1100,175 1150,180 Q1200,182 1250,178 Q1300,172 1350,165" fill="none" stroke="#8B7355" stroke-width="4" stroke-linecap="round" opacity=".5"/>';
-  // Railing
-  svg+='<path d="M1050,142 Q1100,169 1150,174 Q1200,176 1250,172 Q1300,166 1350,159" fill="none" stroke="#A0936E" stroke-width="1.5" opacity=".35"/>';
-  // Support posts
-  var bridgePosts=[[1100,172],[1150,178],[1200,180],[1250,176],[1300,170]];
-  bridgePosts.forEach(function(p){svg+='<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+p[0]+'" y2="'+(p[1]+30)+'" stroke="#8B7355" stroke-width="1.5" opacity=".3"/>'});
-  // Lanterns with glow
-  var lanterns=[[1120,165],[1180,173],[1240,174],[1300,168]];
-  lanterns.forEach(function(l){
-    svg+='<circle cx="'+l[0]+'" cy="'+(l[1]-12)+'" r="6" fill="url(#lanternGlow)"/>';
-    svg+='<circle cx="'+l[0]+'" cy="'+(l[1]-12)+'" r="2.5" fill="#FFD700" opacity=".5"/>';
-    svg+='<line x1="'+l[0]+'" y1="'+(l[1]-9)+'" x2="'+l[0]+'" y2="'+l[1]+'" stroke="#8B7355" stroke-width="1" opacity=".4"/>';
-  });
-  // Mist near bridge
-  svg+='<ellipse class="landscape-fog" cx="1200" cy="200" rx="100" ry="20" fill="white" opacity=".08" filter="url(#fogBlur)"/>';
+  // Misty valley below bridge
+  svg+='<ellipse cx="1040" cy="260" rx="140" ry="60" fill="#9B8EC0" opacity=".1" filter="url(#fogBlur)"/>';
+  // Bridge structure
+  svg+='<path d="M900,135 Q940,155 980,160 Q1020,162 1060,158 Q1100,152 1140,148 Q1160,146 1180,150" fill="none" stroke="#8B7355" stroke-width="3" opacity=".6"/>';
+  // Bridge railings
+  svg+='<path d="M900,130 Q940,150 980,155 Q1020,157 1060,153 Q1100,147 1140,143 Q1160,141 1180,145" fill="none" stroke="#A0936E" stroke-width="1" opacity=".4"/>';
+  // Lanterns along bridge
+  var lanterns=[[940,148],[1000,155],[1060,152],[1120,146]];
+  lanterns.forEach(function(l){svg+='<circle cx="'+l[0]+'" cy="'+(l[1]-8)+'" r="3" fill="#D4A843" opacity=".5"/><line x1="'+l[0]+'" y1="'+(l[1]-5)+'" x2="'+l[0]+'" y2="'+l[1]+'" stroke="#8B7355" stroke-width=".8"/>'});
   svg+='</g>';
 
-  // ── Zone 5: Valley of Waiting (1350-1700) ──
+  // ── Zone 5: Valley of Waiting (1180-1500) ──
   svg+='<g class="landscape-zone'+(curZoneIdx<4?' future-zone':'')+'" data-zone="4">';
-  // Descending valley with fog layers
-  svg+='<path d="M1350,165 Q1420,195 1480,225 Q1540,245 1600,252 Q1650,255 1700,250 L1700,400 L1350,400Z" fill="url(#valleyGrad)" opacity=".2"/>';
-  // Multiple fog layers
-  svg+='<ellipse class="landscape-fog" cx="1450" cy="235" rx="100" ry="30" fill="#C5CCD6" opacity=".12" filter="url(#fogBlur)"/>';
-  svg+='<ellipse class="landscape-fog" cx="1580" cy="250" rx="80" ry="25" fill="#DDE3EA" opacity=".1" filter="url(#fogBlur)" style="animation-delay:4s"/>';
-  svg+='<ellipse class="landscape-fog" cx="1650" cy="260" rx="60" ry="20" fill="white" opacity=".06" filter="url(#fogBlur)" style="animation-delay:8s"/>';
-  // Sparse bare trees in mist
-  svg+='<line x1="1420" y1="205" x2="1420" y2="230" stroke="#8B7355" stroke-width="2" opacity=".2"/>';
-  svg+='<path d="M1420,210 Q1410,200 1415,195" fill="none" stroke="#8B7355" stroke-width="1" opacity=".15"/>';
-  svg+='<line x1="1560" y1="240" x2="1560" y2="260" stroke="#8B7355" stroke-width="2" opacity=".2"/>';
-  // Benches
-  svg+='<g class="landscape-bench" data-bench="tww"><rect x="1470" y="232" width="16" height="2.5" rx="1" fill="#8B7355" opacity=".5"/><rect x="1472" y="234" width="2" height="6" rx=".5" fill="#8B7355" opacity=".4"/><rect x="1482" y="234" width="2" height="6" rx=".5" fill="#8B7355" opacity=".4"/></g>';
-  svg+='<g class="landscape-bench" data-bench="late-tww"><rect x="1620" y="252" width="16" height="2.5" rx="1" fill="#8B7355" opacity=".5"/><rect x="1622" y="254" width="2" height="6" rx=".5" fill="#8B7355" opacity=".4"/><rect x="1632" y="254" width="2" height="6" rx=".5" fill="#8B7355" opacity=".4"/></g>';
+  // Descending valley
+  svg+='<path d="M1180,150 Q1220,165 1260,185 Q1300,200 1340,215 Q1380,225 1420,230 Q1460,232 1500,228 L1500,320 L1180,320Z" fill="#7A9EC020"/>';
+  // Fog layers
+  svg+='<ellipse cx="1300" cy="220" rx="120" ry="40" fill="#8BA7BF" opacity=".08" filter="url(#fogBlur)"/>';
+  svg+='<ellipse cx="1400" cy="235" rx="80" ry="30" fill="#9B8EC0" opacity=".06" filter="url(#fogBlur)"/>';
+  // Bench rest stops
+  svg+='<g class="landscape-bench" data-bench="tww">';
+  svg+='<rect x="1290" y="210" width="14" height="2" rx="1" fill="#8B7355" opacity=".6"/>';
+  svg+='<rect x="1292" y="212" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+  svg+='<rect x="1300" y="212" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+  svg+='</g>';
+  svg+='<g class="landscape-bench" data-bench="late-tww">';
+  svg+='<rect x="1410" y="228" width="14" height="2" rx="1" fill="#8B7355" opacity=".6"/>';
+  svg+='<rect x="1412" y="230" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+  svg+='<rect x="1420" y="230" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+  svg+='</g>';
   svg+='</g>';
 
-  // ── Zone 6: The Fork (1700-1820) ──
+  // ── Zone 6: The Fork (1500-1600) ──
   svg+='<g class="landscape-zone'+(curZoneIdx<5?' future-zone':'')+'" data-zone="5">';
-  // Dramatic lighting — golden above, cool below
-  svg+='<path d="M1700,250 Q1740,240 1760,230 L1820,210 L1820,400 L1700,400Z" fill="rgba(212,168,67,.06)"/>';
-  svg+='<path d="M1700,250 Q1740,255 1760,260 L1820,280 L1820,400 L1700,400Z" fill="rgba(122,158,192,.06)"/>';
-  // Fork marker
-  svg+='<circle cx="1760" cy="240" r="5" fill="#D4A843" opacity=".5"/>';
-  svg+='<circle cx="1760" cy="240" r="8" fill="none" stroke="#D4A843" stroke-width="1" opacity=".3"/>';
+  // Fork visual — path splits
+  svg+='<circle cx="1530" cy="222" r="4" fill="#D4A843" opacity=".4"/>';
   svg+='</g>';
 
-  // ── Zone 7: The Garden (upper path, 1820-2100) ──
+  // ── Zone 7: The Garden (upper path, 1600-1800) ──
   svg+='<g class="landscape-zone'+(curZoneIdx<6?' future-zone':'')+'" data-zone="6">';
-  // Warm sunset ground
-  svg+='<path d="M1820,210 Q1880,195 1940,185 Q2000,178 2060,172 Q2100,170 2100,168 L2100,400 L1820,400Z" fill="url(#gardenGrad)" opacity=".2"/>';
+  // Warm path upward
+  svg+='<path d="M1560,210 Q1600,195 1640,185 Q1680,178 1720,175 Q1760,173 1800,170 L1800,320 L1560,320Z" fill="#E8C17020"/>';
+  // Flowers blooming
+  var gardenFlowers=[[1600,192,'#E07A5F'],[1640,183,'#D4A843'],[1680,177,'#E07A5F'],[1720,174,'#9B8EC0'],[1750,172,'#D4A843']];
+  gardenFlowers.forEach(function(f){svg+='<circle cx="'+f[0]+'" cy="'+(f[1]-2)+'" r="3" fill="'+f[2]+'" opacity=".6"/><circle cx="'+(f[0]+3)+'" cy="'+(f[1]-1)+'" r="2" fill="'+f[2]+'" opacity=".4"/>'});
   // Sun rays
-  svg+='<line x1="1950" y1="40" x2="1920" y2="170" stroke="rgba(212,168,67,.04)" stroke-width="30"/>';
-  svg+='<line x1="2020" y1="30" x2="2000" y2="165" stroke="rgba(212,168,67,.03)" stroke-width="20"/>';
-  // Blooming flowers
-  svg+=drawFlower(1860,205,'#E07A5F',3.5);svg+=drawFlower(1900,195,'#F4A0A0',3);svg+=drawFlower(1940,188,'#E07A5F',4);
-  svg+=drawFlower(1980,182,'#D4A843',3);svg+=drawFlower(2020,177,'#F4A0A0',3.5);svg+=drawFlower(2060,173,'#E07A5F',3);
-  // Small flowering trees
-  svg+=drawTree(1880,200,50,18,4,'#8CB369','#B5D99C','0');
-  svg+=drawTree(2000,180,45,16,3.5,'#8CB369','#C8DDB8','2');
+  svg+='<line x1="1700" y1="60" x2="1680" y2="160" stroke="rgba(212,168,67,.06)" stroke-width="20"/>';
+  svg+='<line x1="1740" y1="50" x2="1730" y2="155" stroke="rgba(212,168,67,.05)" stroke-width="15"/>';
   svg+='</g>';
 
-  // ── Zone 8: The Quiet Lake (lower path, 1820-2400) ──
+  // ── Zone 8: The Quiet Lake (lower path, same x range) ──
   svg+='<g class="landscape-zone" data-zone="7">';
-  // Lake water with reflections
-  svg+='<ellipse cx="2200" cy="310" rx="130" ry="45" fill="url(#lakeGrad)" opacity=".3"/>';
-  svg+='<ellipse class="landscape-water" cx="2200" cy="312" rx="100" ry="30" fill="#3D9E9E" opacity=".15"/>';
-  // Wave lines
-  svg+='<path d="M2130,305 Q2160,302 2190,305 Q2220,308 2250,305" fill="none" stroke="white" stroke-width=".5" opacity=".15"/>';
-  svg+='<path d="M2150,315 Q2180,312 2210,315 Q2240,318 2270,315" fill="none" stroke="white" stroke-width=".5" opacity=".1"/>';
-  // Surrounding trees
-  svg+=drawTree(2120,290,55,20,4.5,'#3D6B3D','#5A8A5A','1');
-  svg+=drawTree(2280,285,50,18,4,'#3D6B3D','#4E7A4E','3');
-  svg+=drawTree(2340,280,45,16,3.5,'#5A7A3B','#6B8F4E','0.5');
+  // Lake
+  svg+='<ellipse cx="1680" cy="270" rx="80" ry="25" fill="#8BA7BF" opacity=".2"/>';
+  svg+='<ellipse cx="1680" cy="272" rx="60" ry="15" fill="#7A9EC0" opacity=".15"/>';
   // Small dock
-  svg+='<rect x="2170" y="290" width="30" height="3" rx="1" fill="#8B7355" opacity=".4"/>';
-  svg+='<rect x="2170" y="290" width="2.5" height="10" rx=".5" fill="#8B7355" opacity=".35"/>';
-  svg+='<rect x="2197" y="290" width="2.5" height="10" rx=".5" fill="#8B7355" opacity=".35"/>';
+  svg+='<rect x="1650" y="258" width="20" height="3" rx="1" fill="#8B7355" opacity=".5"/>';
+  svg+='<rect x="1650" y="258" width="2" height="8" rx=".5" fill="#8B7355" opacity=".4"/>';
+  // Trees around lake
+  svg+='<path d="M1620,250 L1614,258 L1617,258 L1617,265 L1623,265 L1623,258 L1626,258Z" fill="#6B8F4E" opacity=".35"/>';
+  svg+='<path d="M1740,248 L1734,256 L1737,256 L1737,263 L1743,263 L1743,256 L1746,256Z" fill="#6B8F4E" opacity=".35"/>';
   svg+='</g>';
 
   // ── Ground line ──
-  svg+='<path d="M0,320 Q300,310 600,300 Q900,290 1200,300 Q1500,310 1800,305 Q2100,295 2400,300 L2400,400 L0,400Z" fill="#D5CFC4" opacity=".1"/>';
+  svg+='<path d="M0,260 Q200,250 400,240 Q600,220 800,230 Q1000,250 1200,260 Q1400,268 1600,265 Q1700,262 1800,260 L1800,320 L0,320Z" fill="#D5CFC4" opacity=".15"/>';
 
   // ── Main journey path ──
-  svg+='<path d="'+mainPath+'" fill="none" stroke="rgba(45,142,142,.12)" stroke-width="6" stroke-linecap="round" stroke-dasharray="10,8"/>';
+  // Future portion (faded)
+  svg+='<path d="'+mainPath+'" fill="none" stroke="rgba(45,142,142,.15)" stroke-width="4" stroke-linecap="round" stroke-dasharray="8,6"/>';
+  // Past portion (solid, clipped to patient position)
   svg+='<defs><clipPath id="pastClip"><rect x="0" y="0" width="'+px.toFixed(0)+'" height="'+H+'"/></clipPath></defs>';
-  svg+='<path d="'+mainPath+'" fill="none" stroke="#2D8E8E" stroke-width="6" stroke-linecap="round" clip-path="url(#pastClip)" opacity=".6"/>';
+  svg+='<path d="'+mainPath+'" fill="none" stroke="#2D8E8E" stroke-width="4" stroke-linecap="round" clip-path="url(#pastClip)" opacity=".7"/>';
 
-  // ── Check-in dots ──
+  // ── Check-in dots along path ──
   if(state.checkins.length>0){
     var step=Math.max(1,Math.floor(pathPoints.length/state.checkins.length));
     state.checkins.forEach(function(ci,i){
       var pi=Math.min(i*step,pathPoints.length-1);
       if(pi<ptIdx){
-        svg+='<circle cx="'+pathPoints[pi][0]+'" cy="'+pathPoints[pi][1]+'" r="3.5" class="landscape-checkin-dot"/>';
+        svg+='<circle cx="'+pathPoints[pi][0]+'" cy="'+pathPoints[pi][1]+'" r="3" class="landscape-checkin-dot"/>';
       }
     });
   }
 
-  // ── Soft spot benches ──
+  // ── Soft spot benches at key difficulty points ──
+  // (Additional bench at stimulation day 7, day before retrieval, fertilisation wait)
   var benchPoints=[
-    {x:560,y:205,tip:'Many people find the hormones hit hardest around here.'},
-    {x:850,y:138,tip:'The day before retrieval — a mix of nerves and anticipation.'},
-    {x:1180,y:178,tip:'Waiting for the fertilisation report is a unique kind of anxiety.'},
+    {x:460,y:175,tip:'Many people find the hormones hit hardest around here.'},
+    {x:680,y:118,tip:'The day before retrieval — a mix of nerves and anticipation.'},
+    {x:960,y:155,tip:'Waiting for the fertilisation report is a unique kind of anxiety.'},
   ];
   benchPoints.forEach(function(b,i){
     svg+='<g class="landscape-bench" data-tip="'+i+'">';
-    svg+='<rect x="'+(b.x-8)+'" y="'+(b.y+2)+'" width="16" height="2.5" rx="1" fill="#8B7355" opacity=".5"/>';
-    svg+='<rect x="'+(b.x-6)+'" y="'+(b.y+4)+'" width="2" height="6" rx=".5" fill="#8B7355" opacity=".4"/>';
-    svg+='<rect x="'+(b.x+4)+'" y="'+(b.y+4)+'" width="2" height="6" rx=".5" fill="#8B7355" opacity=".4"/>';
+    svg+='<rect x="'+(b.x-7)+'" y="'+(b.y+2)+'" width="14" height="2" rx="1" fill="#8B7355" opacity=".6"/>';
+    svg+='<rect x="'+(b.x-5)+'" y="'+(b.y+4)+'" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
+    svg+='<rect x="'+(b.x+3)+'" y="'+(b.y+4)+'" width="2" height="5" rx=".5" fill="#8B7355" opacity=".5"/>';
     svg+='</g>';
   });
 
   // ── Patient egg marker ──
-  svg+='<g class="landscape-egg" transform="translate('+(px-12).toFixed(0)+','+(py-28).toFixed(0)+')">';
-  svg+='<ellipse cx="12" cy="17" rx="10" ry="13" fill="#FFF3E0" stroke="rgba(0,0,0,.06)" stroke-width=".5"/>';
-  svg+='<ellipse cx="9" cy="12" rx="3.5" ry="5" fill="rgba(255,255,255,.4)" opacity=".5"/>';
-  svg+='<circle cx="9" cy="14.5" r="1.5" fill="#3a3a3a"/>';
-  svg+='<circle cx="15" cy="14.5" r="1.5" fill="#3a3a3a"/>';
-  svg+='<path d="M9.5,18 Q12,20.5 14.5,18" fill="none" stroke="#3a3a3a" stroke-width="1" stroke-linecap="round"/>';
+  svg+='<g class="landscape-egg" transform="translate('+(px-10).toFixed(0)+','+(py-22).toFixed(0)+')">';
+  svg+='<ellipse cx="10" cy="14" rx="8" ry="10" fill="#FFF3E0" stroke="rgba(0,0,0,.06)" stroke-width=".5"/>';
+  svg+='<ellipse cx="7" cy="10" rx="3" ry="4" fill="rgba(255,255,255,.4)" opacity=".5"/>';
+  svg+='<circle cx="7.5" cy="12" r="1.2" fill="#3a3a3a"/>';
+  svg+='<circle cx="12.5" cy="12" r="1.2" fill="#3a3a3a"/>';
+  svg+='<path d="M8,15 Q10,17 12,15" fill="none" stroke="#3a3a3a" stroke-width=".8" stroke-linecap="round"/>';
   svg+='</g>';
 
   svg+='</svg>';
   container.innerHTML=svg;
 
-  // Auto-scroll
+  // Auto-scroll to patient position
   var wrap=document.getElementById('landscapeWrap');
   if(wrap){
     var scrollTarget=px-wrap.clientWidth/2;
@@ -1679,6 +1000,7 @@ function buildLandscape(){
     el.addEventListener('click',function(e){
       var zi=parseInt(el.getAttribute('data-zone'));
       var zone=LANDSCAPE_ZONES[zi];if(!zone)return;
+      // Remove existing card
       var old=container.querySelector('.zone-card');if(old)old.remove();
       var card=document.createElement('div');card.className='zone-card';
       var html='<h4>'+zone.name+'</h4><p>'+zone.desc+'</p>';
@@ -1691,8 +1013,10 @@ function buildLandscape(){
     });
   });
 
-  // Bench tap
-  var allBenchTips=[].concat(benchPoints,[{tip:'Many people find this part hard. You\'re not alone here.'},{tip:'These final days before the result are genuinely one of the hardest parts.'}]);
+  // Bench tap interaction
+  var allBenchTips=[].concat(benchPoints,
+    [{tip:'Many people find this part hard. You\'re not alone here.'},{tip:'These final days before the result are genuinely one of the hardest parts.'}]
+  );
   container.querySelectorAll('.landscape-bench').forEach(function(el){
     el.addEventListener('click',function(e){
       e.stopPropagation();
@@ -1957,6 +1281,123 @@ function stopIdleFace(){
   shineL.setAttribute('cy','116.5');shineR.setAttribute('cy','116.5');
 }
 
+// ── Sperm Buddy Controller ──
+var spermContainer=document.getElementById('spermContainer');
+var eggGlow=document.getElementById('eggGlow');
+var spermTimer=null;
+var spermActive=false;
+
+function createSpermEl(){
+  var el=document.createElement('div');
+  el.className='sperm-buddy';
+  el.innerHTML='<div class="sperm-head"></div><div class="sperm-tail"><svg viewBox="0 0 24 5"><path d="M0,2.5 C5,0 10,5 15,2.5 C18,1 21,3.5 24,2.5"/></svg></div>';
+  return el;
+}
+
+function spawnSpermVisit(){
+  if(isOpen||showingResults||!egg.classList.contains('visible')||!egg.classList.contains('idle'))return;
+  spermActive=true;
+  var isGroup=Math.random()<0.2;
+  var count=isGroup?(2+Math.floor(Math.random()*2)):1;
+  var sperms=[];
+  for(var i=0;i<count;i++){
+    var s=createSpermEl();
+    spermContainer.appendChild(s);
+    sperms.push(s);
+  }
+
+  // Animate each sperm on a gentle drift path around the egg
+  var startAngle=Math.random()*Math.PI*2;
+  var duration=7000+Math.random()*4000; // slower, more meditative
+  var startTime=Date.now();
+  var orbitRx=55+Math.random()*12; // horizontal radius
+  var orbitRy=42+Math.random()*8;  // vertical radius
+  var wobble=Math.random()*5;      // less wobble
+  var direction=Math.random()>.5?1:-1;
+
+  function animateSperm(){
+    if(!spermActive)return;
+    var elapsed=Date.now()-startTime;
+    var progress=elapsed/duration;
+    if(progress>=1){
+      // Swim off screen
+      sperms.forEach(function(s){
+        s.style.transition='opacity .5s ease, transform .5s ease';
+        s.style.opacity='0';
+        s.style.transform+=' translateX('+(direction*80)+'px)';
+      });
+      setTimeout(function(){
+        sperms.forEach(function(s){s.remove()});
+        spermActive=false;
+        eggGlow.classList.remove('active');
+        scheduleNextSperm();
+      },600);
+      return;
+    }
+
+    // Slow fade in/out — gentle presence
+    var opacity=progress<0.2?progress/0.2:(progress>0.8?(1-progress)/0.2:1);
+    opacity*=0.55; // never fully opaque — subtle companion presence
+
+    sperms.forEach(function(s,idx){
+      var angleOffset=idx*0.4;
+      var angle=startAngle+direction*(progress*Math.PI*2.2)+angleOffset;
+      var wx=Math.sin(angle*3+wobble)*4;
+      var wy=Math.cos(angle*2.5)*3;
+      var x=Math.cos(angle)*orbitRx+wx;
+      var y=Math.sin(angle)*orbitRy+wy;
+      // Rotation to face direction of travel
+      var rot=(direction>0?-1:1)*(angle*180/Math.PI+90);
+      s.style.opacity=opacity.toFixed(2);
+      s.style.transform='translate('+(32+x)+'px,'+(40+y)+'px) rotate('+rot.toFixed(0)+'deg) scale('+(.8+idx*0.05).toFixed(2)+')';
+      s.classList.add('swimming');
+    });
+
+    // Ambient connection glow — warm response when sperm is near
+    var mainAngle=startAngle+direction*(progress*Math.PI*2.2);
+    var dist=Math.sqrt(Math.pow(Math.cos(mainAngle)*orbitRx,2)+Math.pow(Math.sin(mainAngle)*orbitRy,2));
+    if(dist<48&&opacity>0.2){
+      eggGlow.classList.add('active');
+      var gx=32+Math.cos(mainAngle)*22;
+      var gy=40+Math.sin(mainAngle)*18;
+      eggGlow.style.left=gx+'px';eggGlow.style.top=gy+'px';
+      // Quiet warmth — slightly wider smile
+      mouth.setAttribute('d','M90,137 Q100,146 110,137');mouth.setAttribute('stroke-width','1.3');
+    }else{
+      eggGlow.classList.remove('active');
+    }
+
+    requestAnimationFrame(animateSperm);
+  }
+  requestAnimationFrame(animateSperm);
+}
+
+function scheduleNextSperm(){
+  if(spermTimer)clearTimeout(spermTimer);
+  spermTimer=setTimeout(function(){
+    spawnSpermVisit();
+  },35000+Math.random()*40000); // 35-75s — unhurried presence
+}
+
+function stopSperm(){
+  spermActive=false;
+  if(spermTimer){clearTimeout(spermTimer);spermTimer=null}
+  var existing=spermContainer.querySelectorAll('.sperm-buddy');
+  existing.forEach(function(s){s.remove()});
+  eggGlow.classList.remove('active');
+}
+
+// Hook into startIdleFace/stopIdleFace
+var _origStartIdle=startIdleFace;
+startIdleFace=function(){
+  _origStartIdle();
+  scheduleNextSperm();
+};
+var _origStopIdle=stopIdleFace;
+stopIdleFace=function(){
+  _origStopIdle();
+  stopSperm();
+};
 
 // ── Particles & Vapors ──
 function spawnP(color,count,intensity){
@@ -2297,6 +1738,11 @@ function handleSquishDown(e){
     svg.style.transition='none';
     svg.style.animation='eggWobble .6s ease';
     if(navigator.vibrate)navigator.vibrate([8,30,8,30,8]);
+    // Secret 5-tap: force spawn sperm
+    if(!spermActive){
+      console.log('[Sperm] Force-spawned via 5-tap');
+      spawnSpermVisit();
+    }
     setTimeout(function(){
       svg.style.animation='';squishState.wobbling=false;
       svg.style.transform='scale(1)';
@@ -2324,6 +1770,50 @@ svg.addEventListener('mousedown',handleSquishDown);
 svg.addEventListener('touchstart',handleSquishDown,{passive:true});
 document.addEventListener('mouseup',handleSquishUp);
 document.addEventListener('touchend',handleSquishUp,{passive:true});
+
+/* ── FEATURE 2: Sperm Animation Fix ──────────────────────────── */
+// The sperm code exists but scheduleNextSperm() only fires when
+// startIdleFace is called. The hook at line ~910 wraps startIdleFace
+// to call scheduleNextSperm. However, the egg becomes visible + idle
+// AFTER showApp runs (1500ms delay). The hook is set up before that.
+// Potential issue: if startIdleFace is called before the hook is wired,
+// or the guard conditions block it. Let's add explicit debug logging
+// and ensure scheduling starts reliably.
+
+var _origScheduleNext=scheduleNextSperm;
+scheduleNextSperm=function(){
+  if(spermTimer)clearTimeout(spermTimer);
+  var delay=25000+Math.random()*35000; // 25-60s for testing
+  console.log('[Sperm] Scheduled next visit in '+(delay/1000).toFixed(0)+'s');
+  spermTimer=setTimeout(function(){
+    console.log('[Sperm] Spawning visit now');
+    spawnSpermVisit();
+  },delay);
+};
+
+var _origSpawnSperm=spawnSpermVisit;
+spawnSpermVisit=function(){
+  if(isOpen||showingResults||!egg.classList.contains('visible')||!egg.classList.contains('idle')){
+    console.log('[Sperm] Blocked — egg state:',{isOpen:isOpen,showingResults:showingResults,visible:egg.classList.contains('visible'),idle:egg.classList.contains('idle')});
+    scheduleNextSperm(); // retry later instead of giving up
+    return;
+  }
+  console.log('[Sperm] Spawned!');
+  _origSpawnSperm();
+};
+
+// Force an initial schedule after egg becomes visible, as a safety net
+var _showAppForSperm=window.showApp;
+window.showApp=function(){
+  _showAppForSperm.apply(this,arguments);
+  // After egg appears (1500ms), ensure sperm is scheduled
+  setTimeout(function(){
+    if(!spermTimer){
+      console.log('[Sperm] Safety-net: initial schedule');
+      scheduleNextSperm();
+    }
+  },2000);
+};
 
 /* ── FEATURE 3: Welcome Intro Screen ─────────────────────────── */
 var WELCOME_TEXT="Hi there \uD83D\uDC9B\n\nI'm Melod\u00b7AI \u2014 your companion through IVF.\n\nI'm here to support you emotionally, answer your questions about treatment and medications, and help you feel less alone through this journey.\n\nEverything you share stays private. I use gentle background tracking \u2014 like how you're feeling over time \u2014 only to better support YOU. Never for marketing, never shared without your consent.\n\nThink of me as a knowledgeable friend who's always available, powered by AI and guided by fertility specialists.";
@@ -2416,223 +1906,7 @@ function typewriterWelcome(){
 })();
 /* ═══ END EGG COMPANION ═════════════════════════════════════════ */
 
-/* ═══ V3 NEW FEATURES ══════════════════════════════════════════════ */
-function showMotivational(){document.getElementById('step2-age').style.display='none';document.getElementById('step2-motiv').style.display='block'}
-function showStageGrid(){document.getElementById('step2-motiv').style.display='none';document.getElementById('step2-stages').style.display='block'}
-// Insights sub-tabs
-function switchInsightsTab(tab){document.querySelectorAll('.insights-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab)});document.querySelectorAll('.insights-panel').forEach(function(p){p.classList.remove('active')});var panel=document.getElementById('insight-'+tab);if(panel)panel.classList.add('active')}
-// Community
-function switchCommunityTab(tab){document.querySelectorAll('.community-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab)});document.getElementById('community-buddies').style.display=tab==='buddies'?'block':'none';document.getElementById('community-world').style.display=tab==='world'?'block':'none';if(tab==='world')loadWorldPosts();document.getElementById('communityFab').style.display=tab==='world'?'block':'none'}
-function openPostModal(){document.getElementById('postModal').classList.add('active')}
-function closePostModal(){document.getElementById('postModal').classList.remove('active')}
-function submitPost(){var text=document.getElementById('postText').value.trim();if(!text)return;var posts=JSON.parse(localStorage.getItem('melodai_posts')||'[]');posts.unshift({id:Date.now(),text:text,stage:state.stage||'',mood:5,timestamp:new Date().toISOString(),anonymous:document.getElementById('postAnon').checked});localStorage.setItem('melodai_posts',JSON.stringify(posts));document.getElementById('postText').value='';closePostModal();loadWorldPosts()}
-function loadWorldPosts(){var feed=document.getElementById('world-feed');var posts=JSON.parse(localStorage.getItem('melodai_posts')||'[]');if(!posts.length){feed.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">No posts yet. Be the first to share!</div>';return}feed.innerHTML=posts.slice(0,20).map(function(p){var ago=timeAgoShort(p.timestamp);return '<div class="post-card"><div class="post-header"><div class="post-avatar">&#x1F95A;</div><span>'+(p.anonymous?'Anonymous':'You')+'</span><span>&middot;</span><span>'+ago+'</span></div><div class="post-body">'+escHtml(p.text)+'</div><div class="post-actions"><button class="post-action-btn">&#x2764;&#xFE0F; Support</button><button class="post-action-btn">&#x1F4AC; Reply</button></div></div>'}).join('')}
-function timeAgoShort(ts){try{var d=(Date.now()-new Date(ts))/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m';if(d<86400)return Math.floor(d/3600)+'h';return Math.floor(d/86400)+'d'}catch(e){return ''}}
-// Calendar
-var _calYear,_calMonth,_calEvents=[];
-function buildCalendar(){var container=document.getElementById('calendarContainer');if(!container)return;var now=new Date();if(!_calYear){_calYear=now.getFullYear();_calMonth=now.getMonth()}var year=_calYear,month=_calMonth;var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];var firstDay=new Date(year,month,1).getDay();var daysInMonth=new Date(year,month+1,0).getDate();var today=now.getDate();var isCurrentMonth=(year===now.getFullYear()&&month===now.getMonth());
-// Load events from localStorage
-try{_calEvents=JSON.parse(localStorage.getItem('melodai_cycle_events')||'[]')}catch(e){_calEvents=[]}
-var evtIcons={injection:'💉',scan:'🔬',retrieval:'🥚',transfer:'🔄',iui:'🟢',medication:'💊',result:'📋',tww_start:'⏳',appointment:'📅',other:'·'};
-var html='<div class="cal-header"><button class="cal-nav" onclick="calNav(-1)">&lt;</button><h3>'+monthNames[month]+' '+year+'</h3><button class="cal-nav" onclick="calNav(1)">&gt;</button></div>';
-html+='<div class="cal-grid">';
-['S','M','T','W','T','F','S'].forEach(function(d){html+='<div class="cal-day-header">'+d+'</div>'});
-for(var i=0;i<firstDay;i++)html+='<div class="cal-cell"></div>';
-for(var d=1;d<=daysInMonth;d++){var cls='cal-cell';var isFuture=isCurrentMonth&&d>today;if(isCurrentMonth&&d===today)cls+=' today';if(isFuture)cls+=' future';
-var moodDot='';var eventDot='';
-var dateStr=year+'-'+String(month+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-// Mood dot from check-ins
-if(state.checkins){var ci=state.checkins.find(function(c){return (c.date||'').substring(0,10)===dateStr});if(ci){var m=ci.mood||5;moodDot='<div class="cal-mood '+(m>=7?'good':m>=4?'tough':'hard')+'"></div>'}}
-// Event icons
-var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
-if(dayEvts.length>0){eventDot='<div class="cal-event">'+dayEvts.slice(0,2).map(function(e){return evtIcons[e.type]||'·'}).join('')+(dayEvts.length>2?'+':'')+'</div>'}
-html+='<div class="'+cls+'" data-date="'+dateStr+'" onclick="showDayDetail(\''+dateStr+'\')"><div class="cal-num">'+d+'</div>'+moodDot+eventDot+'</div>'}
-html+='</div>';
-html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4ade80"></span>Good</span><span><span class="leg-dot" style="background:#fbbf24"></span>Tough</span><span><span class="leg-dot" style="background:#f87171"></span>Hard</span><span>💉Inj</span><span>🔬Scan</span><span>🥚Ret</span></div>';
-html+='<div id="dayDetailPanel" style="display:none"></div>';
-container.innerHTML=html;
-// Also try loading events from API
-if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events').then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.events&&d.events.length){_calEvents=d.events;localStorage.setItem('melodai_cycle_events',JSON.stringify(_calEvents));buildCalendar()}}).catch(function(){})}}
-function calNav(dir){_calMonth+=dir;if(_calMonth<0){_calMonth=11;_calYear--}if(_calMonth>11){_calMonth=0;_calYear++}buildCalendar()}
-function showDayDetail(dateStr){var panel=document.getElementById('dayDetailPanel');if(!panel)return;
-var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
-var ci=state.checkins?state.checkins.find(function(c){return(c.date||'').substring(0,10)===dateStr}):null;
-var evtIcons={injection:'💉',scan:'🔬',retrieval:'🥚',transfer:'🔄',iui:'🟢',medication:'💊',result:'📋',tww_start:'⏳',appointment:'📅',other:'📌'};
-var html='<div style="padding:12px;background:var(--white);border-radius:12px;border:1px solid var(--border-light);margin-top:8px">';
-html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>'+dateStr+'</strong><button style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px" onclick="openAddEvent(\''+dateStr+'\')">+ Add event</button></div>';
-if(ci){var m=ci.mood||5;html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px"><span class="cal-mood '+(m>=7?'good':m>=4?'tough':'hard')+'" style="display:inline-block"></span> Mood: '+m+'/10</div>'}
-if(dayEvts.length){dayEvts.forEach(function(e){html+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border-light)"><span>'+(evtIcons[e.type]||'·')+'</span><span><strong>'+escHtml(e.label||e.type)+'</strong>'+(e.time?' at '+e.time:'')+(e.notes?' — '+escHtml(e.notes):'')+'</span></div>'})}else if(!ci){html+='<div style="font-size:12px;color:var(--text-soft);text-align:center;padding:8px">No entries for this day</div>'}
-html+='</div>';
-panel.style.display='block';panel.innerHTML=html}
-function openAddEvent(dateStr){
-var types=[{k:'injection',l:'💉 Injection'},{k:'scan',l:'🔬 Scan'},{k:'retrieval',l:'🥚 Retrieval'},{k:'transfer',l:'🔄 Transfer'},{k:'medication',l:'💊 Medication'},{k:'result',l:'📋 Result'},{k:'appointment',l:'📅 Appointment'},{k:'other',l:'📌 Other'}];
-var html='<div style="position:fixed;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:24px;max-height:60vh;overflow-y:auto;z-index:200;box-shadow:0 -4px 24px rgba(0,0,0,.1)" id="addEventSheet">';
-html+='<h3 style="font-family:var(--serif,Playfair Display,serif);margin:0 0 12px">Add Event</h3>';
-html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'+types.map(function(t){return '<button style="padding:8px 4px;border:1px solid var(--border-light,#eee);border-radius:10px;background:white;cursor:pointer;font-size:11px;text-align:center" onclick="selectEvtType(\''+t.k+'\')" data-type="'+t.k+'">'+t.l+'</button>'}).join('')+'</div>';
-html+='<input type="hidden" id="evtType" value="other">';
-html+='<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#999">Date</label><input type="date" id="evtDate" value="'+dateStr+'" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"></div>';
-html+='<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#999">Label</label><input type="text" id="evtLabel" placeholder="e.g. Gonal-F 225iu" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"></div>';
-html+='<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#999">Time (optional)</label><input type="time" id="evtTime" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"></div>';
-html+='<div style="margin-bottom:12px"><label style="font-size:11px;font-weight:600;color:#999">Notes (optional)</label><textarea id="evtNotes" placeholder="Any notes..." style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px;min-height:50px;resize:none"></textarea></div>';
-html+='<div style="display:flex;gap:8px"><button onclick="closeAddEvent()" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:50px;background:white;cursor:pointer;font-size:13px">Cancel</button>';
-html+='<button onclick="saveNewEvent()" style="flex:1;padding:10px;border:none;border-radius:50px;background:#2D8E8E;color:white;cursor:pointer;font-size:13px;font-weight:600">Save</button></div>';
-html+='</div><div onclick="closeAddEvent()" style="position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:199" id="addEventBg"></div>';
-document.body.insertAdjacentHTML('beforeend',html)}
-function selectEvtType(type){document.getElementById('evtType').value=type;document.querySelectorAll('#addEventSheet [data-type]').forEach(function(b){b.style.borderColor=b.dataset.type===type?'#2D8E8E':'#eee';b.style.background=b.dataset.type===type?'rgba(45,142,142,.06)':'white'})}
-function closeAddEvent(){var s=document.getElementById('addEventSheet');if(s)s.remove();var b=document.getElementById('addEventBg');if(b)b.remove()}
-function saveNewEvent(){var evt={id:'evt_'+Date.now(),date:document.getElementById('evtDate').value,type:document.getElementById('evtType').value,label:document.getElementById('evtLabel').value.trim()||document.getElementById('evtType').value,notes:document.getElementById('evtNotes').value.trim(),time:document.getElementById('evtTime').value,source:'patient',created_at:new Date().toISOString()};
-_calEvents.push(evt);localStorage.setItem('melodai_cycle_events',JSON.stringify(_calEvents));
-if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(evt)}).catch(function(){})}
-closeAddEvent();buildCalendar();showDayDetail(evt.date)}
-// Music toggle
-function toggleMusic(){var btn=document.getElementById('musicToggle');btn.classList.toggle('active');localStorage.setItem('melodai_calm_mode',btn.classList.contains('active')?'1':'0')}
-// Tour
-function showTourOffer(){if(localStorage.getItem('melodai_tour_done'))return;document.getElementById('tourOverlay').style.display='flex'}
-function dismissTour(){document.getElementById('tourOverlay').style.display='none';localStorage.setItem('melodai_tour_done','1')}
-function startTour(){dismissTour();/* Tour steps would go here — for now just dismiss */}
-// Memory jar counts
-function updateJarCounts(){var chatArea=document.getElementById('chat-area');var chats=chatArea?chatArea.querySelectorAll('.msg-ai').length:0;var checkins=state.checkins?state.checkins.length:0;try{var el;el=document.getElementById('jarChats');if(el)el.textContent=chats||0;el=document.getElementById('jarCheckins');if(el)el.textContent=checkins||0;el=document.getElementById('jarJournals');if(el)el.textContent=checkins||0}catch(e){}}
-// Show floating icons when app is visible
-var _origShowApp=showApp;
-showApp=function(){_origShowApp.apply(this,arguments);document.getElementById('floatingIcons').style.display='flex';document.getElementById('musicToggle').style.display='flex';document.getElementById('communityFab').style.display='none';setTimeout(showTourOffer,2000);buildCalendar();updateJarCounts();try{if(state.patientId)localStorage.setItem('melodai_patient_id',state.patientId);if(state.name)localStorage.setItem('melodai_name',state.name);if(state.stage)localStorage.setItem('melodai_stage',state.stage);if(state.cycle)localStorage.setItem('melodai_cycle',String(state.cycle));if(state.treatment)localStorage.setItem('melodai_treatment',state.treatment)}catch(e){}};
-
-// Logout function — clears patient data and returns to landing
-function logout(){try{localStorage.removeItem('melodai_patient_id');localStorage.removeItem('melodai_name');localStorage.removeItem('melodai_stage');localStorage.removeItem('melodai_cycle');localStorage.removeItem('melodai_treatment');localStorage.removeItem('melodai_welcomed');localStorage.removeItem('melodai_tour_done')}catch(e){}window.location.reload()}
-
 initOnboarding();
-// === CANVAS SPERM ANIMATION ===
-(function spermCanvas(){
-  var canvas,ctx,raf,running=false;
-  var dpr=window.devicePixelRatio||1;
-  var sperms=[];
-  var NUM_SPERM=4;
-  function init(){
-    var egg=document.getElementById('eggCompanion');
-    if(!egg)return;
-    canvas=document.createElement('canvas');
-    canvas.id='spermCanvas';
-    canvas.style.cssText='position:fixed;bottom:74px;left:16px;width:160px;height:160px;pointer-events:none;z-index:49;';
-    canvas.width=160*dpr;canvas.height=160*dpr;
-    egg.parentElement.insertBefore(canvas,egg);
-    ctx=canvas.getContext('2d');
-    ctx.scale(dpr,dpr);
-    // Create sperm with varied orbits
-    for(var i=0;i<NUM_SPERM;i++){
-      sperms.push({
-        angle:Math.random()*Math.PI*2,
-        speed:0.008+Math.random()*0.006,
-        radius:50+Math.random()*30,
-        wobbleAmp:5+Math.random()*5,
-        wobbleFreq:0.3+Math.random()*0.3,
-        tailPhase:Math.random()*Math.PI*2,
-        dir:Math.random()>0.5?1:-1
-      });
-    }
-  }
-  function draw(){
-    if(!running||!ctx)return;
-    var w=160,h=160,cx=w/2,cy=h/2;
-    ctx.clearRect(0,0,w,h);
-    var app=document.getElementById('screen-app');
-    var egg=document.getElementById('eggCompanion');
-    if(!app||!app.classList.contains('active')||!egg||!egg.classList.contains('idle')){
-      raf=requestAnimationFrame(draw);return;
-    }
-    sperms.forEach(function(s){
-      s.angle+=s.speed*s.dir;
-      s.tailPhase+=0.15;
-      var wobble=Math.sin(s.angle*s.wobbleFreq)*s.wobbleAmp;
-      var r=s.radius+wobble;
-      var x=cx+Math.cos(s.angle)*r;
-      var y=cy+Math.sin(s.angle)*r;
-      var nextX=cx+Math.cos(s.angle+0.1*s.dir)*(s.radius+Math.sin((s.angle+0.1)*s.wobbleFreq)*s.wobbleAmp);
-      var nextY=cy+Math.sin(s.angle+0.1*s.dir)*(s.radius+Math.sin((s.angle+0.1)*s.wobbleFreq)*s.wobbleAmp);
-      var rot=Math.atan2(nextY-y,nextX-x);
-      ctx.save();
-      ctx.translate(x,y);
-      ctx.rotate(rot);
-      // Head — white oval with teal stroke
-      ctx.beginPath();
-      ctx.ellipse(0,0,5,3.5,0,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,0.85)';
-      ctx.fill();
-      ctx.strokeStyle='rgba(45,142,142,0.3)';
-      ctx.lineWidth=0.8;
-      ctx.stroke();
-      // Tail — sinusoidal segments
-      ctx.beginPath();
-      ctx.moveTo(5,0);
-      for(var seg=0;seg<12;seg++){
-        var tx=5+seg*2.5;
-        var amp=0.8+seg*0.35;
-        var ty=Math.sin(s.tailPhase+seg*0.6)*amp;
-        ctx.lineTo(tx,ty);
-      }
-      ctx.strokeStyle='rgba(45,142,142,0.35)';
-      ctx.lineWidth=1.2;
-      ctx.lineCap='round';
-      ctx.stroke();
-      ctx.restore();
-    });
-    raf=requestAnimationFrame(draw);
-  }
-  function start(){if(running)return;running=true;if(!canvas)init();draw();console.log('SPERM CANVAS STARTED')}
-  function stop(){running=false;if(raf)cancelAnimationFrame(raf)}
-  // Start 3 seconds after app loads
-  setTimeout(function(){
-    var app=document.getElementById('screen-app');
-    if(app&&app.classList.contains('active'))start();
-  },3000);
-  // Re-check every 5s in case app appeared later
-  setInterval(function(){
-    var app=document.getElementById('screen-app');
-    if(app&&app.classList.contains('active')&&!running)start();
-  },5000);
-})();
-// === MOOD-REACTIVE OOCYTE ===
-(function moodOocyte(){
-  function setOocyteMood(mood){
-    var rays=document.getElementById('egRays');
-    var cheeks=document.querySelectorAll('.eg-cheek');
-    var stars=document.getElementById('egStars');
-    if(!rays)return;
-    var raysOp=0.3,cheekOp=0.25,starsOp=0;
-    if(mood==='happy'){raysOp=0.5;cheekOp=0.8;starsOp=0.6}
-    else if(mood==='hopeful'){raysOp=0.4;cheekOp=0.6;starsOp=0.4}
-    else if(mood==='content'){raysOp=0.3;cheekOp=0.4;starsOp=0}
-    else if(mood==='anxious'){raysOp=0.18;cheekOp=0.2;starsOp=0}
-    else if(mood==='sad'){raysOp=0.12;cheekOp=0.1;starsOp=0}
-    rays.setAttribute('opacity',raysOp);
-    cheeks.forEach(function(c){c.setAttribute('opacity',cheekOp)});
-    if(stars)stars.setAttribute('opacity',starsOp);
-  }
-  // Expose globally for check-in system
-  window.setOocyteMood=setOocyteMood;
-  // Map average check-in score to mood name
-  window.scoreToMood=function(avg){
-    if(avg>=9)return'happy';if(avg>=7)return'hopeful';if(avg>=5)return'content';if(avg>=3)return'anxious';return'sad';
-  };
-})();
-// Returning user detection — skip onboarding if already completed
-(function(){
-  var existing=null;
-  try{existing=localStorage.getItem('melodai_patient_id')}catch(e){}
-  if(existing){
-    try{
-      state.patientId=existing;
-      state.name=localStorage.getItem('melodai_name')||'there';
-      state.stage=localStorage.getItem('melodai_stage')||'consultation';
-      state.cycle=parseInt(localStorage.getItem('melodai_cycle')||'1');
-      state.treatment=localStorage.getItem('melodai_treatment')||'ivf';
-      // Hide welcome and onboarding, show app
-      var welcome=document.getElementById('screen-welcome');if(welcome)welcome.classList.remove('active');
-      var onboard=document.getElementById('screen-onboard');if(onboard)onboard.classList.remove('active');
-      document.getElementById('screen-app').classList.add('active');
-      showApp();
-      addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
-    }catch(e){console.warn('Return user init failed:',e)}
-  }
-})();
 </script>
 </body>
 </html>

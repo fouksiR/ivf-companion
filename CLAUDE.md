@@ -1,114 +1,128 @@
-# CLAUDE.md — Melod·AI Project Context
+# CLAUDE.md — Melod·AI IVF Companion
 
 ## Project Overview
-
-Melod·AI is a longitudinal AI companion for emotional support and education during IVF/ART treatment. Built by Dr Yuval Fouks (Fertility Specialist, Virtus Health / Melbourne IVF). It combines real-time passive digital phenotyping, clinical construct detection, and AI-powered adaptive conversation.
+Melod·AI is a longitudinal AI companion for emotional support and education during IVF/ART treatment. Built by Dr Yuval Fouks (Fertility Specialist, Virtus Health / Melbourne IVF). Combines passive digital phenotyping, clinical construct detection, and AI-powered adaptive conversation.
 
 ## Live URLs
-
-- Patient App: https://fouksir.github.io/ivf-companion/
-- Clinician Dashboard: https://fouksir.github.io/ivf-companion/clinician-dashboard.html
-- Backend API: https://ivf-companion-532857641879.australia-southeast1.run.app
-- Fertool Knowledge Source: https://fertility-gp-backend-532857641879.australia-southeast2.run.app
-- Firebase DB: https://fertility-gp-portal-default-rtdb.asia-southeast1.firebasedatabase.app
+- **Patient App (primary):** https://ivf-companion-532857641879.australia-southeast1.run.app/
+- **Clinician Dashboard:** https://ivf-companion-532857641879.australia-southeast1.run.app/clinician-dashboard.html
+- **Backend API:** Same Cloud Run URL (all endpoints)
+- **GitHub Pages (secondary):** https://fouksir.github.io/ivf-companion/ (may lag behind Cloud Run)
 
 ## Technology Stack
-
-- Backend: FastAPI (Python) on Google Cloud Run (australia-southeast1)
-- AI: Claude API — Sonnet for responses, Haiku for triage
-- Database: Firebase Realtime DB (write-through cache pattern)
-- Frontend: Vanilla HTML/JS on GitHub Pages (push to main = auto-deploy)
-- GCP Project: fertility-gp-portal
+- **Backend:** FastAPI (Python) on Google Cloud Run (australia-southeast1)
+- **AI:** Claude API — Sonnet for responses, Haiku for triage/briefings
+- **Database:** Firebase Realtime DB (write-through cache, graceful fallback to in-memory)
+- **Frontend:** Vanilla HTML/JS — single-page app (index.html ~2600 lines)
+- **GCP Project:** fertility-gp-portal
 
 ## Key Files
-
 | File | Purpose | ~Lines |
 |------|---------|--------|
-| app.py | FastAPI backend — triage, chat routing, dynamic patient adaptation, Fertool bridge, nudge system, clinician endpoints, Firebase sync | 1700 |
-| firebase_db.py | Firebase Realtime DB persistence — all CRUD with graceful fallback | 220 |
-| signal_integration.py | Passive signal analysis — 7 construct detectors, baseline calibration, escalation scoring | 535 |
-| index.html | Patient app — onboarding, chat, check-in sliders, egg companion, nudge cards, human widget, passive collector | 850 |
-| clinician-dashboard.html | Clinician portal — patient cards, alert feed, pre-consult briefing panel, detail modals | 1070 |
-| manifest.json | PWA manifest for mobile app icon | 20 |
-| requirements.txt | Python deps: fastapi, uvicorn, anthropic, pydantic, httpx, firebase-admin | 6 |
+| app.py | FastAPI backend — triage, chat, check-in, education, ANZARD charts, Fertool, clinician system, phenotyping, Firebase sync | 4500 |
+| index.html | Patient app — landing, onboarding, chat, check-in, journey landscape, ANZARD/Fertool widgets, community, oocyte mascot | 2600 |
+| firebase_db.py | Firebase persistence — patients, conversations, check-ins, reflections, phenotype snapshots | 315 |
+| signal_integration.py | Passive signal analysis — 7 construct detectors, baseline calibration, escalation | 535 |
+| clinician-dashboard.html | Clinician portal — role-based briefings, patient cards, alerts, actions tab | 1030 |
 
 ## Architecture
 
 ### Chat Flow
-Patient message → POST /chat → Haiku triage (1=emotional, 2=education, 3=screening, 4=crisis, 5=social) → Dynamic adaptation (ANALYTICAL/EMOTIONAL/MIXED) → Route to response generator → Signal context injected → Response with escalation_level
+Patient message → POST /chat → Haiku triage (1=emotional, 2=education, 3=screening, 4=crisis, 5=social) → Dynamic style adaptation (ANALYTICAL/EMOTIONAL/MIXED) → Sonnet response → ANZARD chart matching → Fertool matching (only if no ANZARD) → ChatResponse JSON
 
-### Egg Check-in Flow
-Tap egg → 5 dimensions (Mood, Anxiety, Loneliness, Uncertainty, Hope) with touch-hold → POST /checkin → Firebase persist → Clinician dashboard polls
+### ChatResponse Fields
+```
+response: str              # AI text
+patient_id, treatment_stage, query_id
+escalation: {level, reason, signals}
+anzard_charts: [{key, title, subtitle}]     # PRIORITY — 7 chart types
+fertool_cards: [{key, title, description, url, icon, embed}]  # Only if no ANZARD
+one_word_checkin: {mood, anxiety, loneliness, uncertainty, hope}
+education_fork: str        # Clarifying question
+capability_hint: str       # Feature discovery
+```
+
+### ANZARD 2023 Charts (rendered as native SVG/HTML in chat)
+Triggered by keyword matching on ALL messages (not just education):
+- `age_outcomes` — Bar chart: live birth rate by age group (fresh vs frozen)
+- `cumulative` — Area chart: cumulative success over 6 cycles (39%→60%)
+- `fresh_vs_frozen` — Side-by-side comparison cards
+- `causes` — Horizontal bars: infertility causes breakdown
+- `baby_outcomes` — 6-stat bubble grid (83% full-term, 20K babies, etc.)
+- `trends` — Dual line chart: 2019-2023 improvement
+- `egg_freezing_stats` — Hero number + breakdown by reason
+
+**Priority rule:** ANZARD charts always take precedence over Fertool cards. Never show both.
+
+### Fertool Widgets (native HTML in chat, triage=2 only)
+- `amh` — Interactive AMH normogram SVG with age/value inputs + plot
+- `egg_freezing` — Success rate table with age/eggs selectors + cell highlight
+- `endometriosis` — Summary card with stage diagram + key facts
+- `fertility_assessment` — Expandable checklist with details on tap
+- `fertool_search` — Link card to Fertool KB (no embed)
+
+### Check-in Flow
+Oocyte tap → 5 dimensions (Mood, Anxiety, Loneliness, Uncertainty, Hope 0-10) → POST /checkin → Escalation check → Screening trigger (PHQ-9/GAD-7) → AI response → Firebase persist
 
 ### Passive Phenotyping Flow
-Every 60s: POST /passive-signals → 7 construct detectors vs baseline → Escalation updated → If RED → clinician alert + human widget shown
+Every 60s: JS collector captures typing speed, deletion ratio, scroll agitation, session timing → POST /passive-signals → 7 construct detectors → Phenotype snapshot to Firebase → Clinician dashboard
 
-### Clinician Dashboard Flow
-Polls /clinician/patients + /clinician/alerts every 8s → Pre-consult briefing on patient click → Communication style badge + stress bar + concerns + approach
+### Treatment Stages (29 total)
+consultation, investigation, waiting_to_start, downregulation, stimulation, monitoring, trigger, before_retrieval, retrieval_day, post_retrieval, fertilisation_report, embryo_development, freeze_all, before_transfer, transfer_day, early_tww, late_tww, result_day, positive_result, negative_result, chemical_pregnancy, miscarriage, failed_cycle_acute, failed_cycle_processing, wtf_appointment, between_cycles, considering_stopping, donor_journey, early_pregnancy
 
-## Key Features Already Built
-
-- Dynamic patient adaptation: classify_patient_style() detects ANALYTICAL/EMOTIONAL/MIXED from conversation history
-- Pre-consultation clinician briefing via Haiku: GET /clinician/patient/{id}/briefing
-- Interactive egg companion with 5-dimension check-ins and character transformations
-- Human escalation widget: "Talk to someone" → POST /escalate/human
-- Firebase persistence with write-through cache
-- Stage-aware daily nudge system: GET /nudge/{patient_id} (29 treatment stages)
-- PWA manifest with app icons
+## Frontend Structure (index.html)
+- **#screen-welcome** — Landing page: oocyte mascot, clouds, "Create Account"/"Log in" buttons
+- **#screen-onboard** — 3-step: name → age+details → stage selection (returning users skip via localStorage)
+- **#screen-app** — 4-tab navigation:
+  - **Chat** (panel-chat) — AI conversation + ANZARD/Fertool widgets
+  - **Check-in** (panel-checkin) — 5-dimension sliders + oocyte mascot
+  - **Circle** (panel-circle) — Community buddies/world tabs (localStorage-backed)
+  - **Insights** (panel-journey) — Summary/Weekly/Daily/Chats sub-tabs, IVF calendar, journey landscape
+- **Oocyte mascot** — Biological SVG (zona pellucida, ooplasm, face) with moods, stress-ball squish
+- **Returning users** detected via localStorage `melodai_patient_id` → skip to chat with "Welcome back"
 
 ## Deploy Commands
-
 ```bash
-# Full deploy (rebuild container)
+# Deploy backend + frontend (Cloud Run serves both)
 gcloud run deploy ivf-companion --source . --region australia-southeast1 --allow-unauthenticated --memory 2Gi
 
-# Update env vars only (no rebuild)
-gcloud run services update ivf-companion --region australia-southeast1 --update-env-vars KEY=VALUE
-
-# Push frontend (auto-deploys via GitHub Pages)
+# Frontend-only change (also push to GitHub Pages)
 git add -A && git commit -m "description" && git push origin main
 
 # Read backend logs
 gcloud run services logs read ivf-companion --region australia-southeast1 --limit 30
-
-# Set GCP project (if needed)
-gcloud config set project fertility-gp-portal
 ```
 
-## Known Issues & Priorities
+## Critical Rules
+1. **Read the full file before editing** — index.html ~2600 lines, app.py ~4500 lines
+2. **Never break existing API endpoints** — live patients using the backend
+3. **ANZARD/Fertool charts are native SVG/HTML** — no iframes, no external libraries
+4. **All element IDs referenced by JS must be preserved** when reskinning
+5. **Firebase calls are fire-and-forget** — app works without Firebase (in-memory fallback)
+6. **After app.py changes**, must redeploy Cloud Run
+7. **Cloud Run serves index.html at `/`** — the frontend deploys WITH the backend
+8. **Never commit API keys or service account JSON**
+9. **Region is australia-southeast1** (Melbourne) — don't change
 
-### Critical (do first)
-1. API key was exposed — needs rotation. Set via Cloud Run env var, never in code
-2. Zero authentication on all endpoints — need API keys on /clinician/* at minimum
-3. Some files may be in Cloud Shell but not in this repo — ensure git is in sync
+## Firebase Data Structure
+```
+melod_ai/
+  patients/{patient_id}
+  conversations/{patient_id}/{push_key}
+  checkins/{patient_id}/{push_key}
+  screenings/{patient_id}/{push_key}
+  escalations/{patient_id}/{push_key}
+  passive_signals/{patient_id}/{push_key}
+  reflections/{patient_id}/{timestamp_key}
+  conversation_summaries/{patient_id}/{timestamp_key}
+  daily_insights/{patient_id}/{date_str}
+  phenotype_history/{patient_id}/{timestamp_key}
+```
 
-### High Priority (before Virtus demo)
-4. Fertool bridge untested with live key — clinical questions should route to Fertool backend
-5. No SSE streaming — patient waits for full response, needs token-by-token streaming
-6. Cold start 30+ seconds — set min-instances=1 on Cloud Run
-7. EDUCATION_TOPICS dict exists but never surfaced to patient as suggestion chips
-
-### Medium Priority
-8. Passive signal route only extracts typing/content/circadian, needs all signal types
-9. Old files to remove: dashboard.html, patch_*.py, old spec docs
-10. No rate limiting
-11. No service worker for PWA offline support
-
-## Code Conventions
-
-- Python backend (app.py): FastAPI with async endpoints
-- Frontend: vanilla JS, no framework, inline in single HTML files
-- All Firebase writes go through firebase_db.py (write-through cache pattern)
-- Escalation levels: GREEN → YELLOW → ORANGE → RED
-- Patient styles: ANALYTICAL, EMOTIONAL, MIXED
-- Triage categories: 1=emotional, 2=education, 3=screening, 4=crisis, 5=social
-
-## Important Notes
-
-- NEVER commit API keys, Firebase service account JSON, or .env files
-- The frontend is a single-page app — all patient UI is in index.html
-- Firebase data lives under melod_ai/patients/ and melod_ai/conversations/
-- Cloud Run is set to australia-southeast1 (Melbourne) — keep it there
-- The Fertool backend is a SEPARATE service on australia-southeast2 — don't mix them up
-- When editing index.html or clinician-dashboard.html, these deploy via git push (GitHub Pages)
-- When editing app.py, firebase_db.py, or signal_integration.py, these deploy via gcloud run deploy
+## Clinician System
+- **Auth:** X-API-Key header on all /clinician/* endpoints
+- **Roles:** doctor, nurse, secretary — different briefing depth per role
+- **Briefing:** GET /clinician/patient/{id}/briefing?role=doctor
+- **Actions:** POST send-message, flag-topic, schedule-nudge, resolve-concern
+- **Digest:** GET /clinician/digest — morning summary via Haiku
+- **Dashboard polling:** Every 8 seconds for patients + alerts

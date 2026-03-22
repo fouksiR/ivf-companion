@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Melod·AI — Your IVF Companion</title><!-- v4488 -->
+<title>Melod·AI — Your IVF Companion</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192x192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -733,82 +733,6 @@ function addMicroReflection(text){
   if(a.firstChild)a.insertBefore(d,a.firstChild);else a.appendChild(d);
 }
 /* ═══ END REFLECTIONS ═══════════════════════════════════════════════ */
-/* ═══ ANZARD 2023 INFOGRAPHIC CHARTS ═══════════════════════════════ */
-function renderAnzardChart(key){
-  var fn={age_outcomes:renderAnzardAge,cumulative:renderAnzardCumulative,fresh_vs_frozen:renderAnzardFreshFrozen,causes:renderAnzardCauses,baby_outcomes:renderAnzardBaby,trends:renderAnzardTrends,egg_freezing_stats:renderAnzardEggFreeze};
-  if(!fn[key]){console.warn('[ANZARD] Unknown chart key:',key);return null}
-  try{return fn[key]()}catch(e){console.error('[ANZARD] Render error for',key,e);return null}
-}
-function _anzardCard(title,subtitle,body){
-  var el=document.createElement('div');
-  el.style.cssText='background:#fff;border:1px solid rgba(45,142,142,0.1);border-left:4px solid #2D8E8E;border-radius:16px;padding:16px;margin:8px 0;box-shadow:0 2px 8px rgba(0,0,0,0.04);max-width:100%;animation:ftSlideUp .4s ease .1s both;opacity:0';
-  el.innerHTML='<div style="font-family:Playfair Display,Georgia,serif;font-size:15px;font-weight:700;color:#1a3a3a;margin-bottom:2px">\ud83d\udcca '+escHtml(title)+'</div><div style="font-size:11px;color:#6a9e9e;margin-bottom:10px">'+escHtml(subtitle)+'</div><div>'+body+'</div><div style="font-size:10px;color:#6a9e9e;text-align:right;margin-top:8px">ANZARD 2023 \u00b7 NPESU, UNSW Sydney</div>';
-  return el;
-}
-function renderAnzardAge(){
-  var data=[{age:'<30',f:25.0,t:37.8},{age:'30\u201334',f:24.8,t:37.8},{age:'35\u201339',f:15.7,t:33.0},{age:'40\u201344',f:4.8,t:22.4},{age:'45+',f:0.9,t:12.6}];
-  var W=300,H=180,pl=36,pr=10,pt=10,pb=30,cw=W-pl-pr,ch=H-pt-pb,mx=40,bw=cw/data.length*0.35;
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-height:200px;display:block" xmlns="http://www.w3.org/2000/svg">';
-  [0,10,20,30,40].forEach(function(v){var y=pt+ch-(v/mx)*ch;svg+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eee" stroke-width=".5"/><text x="'+(pl-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#999">'+v+'%</text>'});
-  data.forEach(function(d,i){var x=pl+(i+0.5)*cw/data.length;var hF=(d.f/mx)*ch,hT=(d.t/mx)*ch;
-    svg+='<rect x="'+(x-bw-1)+'" y="'+(pt+ch-hF)+'" width="'+bw+'" height="'+hF+'" rx="3" fill="#2dd4bf"/>';
-    svg+='<rect x="'+(x+1)+'" y="'+(pt+ch-hT)+'" width="'+bw+'" height="'+hT+'" rx="3" fill="#0f766e"/>';
-    svg+='<text x="'+x+'" y="'+(H-pb+14)+'" text-anchor="middle" font-size="9" fill="#666">'+d.age+'</text>'});
-  svg+='</svg><div style="display:flex;gap:14px;justify-content:center;font-size:11px;color:#666;margin-top:4px"><span>\u25a0 <span style="color:#2dd4bf">Fresh</span></span><span>\u25a0 <span style="color:#0f766e">Frozen</span></span></div>';
-  svg+='<div style="margin-top:8px;padding:8px 12px;background:#f0fdfa;border-radius:8px;font-size:13px;line-height:1.5;color:#0f766e"><strong>Key:</strong> Age is the strongest predictor. Frozen cycles generally outperform fresh.</div>';
-  return _anzardCard('What are my chances by age?','Live birth rate per initiated cycle, 2023',svg);
-}
-function renderAnzardCumulative(){
-  var data=[{c:1,v:39},{c:2,v:49.1},{c:3,v:53.8},{c:4,v:56.6},{c:5,v:58.4},{c:6,v:59.7}];
-  var W=300,H=160,pl=36,pr=10,pt=10,pb=28,cw=W-pl-pr,ch=H-pt-pb;
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-height:180px;display:block" xmlns="http://www.w3.org/2000/svg">';
-  [0,20,40,60,80].forEach(function(v){var y=pt+ch-(v/80)*ch;svg+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eee" stroke-width=".5"/><text x="'+(pl-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#999">'+v+'%</text>'});
-  var area='M',line='';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var y=pt+ch-(d.v/80)*ch;area+=(i?'L':'')+x+','+y;line+=(i?'L':'M')+x+','+y;svg+='<circle cx="'+x+'" cy="'+y+'" r="3.5" fill="#0d9488" stroke="white" stroke-width="1.5"/><text x="'+x+'" y="'+(y-8)+'" text-anchor="middle" font-size="9" fill="#0d9488" font-weight="700">'+d.v+'%</text>'});
-  area+='L'+(pl+(data.length-1)*cw/(data.length-1))+','+(pt+ch)+'L'+pl+','+(pt+ch)+'Z';
-  svg+='<path d="'+area+'" fill="#14b8a6" opacity=".12"/><path d="'+line+'" fill="none" stroke="#0d9488" stroke-width="2.5"/>';
-  data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);svg+='<text x="'+x+'" y="'+(H-pb+13)+'" text-anchor="middle" font-size="9" fill="#666">Cycle '+d.c+'</text>'});
-  svg+='</svg><div style="margin-top:8px;padding:8px 12px;background:#f0fdfa;border-radius:8px;font-size:13px;color:#0f766e"><strong>39%</strong> succeed on cycle 1. By cycle 6, nearly <strong>60%</strong> have had a baby.</div>';
-  return _anzardCard('Does persistence pay off?','Cumulative live birth rate over multiple cycles',svg);
-}
-function renderAnzardFreshFrozen(){
-  var html='<div style="display:flex;flex-direction:column;gap:8px">';
-  [{l:'Live birth per ET',f:'25.4%',t:'33.0%'},{l:'Clinical pregnancy per ET',f:'33.0%',t:'40.8%'},{l:'Live birth per initiated cycle',f:'14.5%',t:'32.6%'}].forEach(function(r){html+='<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f0fdfa;border-radius:12px"><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800;color:#2dd4bf">'+r.f+'</div><div style="font-size:10px;color:#0d9488;font-weight:600">Fresh</div></div><div style="flex:1.5;text-align:center;font-size:11px;font-weight:700;color:#0f766e;line-height:1.3">'+r.l+'</div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800;color:#0f766e">'+r.t+'</div><div style="font-size:10px;color:#0d9488;font-weight:600">Frozen \u2744\ufe0f</div></div></div>'});
-  html+='</div><div style="margin-top:8px;padding:8px 12px;background:#f0fdfa;border-radius:8px;font-size:13px;color:#0f766e"><strong>71.5%</strong> of all ART live births in 2023 came from frozen cycles.</div>';
-  return _anzardCard('Fresh vs Frozen embryo transfers','Autologous cycle outcomes, 2023',html);
-}
-function renderAnzardCauses(){
-  var data=[{n:'Female factors',p:44.4,c:'#0d9488'},{n:'Unexplained',p:24.5,c:'#5eead4'},{n:'Combined F+M',p:15.2,c:'#14b8a6'},{n:'Male factor',p:10.4,c:'#99f6e4'},{n:'Not infertility',p:5.4,c:'#ccfbf1'}];
-  var html='<div style="display:flex;flex-direction:column;gap:6px">';
-  data.forEach(function(d){html+='<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:3px;background:'+d.c+';flex-shrink:0"></div><div style="flex:1;font-size:12px;font-weight:600;color:#115e59">'+d.n+'</div><div style="font-size:14px;font-weight:800;color:'+d.c+'">'+d.p+'%</div><div style="flex:2;height:8px;background:#f0fdfa;border-radius:4px;overflow:hidden"><div style="width:'+d.p+'%;height:100%;background:'+d.c+';border-radius:4px"></div></div></div>'});
-  html+='</div><div style="margin-top:8px;padding:8px 12px;background:#f0fdfa;border-radius:8px;font-size:13px;color:#0f766e">Nearly <strong>1 in 4</strong> couples have unexplained infertility \u2014 no clear cause found.</div>';
-  return _anzardCard('Why people seek fertility treatment','Cause of infertility, female-male couples, 2023',html);
-}
-function renderAnzardBaby(){
-  var stats=[{v:'83%',l:'Full-term, normal weight',e:'\ud83d\udc9a'},{v:'20,174',l:'Liveborn babies in 2023',e:'\ud83d\udc63'},{v:'2.2%',l:'Multiple birth rate',e:'\ud83d\udc6f'},{v:'3,262g',l:'Average birthweight',e:'\u2696\ufe0f'},{v:'38 wks',l:'Median gestational age',e:'\ud83d\udcc5'},{v:'6.3%',l:'Of all AU births are ART',e:'\ud83c\udfe5'}];
-  var html='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
-  stats.forEach(function(s){html+='<div style="text-align:center;padding:10px 6px;background:linear-gradient(160deg,#f0fdfa,#ccfbf120);border-radius:12px"><div style="font-size:16px;margin-bottom:2px">'+s.e+'</div><div style="font-size:18px;font-weight:800;color:#0d9488">'+s.v+'</div><div style="font-size:9px;color:#0f766e;font-weight:600;margin-top:2px;line-height:1.2">'+s.l+'</div></div>'});
-  html+='</div><div style="margin-top:8px;padding:8px 12px;background:#f0fdfa;border-radius:8px;font-size:13px;color:#0f766e">The vast majority of IVF babies are born healthy.</div>';
-  return _anzardCard('Healthy baby outcomes','Over 20,000 babies born via ART in 2023',html);
-}
-function renderAnzardTrends(){
-  var data=[{y:'2019',f:25.5,t:29.7},{y:'2020',f:25.4,t:31.2},{y:'2021',f:25.5,t:31.4},{y:'2022',f:25.9,t:32.1},{y:'2023',f:25.7,t:32.8}];
-  var W=300,H=150,pl=36,pr=10,pt=10,pb=25,cw=W-pl-pr,ch=H-pt-pb;
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-height:170px;display:block" xmlns="http://www.w3.org/2000/svg">';
-  [20,24,28,32,36].forEach(function(v){var y=pt+ch-((v-20)/16)*ch;svg+='<line x1="'+pl+'" y1="'+y+'" x2="'+(W-pr)+'" y2="'+y+'" stroke="#eee" stroke-width=".5"/><text x="'+(pl-3)+'" y="'+(y+3)+'" text-anchor="end" font-size="9" fill="#999">'+v+'%</text>'});
-  var lT='',lF='';data.forEach(function(d,i){var x=pl+i*cw/(data.length-1);var yT=pt+ch-((d.t-20)/16)*ch;var yF=pt+ch-((d.f-20)/16)*ch;lT+=(i?'L':'M')+x+','+yT;lF+=(i?'L':'M')+x+','+yF;svg+='<circle cx="'+x+'" cy="'+yT+'" r="3" fill="#0f766e" stroke="white" stroke-width="1.5"/><circle cx="'+x+'" cy="'+yF+'" r="2.5" fill="#5eead4" stroke="white" stroke-width="1"/>';svg+='<text x="'+x+'" y="'+(H-pb+12)+'" text-anchor="middle" font-size="9" fill="#666">'+d.y+'</text>'});
-  svg+='<path d="'+lT+'" fill="none" stroke="#0f766e" stroke-width="2.5"/><path d="'+lF+'" fill="none" stroke="#5eead4" stroke-width="2"/>';
-  svg+='</svg><div style="display:flex;gap:14px;justify-content:center;font-size:11px;color:#666;margin-top:4px"><span>\u25a0 <span style="color:#5eead4">Fresh ET</span></span><span>\u25a0 <span style="color:#0f766e">Frozen ET</span></span></div>';
-  svg+='<div style="margin-top:8px;padding:8px 12px;background:#f0fdfa;border-radius:8px;font-size:13px;color:#0f766e">Frozen ET success improved from 29.7% in 2019 to <strong>32.8%</strong> in 2023.</div>';
-  return _anzardCard('IVF success is improving','Live birth rate per embryo transfer, 2019\u20132023',svg);
-}
-function renderAnzardEggFreeze(){
-  var html='<div style="text-align:center;padding:8px 0"><div style="font-size:42px;font-weight:900;background:linear-gradient(135deg,#0d9488,#2dd4bf);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1">8,827</div><div style="font-size:13px;font-weight:700;color:#0f766e;margin-top:4px">fertility preservation cycles in 2023</div><div style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#dcfce7,#d1fae5);padding:5px 12px;border-radius:16px;margin-top:8px"><span style="font-size:14px">\u2b06\ufe0f</span><span style="font-size:13px;font-weight:800;color:#166534">+27.9% from 2022</span></div></div>';
-  html+='<div style="display:flex;gap:6px;margin-top:12px">';
-  [{p:'53.9%',l:'Medical reasons',c:'#0d9488'},{p:'38.1%',l:'Non-medical (social)',c:'#fbbf6a'},{p:'8.1%',l:'Cancer diagnosis',c:'#f97066'}].forEach(function(d){html+='<div style="flex:1;text-align:center;padding:8px 4px;background:'+d.c+'12;border-radius:10px;border-left:3px solid '+d.c+'"><div style="font-size:18px;font-weight:800;color:'+d.c+'">'+d.p+'</div><div style="font-size:9px;color:#0f766e;font-weight:600;margin-top:2px;line-height:1.2">'+d.l+'</div></div>'});
-  html+='</div><div style="margin-top:8px;padding:8px 12px;background:#f0fdfa;border-radius:8px;font-size:13px;color:#0f766e">Egg freezing grew <strong>28%</strong> in one year. Over a third freeze for non-medical reasons.</div>';
-  return _anzardCard('Egg freezing is surging','Fertility preservation cycles, 2023',html);
-}
-/* ═══ END ANZARD CHARTS ════════════════════════════════════════════ */
 function switchTab(t){var prev=document.querySelector('.nav-item.active');var prevTab=prev?prev.textContent.trim().toLowerCase():'';
 document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));var idx=t==='chat'?1:t==='checkin'?2:3;document.querySelector('.nav-item:nth-child('+idx+')').classList.add('active');document.getElementById('panel-'+t).classList.add('active');
 if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart()}
@@ -821,7 +745,7 @@ if(opts&&opts.eduFork){html+='<div class="edu-quick-replies"><button class="edu-
 d.innerHTML=html}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'}a.appendChild(d);a.scrollTop=a.scrollHeight;if(fertoolCards&&fertoolCards.length>0){var fc=d.querySelector('.fertool-cards');if(fc){setTimeout(function(){fc.classList.add('visible')},200);if(opts&&opts.glowCards){var cards=fc.querySelectorAll('.fertool-card');cards.forEach(function(c){c.classList.add('glow')})}}}}
 function eduQuickReply(el,type){var replies={reassure:'Can you reassure me about this?',explain:'Can you explain the clinical details?',practical:'What should I actually do? Give me practical tips.'};var wrap=el.closest('.edu-quick-replies');if(wrap){var pills=wrap.querySelectorAll('.edu-quick-pill');pills.forEach(function(p){p.style.opacity='0.4';p.style.pointerEvents='none'});el.style.opacity='1';el.style.background='#2D8E8E';el.style.color='white'}var ci=document.getElementById('chat-input');ci.value=replies[type]||'';setTimeout(function(){sendMsg()},100)}
 function triggerOneWord(el){el.style.opacity='0.5';el.style.pointerEvents='none';var ci=document.getElementById('chat-input');ci.placeholder='Just one word is enough...';ci.focus();setTimeout(function(){el.remove()},300)}
-async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
+async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
 function addSystemMsg(t){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-system';d.innerHTML='<div class="msg-bubble">'+t+'</div>';a.appendChild(d);a.scrollTop=a.scrollHeight}
 async function submitCheckin(){var b=document.getElementById('btn-checkin');b.disabled=true;b.textContent='Submitting...';var c={mood:+document.getElementById('v-mood').textContent,anxiety:+document.getElementById('v-anxiety').textContent,loneliness:+document.getElementById('v-lonely').textContent,uncertainty:+document.getElementById('v-uncertain').textContent,hope:+document.getElementById('v-hope').textContent,note:document.getElementById('ci-note').value.trim()};
 if(collector)collector.onCheckinComplete(c);

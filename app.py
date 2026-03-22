@@ -1669,7 +1669,7 @@ client = anthropic.Anthropic()  # Uses ANTHROPIC_API_KEY env var
 
 # ── Endpoints ─────────────────────────────────────────────────────────
 
-@app.get("/")
+@app.get("/health")
 async def health():
     return {
         "service": "Melod-AI",

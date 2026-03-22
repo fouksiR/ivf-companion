@@ -39,7 +39,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from pydantic import BaseModel, Field
 import anthropic
 import asyncio
@@ -3400,6 +3400,18 @@ async def get_passive_summary(patient_id: str):
         "patient_id": patient_id,
         "summary": summary,
     }
+
+
+# ── Static File Serving ────────────────────────────────────────────────
+
+@app.get("/")
+async def serve_index():
+    return FileResponse("index.html")
+
+
+@app.get("/clinician-dashboard.html")
+async def serve_dashboard():
+    return FileResponse("clinician-dashboard.html")
 
 
 # ── Run ───────────────────────────────────────────────────────────────

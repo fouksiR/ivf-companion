@@ -2330,6 +2330,14 @@ var WELCOME_TEXT="Hi there \uD83D\uDC9B\n\nI'm Melod\u00b7AI \u2014 your compani
 
 function dismissWelcome(){
   try{localStorage.setItem('melodai_welcomed','1')}catch(ex){}
+  // Returning user — skip onboarding, go straight to app
+  if(state._returning&&state.patientId){
+    document.getElementById('screen-welcome').classList.remove('active');
+    document.getElementById('screen-app').classList.add('active');
+    showApp();
+    addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+    return;
+  }
   document.getElementById('screen-welcome').classList.remove('active');
   document.getElementById('screen-onboard').classList.add('active');
 }
@@ -2430,10 +2438,13 @@ function loadWorldPosts(){var feed=document.getElementById('world-feed');var pos
 function timeAgoShort(ts){try{var d=(Date.now()-new Date(ts))/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m';if(d<86400)return Math.floor(d/3600)+'h';return Math.floor(d/86400)+'d'}catch(e){return ''}}
 // Calendar
 var _calYear,_calMonth,_calEvents=[];
+var _calSvg=function(sz,d){return '<svg xmlns="http://www.w3.org/2000/svg" width="'+sz+'" height="'+sz+'" viewBox="0 0 20 20" fill="none" stroke="#2D8E8E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>'};
+var _calPaths={injection:'<rect x="8.5" y="1.5" width="3" height="10" rx="1.5"/><line x1="10" y1="11.5" x2="10" y2="18"/><line x1="8" y1="18" x2="12" y2="18"/><line x1="6.5" y1="4" x2="8.5" y2="4"/><line x1="6.5" y1="6.5" x2="8.5" y2="6.5"/>',scan:'<circle cx="8.5" cy="8.5" r="5"/><line x1="12" y1="12" x2="17" y2="17"/>',retrieval:'<ellipse cx="10" cy="11" rx="5.5" ry="6.5"/><ellipse cx="10" cy="11" rx="2" ry="2.5" opacity=".4"/>',transfer:'<circle cx="13" cy="10" r="4.5"/><line x1="2" y1="10" x2="8" y2="10"/><polyline points="5.5 7.5 8 10 5.5 12.5"/>',iui:'<circle cx="10" cy="10" r="7"/>',medication:'<rect x="5" y="4" width="10" height="12" rx="2"/><line x1="5" y1="9" x2="15" y2="9"/><line x1="8" y1="4" x2="8" y2="2"/><line x1="12" y1="4" x2="12" y2="2"/>',result:'<rect x="4" y="2" width="12" height="16" rx="1.5"/><polyline points="8 10 9.5 12 13 8"/>',tww_start:'<path d="M6 2h8M6 18h8M6 2l1.5 6.5c0 .8 1.1 1.5 2.5 1.5s2.5-.7 2.5-1.5L14 2M6 18l1.5-6.5c0-.8 1.1-1.5 2.5-1.5s2.5.7 2.5 1.5L14 18"/>',appointment:'<rect x="3" y="4" width="14" height="13" rx="1.5"/><line x1="3" y1="8" x2="17" y2="8"/><line x1="7" y1="2" x2="7" y2="5"/><line x1="13" y1="2" x2="13" y2="5"/>',other:'<circle cx="10" cy="10" r="2"/>'};
+function _calIcon(type,sz){return _calSvg(sz||14,_calPaths[type]||_calPaths.other)}
+var evtIcons={};Object.keys(_calPaths).forEach(function(k){evtIcons[k]=_calIcon(k,14)});
 function buildCalendar(){var container=document.getElementById('calendarContainer');if(!container)return;var now=new Date();if(!_calYear){_calYear=now.getFullYear();_calMonth=now.getMonth()}var year=_calYear,month=_calMonth;var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];var firstDay=new Date(year,month,1).getDay();var daysInMonth=new Date(year,month+1,0).getDate();var today=now.getDate();var isCurrentMonth=(year===now.getFullYear()&&month===now.getMonth());
 // Load events from localStorage
 try{_calEvents=JSON.parse(localStorage.getItem('melodai_cycle_events')||'[]')}catch(e){_calEvents=[]}
-var evtIcons={injection:'💉',scan:'🔬',retrieval:'🥚',transfer:'🔄',iui:'🟢',medication:'💊',result:'📋',tww_start:'⏳',appointment:'📅',other:'·'};
 var html='<div class="cal-header"><button class="cal-nav" onclick="calNav(-1)">&lt;</button><h3>'+monthNames[month]+' '+year+'</h3><button class="cal-nav" onclick="calNav(1)">&gt;</button></div>';
 html+='<div class="cal-grid">';
 ['S','M','T','W','T','F','S'].forEach(function(d){html+='<div class="cal-day-header">'+d+'</div>'});
@@ -2448,7 +2459,7 @@ var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
 if(dayEvts.length>0){eventDot='<div class="cal-event">'+dayEvts.slice(0,2).map(function(e){return evtIcons[e.type]||'·'}).join('')+(dayEvts.length>2?'+':'')+'</div>'}
 html+='<div class="'+cls+'" data-date="'+dateStr+'" onclick="showDayDetail(\''+dateStr+'\')"><div class="cal-num">'+d+'</div>'+moodDot+eventDot+'</div>'}
 html+='</div>';
-html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4ade80"></span>Good</span><span><span class="leg-dot" style="background:#fbbf24"></span>Tough</span><span><span class="leg-dot" style="background:#f87171"></span>Hard</span><span>💉Inj</span><span>🔬Scan</span><span>🥚Ret</span></div>';
+html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4ade80"></span>Good</span><span><span class="leg-dot" style="background:#fbbf24"></span>Tough</span><span><span class="leg-dot" style="background:#f87171"></span>Hard</span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.injection+'<small>Inj</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.scan+'<small>Scan</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.retrieval+'<small>Ret</small></span></div>';
 html+='<div id="dayDetailPanel" style="display:none"></div>';
 container.innerHTML=html;
 // Also try loading events from API
@@ -2457,18 +2468,18 @@ function calNav(dir){_calMonth+=dir;if(_calMonth<0){_calMonth=11;_calYear--}if(_
 function showDayDetail(dateStr){var panel=document.getElementById('dayDetailPanel');if(!panel)return;
 var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
 var ci=state.checkins?state.checkins.find(function(c){return(c.date||'').substring(0,10)===dateStr}):null;
-var evtIcons={injection:'💉',scan:'🔬',retrieval:'🥚',transfer:'🔄',iui:'🟢',medication:'💊',result:'📋',tww_start:'⏳',appointment:'📅',other:'📌'};
+var detailIcons={};Object.keys(_calPaths).forEach(function(k){detailIcons[k]=_calIcon(k,16)});
 var html='<div style="padding:12px;background:var(--white);border-radius:12px;border:1px solid var(--border-light);margin-top:8px">';
 html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>'+dateStr+'</strong><button style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px" onclick="openAddEvent(\''+dateStr+'\')">+ Add event</button></div>';
 if(ci){var m=ci.mood||5;html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px"><span class="cal-mood '+(m>=7?'good':m>=4?'tough':'hard')+'" style="display:inline-block"></span> Mood: '+m+'/10</div>'}
-if(dayEvts.length){dayEvts.forEach(function(e){html+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border-light)"><span>'+(evtIcons[e.type]||'·')+'</span><span><strong>'+escHtml(e.label||e.type)+'</strong>'+(e.time?' at '+e.time:'')+(e.notes?' — '+escHtml(e.notes):'')+'</span></div>'})}else if(!ci){html+='<div style="font-size:12px;color:var(--text-soft);text-align:center;padding:8px">No entries for this day</div>'}
+if(dayEvts.length){dayEvts.forEach(function(e){html+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border-light)"><span>'+(detailIcons[e.type]||'·')+'</span><span><strong>'+escHtml(e.label||e.type)+'</strong>'+(e.time?' at '+e.time:'')+(e.notes?' — '+escHtml(e.notes):'')+'</span></div>'})}else if(!ci){html+='<div style="font-size:12px;color:var(--text-soft);text-align:center;padding:8px">No entries for this day</div>'}
 html+='</div>';
 panel.style.display='block';panel.innerHTML=html}
 function openAddEvent(dateStr){
-var types=[{k:'injection',l:'💉 Injection'},{k:'scan',l:'🔬 Scan'},{k:'retrieval',l:'🥚 Retrieval'},{k:'transfer',l:'🔄 Transfer'},{k:'medication',l:'💊 Medication'},{k:'result',l:'📋 Result'},{k:'appointment',l:'📅 Appointment'},{k:'other',l:'📌 Other'}];
+var types=[{k:'injection',l:'Injection'},{k:'scan',l:'Scan'},{k:'retrieval',l:'Retrieval'},{k:'transfer',l:'Transfer'},{k:'medication',l:'Medication'},{k:'result',l:'Result'},{k:'appointment',l:'Appointment'},{k:'other',l:'Other'}];
 var html='<div style="position:fixed;bottom:0;left:0;right:0;background:white;border-radius:20px 20px 0 0;padding:24px;max-height:60vh;overflow-y:auto;z-index:200;box-shadow:0 -4px 24px rgba(0,0,0,.1)" id="addEventSheet">';
 html+='<h3 style="font-family:var(--serif,Playfair Display,serif);margin:0 0 12px">Add Event</h3>';
-html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'+types.map(function(t){return '<button style="padding:8px 4px;border:1px solid var(--border-light,#eee);border-radius:10px;background:white;cursor:pointer;font-size:11px;text-align:center" onclick="selectEvtType(\''+t.k+'\')" data-type="'+t.k+'">'+t.l+'</button>'}).join('')+'</div>';
+html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'+types.map(function(t){return '<button style="padding:8px 4px;border:1px solid var(--border-light,#eee);border-radius:10px;background:white;cursor:pointer;font-size:11px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px" onclick="selectEvtType(\''+t.k+'\')" data-type="'+t.k+'">'+_calIcon(t.k,20)+'<span>'+t.l+'</span></button>'}).join('')+'</div>';
 html+='<input type="hidden" id="evtType" value="other">';
 html+='<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#999">Date</label><input type="date" id="evtDate" value="'+dateStr+'" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"></div>';
 html+='<div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:#999">Label</label><input type="text" id="evtLabel" placeholder="e.g. Gonal-F 225iu" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"></div>';
@@ -2500,12 +2511,11 @@ showApp=function(){_origShowApp.apply(this,arguments);document.getElementById('f
 function logout(){try{localStorage.removeItem('melodai_patient_id');localStorage.removeItem('melodai_name');localStorage.removeItem('melodai_stage');localStorage.removeItem('melodai_cycle');localStorage.removeItem('melodai_treatment');localStorage.removeItem('melodai_welcomed');localStorage.removeItem('melodai_tour_done')}catch(e){}window.location.reload()}
 
 initOnboarding();
-// === CANVAS SPERM ANIMATION ===
+// === CANVAS SPERM ANIMATION — single sperm orbiting the egg ===
 (function spermCanvas(){
   var canvas,ctx,raf,running=false;
   var dpr=window.devicePixelRatio||1;
-  var sperms=[];
-  var NUM_SPERM=4;
+  var sperm;
   function init(){
     var egg=document.getElementById('eggCompanion');
     if(!egg)return;
@@ -2516,18 +2526,15 @@ initOnboarding();
     egg.parentElement.insertBefore(canvas,egg);
     ctx=canvas.getContext('2d');
     ctx.scale(dpr,dpr);
-    // Create sperm with varied orbits
-    for(var i=0;i<NUM_SPERM;i++){
-      sperms.push({
-        angle:Math.random()*Math.PI*2,
-        speed:0.008+Math.random()*0.006,
-        radius:50+Math.random()*30,
-        wobbleAmp:5+Math.random()*5,
-        wobbleFreq:0.3+Math.random()*0.3,
-        tailPhase:Math.random()*Math.PI*2,
-        dir:Math.random()>0.5?1:-1
-      });
-    }
+    // Single sperm orbiting clockwise
+    sperm={
+      angle:0,
+      speed:0.012,
+      radius:55,
+      wobbleAmp:6,
+      wobbleFreq:0.35,
+      tailPhase:0
+    };
   }
   function draw(){
     if(!running||!ctx)return;
@@ -2538,45 +2545,47 @@ initOnboarding();
     if(!app||!app.classList.contains('active')||!egg||!egg.classList.contains('idle')){
       raf=requestAnimationFrame(draw);return;
     }
-    sperms.forEach(function(s){
-      s.angle+=s.speed*s.dir;
-      s.tailPhase+=0.15;
-      var wobble=Math.sin(s.angle*s.wobbleFreq)*s.wobbleAmp;
-      var r=s.radius+wobble;
-      var x=cx+Math.cos(s.angle)*r;
-      var y=cy+Math.sin(s.angle)*r;
-      var nextX=cx+Math.cos(s.angle+0.1*s.dir)*(s.radius+Math.sin((s.angle+0.1)*s.wobbleFreq)*s.wobbleAmp);
-      var nextY=cy+Math.sin(s.angle+0.1*s.dir)*(s.radius+Math.sin((s.angle+0.1)*s.wobbleFreq)*s.wobbleAmp);
-      var rot=Math.atan2(nextY-y,nextX-x);
-      ctx.save();
-      ctx.translate(x,y);
-      ctx.rotate(rot);
-      // Head — white oval with teal stroke
-      ctx.beginPath();
-      ctx.ellipse(0,0,5,3.5,0,0,Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,0.85)';
-      ctx.fill();
-      ctx.strokeStyle='rgba(45,142,142,0.3)';
-      ctx.lineWidth=0.8;
-      ctx.stroke();
-      // Tail — sinusoidal segments
-      ctx.beginPath();
-      ctx.moveTo(5,0);
-      for(var seg=0;seg<12;seg++){
-        var tx=5+seg*2.5;
-        var amp=0.8+seg*0.35;
-        var ty=Math.sin(s.tailPhase+seg*0.6)*amp;
-        ctx.lineTo(tx,ty);
-      }
-      ctx.strokeStyle='rgba(45,142,142,0.35)';
-      ctx.lineWidth=1.2;
-      ctx.lineCap='round';
-      ctx.stroke();
-      ctx.restore();
-    });
+    var s=sperm;
+    s.angle+=s.speed;
+    s.tailPhase+=0.15;
+    var wobble=Math.sin(s.angle*s.wobbleFreq)*s.wobbleAmp;
+    var r=s.radius+wobble;
+    var x=cx+Math.cos(s.angle)*r;
+    var y=cy+Math.sin(s.angle)*r;
+    // Look-ahead point to compute heading direction
+    var nextA=s.angle+0.1;
+    var nextR=s.radius+Math.sin(nextA*s.wobbleFreq)*s.wobbleAmp;
+    var nextX=cx+Math.cos(nextA)*nextR;
+    var nextY=cy+Math.sin(nextA)*nextR;
+    var rot=Math.atan2(nextY-y,nextX-x);
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(rot);
+    // Head — white oval with teal stroke (at front)
+    ctx.beginPath();
+    ctx.ellipse(0,0,5,3.5,0,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    ctx.fill();
+    ctx.strokeStyle='rgba(45,142,142,0.3)';
+    ctx.lineWidth=0.8;
+    ctx.stroke();
+    // Tail — trails behind (negative-X direction)
+    ctx.beginPath();
+    ctx.moveTo(-5,0);
+    for(var seg=0;seg<12;seg++){
+      var tx=-(5+seg*2.5);
+      var amp=0.8+seg*0.35;
+      var ty=Math.sin(s.tailPhase+seg*0.6)*amp;
+      ctx.lineTo(tx,ty);
+    }
+    ctx.strokeStyle='rgba(45,142,142,0.35)';
+    ctx.lineWidth=1.2;
+    ctx.lineCap='round';
+    ctx.stroke();
+    ctx.restore();
     raf=requestAnimationFrame(draw);
   }
-  function start(){if(running)return;running=true;if(!canvas)init();draw();console.log('SPERM CANVAS STARTED')}
+  function start(){if(running)return;running=true;if(!canvas)init();draw();}
   function stop(){running=false;if(raf)cancelAnimationFrame(raf)}
   // Start 3 seconds after app loads
   setTimeout(function(){
@@ -2613,7 +2622,7 @@ initOnboarding();
     if(avg>=9)return'happy';if(avg>=7)return'hopeful';if(avg>=5)return'content';if(avg>=3)return'anxious';return'sad';
   };
 })();
-// Returning user detection — skip onboarding if already completed
+// Returning user detection — restore state but stay on welcome screen for login
 (function(){
   var existing=null;
   try{existing=localStorage.getItem('melodai_patient_id')}catch(e){}
@@ -2624,12 +2633,7 @@ initOnboarding();
       state.stage=localStorage.getItem('melodai_stage')||'consultation';
       state.cycle=parseInt(localStorage.getItem('melodai_cycle')||'1');
       state.treatment=localStorage.getItem('melodai_treatment')||'ivf';
-      // Hide welcome and onboarding, show app
-      var welcome=document.getElementById('screen-welcome');if(welcome)welcome.classList.remove('active');
-      var onboard=document.getElementById('screen-onboard');if(onboard)onboard.classList.remove('active');
-      document.getElementById('screen-app').classList.add('active');
-      showApp();
-      addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+      state._returning=true;
     }catch(e){console.warn('Return user init failed:',e)}
   }
 })();

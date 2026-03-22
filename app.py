@@ -369,21 +369,6 @@ def build_smart_greeting(patient_id: str) -> str:
             f"Hi {name}.",
         ]))
 
-    # ── Streak & rhythm awareness ──
-    engagement = patient.get("engagement", {})
-    consec = engagement.get("consecutive_days", 0)
-    gap_ack = engagement.get("gap_acknowledged", False)
-
-    if consec == 3:
-        parts.append("Three days straight you've shown up for yourself. That matters.")
-    elif consec == 7:
-        parts.append("A whole week of checking in. You're building a habit of self-care through this.")
-    elif consec >= 14:
-        parts.append(f"{'Two' if consec < 21 else str(consec // 7) + ' '}weeks of showing up. In the middle of everything you're going through, that's remarkable.")
-    elif consec == 0 and not gap_ack:
-        # Check for gap — the days_since logic below will handle messaging
-        pass
-
     # ── Days since last check-in / conversation ──
     checkins = checkins_db.get(patient_id, [])
     last_checkin = checkins[-1] if checkins else None
@@ -473,283 +458,170 @@ def build_smart_greeting(patient_id: str) -> str:
     return "\n\n".join(parts)
 
 
-# ── Conversation Continuity ─────────────────────────────────────────
-
-def summarize_last_conversations(patient_id: str, last_n: int = 3) -> list[str]:
-    """Return brief summaries of the patient's last N conversations for continuity."""
-    conv = conversations_db.get(patient_id, [])
-    if not conv:
-        return []
-
-    # Group messages into sessions (gap of 2+ hours = new session)
-    sessions = []
-    current_session = []
-    last_ts = None
-    for msg in conv:
-        ts_str = msg.get("timestamp", "")
-        try:
-            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-        except (ValueError, TypeError):
-            ts = None
-
-        if last_ts and ts and (ts - last_ts).total_seconds() > 7200:
-            if current_session:
-                sessions.append(current_session)
-            current_session = [msg]
-        else:
-            current_session.append(msg)
-        if ts:
-            last_ts = ts
-
-    if current_session:
-        sessions.append(current_session)
-
-    # Take last N sessions (skip the current one if it just started)
-    recent = sessions[-last_n - 1:-1] if len(sessions) > 1 else []
-    if not recent and len(sessions) == 1 and len(sessions[0]) > 2:
-        recent = sessions[-1:]
-
-    summaries = []
-    for session in recent[-last_n:]:
-        user_msgs = [m["content"] for m in session if m.get("role") == "user"]
-        ai_msgs = [m for m in session if m.get("role") == "assistant"]
-
-        # Get timestamp for relative date
-        ts_str = session[0].get("timestamp", "")
-        try:
-            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-            days_ago = (utc_now() - ts).days
-            if days_ago == 0:
-                when = "Earlier today"
-            elif days_ago == 1:
-                when = "Yesterday"
-            else:
-                when = f"{days_ago} days ago"
-        except (ValueError, TypeError):
-            when = "Recently"
-
-        # Extract topics from user messages
-        all_text = " ".join(user_msgs).lower()
-        topics = []
-        topic_keywords = {
-            "progesterone": "progesterone", "estrogen": "estrogen", "clexane": "clexane",
-            "embryo": "embryo", "transfer": "transfer", "retrieval": "retrieval",
-            "injection": "injections", "side effect": "side effects", "amh": "AMH",
-            "ivf": "IVF process", "scan": "scans", "blood": "blood tests",
-            "medication": "medications", "pregnant": "pregnancy", "symptom": "symptoms",
-            "alone": "loneliness", "scared": "fears", "anxious": "anxiety",
-            "partner": "partner", "work": "work", "sleep": "sleep",
-            "waiting": "the wait", "result": "results", "egg": "eggs",
-            "sperm": "sperm", "clinic": "clinic",
-        }
-        for keyword, topic in topic_keywords.items():
-            if keyword in all_text and topic not in topics:
-                topics.append(topic)
-                if len(topics) >= 3:
-                    break
-
-        # Detect emotional tone
-        tone = "neutral"
-        neg_words = sum(1 for w in ["sad", "scared", "anxious", "worried", "alone", "afraid", "crying", "angry", "frustrated", "hopeless", "overwhelmed"] if w in all_text)
-        pos_words = sum(1 for w in ["happy", "hopeful", "grateful", "excited", "better", "good", "relieved", "calm", "positive"] if w in all_text)
-        if neg_words > pos_words:
-            tone = "anxious" if "anxious" in all_text or "worried" in all_text else "struggling"
-        elif pos_words > neg_words:
-            tone = "hopeful" if "hope" in all_text else "positive"
-        elif "?" in " ".join(user_msgs):
-            tone = "curious"
-
-        # Build summary line
-        topic_str = ", ".join(topics[:2]) if topics else "general chat"
-        summary = f"{when}: talked about {topic_str}, seemed {tone}"
-        summaries.append(summary)
-
-    return summaries[-last_n:]
-
-
-# ── Daily Insight ───────────────────────────────────────────────────
-
-EVENING_PROMPTS = {
-    "stimulation": "Your body did a lot of work today. Thank it.",
-    "monitoring": "Another scan day done. Rest now.",
-    "early_tww": "Another day closer. That's enough for today.",
-    "late_tww": "Another day closer. That's enough for today.",
-    "retrieval_day": "Your body did something incredible today. Rest well.",
-    "transfer_day": "A tiny passenger is on board. Breathe easy tonight.",
-    "negative_result": "You made it through today. That's not nothing.",
-    "miscarriage": "You made it through today. That's not nothing.",
-    "failed_cycle_acute": "You made it through today. That's not nothing.",
-    "chemical_pregnancy": "You made it through today. That's not nothing.",
-}
-
-EVENING_GENERIC = [
-    "Before you close your eyes tonight — one thing from today that wasn't terrible?",
-    "Today is done. You showed up. That counts.",
-    "Whatever today was — you made it through. Rest well.",
-]
-
-
 # ── Common IVF Topics Knowledge Base ─────────────────────────────────
+# Each topic has: keywords (for matching), a plain-language summary,
+# an analytical detail, an emotional framing, and practical tips.
+
 COMMON_IVF_TOPICS = {
     "amh": {
         "keywords": ["amh", "anti-mullerian", "anti mullerian", "ovarian reserve", "egg reserve"],
         "name": "AMH (Anti-Müllerian Hormone)",
         "summary": "AMH is a blood test that estimates your remaining egg supply. It's a snapshot, not a destiny.",
         "analytical": "AMH is produced by granulosa cells of pre-antral and small antral follicles. Normal range is roughly 1.0–3.5 ng/mL (7–25 pmol/L). Low AMH (<1.0 ng/mL) suggests diminished ovarian reserve but does NOT predict egg quality. Many women with low AMH conceive. It helps your specialist choose the right stimulation dose.",
-        "emotional": "Getting an AMH number can feel like getting a grade — but it's not a pass/fail. It's one piece of a much bigger puzzle. Women with 'low' numbers have babies every day, and a 'good' number doesn't guarantee anything either.",
-        "practical": "Ask your specialist: 'What does my AMH mean for my protocol?' AMH can fluctuate slightly cycle to cycle. Retest only if your specialist recommends it.",
+        "emotional": "Getting an AMH number can feel like getting a grade — but it's not a pass/fail. It's one piece of a much bigger puzzle. Women with 'low' numbers have babies every day, and a 'good' number doesn't guarantee anything either. Try not to let one number define your story.",
+        "practical": "Ask your specialist: 'What does my AMH mean for my protocol?' AMH can fluctuate slightly cycle to cycle. Retest only if your specialist recommends it — obsessive retesting adds anxiety without changing the plan.",
     },
     "progesterone": {
         "keywords": ["progesterone", "pessaries", "crinone", "utrogestan", "endometrin", "PIO", "progesterone in oil"],
         "name": "Progesterone Support",
-        "summary": "Progesterone helps prepare and maintain your uterine lining for embryo implantation.",
-        "analytical": "After egg retrieval, the corpus luteum may not produce sufficient progesterone. Supplementation (vaginal pessaries, gel, or intramuscular PIO) maintains the endometrial lining in its secretory phase. Typical start is 1-2 days after retrieval. Continue until 8-12 weeks if pregnant.",
-        "emotional": "The pessaries can feel like an annoying chore on top of everything else. The discharge and mess are normal — it doesn't mean the medication isn't working.",
-        "practical": "Insert at consistent times. Lying down for 10-15 min after helps absorption. Side effects (bloating, breast tenderness, mood changes) mimic pregnancy symptoms — try not to symptom-spot based on these.",
+        "summary": "Progesterone helps prepare and maintain your uterine lining for embryo implantation. It's standard after transfer.",
+        "analytical": "After egg retrieval, the corpus luteum may not produce sufficient progesterone for implantation. Supplementation (vaginal pessaries, gel, or intramuscular PIO) maintains the endometrial lining in its secretory phase. Typical start is 1-2 days after retrieval or as prescribed for FET. Continue until 8-12 weeks if pregnant.",
+        "emotional": "The pessaries can feel like an annoying chore on top of everything else. The discharge and mess are normal — it doesn't mean the medication isn't working. Many women find a routine that makes it more bearable.",
+        "practical": "Insert pessaries at consistent times. Lying down for 10-15 min after helps absorption. Panty liners are your friend. Side effects (bloating, breast tenderness, mood changes) mimic pregnancy symptoms — try not to symptom-spot based on these.",
     },
     "trigger_shot": {
         "keywords": ["trigger shot", "trigger injection", "ovidrel", "pregnyl", "hcg trigger", "lupron trigger"],
         "name": "Trigger Shot",
-        "summary": "The trigger shot tells your eggs to complete final maturation so they can be retrieved ~36 hours later.",
-        "analytical": "The trigger (typically hCG or GnRH agonist) induces final oocyte maturation. Timing is precise: retrieval is scheduled 34-36 hours post-trigger. hCG triggers carry slightly more OHSS risk than agonist triggers.",
-        "emotional": "Trigger night can feel surreal — you've been building to this moment. The precise timing can feel stressful, but clinics are very experienced at scheduling this.",
-        "practical": "Set 2-3 alarms. Have supplies laid out in advance. If you miss the window, call your clinic immediately. Take a photo of the syringe/vial as a record.",
+        "summary": "The trigger shot tells your eggs to complete their final maturation so they can be retrieved ~36 hours later.",
+        "analytical": "The trigger (typically hCG or GnRH agonist) induces final oocyte maturation and loosens the cumulus-oocyte complex from the follicle wall. Timing is precise: retrieval is scheduled 34-36 hours post-trigger. hCG triggers (Ovidrel, Pregnyl) carry slightly more OHSS risk than agonist triggers (Lupron).",
+        "emotional": "Trigger night can feel surreal — you've been building to this moment. The precise timing can feel stressful, but clinics are very experienced at scheduling this. It's okay to set multiple alarms.",
+        "practical": "Set 2-3 alarms. Have your injection supplies laid out in advance. The timing must be exact — if you miss the window, call your clinic immediately (most have an after-hours line). Take a photo of the syringe/vial as a record.",
     },
     "egg_freezing": {
         "keywords": ["egg freezing", "freeze eggs", "fertility preservation", "social freezing", "oocyte cryopreservation"],
         "name": "Egg Freezing",
-        "summary": "Egg freezing preserves your eggs at their current quality for future use.",
-        "analytical": "Vitrification achieves >90% egg survival rates. Ideal age for freezing is under 35. Each cycle typically retrieves 8-15 eggs; most specialists suggest 15-20 mature eggs for a reasonable chance at one live birth.",
-        "emotional": "Egg freezing can feel empowering — you're taking control. But it can also bring up complicated feelings about timelines and partnerships. Both are valid.",
-        "practical": "Budget for 1-2 cycles. Storage fees are annual (~$300-500/year in Australia). Medicare rebates apply for medical indications but not elective freezing.",
+        "summary": "Egg freezing preserves your eggs at their current quality for future use. The stimulation process is similar to IVF.",
+        "analytical": "Vitrification (flash-freezing) achieves >90% egg survival rates upon thawing. Ideal age for freezing is under 35, but benefit exists up to 38-40. Each cycle typically retrieves 8-15 eggs; most specialists suggest 15-20 mature eggs for a reasonable chance at one live birth. Success rates correlate strongly with age at freezing.",
+        "emotional": "Egg freezing can feel empowering — you're taking control. But it can also bring up complicated feelings about timelines and partnerships. Both are completely valid.",
+        "practical": "Budget for 1-2 cycles. Storage fees are annual (~$300-500/year in Australia). Medicare rebates apply for medical indications but not elective freezing. Ask about your clinic's thaw survival rates specifically.",
     },
     "embryo_grading": {
-        "keywords": ["embryo grade", "embryo grading", "blastocyst grade", "day 5 grade", "4AA", "5AB", "hatching"],
+        "keywords": ["embryo grade", "embryo grading", "blastocyst grade", "day 5 grade", "AA", "AB", "BB", "4AA", "5AB", "hatching"],
         "name": "Embryo Grading",
-        "summary": "Embryo grading describes how an embryo looks under the microscope — a rough guide, not a guarantee.",
-        "analytical": "Day 5 blastocysts are graded on expansion (1-6), inner cell mass (A-C), and trophectoderm (A-C). A '4AA' means fully expanded, top quality. However, a 'BB' embryo can absolutely become a healthy baby. PGT-A tested euploid embryos have ~60-70% implantation rates regardless of morphology.",
-        "emotional": "Getting your embryo report can feel like results day at school. Remember: embryologists see 'average-looking' embryos become beautiful babies all the time.",
-        "practical": "Ask your embryologist to explain YOUR grades. Don't compare to others online — different clinics use slightly different scales.",
+        "summary": "Embryo grading describes how an embryo looks under the microscope. It's a rough guide, not a guarantee.",
+        "analytical": "Day 5 blastocysts are graded on expansion (1-6), inner cell mass (A-C), and trophectoderm (A-C). A '4AA' means fully expanded, top-quality ICM and trophectoderm. However, a 'BB' embryo can absolutely become a healthy baby. Grading predicts implantation probability but not baby health. PGT-A tested euploid embryos have ~60-70% implantation rates regardless of morphology grade.",
+        "emotional": "Getting your embryo report can feel like results day at school. Remember: embryologists see 'average-looking' embryos become beautiful babies all the time. The grade is not your baby's first test score.",
+        "practical": "Ask your embryologist to explain YOUR grades specifically. Don't compare to others online — different clinics use slightly different scales. If doing PGT-A, the genetic result matters more than the visual grade.",
     },
     "tww_symptoms": {
-        "keywords": ["tww", "two week wait", "2ww", "symptom spotting", "implantation", "cramping after transfer"],
+        "keywords": ["tww", "two week wait", "2ww", "symptom spotting", "implantation", "cramping after transfer", "spotting after transfer"],
         "name": "The Two-Week Wait (TWW)",
-        "summary": "The TWW is the period between transfer and your pregnancy test. Symptom-spotting is universal but unreliable.",
-        "analytical": "Implantation typically occurs 6-10 days post-ovulation (1-5 days post day-5 transfer). Progesterone supplementation causes symptoms identical to early pregnancy. There is NO reliable way to distinguish medication side effects from pregnancy symptoms before the blood test.",
-        "emotional": "The TWW might be the longest two weeks of your life. Every twinge becomes a Google search. This is completely normal.",
-        "practical": "Avoid home pregnancy tests before your clinic's blood test date. Distraction helps: plan activities, start a show, see friends. Light movement is fine.",
+        "summary": "The TWW is the period between embryo transfer and your pregnancy test. Symptom-spotting is universal but unreliable.",
+        "analytical": "Implantation typically occurs 6-10 days post-ovulation (or 1-5 days post day-5 transfer). Progesterone supplementation causes symptoms identical to early pregnancy: breast tenderness, bloating, cramping, fatigue, mood swings. There is NO reliable way to distinguish medication side effects from pregnancy symptoms before the blood test.",
+        "emotional": "The TWW might be the longest two weeks of your life. Every twinge becomes a Google search. This is completely normal. Try to be gentle with yourself — you cannot think or worry your way to a different outcome.",
+        "practical": "Avoid home pregnancy tests before your clinic's blood test date — early testing causes more anxiety than answers. Distraction helps: plan activities, start a show, see friends. Light movement is fine. Your clinic will tell you what to avoid.",
     },
     "fsh": {
         "keywords": ["fsh", "follicle stimulating hormone", "day 3 fsh", "baseline fsh"],
         "name": "FSH (Follicle-Stimulating Hormone)",
-        "summary": "FSH stimulates your ovaries. Your baseline level helps assess ovarian function.",
-        "analytical": "Day 2-3 FSH <10 IU/L is generally normal. Elevated FSH (>10-15) may suggest diminished ovarian reserve. FSH fluctuates cycle to cycle more than AMH. Interpreted alongside estradiol, AMH, and AFC.",
-        "emotional": "Like AMH, an FSH number is just one data point. If yours is elevated, it doesn't close doors — it helps your specialist choose the best approach.",
-        "practical": "FSH is drawn on cycle day 2-3 along with estradiol. If elevated, ask about AMH and AFC for a more complete picture.",
+        "summary": "FSH is a hormone that stimulates your ovaries. Your baseline FSH level helps assess ovarian function.",
+        "analytical": "Day 2-3 FSH <10 IU/L is generally considered normal. Elevated FSH (>10-15) may suggest diminished ovarian reserve — the pituitary is working harder to stimulate the ovaries. FSH fluctuates cycle to cycle more than AMH. It's interpreted alongside estradiol, AMH, and AFC for the full picture.",
+        "emotional": "Like AMH, an FSH number is just one data point. It can fluctuate. If yours is elevated, it doesn't close doors — it helps your specialist choose the best approach for you.",
+        "practical": "FSH is drawn on cycle day 2-3 along with estradiol. If your FSH is elevated, ask about AMH and AFC for a more complete picture. Some clinics use FSH to adjust stimulation doses.",
     },
     "follicle_count": {
         "keywords": ["follicle count", "afc", "antral follicle", "how many follicles", "follicle scan"],
         "name": "Antral Follicle Count (AFC)",
-        "summary": "AFC is the number of small resting follicles on ultrasound — it predicts stimulation response.",
-        "analytical": "AFC measured via transvaginal ultrasound on day 2-5. Normal AFC is 10-20 total. <6 suggests low reserve; >20 suggests possible PCOS. AFC combined with AMH gives the most accurate response prediction.",
-        "emotional": "Counting follicles can feel like counting chances. But follicle count tells you about quantity potential, not quality.",
-        "practical": "Don't compare your count to others. During stimulation, not all follicles grow at the same rate — that's normal.",
+        "summary": "AFC is the number of small resting follicles seen on ultrasound. It predicts how your ovaries may respond to stimulation.",
+        "analytical": "AFC is measured via transvaginal ultrasound on day 2-5. Normal AFC is 10-20 total (both ovaries). <6 suggests low reserve; >20 suggests possible PCOS and higher OHSS risk. AFC combined with AMH gives the most accurate prediction of stimulation response. Not every follicle will produce a mature egg.",
+        "emotional": "Counting follicles can feel like counting chances. But follicle count tells you about quantity potential, not quality. Some women with fewer follicles get excellent quality eggs.",
+        "practical": "Don't compare your count to others — everyone's baseline is different. Your specialist uses AFC to choose your medication dose. During stimulation, not all follicles grow at the same rate — that's normal.",
     },
     "icsi_vs_ivf": {
         "keywords": ["icsi", "icsi vs ivf", "conventional ivf", "intracytoplasmic", "sperm injection"],
         "name": "ICSI vs Conventional IVF",
-        "summary": "In conventional IVF, sperm and eggs are mixed. In ICSI, a single sperm is injected directly into each egg.",
-        "analytical": "ICSI is recommended for male factor, previous fertilisation failure, PGT-A cycles, or frozen eggs. Fertilisation rates are similar (~70-80%) when appropriately indicated. ICSI does not improve outcomes when sperm parameters are normal.",
-        "emotional": "If your clinic recommends ICSI, it's because they want to give your eggs the best chance. It's a very routine procedure.",
-        "practical": "Ask why they're recommending ICSI vs conventional for your situation. Cost may differ.",
+        "summary": "In conventional IVF, sperm and eggs are mixed together. In ICSI, a single sperm is injected directly into each egg.",
+        "analytical": "ICSI is recommended for male factor infertility (low count/motility/morphology), previous fertilisation failure, PGT-A cycles, or frozen eggs. Fertilisation rates are similar (~70-80%) when appropriately indicated. ICSI does not improve outcomes over conventional IVF when sperm parameters are normal. Some clinics default to ICSI for all cycles.",
+        "emotional": "If your clinic recommends ICSI, it's because they want to give your eggs the best chance at fertilisation. It's a very routine procedure — embryologists do this all day, every day.",
+        "practical": "Ask your specialist why they're recommending ICSI vs conventional for your situation. Cost may differ. If using ICSI, the lab selects the best-looking sperm for each egg.",
     },
     "pgt": {
         "keywords": ["pgt", "pgs", "pgt-a", "genetic testing", "preimplantation", "euploid", "aneuploid", "mosaic"],
         "name": "PGT-A (Preimplantation Genetic Testing)",
-        "summary": "PGT-A tests embryos for the correct number of chromosomes before transfer.",
-        "analytical": "PGT-A biopsies 5-10 trophectoderm cells from day 5-7 blastocysts. Euploid embryos have ~60-70% implantation rates. Aneuploidy rate increases sharply after age 37. Mosaic results are increasingly considered for transfer.",
-        "emotional": "Waiting for PGT results adds another layer of waiting. Some embryos that looked great won't pass, and that's a real loss.",
-        "practical": "Results take 1-2 weeks. Ask about your clinic's mosaic embryo policy. PGT-A adds ~$3,000-5,000 per cycle. Consider it especially if you're 37+.",
+        "summary": "PGT-A tests embryos for the correct number of chromosomes before transfer, aiming to improve transfer success rates.",
+        "analytical": "PGT-A biopsies 5-10 trophectoderm cells from day 5-7 blastocysts. Euploid (normal) embryos have ~60-70% implantation rates. Aneuploidy rate increases sharply after age 37. Mosaic results (mix of normal/abnormal cells) are increasingly being considered for transfer. The test does not guarantee a healthy pregnancy — it improves odds per transfer.",
+        "emotional": "Waiting for PGT results adds another layer of waiting to an already difficult process. Some embryos that looked great won't pass, and that's a real loss. But the information helps you make informed decisions about which embryo to transfer.",
+        "practical": "Results take 1-2 weeks. Ask about your clinic's mosaic embryo policy. PGT-A adds ~$3,000-5,000 per cycle. Consider it especially if you're 37+, have had recurrent loss, or have limited transfer attempts.",
     },
     "endometriosis": {
         "keywords": ["endometriosis", "endo", "endometrioma", "chocolate cyst", "adenomyosis"],
         "name": "Endometriosis & Fertility",
-        "summary": "Endometriosis can affect fertility but many women with endo conceive with treatment.",
-        "analytical": "Staged I-IV. Even mild endo can reduce fertility via inflammatory factors. Endometriomas >4cm may warrant drainage before IVF. AMH may be lower with bilateral endometriomas.",
-        "emotional": "Living with endo AND doing IVF is a double load. You deserve extra gentleness with yourself.",
-        "practical": "Discuss whether surgical treatment before IVF is recommended for your situation. Keep a pain diary to track patterns.",
+        "summary": "Endometriosis can affect fertility through inflammation, adhesions, and sometimes reduced egg quality, but many women with endo conceive with treatment.",
+        "analytical": "Endometriosis is staged I-IV. Even mild endo (I-II) can reduce fertility via inflammatory factors in peritoneal fluid. Endometriomas >4cm may warrant drainage before IVF. Surgery can improve natural conception rates for mild-moderate endo but evidence is mixed for IVF outcomes. AMH may be lower in women with bilateral endometriomas.",
+        "emotional": "Living with endo AND doing IVF is a double load — the pain, the treatments, the uncertainty. You deserve extra gentleness with yourself. Your body has been through a lot.",
+        "practical": "Discuss with your specialist whether surgical treatment before IVF is recommended for your specific situation. Some protocols include 2-3 months of GnRH agonist suppression before stimulation. Keep a pain diary to track patterns.",
     },
     "pcos": {
-        "keywords": ["pcos", "polycystic", "metformin", "insulin resistance", "anovulation"],
+        "keywords": ["pcos", "polycystic", "metformin", "insulin resistance", "irregular periods", "anovulation"],
         "name": "PCOS & Fertility Treatment",
-        "summary": "PCOS is common and very treatable. Women with PCOS often respond strongly to stimulation.",
-        "analytical": "PCOS affects 8-13% of women. In IVF, PCOS patients typically produce more eggs but OHSS risk is elevated. Antagonist protocols with agonist triggers are preferred. Metformin may improve egg quality.",
-        "emotional": "PCOS can feel like your body is working against you. But a strong response to medication is actually an advantage.",
-        "practical": "Ask about OHSS prevention strategies. Low-GI diet and moderate exercise can help with insulin resistance.",
+        "summary": "PCOS is common and very treatable. Women with PCOS often respond strongly to stimulation medications.",
+        "analytical": "PCOS affects 8-13% of women. In IVF, PCOS patients typically produce more eggs but may have higher aneuploidy rates. OHSS risk is elevated — antagonist protocols with agonist triggers are preferred. Metformin may improve egg quality. Letrozole is first-line for ovulation induction before moving to IVF.",
+        "emotional": "PCOS can feel like your body is working against you. But in the IVF world, a strong response to medication is actually an advantage — your ovaries are responsive. Your specialist will manage the stimulation carefully.",
+        "practical": "Ask about OHSS prevention strategies (antagonist protocol, agonist trigger, freeze-all). Low-GI diet and moderate exercise can help with insulin resistance. Metformin may be recommended alongside IVF medications.",
     },
     "male_factor": {
-        "keywords": ["male factor", "sperm count", "motility", "morphology", "low sperm", "azoospermia", "sperm analysis"],
+        "keywords": ["male factor", "sperm count", "motility", "morphology", "low sperm", "azoospermia", "varicocele", "sperm analysis"],
         "name": "Male Factor Infertility",
-        "summary": "Male factor contributes to about 40-50% of infertility cases. ICSI has transformed outcomes.",
-        "analytical": "WHO normal values: count >15M/mL, motility >40%, morphology >4%. Severe cases may require surgical sperm retrieval (TESA/micro-TESE). Lifestyle factors can improve parameters over 2-3 months.",
-        "emotional": "Male factor affects both partners emotionally. It's a medical condition, not a personal failing.",
-        "practical": "A repeat semen analysis is standard. 3 months of lifestyle optimisation can improve results. Ask about DNA fragmentation testing if borderline.",
+        "summary": "Male factor contributes to about 40-50% of infertility cases. ICSI has transformed outcomes for many couples.",
+        "analytical": "WHO normal values: count >15M/mL, motility >40%, morphology >4% (strict criteria). Mild-moderate male factor is effectively treated with ICSI. Severe cases (cryptozoospermia, azoospermia) may require surgical sperm retrieval (TESA/micro-TESE). Lifestyle factors (heat, smoking, alcohol, supplements) can improve parameters over 2-3 months.",
+        "emotional": "Male factor infertility affects both partners emotionally. For the male partner, it can feel deeply personal. For the couple, it helps to remember this is a medical condition, not a personal failing.",
+        "practical": "A repeat semen analysis is standard before making treatment decisions. 3 months of lifestyle optimisation can improve results. Ask about DNA fragmentation testing if standard parameters are borderline.",
     },
     "clexane": {
-        "keywords": ["clexane", "enoxaparin", "blood thinner", "thrombophilia", "heparin"],
+        "keywords": ["clexane", "enoxaparin", "blood thinner", "clotting", "thrombophilia", "heparin", "blood clotting"],
         "name": "Clexane (Enoxaparin)",
-        "summary": "Clexane is a blood thinner sometimes prescribed to improve blood flow to the uterus.",
-        "analytical": "Low-molecular-weight heparin prescribed for thrombophilia, recurrent implantation failure, or antiphospholipid syndrome. Typical dose 20-40mg daily subcutaneous. Evidence for routine use without specific indication is limited.",
-        "emotional": "Adding another injection can feel overwhelming. The bruising is normal and doesn't mean anything is wrong.",
-        "practical": "Rotate injection sites. Ice before injecting to reduce bruising. Tell your dentist you're on blood thinners.",
+        "summary": "Clexane is a blood thinner sometimes prescribed during IVF to improve blood flow to the uterus and reduce clotting risk.",
+        "analytical": "Clexane (enoxaparin) is a low-molecular-weight heparin. It's prescribed for: known thrombophilia, recurrent implantation failure, recurrent miscarriage, or antiphospholipid syndrome. Typical dose is 20-40mg daily via subcutaneous injection. Evidence for routine use in IVF without specific indication is limited.",
+        "emotional": "Adding another injection to the mix can feel overwhelming. The bruising at injection sites is normal and doesn't mean anything is wrong. Many women find the belly is less painful than the thigh.",
+        "practical": "Rotate injection sites. Ice the area before injecting to reduce bruising. Don't rub after. Take it at the same time daily. Tell your dentist and any other doctors you're on blood thinners. Stop as directed before any procedures.",
     },
     "ivf_process": {
-        "keywords": ["ivf process", "how does ivf work", "ivf steps", "ivf cycle", "what happens in ivf"],
+        "keywords": ["ivf process", "how does ivf work", "ivf steps", "ivf cycle", "what happens in ivf", "ivf overview"],
         "name": "The IVF Process Overview",
-        "summary": "IVF involves stimulating ovaries, collecting eggs, fertilising in the lab, growing embryos, and transferring back.",
-        "analytical": "Standard cycle: (1) Stimulation 8-14 days, (2) Trigger shot at ~18-20mm follicles, (3) Retrieval under sedation 36h post-trigger, (4) Fertilisation, (5) Culture to day 3-6, (6) Transfer or freeze-all, (7) Luteal support, (8) Pregnancy test ~14 days post-retrieval. Timeline: ~4-6 weeks.",
-        "emotional": "Starting IVF can feel like stepping onto a conveyor belt. But you can ask questions at every step and advocate for yourself.",
-        "practical": "Plan flexibility at work around monitoring (usually mornings) and retrieval day. Start a medication organiser.",
+        "summary": "IVF involves stimulating your ovaries, collecting eggs, fertilising them in the lab, growing embryos, and transferring the best one back.",
+        "analytical": "A standard IVF cycle: (1) Ovarian stimulation 8-14 days with gonadotropins, (2) Trigger shot when follicles reach ~18-20mm, (3) Egg retrieval under sedation 36h post-trigger, (4) Fertilisation (conventional or ICSI), (5) Embryo culture to day 3-6, (6) Fresh transfer or freeze-all, (7) Luteal support, (8) Pregnancy test ~14 days post-retrieval. Total timeline: ~4-6 weeks per cycle.",
+        "emotional": "Starting IVF can feel like stepping onto a conveyor belt. But remember — you can ask questions at every step, take breaks if you need them, and advocate for yourself. You're not just a patient number.",
+        "practical": "Plan for flexibility at work around monitoring appointments (usually mornings) and retrieval day. You'll need 1-2 days off for retrieval. Start a medication organiser. Ask for a written schedule from your clinic.",
     },
     "fresh_vs_frozen": {
-        "keywords": ["fresh transfer", "frozen transfer", "fet", "freeze all", "fresh vs frozen"],
+        "keywords": ["fresh transfer", "frozen transfer", "fet", "freeze all", "fresh vs frozen", "frozen embryo"],
         "name": "Fresh vs Frozen Embryo Transfer",
         "summary": "Frozen transfers (FET) are now as successful as — and sometimes better than — fresh transfers.",
-        "analytical": "Freeze-all allows the uterine lining to recover from stimulation. FET success rates are comparable to or slightly better than fresh in many studies. OHSS risk is eliminated with freeze-all.",
-        "emotional": "Being told to 'freeze all' can feel like a delay. But it's usually because your body needs time to recover.",
-        "practical": "FET typically happens 1-2 months after retrieval. The FET process is much simpler — no sedation needed.",
+        "analytical": "Freeze-all strategies have increased due to improved vitrification. FET allows the uterine lining to recover from stimulation, potentially improving receptivity. OHSS risk is eliminated with freeze-all. Success rates for FET are comparable to or slightly better than fresh transfers in many studies. Medicated FET uses estrogen + progesterone; natural FET tracks ovulation.",
+        "emotional": "Being told to 'freeze all' when you were hoping for a fresh transfer can feel like a delay. But it's usually because your body needs time to recover, and that patience often pays off with better outcomes.",
+        "practical": "FET typically happens 1-2 months after retrieval. Ask whether your clinic recommends medicated or natural FET for your situation. The FET process itself is much simpler — no sedation needed, feels similar to a Pap smear.",
     },
     "miscarriage_info": {
-        "keywords": ["miscarriage", "pregnancy loss", "missed miscarriage", "recurrent loss"],
+        "keywords": ["miscarriage", "pregnancy loss", "missed miscarriage", "early loss", "recurrent loss"],
         "name": "Understanding Pregnancy Loss",
         "summary": "Miscarriage after IVF is heartbreaking but not uncommon. It is not your fault.",
-        "analytical": "Miscarriage rate after IVF is ~15-25%, similar to natural conception. Most are due to chromosomal abnormalities. Recurrent loss warrants investigation. PGT-A can reduce risk in subsequent cycles.",
-        "emotional": "A miscarriage after everything it took to get there is devastating. The grief is real. You're allowed to mourn, to be angry, and when ready, to try again.",
-        "practical": "Allow yourself time to grieve. Ask about investigations before your next cycle. Many clinics offer counselling.",
+        "analytical": "Miscarriage rate after IVF is ~15-25%, similar to natural conception. Most are due to chromosomal abnormalities in the embryo. Recurrent loss (3+) warrants investigation: karyotyping, thrombophilia screen, uterine assessment. PGT-A can reduce miscarriage risk in subsequent cycles by selecting euploid embryos.",
+        "emotional": "A miscarriage after everything it took to get there is devastating. The grief is real, whether it happened at 6 weeks or 12. You're allowed to mourn. You're allowed to be angry. And whenever you're ready, you're allowed to try again.",
+        "practical": "Allow yourself time to grieve before making decisions about next steps. Ask your specialist about investigations before your next cycle. Many clinics offer counselling — consider it even if you think you're 'fine'.",
     },
     "chemical_pregnancy": {
-        "keywords": ["chemical pregnancy", "biochemical pregnancy", "faint line then period"],
+        "keywords": ["chemical pregnancy", "biochemical pregnancy", "early positive then negative", "faint line then period"],
         "name": "Chemical Pregnancy",
-        "summary": "A chemical pregnancy is a very early loss where hCG was briefly detected. It IS a real loss.",
-        "analytical": "Chemical pregnancies account for up to 50-75% of early losses. A chemical pregnancy confirms implantation occurred, which some specialists view as a positive prognostic sign.",
-        "emotional": "A chemical pregnancy can feel like a cruel trick — hope followed immediately by loss. Your feelings are valid, whatever they are.",
-        "practical": "Most clinics proceed after one normal period. If it happens repeatedly, ask about endometrial receptivity testing (ERA).",
+        "summary": "A chemical pregnancy is a very early loss where hCG was briefly detected but didn't progress. It IS a real loss.",
+        "analytical": "Chemical pregnancies account for up to 50-75% of all early losses. hCG rises briefly (often <100) then declines. In IVF, they're detected more often because of early blood testing. A chemical pregnancy confirms that implantation occurred, which some specialists view as a positive prognostic sign for future cycles.",
+        "emotional": "A chemical pregnancy can feel like a cruel trick — hope followed immediately by loss. Some people are told 'at least it implanted' but that doesn't help when you're grieving. Your feelings about this are valid, whatever they are.",
+        "practical": "Most clinics proceed to the next cycle after one normal period. No special investigations are typically needed after a single chemical pregnancy. If it happens repeatedly, ask about endometrial receptivity testing (ERA) or adjusted luteal support.",
     },
     "ohss": {
-        "keywords": ["ohss", "ovarian hyperstimulation", "bloating after retrieval", "swollen ovaries"],
+        "keywords": ["ohss", "ovarian hyperstimulation", "bloating after retrieval", "swollen ovaries", "fluid retention"],
         "name": "OHSS (Ovarian Hyperstimulation Syndrome)",
-        "summary": "OHSS is when ovaries over-respond to stimulation. Mild is common; severe is rare and manageable.",
-        "analytical": "Mild OHSS (bloating, mild pain) affects ~20-30% of cycles. Moderate-severe (<5%) involves fluid shifts and weight gain. Risk factors: PCOS, high AFC, hCG trigger. Prevention: antagonist protocol, agonist trigger, freeze-all.",
-        "emotional": "Feeling bloated and uncomfortable after retrieval is incredibly common. If it gets worse, don't push through — call your clinic.",
-        "practical": "Monitor: weigh daily, track fluid intake/output. Drink electrolyte drinks. Eat salty, high-protein foods. Call clinic if weight gain >1kg/day or difficulty breathing.",
+        "summary": "OHSS is when ovaries over-respond to stimulation medications. Mild OHSS is common; severe OHSS is rare and manageable.",
+        "analytical": "Mild OHSS (bloating, mild pain) affects ~20-30% of cycles. Moderate-severe OHSS (<5%) involves significant fluid shifts, weight gain >1kg/day, and rarely requires hospitalisation. Risk factors: PCOS, high AFC, high estradiol, hCG trigger. Prevention: antagonist protocol, agonist trigger, freeze-all, cabergoline.",
+        "emotional": "Feeling bloated and uncomfortable after retrieval is incredibly common. If it gets worse rather than better, don't push through — call your clinic. You're not being dramatic; OHSS is a real medical condition that deserves attention.",
+        "practical": "Monitor: weigh yourself daily, measure waist circumference, track fluid intake/output. Drink electrolyte drinks (Hydralyte). Eat salty, high-protein foods. Call your clinic if: weight gain >1kg/day, severe bloating, difficulty breathing, reduced urination, or vomiting.",
     },
     "natural_cycle": {
-        "keywords": ["natural cycle", "mini ivf", "mild stimulation", "natural ivf"],
+        "keywords": ["natural cycle", "mini ivf", "mild stimulation", "natural ivf", "modified natural"],
         "name": "Natural & Mini IVF",
-        "summary": "Natural and mini IVF use little or no medication, collecting 1-3 eggs. Gentler but may need more cycles.",
-        "analytical": "Natural IVF retrieves 0-1 eggs per cycle. Modified natural with mild stimulation gets 1-3 eggs. Success rates per cycle are lower but cumulative rates over multiple cycles can be comparable.",
-        "emotional": "Choosing a gentler approach can feel like taking care of yourself. But it can also mean more cycles, requiring patience and resilience.",
-        "practical": "Discuss whether natural/mini IVF suits your diagnosis. Costs per cycle are lower but you may need more cycles. Cancellation rates are higher.",
+        "summary": "Natural and mini IVF use little or no medication, collecting 1-3 eggs. It's gentler on the body but may need more cycles.",
+        "analytical": "Natural IVF: no stimulation, retrieves 0-1 eggs per cycle. Modified natural: mild stimulation (low-dose FSH or letrozole) for 1-3 eggs. Success rates per cycle are lower than conventional IVF, but cumulative rates over multiple cycles can be comparable. Best suited for: low responders, personal preference, cost considerations.",
+        "emotional": "Choosing a gentler approach can feel like taking care of yourself. Fewer medications, fewer side effects, less disruption. But it can also mean more cycles, and that requires patience and resilience.",
+        "practical": "Discuss with your specialist whether natural/mini IVF suits your diagnosis. Costs per cycle are lower but you may need more cycles. Monitoring is still required. Cancellation rates are higher (if the single follicle doesn't develop).",
     },
 }
 
@@ -757,7 +629,12 @@ COMMON_IVF_TOPICS = {
 def detect_education_intent(message: str, patient_style: str, conversation_history: list = None) -> dict:
     """Detect the education intent behind a patient's question.
 
-    Returns dict with intent, matched_topic, and confidence.
+    Returns:
+        {
+            "intent": "REASSURANCE_FIRST" | "EXPLAIN_FIRST" | "PRACTICAL_FIRST" | None,
+            "matched_topic": str or None,  # key from COMMON_IVF_TOPICS
+            "confidence": float,
+        }
     """
     msg_lower = message.lower().strip()
 
@@ -775,6 +652,7 @@ def detect_education_intent(message: str, patient_style: str, conversation_histo
         "is it normal", "should i worry", "is this okay", "am i okay",
         "is this bad", "worried about", "scared", "nervous", "freaking out",
         "panicking", "does this mean", "is it safe", "am i normal",
+        "tell me it's okay", "tell me it will be okay", "please reassure",
         "is something wrong", "what if", "concerned", "anxious about",
     ]
     explain_signals = [
@@ -796,9 +674,9 @@ def detect_education_intent(message: str, patient_style: str, conversation_histo
 
     # Style-weighted adjustment
     if patient_style == "EMOTIONAL":
-        r_score += 1
+        r_score += 1  # Bias toward reassurance for emotional communicators
     elif patient_style == "ANALYTICAL":
-        e_score += 1
+        e_score += 1  # Bias toward explanation for analytical communicators
 
     # Determine intent
     intent = None
@@ -810,6 +688,7 @@ def detect_education_intent(message: str, patient_style: str, conversation_histo
         intent = max(scores, key=scores.get)
         confidence = scores[intent] / total
     elif matched_topic:
+        # If we matched a topic but no clear intent signals, use style
         if patient_style == "EMOTIONAL":
             intent = "REASSURANCE_FIRST"
             confidence = 0.5
@@ -817,7 +696,7 @@ def detect_education_intent(message: str, patient_style: str, conversation_histo
             intent = "EXPLAIN_FIRST"
             confidence = 0.5
         else:
-            intent = None
+            intent = None  # Will trigger the care fork question
             confidence = 0.3
 
     return {
@@ -1030,178 +909,61 @@ EDUCATION_TOPICS = {
 
 FERTOOL_CARDS = {
     "amh": {
-        "title": "Your AMH Explained",
-        "description": "Interactive normogram — see where your AMH sits for your age",
+        "title": "AMH Guide — Interactive Normogram",
+        "description": "See where your AMH sits for your age, with percentile curves",
         "url": "https://fouksir.github.io/Fertool/amh-guide.html",
         "icon": "\U0001f4ca",
-        "embed": True,
-        "tags": ["amh", "ovarian reserve", "egg count", "anti-mullerian",
-                 "hormone levels", "reserve", "how many eggs", "egg reserve",
-                 "low amh", "high amh", "pcos", "amh level"],
+        "tags": ["amh", "ovarian reserve", "egg count", "anti-mullerian", "hormone levels", "amh level"],
     },
     "egg_freezing": {
-        "title": "Egg Freezing Outcomes",
-        "description": "Success rates based on your age and number of eggs",
+        "title": "Egg Freezing Calculator",
+        "description": "Explore success rates based on your age and number of eggs frozen",
         "url": "https://fouksir.github.io/Fertool/egg-freezing-calculator.html",
         "icon": "\u2744\ufe0f",
-        "embed": True,
-        "tags": ["egg freezing", "freeze", "cryopreservation", "oocyte",
-                 "fertility preservation", "social freezing", "how many eggs to freeze",
-                 "success rate", "live birth chance", "egg freeze success"],
+        "tags": ["egg freezing", "freeze", "cryopreservation", "oocyte", "fertility preservation", "social freezing"],
     },
     "endometriosis": {
         "title": "Endometriosis & Fertility",
-        "description": "Understanding how endometriosis affects your fertility",
+        "description": "Understand how endometriosis affects fertility and your options",
         "url": "https://fouksir.github.io/Fertool/endometriosis-landing.html",
         "icon": "\U0001f52c",
-        "embed": True,
-        "tags": ["endometriosis", "endo", "pain", "adenomyosis", "chocolate cyst",
-                 "endometrioma", "endo and fertility", "stage 3", "stage 4", "deep endo"],
+        "tags": ["endometriosis", "endo", "adenomyosis", "chocolate cyst", "endometrioma"],
     },
     "fertility_assessment": {
-        "title": "Fertility Assessment",
+        "title": "Fertility Assessment Tool",
         "description": "Interactive assessment to understand your fertility picture",
         "url": "https://fouksir.github.io/Fertool/fertility-assessment.html",
         "icon": "\U0001f4cb",
-        "embed": True,
-        "tags": ["assessment", "fertility check", "workup", "testing", "evaluation",
-                 "what tests do i need", "investigation", "blood test", "scan"],
+        "tags": ["assessment", "fertility check", "workup", "testing", "evaluation", "investigation"],
     },
     "fertool_search": {
         "title": "Search Fertool Knowledge Base",
         "description": "Search our clinical fertility database for detailed information",
         "url": "https://fouksir.github.io/Fertool/index.html",
         "icon": "\U0001f50d",
-        "embed": False,
         "tags": ["fertool", "search", "lookup"],
     },
 }
 
 
-def match_fertool_cards(message: str, response_text: str, max_cards: int = 1) -> list[dict]:
+def match_fertool_cards(message: str, response_text: str, max_cards: int = 2) -> list[dict]:
     """Match patient message + AI response against Fertool card tags.
 
-    Returns up to max_cards (default 1) matching cards.
-    Requires at least one full phrase match to avoid false positives.
+    Returns up to max_cards matching cards, sorted by relevance (number
+    of tag hits). Only call this for triage category 2 (education).
     """
     combined = (message + " " + response_text).lower()
     scored = []
     for key, card in FERTOOL_CARDS.items():
-        hits = 0
-        has_phrase_match = False
-        for tag in card["tags"]:
-            if tag in combined:
-                hits += 2
-                has_phrase_match = True
-            else:
-                tag_words = tag.split()
-                partial_hits = sum(1 for w in tag_words if len(w) >= 4 and w in combined)
-                if partial_hits > 0:
-                    hits += partial_hits
-        if hits >= 2 and has_phrase_match:
+        hits = sum(1 for tag in card["tags"] if tag in combined)
+        if hits > 0:
             scored.append((hits, key, card))
 
     scored.sort(key=lambda x: -x[0])
     return [
-        {
-            "key": k,
-            "title": c["title"],
-            "description": c["description"],
-            "url": c["url"],
-            "icon": c["icon"],
-            "embed": c.get("embed", False),
-        }
-        for _, k, c in scored[:max_cards]
+        {"title": c["title"], "description": c["description"], "url": c["url"], "icon": c["icon"]}
+        for _, _, c in scored[:max_cards]
     ]
-
-
-# ── ANZARD 2023 Infographic Charts ───────────────────────────────────
-# Source: Kotevski DP et al. 2025. ART in Australia and New Zealand 2023. NPESU, UNSW Sydney.
-
-ANZARD_CHARTS = {
-    "age_outcomes": {
-        "key": "age_outcomes",
-        "title": "What are my chances by age?",
-        "subtitle": "Live birth rate per initiated cycle, ANZARD 2023",
-        "tags": ["chances", "success rate", "what are my chances", "how likely", "ivf success",
-                 "live birth rate", "does age matter", "too old", "age", "over 40", "over 35",
-                 "under 30", "chances at", "success at my age"],
-    },
-    "cumulative": {
-        "key": "cumulative",
-        "title": "Does persistence pay off?",
-        "subtitle": "Cumulative live birth rate over multiple cycles",
-        "tags": ["how many cycles", "how many rounds", "keep trying", "cumulative",
-                 "multiple cycles", "first cycle", "second cycle", "didn't work",
-                 "failed cycle", "should i try again", "persistence", "give up",
-                 "chances over time", "stop trying"],
-    },
-    "fresh_vs_frozen": {
-        "key": "fresh_vs_frozen",
-        "title": "Fresh vs Frozen embryo transfers",
-        "subtitle": "Autologous cycle outcomes, 2023",
-        "tags": ["fresh", "frozen", "freeze all", "freeze my embryos", "fet",
-                 "should i freeze", "vitrification", "better fresh or frozen",
-                 "thaw cycle", "frozen embryo transfer"],
-    },
-    "causes": {
-        "key": "causes",
-        "title": "Why people seek fertility treatment",
-        "subtitle": "Cause of infertility, female-male couples, 2023",
-        "tags": ["why infertile", "cause of infertility", "unexplained infertility",
-                 "male factor", "is it me or my partner", "whose fault",
-                 "why isn't it working", "common causes", "can't get pregnant"],
-    },
-    "baby_outcomes": {
-        "key": "baby_outcomes",
-        "title": "Healthy baby outcomes",
-        "subtitle": "Over 20,000 babies born via ART in 2023",
-        "tags": ["healthy baby", "ivf baby", "birth defects", "preterm", "premature",
-                 "birthweight", "twins", "multiple", "is ivf safe", "risks to baby",
-                 "baby outcomes", "are ivf babies normal", "worried about baby"],
-    },
-    "trends": {
-        "key": "trends",
-        "title": "IVF success is improving over time",
-        "subtitle": "Live birth rate per embryo transfer, 2019–2023",
-        "tags": ["getting better", "improving", "trends", "over time", "better than before",
-                 "technology", "compared to years ago", "has ivf improved", "advances",
-                 "new techniques"],
-    },
-    "egg_freezing_stats": {
-        "key": "egg_freezing_stats",
-        "title": "Egg freezing is surging",
-        "subtitle": "Fertility preservation cycles, 2023",
-        "tags": ["egg freezing", "freeze my eggs", "fertility preservation",
-                 "social freezing", "not ready", "don't have a partner",
-                 "oocyte cryopreservation", "should i freeze my eggs",
-                 "what age to freeze", "is egg freezing worth it"],
-    },
-}
-
-
-def match_anzard_charts(message: str, response_text: str, max_charts: int = 2) -> list[dict]:
-    """Match patient message + AI response against ANZARD chart triggers.
-    Requires at least one full phrase match (score >= 2) to avoid false positives.
-    """
-    combined = (message + " " + response_text).lower()
-    scored = []
-    for key, chart in ANZARD_CHARTS.items():
-        hits = 0
-        has_phrase_match = False
-        for tag in chart["tags"]:
-            if tag in combined:
-                hits += 2
-                has_phrase_match = True
-            else:
-                tag_words = tag.split()
-                partial = sum(1 for w in tag_words if len(w) >= 4 and w in combined)
-                if partial > 0:
-                    hits += partial
-        if hits >= 2 and has_phrase_match:
-            scored.append((hits, key, chart))
-    scored.sort(key=lambda x: -x[0])
-    return [{"key": c["key"], "title": c["title"], "subtitle": c["subtitle"]} for _, _, c in scored[:max_charts]]
 
 
 # ── In-Memory Patient Store (Phase 1 — will move to PostgreSQL) ──────
@@ -1231,50 +993,6 @@ def _sync_escalation(patient_id: str, escalation: dict):
 def _sync_screening(patient_id: str, screening: dict):
     screenings_db.setdefault(patient_id, []).append(screening)
     firebase_db.append_screening(patient_id, screening)
-
-
-def _update_engagement(patient_id: str):
-    """Update consecutive day tracking for engagement rhythm."""
-    patient = get_or_create_patient(patient_id)
-    today = date.today().isoformat()
-
-    if "engagement" not in patient:
-        patient["engagement"] = {
-            "consecutive_days": 1,
-            "longest_streak": 1,
-            "total_interactions": 1,
-            "last_interaction_date": today,
-            "gap_acknowledged": False,
-        }
-    else:
-        eng = patient["engagement"]
-        last_date = eng.get("last_interaction_date", "")
-        eng["total_interactions"] = eng.get("total_interactions", 0) + 1
-
-        if last_date == today:
-            return  # Already counted today
-
-        try:
-            last_dt = date.fromisoformat(last_date)
-            today_dt = date.fromisoformat(today)
-            gap = (today_dt - last_dt).days
-        except (ValueError, TypeError):
-            gap = 999
-
-        if gap == 1:
-            eng["consecutive_days"] = eng.get("consecutive_days", 0) + 1
-            eng["gap_acknowledged"] = False
-        elif gap > 1:
-            eng["consecutive_days"] = 1
-            eng["gap_acknowledged"] = False
-        # else gap == 0 already handled
-
-        eng["last_interaction_date"] = today
-        if eng["consecutive_days"] > eng.get("longest_streak", 0):
-            eng["longest_streak"] = eng["consecutive_days"]
-
-    firebase_db.save_patient(patient_id, patient)
-
 
 def _sync_passive_signal(patient_id: str, record: dict):
     passive_signals_db.setdefault(patient_id, []).append(record)
@@ -1708,8 +1426,6 @@ class ChatResponse(BaseModel):
     fertool_cards: Optional[list] = None
     one_word_checkin: Optional[dict] = None  # If message was mapped as a one-word check-in
     education_fork: Optional[str] = None  # Clarifying question for education queries
-    capability_hint: Optional[str] = None  # Contextual capability discovery hint
-    anzard_charts: Optional[list] = None  # ANZARD 2023 infographic charts to show
     query_id: str = ""
 
 class CheckInRequest(BaseModel):
@@ -1727,7 +1443,6 @@ class CheckInResponse(BaseModel):
     checkin_summary: dict
     escalation: Optional[dict] = None
     trigger_screening: Optional[str] = None
-    capability_hint: Optional[str] = None
 
 class ScreeningRequest(BaseModel):
     patient_id: str
@@ -1890,7 +1605,6 @@ async def onboard_patient(req: OnboardRequest):
     patient["cycle_number"] = req.cycle_number
     patient["partner_name"] = req.partner_name
     patient["clinic_name"] = req.clinic_name
-    patient["onboard_soft_spot_shown"] = req.treatment_stage  # Track which soft spot was shown during onboarding
 
     # Generate contextual welcome message using smart greeting + LLM
     stage_name = STAGE_DISPLAY.get(req.treatment_stage, req.treatment_stage)
@@ -1945,181 +1659,6 @@ Do NOT be generic — show you understand where they are in their journey."""
     }
 
 
-@app.get("/daily-insight/{patient_id}")
-async def get_daily_insight(patient_id: str):
-    """Generate a fresh, personal daily observation based on last 24-48h data."""
-    if patient_id not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    patient = patients_db[patient_id]
-    today = date.today().isoformat()
-
-    # Check cache — one insight per day
-    daily_insights = patient.get("daily_insights", {})
-    if today in daily_insights:
-        return {"insight": daily_insights[today], "cached": True, "date": today}
-
-    # Gather last 48h data
-    name = patient.get("name", "there")
-    stage = patient.get("treatment_stage", "consultation")
-    stage_name = STAGE_DISPLAY.get(stage, stage)
-
-    checkins = get_recent_checkins(patient_id, last_n=3)
-    last_checkin = checkins[-1] if checkins else None
-
-    conv = conversations_db.get(patient_id, [])
-    recent_msgs = [m for m in conv[-20:] if m.get("timestamp")]
-
-    # Time since last session
-    last_session_time = None
-    for m in reversed(recent_msgs):
-        try:
-            last_session_time = datetime.fromisoformat(m["timestamp"].replace("Z", "+00:00"))
-            break
-        except (ValueError, TypeError):
-            pass
-
-    # Build data summary for Claude
-    data_points = []
-    if last_checkin:
-        data_points.append(f"Last check-in: mood={last_checkin.get('mood')}, anxiety={last_checkin.get('anxiety')}, hope={last_checkin.get('hope')}, loneliness={last_checkin.get('loneliness')}")
-    if last_session_time:
-        hour = last_session_time.hour
-        if hour >= 22 or hour < 5:
-            data_points.append(f"Last session was late at night ({last_session_time.strftime('%I:%M %p')})")
-        days_since = (utc_now() - last_session_time).days
-        if days_since >= 2:
-            data_points.append(f"Haven't checked in for {days_since} days")
-
-    # Recent user messages — extract topics
-    user_msgs = [m["content"] for m in recent_msgs if m.get("role") == "user"][-5:]
-    if user_msgs:
-        data_points.append(f"Recent topics discussed: {'; '.join(user_msgs[-3:])}")
-
-    # Stage and day info
-    stage_start = patient.get("stage_start_date")
-    days_in_stage = None
-    if stage_start:
-        try:
-            start_dt = datetime.fromisoformat(stage_start.replace("Z", "+00:00"))
-            days_in_stage = (datetime.now() - start_dt.replace(tzinfo=None)).days
-            data_points.append(f"Day {days_in_stage} of {stage_name}")
-        except (ValueError, TypeError):
-            pass
-
-    # Upcoming soft spots
-    soft_spot = get_soft_spot_context(patient_id)
-    if soft_spot:
-        data_points.append(f"Upcoming emotional moment: {soft_spot.get('message', '')[:80]}")
-
-    # Checkin trends
-    if len(checkins) >= 2:
-        moods = [c.get("mood", 5) for c in checkins]
-        if moods[-1] > moods[-2] + 1:
-            data_points.append("Mood jumped up recently")
-        elif moods[-1] < moods[-2] - 1:
-            data_points.append("Mood dropped recently")
-        hopes = [c.get("hope", 5) for c in checkins]
-        if hopes[-1] > hopes[-2] + 1:
-            data_points.append("Hope score increased")
-
-    data_summary = "\n- ".join(data_points) if data_points else "No recent data available"
-
-    prompt = f"""Write ONE sentence — warm, specific, observational — based on this patient's data from the last 24-48 hours. This should feel like a friend who noticed something. Never generic. Never clinical. Never longer than 2 sentences.
-
-Patient name: {name}
-Current stage: {stage_name}
-Data:
-- {data_summary}
-
-Examples of GOOD daily insights:
-- "You were up past midnight last night. I hope today is gentler."
-- "Your hope score jumped yesterday — something shifted. Hold onto that."
-- "You asked three questions about embryo grading yesterday. Sounds like the scientist in you is processing."
-- "You haven't checked in since Tuesday. That's okay. I'm still here."
-- "Today is day 8 of your wait. More than halfway. You're doing this."
-- "Last night you told me you felt alone. I thought about that. You're carrying a lot right now."
-
-Examples of BAD insights (NEVER do these):
-- "Great job checking in yesterday!" (patronizing)
-- "Your mood was 6.2 yesterday" (clinical numbers)
-- "Remember to stay positive!" (toxic positivity)
-- "How are you today?" (generic, not an insight)
-
-Write ONLY the insight text. No quotes, no labels, no preamble."""
-
-    try:
-        response = client.messages.create(
-            model=HAIKU_MODEL,
-            max_tokens=120,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        insight = response.content[0].text.strip().strip('"')
-    except Exception as e:
-        logger.warning(f"Daily insight generation failed: {e}")
-        # Fallback insight based on available data
-        if last_session_time and (last_session_time.hour >= 22 or last_session_time.hour < 5):
-            insight = f"You were up late last night, {name}. I hope today is gentler."
-        elif days_in_stage is not None:
-            insight = f"Day {days_in_stage} of {stage_name}. You're still here. That matters."
-        elif last_checkin and last_checkin.get("mood", 5) <= 3:
-            insight = "Yesterday was heavy. Today is a new page."
-        else:
-            insight = f"I'm here whenever you need me, {name}."
-
-    # Cache in patient record and Firebase
-    if "daily_insights" not in patient:
-        patient["daily_insights"] = {}
-    patient["daily_insights"][today] = insight
-    # Keep only last 7 days
-    keys = sorted(patient["daily_insights"].keys())
-    if len(keys) > 7:
-        for old_key in keys[:-7]:
-            del patient["daily_insights"][old_key]
-    firebase_db.save_patient(patient_id, patient)
-
-    return {"insight": insight, "cached": False, "date": today}
-
-
-@app.get("/evening-prompt/{patient_id}")
-async def get_evening_prompt(patient_id: str):
-    """Return an evening wind-down prompt if the patient was active today."""
-    if patient_id not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    patient = patients_db[patient_id]
-    stage = patient.get("treatment_stage", "consultation")
-    today = date.today().isoformat()
-
-    # Check if patient was active today
-    conv = conversations_db.get(patient_id, [])
-    checkins = checkins_db.get(patient_id, [])
-    active_today = any(
-        m.get("timestamp", "")[:10] == today for m in conv
-    ) or any(
-        c.get("date", "")[:10] == today for c in checkins
-    )
-
-    if not active_today:
-        return {"prompt": None, "reason": "not_active_today"}
-
-    # Check if already shown today
-    evening = patient.get("evening_prompts", {})
-    if evening.get("last_shown") == today:
-        return {"prompt": None, "reason": "already_shown"}
-
-    # Pick prompt
-    prompt = EVENING_PROMPTS.get(stage, random.choice(EVENING_GENERIC))
-
-    # Mark as shown
-    if "evening_prompts" not in patient:
-        patient["evening_prompts"] = {}
-    patient["evening_prompts"]["last_shown"] = today
-    firebase_db.save_patient(patient_id, patient)
-
-    return {"prompt": prompt, "stage": stage, "date": today}
-
-
 @app.get("/greeting/{patient_id}")
 async def get_smart_greeting(patient_id: str):
     """Return a contextual greeting for a returning user opening the app."""
@@ -2135,33 +1674,11 @@ async def get_smart_greeting(patient_id: str):
     # Check if full reflection is due
     needs_reflection = _should_generate_reflection(patient_id)
 
-    # Check for capability discovery hint
-    capability_hint = get_capability_discovery(patient_id)
-
-    # Check engagement streak for gap acknowledgment
-    patient = patients_db.get(patient_id, {})
-    engagement = patient.get("engagement", {})
-    gap_msg = None
-    if engagement:
-        last_date = engagement.get("last_interaction_date", "")
-        try:
-            last_dt = date.fromisoformat(last_date)
-            gap = (date.today() - last_dt).days
-            if gap >= 3 and not engagement.get("gap_acknowledged"):
-                gap_msg = "Welcome back. No guilt — sometimes you need space. I kept your spot."
-                engagement["gap_acknowledged"] = True
-                firebase_db.save_patient(patient_id, patient)
-        except (ValueError, TypeError):
-            pass
-
     return {
         "greeting": greeting,
         "soft_spot": soft_spot,
         "micro_reflection": micro,
         "needs_reflection": needs_reflection,
-        "capability_hint": capability_hint,
-        "gap_message": gap_msg,
-        "streak": engagement.get("consecutive_days", 0) if engagement else 0,
         "patient_id": patient_id,
         "timestamp": utc_iso(),
     }
@@ -2523,9 +2040,6 @@ async def chat(req: ChatRequest):
         "timestamp": utc_iso(),
     })
 
-    # Update engagement tracking
-    _update_engagement(req.patient_id)
-
     # ── One-word check-in detection (Part C) ──
     one_word_checkin = None
     msg_words = req.message.strip().split()
@@ -2623,6 +2137,7 @@ async def chat(req: ChatRequest):
         edu_intent = detect_education_intent(req.message, style, conv_history)
 
         if edu_intent["intent"] is None and edu_intent.get("matched_topic"):
+            # Topic matched but no clear intent — ask clarifying care fork
             topic_name = COMMON_IVF_TOPICS[edu_intent["matched_topic"]]["name"]
             education_fork = f"I can help with {topic_name} — would you like reassurance that things are okay, the clinical details, or practical tips for what to do?"
         elif edu_intent["intent"] is None and style == "MIXED":
@@ -2640,19 +2155,6 @@ async def chat(req: ChatRequest):
         patient_context=build_patient_context(req.patient_id),
         education_context=build_education_context(req.patient_id) + rag_context,
     )
-
-    # Conversation continuity — inject recent conversation summaries
-    conv_summaries = summarize_last_conversations(req.patient_id, last_n=3)
-    if conv_summaries:
-        system_prompt += """
-
-CONVERSATION MEMORY (reference naturally when relevant — like a friend who remembers):
-""" + "\n".join(f"- {s}" for s in conv_summaries) + """
-
-Don't reference every past conversation. Only bring it up when it adds warmth or continuity.
-Never say 'according to my records' or 'I see from your history' — just remember like a human would.
-Examples: 'You mentioned feeling alone on Tuesday — has that shifted at all?'
-'Last time you were curious about embryo grading. Did you get your report?'"""
 
     # Add one-word check-in context so AI responds warmly
     if one_word_checkin:
@@ -2692,19 +2194,22 @@ Weave this naturally into your response — don't make it a separate question.""
             system_prompt += """
 
 EDUCATION INTENT: REASSURANCE_FIRST
-Lead with emotional validation — "this is normal", "many women experience this". Then weave in
-relevant facts gently. End with something grounding. Do NOT lead with statistics or clinical jargon."""
+This patient is looking for reassurance. Lead with emotional validation — "this is normal",
+"many women experience this", "you're not alone in feeling this way". Then weave in the relevant
+facts gently. End with something grounding. Do NOT lead with statistics or clinical jargon."""
         elif edu_intent.get("intent") == "EXPLAIN_FIRST":
             system_prompt += """
 
 EDUCATION INTENT: EXPLAIN_FIRST
-Lead with clear, accurate clinical information in plain language. Use helpful analogies.
-Include relevant numbers if available. End with "your specialist can give you specifics"."""
+This patient wants to understand the science/mechanism. Lead with clear, accurate clinical
+information using plain language. Use helpful analogies. Include relevant numbers if available.
+End with "your specialist can give you specifics for your situation"."""
         elif edu_intent.get("intent") == "PRACTICAL_FIRST":
             system_prompt += """
 
 EDUCATION INTENT: PRACTICAL_FIRST
-Lead with concrete tips and what to expect. Tell them what to ask their specialist.
+This patient wants actionable information. Lead with concrete tips and what to expect.
+Use bullet-point style thinking (even in prose). Tell them what to ask their specialist.
 Include timing, preparation, and "what to watch for". Keep it focused and useful."""
     elif triage_category == 2 and style == "ANALYTICAL":
         system_prompt += """
@@ -2752,91 +2257,6 @@ Context: {soft_spot['message']}
 {"Offer: " + soft_spot['what_helps'] if soft_spot.get('what_helps') else "Just be present. No fixing needed."}
 Weave this awareness naturally — don't announce it as a feature, just show you understand where they are."""
 
-    # Pattern observation hints (shown once per pattern type)
-    cap = patient.get("capability_discovery", {})
-    shown_patterns = set(cap.get("pattern_observations_shown", []))
-    pattern_hint = None
-
-    if "late_night" not in shown_patterns:
-        # Check for 3+ late night sessions this week
-        recent_convos = conversations_db.get(req.patient_id, [])[-20:]
-        late_count = sum(1 for m in recent_convos if m.get("timestamp", "")[11:13] in ("22", "23", "00", "01", "02", "03"))
-        if late_count >= 3:
-            pattern_hint = "late_night"
-            system_prompt += """
-
-PATTERN OBSERVATION (say this naturally, not as a feature announcement):
-You've noticed the patient has been coming by late at night recently. Gently mention:
-"I've noticed you've been coming by late at night this week. That's something I gently track to better support you — want to talk about what's keeping you up?"
-Say this ONCE, naturally woven into your response."""
-
-    if not pattern_hint and "anxiety_rising" not in shown_patterns:
-        recent_checkins = get_recent_checkins(req.patient_id)
-        if len(recent_checkins) >= 3:
-            last_3_anxiety = [c.get("anxiety", 5) for c in recent_checkins[-3:]]
-            if all(a >= 7 for a in last_3_anxiety):
-                pattern_hint = "anxiety_rising"
-                system_prompt += """
-
-PATTERN OBSERVATION (say this naturally):
-The patient's last 3 check-ins show consistently high anxiety (7+). Gently mention:
-"Your check-ins have been showing more anxiety lately. That makes sense given where you are. Want to unpack it?"
-Say this ONCE, naturally."""
-
-    if pattern_hint:
-        if "capability_discovery" not in patient:
-            patient["capability_discovery"] = {}
-        obs_list = patient["capability_discovery"].get("pattern_observations_shown", [])
-        obs_list.append(pattern_hint)
-        patient["capability_discovery"]["pattern_observations_shown"] = obs_list
-        firebase_db.save_patient(req.patient_id, patient)
-
-    # Inject clinician topic flags into system prompt
-    active_flags = [f for f in topic_flags_db.get(req.patient_id, []) if not f.get("delivered")]
-    if active_flags:
-        urgent = [f for f in active_flags if f["priority"] == "next_session"]
-        natural = [f for f in active_flags if f["priority"] != "next_session"]
-        flags_to_inject = urgent or natural[:1]  # Prioritize urgent, else one natural
-        for flag in flags_to_inject:
-            system_prompt += f"""
-
-CLINICIAN FLAG (weave this in naturally — the clinician asked you to address this):
-Topic: {flag['topic']}
-Instruction: {flag['instruction']}
-Priority: {flag['priority']}
-Do NOT say 'your clinician flagged this' — instead say something like 'By the way...' or 'I know {flag['topic']} has been on your mind...'"""
-            flag["delivered"] = True
-
-    # Inject pending clinician messages (from memory + Firebase)
-    pending_msgs = [m for m in clinician_messages_db.get(req.patient_id, []) if not m.get("delivered") and m.get("role") == "clinician"]
-    # Also check Firebase for messages not in memory
-    try:
-        if firebase_db.ready:
-            fb_msgs = firebase_db._fb_ref.child('care_team_messages').child(req.patient_id).get()
-            if fb_msgs and isinstance(fb_msgs, dict):
-                for key, msg in fb_msgs.items():
-                    if isinstance(msg, dict) and not msg.get("delivered") and msg.get("role") == "clinician":
-                        if not any(m.get("timestamp") == msg.get("timestamp") for m in pending_msgs):
-                            pending_msgs.append(msg)
-                            msg["_fb_key"] = key  # Track for marking delivered
-    except Exception:
-        pass
-    if pending_msgs:
-        for pm in pending_msgs:
-            system_prompt += f"""
-
-CLINICIAN MESSAGE TO DELIVER:
-A message from the patient's {pm.get('from_role', 'doctor')} needs to be delivered.
-Say: "Your {pm.get('from_role', 'doctor')} wanted me to pass along a message: {pm['content']}"
-Mark this as delivered after including it in your response."""
-            pm["delivered"] = True
-            # Mark delivered in Firebase
-            if pm.get("_fb_key"):
-                try:
-                    firebase_db._fb_ref.child('care_team_messages').child(req.patient_id).child(pm["_fb_key"]).update({"delivered": True, "delivered_at": utc_iso()})
-                except Exception:
-                    pass
-
     # Build conversation messages for Claude
     conv_messages = []
     for msg in get_conversation_context(req.patient_id, last_n=16):
@@ -2863,51 +2283,6 @@ Mark this as delivered after including it in your response."""
         "query_id": query_id,
     })
 
-    # Store conversation summary for continuity
-    conv_summary = {
-        "date": utc_iso(),
-        "topics": [],
-        "emotional_tone": "neutral",
-        "one_line": req.message[:100] if len(req.message) <= 100 else req.message[:97] + "...",
-        "triage_category": triage_category,
-    }
-    # Quick topic extraction
-    msg_lower = req.message.lower()
-    for kw, topic in [("progesterone", "progesterone"), ("embryo", "embryo"), ("transfer", "transfer"),
-                       ("retrieval", "retrieval"), ("injection", "injections"), ("amh", "AMH"),
-                       ("medication", "medications"), ("pregnant", "pregnancy"), ("symptom", "symptoms"),
-                       ("alone", "loneliness"), ("scared", "fears"), ("anxious", "anxiety"),
-                       ("egg", "eggs"), ("result", "results"), ("sleep", "sleep")]:
-        if kw in msg_lower:
-            conv_summary["topics"].append(topic)
-    # Quick tone detection
-    neg = sum(1 for w in ["sad", "scared", "anxious", "worried", "alone", "crying", "frustrated", "hopeless"] if w in msg_lower)
-    pos = sum(1 for w in ["happy", "hopeful", "grateful", "better", "good", "relieved", "positive"] if w in msg_lower)
-    if neg > pos:
-        conv_summary["emotional_tone"] = "struggling"
-    elif pos > neg:
-        conv_summary["emotional_tone"] = "positive"
-    firebase_db.save_conversation_summary(req.patient_id, conv_summary)
-
-    # Auto-flag unresolved questions for clinician
-    if triage_category == 2:  # Education question
-        unresolved = detect_unresolved_questions(req.patient_id)
-        for q in unresolved:
-            if q["times_asked"] >= 3 and not q.get("escalated_to_clinician"):
-                flag = {
-                    "type": "patient_question_needs_clinician",
-                    "question": q["topic"],
-                    "context": f"Asked {q['times_asked']} times. AI explanation not fully resolving concern.",
-                    "ai_interim_response": "Provided general education",
-                    "urgency": "moderate" if q["times_asked"] < 5 else "high",
-                    "status": "pending",
-                    "assigned_to": None,
-                    "response_deadline": utc_iso(),
-                    "created_at": utc_iso(),
-                }
-                clinician_flags_db.setdefault(req.patient_id, []).append(flag)
-                q["escalated_to_clinician"] = True
-
     # Suggested education topics
     stage = patient["treatment_stage"]
     suggested = EDUCATION_TOPICS.get(stage, [])[:3] if triage_category == 2 else None
@@ -2921,31 +2296,10 @@ Mark this as delivered after including it in your response."""
         elif escalation["level"] == "AMBER":
             escalation["alerts"].append("Alert: Nurse dashboard notification")
 
-    # ANZARD charts — match on ALL messages, take priority over Fertool
-    anzard_charts = match_anzard_charts(req.message, assistant_msg) or None
-    if anzard_charts:
-        logger.info(f"[ANZARD] Detected charts for message: {[c['key'] for c in anzard_charts]}")
-
-    # Match Fertool cards ONLY if no ANZARD charts matched (never show both)
+    # Match Fertool interactive cards for education queries
     fertool_cards = None
-    if not anzard_charts and triage_category == 2:
+    if triage_category == 2:
         fertool_cards = match_fertool_cards(req.message, assistant_msg) or None
-
-    # Capability hint for education responses
-    cap_hint = None
-    cap = patient.get("capability_discovery", {})
-    if triage_category == 2 and not cap.get("first_education_hint_shown"):
-        cap_hint = "I can go deeper on any of this — ask me anything."
-        if "capability_discovery" not in patient:
-            patient["capability_discovery"] = {}
-        patient["capability_discovery"]["first_education_hint_shown"] = True
-        firebase_db.save_patient(req.patient_id, patient)
-    elif fertool_cards and (cap.get("fertool_hints_count", 0) < 3):
-        cap_hint = "I have more tools like this — try asking about AMH, egg freezing, or embryo grading."
-        if "capability_discovery" not in patient:
-            patient["capability_discovery"] = {}
-        patient["capability_discovery"]["fertool_hints_count"] = cap.get("fertool_hints_count", 0) + 1
-        firebase_db.save_patient(req.patient_id, patient)
 
     return ChatResponse(
         response=assistant_msg,
@@ -2956,8 +2310,6 @@ Mark this as delivered after including it in your response."""
         fertool_cards=fertool_cards,
         one_word_checkin=one_word_checkin,
         education_fork=education_fork,
-        capability_hint=cap_hint,
-        anzard_charts=anzard_charts,
         query_id=query_id,
     )
 
@@ -2977,9 +2329,6 @@ async def daily_checkin(req: CheckInRequest):
         "note": req.note,
     }
     _sync_checkin(req.patient_id, checkin)
-
-    # Update engagement tracking
-    _update_engagement(req.patient_id)
 
     # Check escalation triggers
     esc = check_daily_escalation(req.patient_id)
@@ -3048,23 +2397,12 @@ Don't list back all the numbers — respond to the feeling, not the data."""
         "type": "checkin_response",
     })
 
-    # First check-in capability hint
-    checkin_hint = None
-    cap = patient.get("capability_discovery", {})
-    if not cap.get("first_checkin_hint_shown") and len(checkins_db.get(req.patient_id, [])) <= 1:
-        checkin_hint = "Thanks for checking in. I use these to understand how you're tracking over time — not to judge, just to notice patterns and support you better."
-        if "capability_discovery" not in patient:
-            patient["capability_discovery"] = {}
-        patient["capability_discovery"]["first_checkin_hint_shown"] = True
-        firebase_db.save_patient(req.patient_id, patient)
-
     return CheckInResponse(
         message=melod_msg,
         patient_id=req.patient_id,
         checkin_summary=checkin,
         escalation=escalation,
         trigger_screening=trigger_screening,
-        capability_hint=checkin_hint,
     )
 
 
@@ -3198,357 +2536,12 @@ async def get_trends(patient_id: str):
 
 # ── Clinician Auth ───────────────────────────────────────────────────
 
-# ── Multi-Role Clinician System ─────────────────────────────────────
-
-# Default clinician settings (stored in Firebase per clinician)
-DEFAULT_CLINICIAN_SETTINGS = {
-    "default_involvement": "moderate",  # high | moderate | low
-    "response_window_hours": 24,
-    "notification_preferences": {
-        "red_alerts_only": False,
-        "daily_digest": True,
-        "immediate_flags": True,
-    },
-}
-
-# In-memory stores for clinician features
-clinician_flags_db: dict = {}   # patient_id -> list of flags
-unresolved_questions_db: dict = {}  # patient_id -> dict of topic_key -> question data
-clinician_messages_db: dict = {}  # patient_id -> list of clinician messages
-topic_flags_db: dict = {}  # patient_id -> list of topic flags from clinicians
-
-
-def _get_clinician_settings(clinician_id: str) -> dict:
-    """Load clinician settings from Firebase or return defaults."""
-    settings = firebase_db.load_patient(f"clinician_{clinician_id}")  # reuse patient store
-    if settings:
-        return settings
-    return {"clinician_id": clinician_id, "name": clinician_id, "role": "doctor", **DEFAULT_CLINICIAN_SETTINGS}
-
-
-def detect_unresolved_questions(patient_id: str) -> list:
-    """Detect questions the AI hasn't fully resolved based on conversation patterns."""
-    conv = conversations_db.get(patient_id, [])
-    if len(conv) < 4:
-        return []
-
-    # Track topics asked by user across sessions
-    topic_counts: dict = {}
-    uncertainty_signals = {"but", "still don't understand", "are you sure", "hmm", "not sure",
-                          "confused", "what do you mean", "i don't get", "doesn't make sense",
-                          "that doesn't help", "yes but", "ok but"}
-
-    user_msgs = [(i, m) for i, m in enumerate(conv) if m.get("role") == "user"]
-
-    for idx, msg in user_msgs:
-        text = msg.get("content", "").lower()
-        # Check for education-type questions
-        if "?" in text or any(w in text for w in ["what is", "how does", "why do", "tell me about", "explain"]):
-            # Extract rough topic
-            topic_keywords = {
-                "pgt": "PGT-A/PGS testing", "pgta": "PGT-A/PGS testing", "pgs": "PGT-A/PGS testing",
-                "progesterone": "Progesterone", "estrogen": "Estrogen levels",
-                "amh": "AMH levels", "embryo grad": "Embryo grading",
-                "trigger shot": "Trigger shot", "clexane": "Clexane injections",
-                "egg freez": "Egg freezing", "icsi": "ICSI vs IVF",
-                "transfer": "Embryo transfer", "retrieval": "Egg retrieval",
-                "tww": "Two-week wait", "symptom": "TWW symptoms",
-                "implant": "Implantation", "miscarr": "Miscarriage",
-                "chemical pregn": "Chemical pregnancy", "fsh": "FSH levels",
-                "follicle": "Follicle count", "endometri": "Endometriosis",
-                "pcos": "PCOS", "sperm": "Male factor", "donor": "Donor path",
-                "frozen": "Fresh vs frozen transfer", "fet": "FET protocol",
-                "medication": "Medications", "side effect": "Side effects",
-                "injection": "Injection technique",
-            }
-            matched_topic = None
-            for kw, topic in topic_keywords.items():
-                if kw in text:
-                    matched_topic = topic
-                    break
-            if not matched_topic:
-                continue
-
-            topic_key = matched_topic.lower().replace(" ", "_").replace("/", "_")
-            if topic_key not in topic_counts:
-                topic_counts[topic_key] = {
-                    "topic": matched_topic,
-                    "first_asked": msg.get("timestamp", ""),
-                    "times_asked": 0,
-                    "patient_messages": [],
-                    "has_uncertainty": False,
-                }
-            topic_counts[topic_key]["times_asked"] += 1
-            topic_counts[topic_key]["patient_messages"].append(text[:120])
-
-        # Check for uncertainty after AI response
-        for sig in uncertainty_signals:
-            if sig in text:
-                # Find what topic the previous AI message was about
-                if idx > 0 and conv[idx - 1].get("role") == "assistant":
-                    ai_text = conv[idx - 1].get("content", "").lower()
-                    for kw, topic in topic_keywords.items():
-                        tk = topic.lower().replace(" ", "_").replace("/", "_")
-                        if kw in ai_text and tk in topic_counts:
-                            topic_counts[tk]["has_uncertainty"] = True
-                            break
-
-    # Filter to unresolved: asked 2+ times OR has uncertainty signal
-    unresolved = []
-    for tk, data in topic_counts.items():
-        if data["times_asked"] >= 2 or data["has_uncertainty"]:
-            unresolved.append({
-                "topic_key": tk,
-                "topic": data["topic"],
-                "first_asked": data["first_asked"],
-                "times_asked": data["times_asked"],
-                "ai_responses_given": data["times_asked"],
-                "resolution_status": "unresolved",
-                "has_uncertainty_signals": data["has_uncertainty"],
-                "patient_messages": data["patient_messages"][-5:],
-                "escalated_to_clinician": False,
-            })
-
-    # Store in memory
-    unresolved_questions_db[patient_id] = {q["topic_key"]: q for q in unresolved}
-    return unresolved
-
-
-def build_role_briefing(patient_id: str, role: str) -> dict:
-    """Build a role-specific briefing for a clinician."""
-    patient = patients_db.get(patient_id)
-    if not patient:
-        return {}
-
-    name = patient.get("name", "Unknown")
-    stage = patient.get("treatment_stage", "consultation")
-    stage_name = STAGE_DISPLAY.get(stage, stage)
-
-    # Base data
-    checkins = get_recent_checkins(patient_id, last_n=7)
-    conv = conversations_db.get(patient_id, [])
-    style = classify_patient_style(patient_id)
-    unresolved = detect_unresolved_questions(patient_id)
-
-    # Last active
-    last_active = "unknown"
-    for m in reversed(conv):
-        if m.get("timestamp"):
-            try:
-                ts = datetime.fromisoformat(m["timestamp"].replace("Z", "+00:00"))
-                delta = utc_now() - ts
-                if delta.days > 0:
-                    last_active = f"{delta.days} days ago"
-                else:
-                    hours = int(delta.total_seconds() / 3600)
-                    last_active = f"{hours} hours ago" if hours > 0 else "just now"
-            except (ValueError, TypeError):
-                pass
-            break
-
-    # Emotional state
-    emotional_state = "neutral"
-    if checkins:
-        last = checkins[-1]
-        mood = last.get("mood", 5)
-        anxiety = last.get("anxiety", 5)
-        if mood <= 3:
-            emotional_state = "struggling"
-        elif anxiety >= 7:
-            emotional_state = "anxious"
-        elif mood >= 7:
-            emotional_state = "positive"
-        elif last.get("loneliness", 5) >= 7:
-            emotional_state = "lonely"
-
-    # SECRETARY briefing
-    if role == "secretary":
-        flag_reason = None
-        readiness = "READY"
-        if unresolved:
-            flag_reason = f"Patient has {len(unresolved)} unresolved concern{'s' if len(unresolved) > 1 else ''}: {', '.join(q['topic'] for q in unresolved[:2])}"
-            readiness = "NEEDS_ATTENTION"
-        elif emotional_state in ("struggling", "anxious"):
-            flag_reason = f"Patient is feeling {emotional_state}"
-            readiness = "FLAG"
-
-        prep_notes = []
-        if unresolved:
-            prep_notes.append(f"May ask about {unresolved[0]['topic']}")
-        if style == "ANALYTICAL":
-            prep_notes.append("Prefers detailed, data-driven explanations")
-        elif style == "EMOTIONAL":
-            prep_notes.append("Responds best to warmth and validation first")
-
-        return {
-            "role": "secretary",
-            "patient_name": name,
-            "appointment_readiness": readiness,
-            "flag_reason": flag_reason,
-            "emotional_state": emotional_state,
-            "last_contact": last_active,
-            "suggested_greeting": f"{name} has been feeling {emotional_state} recently — a warm welcome will help" if emotional_state != "neutral" else f"Welcome {name} warmly",
-            "prep_notes": prep_notes,
-            "treatment_stage": stage_name,
-        }
-
-    # NURSE briefing - build emotional summary and care priorities
-    # Get phenotype flags
-    phenotype_flags = []
-    engagement = patient.get("engagement", {})
-    cap = patient.get("capability_discovery", {})
-    shown_patterns = cap.get("pattern_observations_shown", [])
-    if "late_night" in shown_patterns:
-        phenotype_flags.append("Multiple late-night sessions detected")
-    if "anxiety_rising" in shown_patterns:
-        phenotype_flags.append("Anxiety trend rising across recent check-ins")
-
-    # Compute emotional summary
-    emotional_summary = f"{name} is currently at the {stage_name} stage."
-    if checkins:
-        avg_mood = sum(c.get("mood", 5) for c in checkins) / len(checkins)
-        avg_anxiety = sum(c.get("anxiety", 5) for c in checkins) / len(checkins)
-        if avg_anxiety >= 7:
-            emotional_summary += f" Anxiety averaging {avg_anxiety:.0f}/10 over the last {len(checkins)} check-ins."
-        if avg_mood <= 3:
-            emotional_summary += f" Mood consistently low (avg {avg_mood:.0f}/10)."
-
-    # Care priorities from AI
-    care_priorities = []
-    topics_to_raise = []
-    topics_to_avoid = []
-    suggested_opener = f"How are you feeling about your {stage_name} journey?"
-
-    # Use Haiku to generate nurse-specific guidance
-    user_msgs = [m["content"] for m in conv if m.get("role") == "user"][-8:]
-    if user_msgs:
-        try:
-            nurse_prompt = f"""Based on this IVF patient's recent messages, generate nurse briefing data as JSON.
-Patient: {name}, Stage: {stage_name}, Emotional state: {emotional_state}
-Recent messages: {'; '.join(user_msgs[-5:])}
-Unresolved questions: {', '.join(q['topic'] for q in unresolved) if unresolved else 'None'}
-
-Return JSON with:
-- care_priorities: list of 3 strings (numbered action items for the nurse)
-- topics_to_raise: list of 2-3 strings
-- topics_to_avoid: list of 0-2 strings (sensitive topics)
-- suggested_opener: string (one warm opening question)
-Return ONLY valid JSON, no markdown."""
-            resp = client.messages.create(model=HAIKU_MODEL, max_tokens=400, messages=[{"role": "user", "content": nurse_prompt}])
-            import json
-            nurse_data = json.loads(resp.content[0].text.strip())
-            care_priorities = nurse_data.get("care_priorities", care_priorities)
-            topics_to_raise = nurse_data.get("topics_to_raise", topics_to_raise)
-            topics_to_avoid = nurse_data.get("topics_to_avoid", topics_to_avoid)
-            suggested_opener = nurse_data.get("suggested_opener", suggested_opener)
-        except Exception:
-            care_priorities = [f"Check on emotional state ({emotional_state})", f"Review {stage_name} progress", "Assess support network"]
-
-    nurse_briefing = {
-        "role": "nurse",
-        "patient_name": name,
-        "emotional_summary": emotional_summary,
-        "care_priorities": care_priorities,
-        "topics_to_raise": topics_to_raise,
-        "topics_to_avoid": topics_to_avoid,
-        "communication_style": style,
-        "suggested_opener": suggested_opener,
-        "unresolved_questions": [{
-            "question": q["topic"],
-            "times_asked": q["times_asked"],
-            "ai_answered": True,
-            "needs_clinician": q["times_asked"] >= 3 or q["has_uncertainty_signals"],
-            "reason": "Repeated asking suggests AI answer didn't fully resolve concern" if q["times_asked"] >= 3 else "Patient showed uncertainty after AI explanation",
-        } for q in unresolved],
-        "phenotype_flags": phenotype_flags,
-        "treatment_stage": stage_name,
-        "last_contact": last_active,
-    }
-
-    if role == "nurse":
-        return nurse_briefing
-
-    # DOCTOR briefing — everything nurse gets plus clinical recommendations
-    # Generate clinical recommendations via Haiku
-    clinical_recs = []
-    patient_confidence = {"in_treatment_plan": "MODERATE", "evidence": "", "trend": "stable"}
-    ai_handled = []
-
-    if user_msgs:
-        try:
-            doc_prompt = f"""Based on this IVF patient's data, generate doctor briefing as JSON.
-Patient: {name}, Stage: {stage_name}, Style: {style}
-Emotional state: {emotional_state}
-Recent messages: {'; '.join(user_msgs[-5:])}
-Unresolved questions: {json.dumps([q['topic'] for q in unresolved])}
-Check-in averages: mood={sum(c.get('mood',5) for c in checkins)/max(len(checkins),1):.1f}, anxiety={sum(c.get('anxiety',5) for c in checkins)/max(len(checkins),1):.1f}, hope={sum(c.get('hope',5) for c in checkins)/max(len(checkins),1):.1f}
-
-Return JSON with:
-- clinical_recommendations: list of objects with type (clarification_needed|comprehension_gap|emotional_impact_on_clinical|psych_recommendation), topic, detail, priority (high|medium|low), suggested_action
-- patient_confidence: object with in_treatment_plan (HIGH|MODERATE|LOW), evidence (string), trend (improving|declining|stable)
-- ai_handled_topics: list of objects with topic, status (resolved|unresolved), patient_satisfied (bool)
-Return ONLY valid JSON, no markdown."""
-            resp = client.messages.create(model=HAIKU_MODEL, max_tokens=600, messages=[{"role": "user", "content": doc_prompt}])
-            doc_data = json.loads(resp.content[0].text.strip())
-            clinical_recs = doc_data.get("clinical_recommendations", [])
-            patient_confidence = doc_data.get("patient_confidence", patient_confidence)
-            ai_handled = doc_data.get("ai_handled_topics", [])
-        except Exception:
-            pass
-
-    doctor_briefing = {**nurse_briefing, "role": "doctor"}
-    doctor_briefing["clinical_recommendations"] = clinical_recs
-    doctor_briefing["patient_confidence"] = patient_confidence
-    doctor_briefing["ai_handled_topics"] = ai_handled
-    return doctor_briefing
-
-
 CLINICIAN_API_KEY = os.getenv("CLINICIAN_API_KEY", "")
 
 async def verify_clinician_api_key(x_api_key: str = Header(None)):
     """Dependency: reject requests without a valid clinician API key."""
     if not CLINICIAN_API_KEY or x_api_key != CLINICIAN_API_KEY:
         raise HTTPException(status_code=403, detail={"error": "Invalid API key"})
-
-
-# ── Clinician Settings Endpoints ─────────────────────────────────────
-
-@app.post("/clinician/settings")
-async def save_clinician_settings(
-    request: Request,
-    x_api_key: str = Header(None),
-):
-    """Create or update clinician settings."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    body = await request.json()
-    clinician_id = body.get("clinician_id", "default")
-    settings = {
-        "clinician_id": clinician_id,
-        "name": body.get("name", clinician_id),
-        "role": body.get("role", "doctor"),
-        "default_involvement": body.get("default_involvement", "moderate"),
-        "response_window_hours": body.get("response_window_hours", 24),
-        "notification_preferences": body.get("notification_preferences", {
-            "red_alerts_only": False,
-            "daily_digest": True,
-            "immediate_flags": True,
-        }),
-    }
-    firebase_db.save_patient(f"clinician_{clinician_id}", settings)
-    return {"status": "saved", "clinician_id": clinician_id, "settings": settings}
-
-
-@app.get("/clinician/settings/{clinician_id}")
-async def get_clinician_settings(
-    clinician_id: str,
-    x_api_key: str = Header(None),
-):
-    """Get clinician settings."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    settings = _get_clinician_settings(clinician_id)
-    return settings
 
 
 # ── Clinician Dashboard Endpoints ────────────────────────────────────
@@ -3729,469 +2722,17 @@ Conversations:
     }
 
 
-@app.get("/clinician/patient/{patient_id}/briefing")
-async def clinician_preconsult_briefing(
-    patient_id: str,
-    role: str = "doctor",
-    x_api_key: str = Header(None),
-):
-    """Role-aware pre-consult briefing."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
+@app.get("/clinician/patient/{patient_id}/briefing", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_preconsult_briefing(patient_id: str):
+    """
+    Pre-consultation briefing for clinicians.
+    Returns communication style, stress level, main concerns, and suggested approach.
+    """
     if patient_id not in patients_db:
         raise HTTPException(status_code=404, detail="Patient not found")
 
-    # Use new role-based system
-    if role in ("secretary", "nurse", "doctor"):
-        return build_role_briefing(patient_id, role)
-
-    # Fallback to original briefing for backward compatibility
-    return build_preconsult_briefing(patient_id)
-
-
-# ── Clinician Action Endpoints ──────────────────────────────────────
-
-@app.post("/clinician/patient/{patient_id}/send-message")
-async def clinician_send_message(
-    patient_id: str,
-    request: Request,
-    x_api_key: str = Header(None),
-):
-    """Clinician sends a message to patient via the AI companion."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    if patient_id not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    body = await request.json()
-    msg_text = body.get("message", "")
-    from_role = body.get("from_role", "doctor")
-    msg_type = body.get("type", "personal")
-
-    if not msg_text:
-        raise HTTPException(status_code=400, detail="Message is required")
-
-    # Store as a special clinician message
-    clinician_msg = {
-        "role": "clinician",
-        "from_role": from_role,
-        "content": msg_text,
-        "type": msg_type,
-        "timestamp": utc_iso(),
-        "delivered": False,
-    }
-    clinician_messages_db.setdefault(patient_id, []).append(clinician_msg)
-
-    # Persist to Firebase
-    try:
-        firebase_db._fb_ref and firebase_db._fb_ref.child('care_team_messages').child(patient_id).push(clinician_msg) if firebase_db.ready else None
-    except Exception:
-        pass
-
-    # Also store in conversation history so it appears in the chat
-    _sync_conversation(patient_id, {
-        "role": "assistant",
-        "content": f"[From your {from_role}]: {msg_text}",
-        "timestamp": utc_iso(),
-        "from_clinician": True,
-        "clinician_role": from_role,
-    })
-
-    return {"status": "sent", "patient_id": patient_id, "from_role": from_role}
-
-
-@app.post("/clinician/patient/{patient_id}/flag-topic")
-async def clinician_flag_topic(
-    patient_id: str,
-    request: Request,
-    x_api_key: str = Header(None),
-):
-    """Flag a topic for the AI to bring up in the next conversation."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    if patient_id not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    body = await request.json()
-    topic = body.get("topic", "")
-    instruction = body.get("instruction", "")
-    priority = body.get("priority", "when_natural")  # next_session | within_3_days | when_natural
-
-    if not topic:
-        raise HTTPException(status_code=400, detail="Topic is required")
-
-    flag = {
-        "topic": topic,
-        "instruction": instruction,
-        "priority": priority,
-        "created_at": utc_iso(),
-        "delivered": False,
-    }
-    topic_flags_db.setdefault(patient_id, []).append(flag)
-
-    # Persist to Firebase
-    try:
-        firebase_db._fb_ref and firebase_db._fb_ref.child('ai_flags').child(patient_id).push(flag) if firebase_db.ready else None
-    except Exception:
-        pass
-
-    return {"status": "flagged", "patient_id": patient_id, "topic": topic, "priority": priority}
-
-
-@app.post("/clinician/patient/{patient_id}/schedule-nudge")
-async def clinician_schedule_nudge(
-    patient_id: str,
-    request: Request,
-    x_api_key: str = Header(None),
-):
-    """Schedule a custom nudge for a patient."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    if patient_id not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    body = await request.json()
-    message = body.get("message", "")
-    deliver_at = body.get("deliver_at", utc_iso())
-    from_role = body.get("from", "nurse")
-
-    scheduled = {
-        "message": message,
-        "deliver_at": deliver_at,
-        "from": from_role,
-        "created_at": utc_iso(),
-        "delivered": False,
-    }
-    clinician_messages_db.setdefault(patient_id, []).append(scheduled)
-
-    return {"status": "scheduled", "patient_id": patient_id, "deliver_at": deliver_at}
-
-
-@app.post("/clinician/patient/{patient_id}/resolve-concern")
-async def clinician_resolve_concern(
-    patient_id: str,
-    request: Request,
-    x_api_key: str = Header(None),
-):
-    """Mark an unresolved question as resolved by clinician."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    if patient_id not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    body = await request.json()
-    topic_key = body.get("topic_key", "")
-    resolution_note = body.get("resolution_note", "")
-    resolved_by = body.get("resolved_by", "doctor")
-
-    # Update in memory
-    patient_qs = unresolved_questions_db.get(patient_id, {})
-    if topic_key in patient_qs:
-        patient_qs[topic_key]["resolution_status"] = "resolved"
-        patient_qs[topic_key]["clinician_resolved"] = True
-        patient_qs[topic_key]["resolved_by"] = resolved_by
-        patient_qs[topic_key]["resolution_note"] = resolution_note
-        patient_qs[topic_key]["resolved_at"] = utc_iso()
-
-    # Store a follow-up flag so AI mentions it
-    topic_name = patient_qs.get(topic_key, {}).get("topic", topic_key)
-    topic_flags_db.setdefault(patient_id, []).append({
-        "topic": topic_name,
-        "instruction": f"The patient's {resolved_by} has addressed their question about {topic_name}. Gently mention: 'I heard your {resolved_by} talked through the {topic_name} question with you — do you feel clearer about it?'",
-        "priority": "next_session",
-        "created_at": utc_iso(),
-        "delivered": False,
-    })
-
-    return {"status": "resolved", "topic_key": topic_key, "resolved_by": resolved_by}
-
-
-@app.get("/clinician/patient/{patient_id}/unresolved")
-async def get_unresolved_questions(
-    patient_id: str,
-    x_api_key: str = Header(None),
-):
-    """Get unresolved questions for a patient."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    if patient_id not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    unresolved = detect_unresolved_questions(patient_id)
-    return {"patient_id": patient_id, "unresolved": unresolved}
-
-
-@app.get("/clinician/digest")
-async def clinician_daily_digest(
-    x_api_key: str = Header(None),
-):
-    """Generate a morning digest for the clinician."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-
-    red_patients = []
-    amber_patients = []
-    green_patients = []
-    pending_actions = 0
-    total_flags = 0
-
-    for pid, patient in patients_db.items():
-        name = patient.get("name", pid)
-        stage = STAGE_DISPLAY.get(patient.get("treatment_stage", ""), "")
-        checkins = get_recent_checkins(pid, last_n=3)
-        esc = check_daily_escalation(pid)
-        unresolved = detect_unresolved_questions(pid)
-        engagement = patient.get("engagement", {})
-        last_date = engagement.get("last_interaction_date", "")
-
-        # Calculate gap
-        gap_days = 0
-        try:
-            gap_days = (date.today() - date.fromisoformat(last_date)).days
-        except (ValueError, TypeError):
-            pass
-
-        summary_parts = []
-        if checkins:
-            avg_anxiety = sum(c.get("anxiety", 5) for c in checkins) / len(checkins)
-            avg_mood = sum(c.get("mood", 5) for c in checkins) / len(checkins)
-            if avg_anxiety >= 7:
-                summary_parts.append(f"anxiety high ({avg_anxiety:.0f}/10)")
-            if avg_mood <= 3:
-                summary_parts.append(f"mood low ({avg_mood:.0f}/10)")
-        if unresolved:
-            summary_parts.append(f"{len(unresolved)} unresolved question{'s' if len(unresolved)>1 else ''}")
-            pending_actions += len(unresolved)
-        if gap_days >= 2:
-            summary_parts.append(f"hasn't engaged in {gap_days} days")
-        total_flags += len(unresolved)
-
-        info = {"name": name, "stage": stage, "summary": ", ".join(summary_parts) if summary_parts else "tracking well", "patient_id": pid}
-
-        if esc["level"] == "RED":
-            red_patients.append(info)
-        elif esc["level"] == "AMBER":
-            amber_patients.append(info)
-        else:
-            green_patients.append(info)
-
-    # Generate digest text via Haiku
-    digest_data = {
-        "red": red_patients, "amber": amber_patients,
-        "green_count": len(green_patients), "pending_actions": pending_actions,
-        "total_flags": total_flags,
-    }
-
-    try:
-        digest_prompt = f"""Generate a warm, concise morning clinician digest. Data:
-RED patients ({len(red_patients)}): {json.dumps(red_patients)}
-AMBER patients ({len(amber_patients)}): {json.dumps(amber_patients)}
-GREEN patients: {len(green_patients)} tracking well
-Pending actions: {pending_actions}
-
-Format as a brief morning message. Use emoji sparingly (🔴🟡🟢). List RED patients individually with name and concern. Summarize AMBER patients briefly. Just count GREEN patients. End with pending action count.
-Keep it under 200 words. Be professional but warm."""
-        resp = client.messages.create(model=HAIKU_MODEL, max_tokens=300, messages=[{"role": "user", "content": digest_prompt}])
-        digest_text = resp.content[0].text.strip()
-    except Exception:
-        # Fallback
-        lines = []
-        if red_patients:
-            lines.append(f"🔴 {len(red_patients)} patient{'s' if len(red_patients)>1 else ''} need{'s' if len(red_patients)==1 else ''} attention:")
-            for p in red_patients:
-                lines.append(f"   {p['name']} — {p['summary']}")
-        if amber_patients:
-            lines.append(f"🟡 {len(amber_patients)} patient{'s' if len(amber_patients)>1 else ''} to monitor:")
-            for p in amber_patients:
-                lines.append(f"   {p['name']} — {p['summary']}")
-        lines.append(f"🟢 {len(green_patients)} patient{'s' if len(green_patients)>1 else ''} tracking well.")
-        if pending_actions:
-            lines.append(f"\nActions pending your response: {pending_actions}")
-        digest_text = "\n".join(lines)
-
-    return {
-        "digest": digest_text,
-        "red_count": len(red_patients),
-        "amber_count": len(amber_patients),
-        "green_count": len(green_patients),
-        "pending_actions": pending_actions,
-        "total_flags": total_flags,
-        "red_patients": red_patients,
-        "amber_patients": amber_patients,
-        "date": date.today().isoformat(),
-    }
-
-
-@app.get("/clinician/patient/{patient_id}/conversations")
-async def get_patient_conversations(
-    patient_id: str,
-    x_api_key: str = Header(None),
-):
-    """Get conversation summaries for the clinician conversations tab."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    if patient_id not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    conv = conversations_db.get(patient_id, [])
-    # Group into sessions
-    sessions = []
-    current = []
-    last_ts = None
-    for msg in conv:
-        ts_str = msg.get("timestamp", "")
-        try:
-            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-        except (ValueError, TypeError):
-            ts = None
-        if last_ts and ts and (ts - last_ts).total_seconds() > 7200:
-            if current:
-                sessions.append(current)
-            current = [msg]
-        else:
-            current.append(msg)
-        if ts:
-            last_ts = ts
-    if current:
-        sessions.append(current)
-
-    summaries = []
-    for session in sessions[-20:]:
-        user_msgs = [m["content"] for m in session if m.get("role") == "user"]
-        ts = session[0].get("timestamp", "")
-        triage = None
-        for m in session:
-            if m.get("triage"):
-                triage = m["triage"]
-
-        # Quick tone
-        all_text = " ".join(user_msgs).lower()
-        tone = "neutral"
-        if any(w in all_text for w in ["sad", "scared", "anxious", "worried", "alone"]):
-            tone = "anxious" if "anxious" in all_text or "worried" in all_text else "struggling"
-        elif any(w in all_text for w in ["happy", "hopeful", "good", "better"]):
-            tone = "positive"
-
-        summaries.append({
-            "date": ts,
-            "message_count": len(session),
-            "user_messages": user_msgs[:3],
-            "one_line": user_msgs[0][:100] if user_msgs else "No messages",
-            "emotional_tone": tone,
-            "triage_category": triage,
-            "full_conversation": session,
-        })
-
-    return {"patient_id": patient_id, "sessions": list(reversed(summaries))}
-
-
-# ── Cycle Event Endpoints ───────────────────────────────────────────
-
-@app.post("/patient/{patient_id}/cycle-events")
-async def save_cycle_event(patient_id: str, request: Request):
-    """Save a cycle event for a patient."""
-    body = await request.json()
-    event_id = body.get("id", f"evt_{utc_iso().replace(':', '').replace('-', '')[:12]}")
-    event = {
-        "id": event_id,
-        "date": body.get("date", ""),
-        "type": body.get("type", "other"),
-        "label": body.get("label", ""),
-        "notes": body.get("notes", ""),
-        "time": body.get("time", ""),
-        "recurring": body.get("recurring", False),
-        "source": body.get("source", "patient"),
-        "created_at": utc_iso(),
-    }
-    try:
-        if firebase_db.ready:
-            firebase_db._fb_ref.child('cycle_events').child(patient_id).child(event_id).set(event)
-    except Exception as e:
-        logger.warning(f"Cycle event save failed: {e}")
-    return {"status": "saved", "event": event}
-
-
-@app.get("/patient/{patient_id}/cycle-events")
-async def list_cycle_events(patient_id: str):
-    """List cycle events for a patient."""
-    events = []
-    try:
-        if firebase_db.ready:
-            result = firebase_db._fb_ref.child('cycle_events').child(patient_id).get()
-            if result and isinstance(result, dict):
-                events = list(result.values())
-    except Exception:
-        pass
-    return {"patient_id": patient_id, "events": sorted(events, key=lambda e: e.get("date", ""))}
-
-
-@app.delete("/patient/{patient_id}/cycle-events/{event_id}")
-async def delete_cycle_event(patient_id: str, event_id: str):
-    """Delete a cycle event."""
-    try:
-        if firebase_db.ready:
-            firebase_db._fb_ref.child('cycle_events').child(patient_id).child(event_id).remove()
-    except Exception as e:
-        logger.warning(f"Cycle event delete failed: {e}")
-    return {"status": "deleted", "event_id": event_id}
-
-
-@app.post("/clinician/patient/{patient_id}/add-cycle-event")
-async def clinician_add_cycle_event(
-    patient_id: str,
-    request: Request,
-    x_api_key: str = Header(None),
-):
-    """Clinician adds a cycle event for a patient."""
-    if CLINICIAN_API_KEY and x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    body = await request.json()
-    body["source"] = "clinician"
-    event_id = body.get("id", f"evt_{utc_iso().replace(':', '').replace('-', '')[:12]}")
-    event = {
-        "id": event_id,
-        "date": body.get("date", ""),
-        "type": body.get("type", "other"),
-        "label": body.get("label", ""),
-        "notes": body.get("notes", ""),
-        "time": body.get("time", ""),
-        "source": "clinician",
-        "created_at": utc_iso(),
-    }
-    try:
-        if firebase_db.ready:
-            firebase_db._fb_ref.child('cycle_events').child(patient_id).child(event_id).set(event)
-    except Exception as e:
-        logger.warning(f"Clinician cycle event save failed: {e}")
-    return {"status": "saved", "event": event}
-
-
-@app.get("/patient/{patient_id}/checkin-history")
-async def get_checkin_history(patient_id: str):
-    """Get check-in history grouped by date for calendar display."""
-    checkins = checkins_db.get(patient_id, [])
-    by_date = {}
-    for ci in checkins:
-        date_str = ci.get("date", "")[:10]
-        if date_str:
-            if date_str not in by_date:
-                by_date[date_str] = []
-            by_date[date_str].append({
-                "mood": ci.get("mood", 5),
-                "anxiety": ci.get("anxiety", 5),
-                "hope": ci.get("hope", 5),
-                "time": ci.get("date", "")[11:16],
-            })
-    # Compute daily averages
-    daily = {}
-    for date_str, cis in by_date.items():
-        avg_mood = sum(c["mood"] for c in cis) / len(cis)
-        daily[date_str] = {
-            "avg_mood": round(avg_mood, 1),
-            "checkin_count": len(cis),
-            "checkins": cis,
-        }
-    return {"patient_id": patient_id, "daily": daily}
+    briefing = build_preconsult_briefing(patient_id)
+    return briefing
 
 
 @app.get("/clinician/patient/{patient_id}/phenotype-history", dependencies=[Depends(verify_clinician_api_key)])
@@ -4244,96 +2785,6 @@ async def debug_create_test_patient():
 
 
 # ── Daily Nudge System ───────────────────────────────────────────────
-
-# ── Anticipatory Nudges ─────────────────────────────────────────────
-# These trigger based on days_in_stage, BEFORE the difficult moment arrives.
-# Key: (stage, day_in_stage) → nudge message
-ANTICIPATORY_NUDGES = {
-    ("stimulation", 5): "Tomorrow and the next few days are when stimulation starts to feel heavy for most people. If that happens, come talk to me — it's normal.",
-    ("stimulation", 9): "You're getting close to the end of stims. The bloating and tiredness peak around now. Hang in there — your body is doing incredible work.",
-    ("early_tww", 5): "You're entering the hardest stretch of the wait. The next few days before your test, symptom spotting goes into overdrive. I can help you sort real from anxiety.",
-    ("late_tww", 1): "You're in the deep end of the TWW now. Every sensation feels like a sign. That's completely normal — and exhausting.",
-    ("late_tww", 4): "Tomorrow might be close to result day. Whatever you're feeling right now — that's valid. Want to talk tonight?",
-    ("embryo_development", 0): "The fertilisation call usually comes this morning. However it goes, I'm here to help you understand what it means.",
-    ("embryo_development", 2): "Day 3 embryo updates can bring a mix of emotions. Some embryos stop developing — that's normal attrition, not failure. I'll help you make sense of the report.",
-    ("embryo_development", 4): "Day 5 is when blastocysts form. Not all embryos make it — the drop can feel devastating. Whatever the number, I'm here.",
-    ("before_retrieval", 0): "Tomorrow your body does something amazing. Try to rest tonight. The nerves are normal — your clinic does this every day.",
-    ("retrieval_day", 0): "Retrieval day. You've earned every bit of rest afterwards. I'll be here when you're ready to talk.",
-    ("before_transfer", 0): "Transfer is coming up. The procedure itself is usually quick and painless. It's everything around it — the hope, the fear — that's the hard part.",
-    ("transfer_day", 0): "A tiny passenger is on board. Now begins the wait. Whatever you need — distraction, reassurance, or just someone to talk to — I'm here.",
-    ("result_day", 0): "Today is the day. Whatever comes, you won't face it alone.",
-    ("negative_result", 2): "Checking in. No pressure to talk. Just letting you know I'm here.",
-    ("negative_result", 5): "It's been a few days. Grief doesn't follow a schedule. Whatever you're feeling right now is exactly right.",
-    ("failed_cycle_acute", 2): "Checking in gently. You don't have to have a plan or feel ready. Just... I'm here.",
-    ("chemical_pregnancy", 1): "A chemical pregnancy is a real loss. If people tell you 'at least it implanted,' you're allowed to feel angry about that.",
-    ("miscarriage", 2): "I'm thinking of you. There's no timeline for this. Whenever you're ready, I'm here.",
-}
-
-# ── Capability Discovery ────────────────────────────────────────────
-# Contextual hints that help patients discover features naturally.
-WEEKLY_CAPABILITY_HINTS = {
-    "checkin_prompt": "By the way, if you tap the egg, you can do a quick emotional check-in. It helps me understand how you're tracking.",
-    "education_prompt": "Did you know you can ask me about any medication, procedure, or IVF topic? I'm like a fertility encyclopedia that speaks human.",
-    "late_night_prompt": "I'm here 24/7 — even at 2am when the anxiety hits and you don't want to wake your partner.",
-    "journey_prompt": "Have you explored the Journey tab? It shows where you are in the process and what's coming next.",
-}
-
-def get_capability_discovery(patient_id: str) -> dict | None:
-    """Check if any capability hint should be shown to this patient."""
-    patient = get_or_create_patient(patient_id)
-    cap = patient.get("capability_discovery", {})
-
-    # Weekly hint: only one per week
-    last_weekly = cap.get("last_weekly_hint_date")
-    if last_weekly:
-        try:
-            last_dt = datetime.fromisoformat(last_weekly)
-            if (datetime.now() - last_dt).days < 7:
-                return None  # Too soon for another weekly hint
-        except (ValueError, TypeError):
-            pass
-
-    # Figure out what the patient hasn't used
-    shown = set(cap.get("weekly_hints_shown", []))
-    conversations = conversations_db.get(patient_id, [])
-    checkins = checkins_db.get(patient_id, [])
-    user_msgs = [m for m in conversations if m.get("role") == "user"]
-
-    # Check usage patterns
-    has_checkin = len(checkins) > 0
-    has_education = any(m.get("triage") == 2 for m in conversations if m.get("role") == "assistant")
-    has_late_night = any(
-        "T2" in m.get("timestamp", "") or "T0" in m.get("timestamp", "")[:14]
-        for m in conversations if m.get("timestamp")
-    )
-
-    # Pick a hint for something they haven't used
-    candidates = []
-    if not has_checkin and "checkin_prompt" not in shown:
-        candidates.append("checkin_prompt")
-    if not has_education and "education_prompt" not in shown and len(user_msgs) >= 3:
-        candidates.append("education_prompt")
-    if not has_late_night and "late_night_prompt" not in shown and len(user_msgs) >= 5:
-        candidates.append("late_night_prompt")
-    if "journey_prompt" not in shown and len(user_msgs) >= 2:
-        candidates.append("journey_prompt")
-
-    if not candidates:
-        return None
-
-    hint_key = candidates[0]
-    hint_text = WEEKLY_CAPABILITY_HINTS[hint_key]
-
-    # Update tracking
-    if "capability_discovery" not in patient:
-        patient["capability_discovery"] = {}
-    patient["capability_discovery"]["last_weekly_hint_date"] = utc_iso()
-    shown_list = patient["capability_discovery"].get("weekly_hints_shown", [])
-    shown_list.append(hint_key)
-    patient["capability_discovery"]["weekly_hints_shown"] = shown_list
-    firebase_db.save_patient(patient_id, patient)
-
-    return {"hint": hint_text, "type": hint_key}
 
 # Stage-aware nudge messages: each stage has contextual, gentle prompts
 STAGE_NUDGES = {
@@ -4500,29 +2951,13 @@ async def get_daily_nudge(patient_id: str):
     # Pick the right nudge
     nudges = []
 
-    # 0. Anticipatory nudge — check if we're at a known anticipation point
-    stage_start = patient.get("stage_start_date")
-    days_in_stage = None
-    if stage_start:
-        try:
-            start_dt = datetime.fromisoformat(stage_start.replace("Z", "+00:00"))
-            days_in_stage = (datetime.now(start_dt.tzinfo or None) - start_dt).days if start_dt.tzinfo else (datetime.now() - start_dt.replace(tzinfo=None)).days
-        except (ValueError, TypeError):
-            days_in_stage = None
-
-    anticipatory = None
-    if days_in_stage is not None:
-        anticipatory = ANTICIPATORY_NUDGES.get((stage, days_in_stage))
-
-    if anticipatory:
-        nudges.append(anticipatory)  # Anticipatory nudge takes priority
-    else:
-        # 1. Stage-specific nudge (fallback)
-        stage_msgs = STAGE_NUDGES.get(stage, STAGE_NUDGES["consultation"])
-        nudges.append(random.choice(stage_msgs))
+    # 1. Stage-specific nudge (always)
+    stage_msgs = STAGE_NUDGES.get(stage, STAGE_NUDGES["consultation"])
+    import random
+    nudges.append(random.choice(stage_msgs))
 
     # 2. Procedure nudge (only for key procedure days)
-    if stage in PROCEDURE_NUDGES and not anticipatory:
+    if stage in PROCEDURE_NUDGES:
         nudges.append(PROCEDURE_NUDGES[stage])
 
     # 3. If they've been away 2+ days, add a gentle re-engagement
@@ -4537,12 +2972,10 @@ async def get_daily_nudge(patient_id: str):
 
     return {
         "nudge": nudges[0],  # Primary nudge
-        "extra": nudges[1] if len(nudges) > 1 else None,
+        "extra": nudges[1] if len(nudges) > 1 else None,  # Optional second
         "stage": stage,
         "stage_display": STAGE_DISPLAY.get(stage, stage),
         "days_since_checkin": days_since,
-        "days_in_stage": days_in_stage,
-        "is_anticipatory": anticipatory is not None,
         "checked_in_today": False,
     }
 
@@ -4876,67 +3309,6 @@ async def get_passive_summary(patient_id: str):
         "patient_id": patient_id,
         "summary": summary,
     }
-
-
-# ── Behavioral Pattern Analysis ─────────────────────────────────────
-
-def analyze_behavioral_patterns(weekly_behavior: list) -> list:
-    """Analyze weekly session behavior for clinical flags."""
-    flags = []
-    if not weekly_behavior or len(weekly_behavior) < 2:
-        return flags
-
-    recent_3 = weekly_behavior[-3:] if len(weekly_behavior) >= 3 else weekly_behavior
-    prior = weekly_behavior[:-3] if len(weekly_behavior) > 3 else []
-
-    # WITHDRAWAL: sessions dropped >50%
-    if prior:
-        prior_avg = sum(d.get("sessions", 0) for d in prior) / len(prior)
-        recent_avg = sum(d.get("sessions", 0) for d in recent_3) / len(recent_3)
-        if prior_avg > 0 and recent_avg < prior_avg * 0.5:
-            flags.append({
-                "flag": "WITHDRAWAL",
-                "severity": "moderate",
-                "evidence": f"Sessions dropped from avg {prior_avg:.0f}/day to {recent_avg:.0f}/day",
-                "recommendation": "Consider gentle re-engagement nudge",
-            })
-
-    # INSOMNIA_PATTERN: >2 sessions between 11pm-4am in last 3 days
-    late_count = 0
-    for d in recent_3:
-        for h in d.get("hours", []):
-            if h >= 23 or h < 4:
-                late_count += 1
-    if late_count >= 2:
-        flags.append({
-            "flag": "INSOMNIA_PATTERN",
-            "severity": "moderate",
-            "evidence": f"{late_count} late-night sessions in last 3 days",
-            "recommendation": "Consider asking about sleep in next interaction",
-        })
-
-    # AVOIDANCE: no check-ins for 3+ days despite app opens
-    no_checkin_days = sum(1 for d in recent_3 if d.get("sessions", 0) > 0 and d.get("checkins", 0) == 0)
-    if no_checkin_days >= 3:
-        flags.append({
-            "flag": "AVOIDANCE",
-            "severity": "low",
-            "evidence": f"Opened app {no_checkin_days} days without checking in",
-            "recommendation": "Patient may be avoiding emotional engagement",
-        })
-
-    # HYPER_ENGAGEMENT: >6 sessions per day
-    for d in recent_3:
-        if d.get("sessions", 0) > 6:
-            flags.append({
-                "flag": "HYPER_ENGAGEMENT",
-                "severity": "low",
-                "evidence": f"{d['sessions']} sessions on {d.get('date', 'recent day')}",
-                "recommendation": "May indicate anxiety-driven checking behavior",
-            })
-            break
-
-    return flags
 
 
 # ── Run ───────────────────────────────────────────────────────────────

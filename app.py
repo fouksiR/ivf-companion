@@ -1030,6 +1030,23 @@ ANZARD_CHARTS = {
 
 def match_anzard_charts(message: str, response_text: str, max_charts: int = 2) -> list[dict]:
     """Match patient message + AI response against ANZARD chart triggers."""
+    message_lower = message.lower()
+
+    # EXCLUSION: If the message is specifically about AMH/ovarian reserve
+    # or egg freezing outcomes — DON'T show ANZARD charts.
+    # These topics have their own dedicated Fertool inline infographics.
+    amh_exclusive = any(kw in message_lower for kw in [
+        'amh', 'anti-mullerian', 'anti mullerian', 'ovarian reserve',
+        'egg supply', 'how many eggs do i have', 'pmol',
+    ])
+    egg_freeze_exclusive = any(kw in message_lower for kw in [
+        'warm my eggs', 'thaw my eggs', 'use my frozen eggs',
+        'return to use', 'frozen eggs success', 'egg freezing success',
+        'how many eggs should i freeze', 'oocyte cryopreservation',
+    ])
+    if amh_exclusive or egg_freeze_exclusive:
+        return []  # Let Fertool inline infographics handle these topics
+
     combined = (message + " " + response_text).lower()
     scored = []
     for key, chart in ANZARD_CHARTS.items():

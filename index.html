@@ -1105,82 +1105,75 @@ function renderFertoolWidget(card){
   return null;
 }
 function renderAMHChart(card){
-  var W=340,H=220,pad={t:20,r:20,b:35,l:42};
+  var W=340,H=240,pad={t:20,r:20,b:35,l:42};
   var cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
-  var maxAMH=50;
-  function sx(age){return pad.l+((age-20)/30)*cw}
-  function sy(amh){return pad.t+ch-(amh/maxAMH)*ch}
-  // Updated percentile data: [age, amh] — extended to age 50
-  var p90=[[20,45],[25,38],[30,28],[35,18],[40,8],[45,2],[50,0.5]];
-  var p50=[[20,28],[25,22],[30,16],[35,10],[40,4],[45,1],[50,0.3]];
-  var p10=[[20,12],[25,8],[30,5.5],[35,3],[40,1.2],[45,0.3],[50,0.1]];
+  function sx(age){return pad.l+((age-20)/25)*cw}
+  function sy(amh){return pad.t+ch-(amh/60)*ch}
+  // Percentile data: [age, amh]
+  var p90=[[20,48],[25,42],[28,35],[30,30],[33,24],[35,20],[37,16],[39,12],[41,9],[43,7],[45,5]];
+  var p50=[[20,24],[25,20],[28,16],[30,14],[33,10],[35,8],[37,6],[39,4],[41,3],[43,2],[45,1.5]];
+  var p10=[[20,10],[25,8],[28,6],[30,4.5],[33,3],[35,2],[37,1.5],[39,1],[41,0.7],[43,0.5],[45,0.3]];
   function curvePath(pts){var d='M'+sx(pts[0][0])+','+sy(pts[0][1]);for(var i=1;i<pts.length;i++){var p=pts[i-1],c=pts[i];var mx=(sx(p[0])+sx(c[0]))/2;d+=' C'+mx+','+sy(p[1])+' '+mx+','+sy(c[1])+' '+sx(c[0])+','+sy(c[1])}return d}
   // Zone fills
-  var zoneAbove='M'+sx(20)+','+sy(maxAMH);p90.forEach(function(p){zoneAbove+=' L'+sx(p[0])+','+sy(p[1])});zoneAbove+=' L'+sx(50)+','+sy(maxAMH)+' Z';
+  var zoneAbove='M'+sx(20)+','+sy(60);p90.forEach(function(p){zoneAbove+=' L'+sx(p[0])+','+sy(p[1])});zoneAbove+=' L'+sx(45)+','+sy(60)+' Z';
   var zoneMid='';p90.forEach(function(p,i){zoneMid+=(i?'L':'M')+sx(p[0])+','+sy(p[1])});for(var i=p10.length-1;i>=0;i--)zoneMid+=' L'+sx(p10[i][0])+','+sy(p10[i][1]);zoneMid+=' Z';
-  var zoneBelow='';p10.forEach(function(p,i){zoneBelow+=(i?'L':'M')+sx(p[0])+','+sy(p[1])});zoneBelow+=' L'+sx(50)+','+sy(0)+' L'+sx(20)+','+sy(0)+' Z';
+  var zoneBelow='';p10.forEach(function(p,i){zoneBelow+=(i?'L':'M')+sx(p[0])+','+sy(p[1])});zoneBelow+=' L'+sx(45)+','+sy(0)+' L'+sx(20)+','+sy(0)+' Z';
 
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block" xmlns="http://www.w3.org/2000/svg">';
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" class="amh-chart-svg" xmlns="http://www.w3.org/2000/svg">';
   // Zones
-  svg+='<path d="'+zoneAbove+'" fill="rgba(239,182,200,.12)"/>';
-  svg+='<path d="'+zoneMid+'" fill="rgba(45,142,142,.06)"/>';
-  svg+='<path d="'+zoneBelow+'" fill="rgba(212,168,67,.08)"/>';
+  svg+='<path d="'+zoneAbove+'" fill="rgba(76,175,80,.08)"/>';
+  svg+='<path d="'+zoneMid+'" fill="rgba(45,142,142,.05)"/>';
+  svg+='<path d="'+zoneBelow+'" fill="rgba(244,67,54,.06)"/>';
   // Gridlines
-  [0,10,20,30,40,50].forEach(function(v){svg+='<line x1="'+pad.l+'" y1="'+sy(v)+'" x2="'+(W-pad.r)+'" y2="'+sy(v)+'" stroke="#e8e8e8" stroke-width=".5"/>'});
-  [20,25,30,35,40,45,50].forEach(function(v){svg+='<line x1="'+sx(v)+'" y1="'+pad.t+'" x2="'+sx(v)+'" y2="'+(H-pad.b)+'" stroke="#e8e8e8" stroke-width=".5"/>'});
+  [0,10,20,30,40,50,60].forEach(function(v){svg+='<line x1="'+pad.l+'" y1="'+sy(v)+'" x2="'+(W-pad.r)+'" y2="'+sy(v)+'" stroke="#eee" stroke-width=".5"/>'});
+  [20,25,30,35,40,45].forEach(function(v){svg+='<line x1="'+sx(v)+'" y1="'+pad.t+'" x2="'+sx(v)+'" y2="'+(H-pad.b)+'" stroke="#eee" stroke-width=".5"/>'});
   // Curves
-  svg+='<path d="'+curvePath(p90)+'" fill="none" stroke="#b8e6e6" stroke-width="1.5" stroke-dasharray="4,3"/>';
-  svg+='<path d="'+curvePath(p50)+'" fill="none" stroke="#2D8E8E" stroke-width="2.5"/>';
-  svg+='<path d="'+curvePath(p10)+'" fill="none" stroke="#D4A843" stroke-width="1.5"/>';
+  svg+='<path d="'+curvePath(p90)+'" fill="none" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,3" opacity=".6"/>';
+  svg+='<path d="'+curvePath(p50)+'" fill="none" stroke="#2D8E8E" stroke-width="2"/>';
+  svg+='<path d="'+curvePath(p10)+'" fill="none" stroke="#E57373" stroke-width="1.5" stroke-dasharray="4,3" opacity=".6"/>';
   // Zone labels
-  svg+='<text x="'+(W-pad.r-5)+'" y="'+(sy(45)+4)+'" text-anchor="end" font-size="7.5" fill="#c06080" font-family="DM Sans,sans-serif" opacity=".7">Consider PCOS</text>';
-  svg+='<text x="'+(W-pad.r-5)+'" y="'+(sy(12)+4)+'" text-anchor="end" font-size="7.5" fill="#2D8E8E" font-family="DM Sans,sans-serif" opacity=".6">Typical range</text>';
-  svg+='<text x="'+(W-pad.r-5)+'" y="'+(sy(0.8)+4)+'" text-anchor="end" font-size="7.5" fill="#D4A843" font-family="DM Sans,sans-serif" opacity=".7">Low reserve</text>';
+  svg+='<text x="'+(pad.l+5)+'" y="'+(sy(55)+4)+'" font-size="8" fill="#4CAF50" font-family="Montserrat,sans-serif" opacity=".7">Consider PCOS</text>';
+  svg+='<text x="'+(pad.l+5)+'" y="'+(sy(15)+4)+'" font-size="8" fill="#2D8E8E" font-family="Montserrat,sans-serif" opacity=".5">Typical range</text>';
+  svg+='<text x="'+(pad.l+5)+'" y="'+(sy(1.5)+4)+'" font-size="8" fill="#E57373" font-family="Montserrat,sans-serif" opacity=".7">Low reserve</text>';
   // Axes labels
-  [0,10,20,30,40,50].forEach(function(v){svg+='<text x="'+(pad.l-4)+'" y="'+(sy(v)+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'</text>'});
-  [20,25,30,35,40,45,50].forEach(function(v){svg+='<text x="'+sx(v)+'" y="'+(H-pad.b+12)+'" text-anchor="middle" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'</text>'});
-  svg+='<text x="'+(W/2)+'" y="'+(H-3)+'" text-anchor="middle" font-size="9" fill="#999" font-family="DM Sans,sans-serif">Age</text>';
-  svg+='<text x="12" y="'+(H/2)+'" text-anchor="middle" font-size="9" fill="#999" font-family="DM Sans,sans-serif" transform="rotate(-90,12,'+(H/2)+')">AMH (pmol/L)</text>';
+  [0,10,20,30,40,50,60].forEach(function(v){svg+='<text x="'+(pad.l-4)+'" y="'+(sy(v)+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="Montserrat,sans-serif">'+v+'</text>'});
+  [20,25,30,35,40,45].forEach(function(v){svg+='<text x="'+sx(v)+'" y="'+(H-pad.b+12)+'" text-anchor="middle" font-size="9" fill="#999" font-family="Montserrat,sans-serif">'+v+'</text>'});
+  svg+='<text x="'+(W/2)+'" y="'+(H-3)+'" text-anchor="middle" font-size="9" fill="#999" font-family="Montserrat,sans-serif">Age</text>';
+  svg+='<text x="12" y="'+(H/2)+'" text-anchor="middle" font-size="9" fill="#999" font-family="Montserrat,sans-serif" transform="rotate(-90,12,'+(H/2)+')">AMH (pmol/L)</text>';
   // Legend
-  var lx=W-pad.r-110;
-  svg+='<line x1="'+lx+'" y1="'+(pad.t+4)+'" x2="'+(lx+15)+'" y2="'+(pad.t+4)+'" stroke="#b8e6e6" stroke-width="1.5" stroke-dasharray="4,3"/>';
-  svg+='<text x="'+(lx+18)+'" y="'+(pad.t+7)+'" font-size="8" fill="#666" font-family="DM Sans,sans-serif">90th Percentile</text>';
-  svg+='<line x1="'+lx+'" y1="'+(pad.t+16)+'" x2="'+(lx+15)+'" y2="'+(pad.t+16)+'" stroke="#2D8E8E" stroke-width="2.5"/>';
-  svg+='<text x="'+(lx+18)+'" y="'+(pad.t+19)+'" font-size="8" fill="#666" font-family="DM Sans,sans-serif">50th (Median)</text>';
-  svg+='<line x1="'+lx+'" y1="'+(pad.t+28)+'" x2="'+(lx+15)+'" y2="'+(pad.t+28)+'" stroke="#D4A843" stroke-width="1.5"/>';
-  svg+='<text x="'+(lx+18)+'" y="'+(pad.t+31)+'" font-size="8" fill="#666" font-family="DM Sans,sans-serif">10th Percentile</text>';
-  // Interactive dot placeholder
-  svg+='<circle class="amhDotEl" cx="0" cy="0" r="5" fill="#2D8E8E" stroke="white" stroke-width="1.5" style="display:none"/>';
+  svg+='<line x1="'+(W-pad.r-100)+'" y1="'+(pad.t+4)+'" x2="'+(W-pad.r-85)+'" y2="'+(pad.t+4)+'" stroke="#4CAF50" stroke-width="1.5" stroke-dasharray="4,3"/>';
+  svg+='<text x="'+(W-pad.r-82)+'" y="'+(pad.t+7)+'" font-size="8" fill="#666" font-family="Montserrat,sans-serif">90th</text>';
+  svg+='<line x1="'+(W-pad.r-100)+'" y1="'+(pad.t+16)+'" x2="'+(W-pad.r-85)+'" y2="'+(pad.t+16)+'" stroke="#2D8E8E" stroke-width="2"/>';
+  svg+='<text x="'+(W-pad.r-82)+'" y="'+(pad.t+19)+'" font-size="8" fill="#666" font-family="Montserrat,sans-serif">50th</text>';
+  svg+='<line x1="'+(W-pad.r-100)+'" y1="'+(pad.t+28)+'" x2="'+(W-pad.r-85)+'" y2="'+(pad.t+28)+'" stroke="#E57373" stroke-width="1.5" stroke-dasharray="4,3"/>';
+  svg+='<text x="'+(W-pad.r-82)+'" y="'+(pad.t+31)+'" font-size="8" fill="#666" font-family="Montserrat,sans-serif">10th</text>';
+  // Dot placeholder
+  svg+='<circle id="amhDot" cx="0" cy="0" r="5" fill="#E57373" stroke="white" stroke-width="1.5" style="display:none"/>';
   svg+='</svg>';
   // Interactive inputs
   var uid='amh'+Date.now();
   var inputs='<div class="ft-input-row">';
-  inputs+='<div class="ft-input-group"><label>Your age</label><input type="number" id="'+uid+'Age" min="20" max="50" placeholder="30"></div>';
-  inputs+='<div class="ft-input-group"><label>AMH (pmol/L)</label><input type="number" id="'+uid+'Val" min="0" max="50" step="0.1" placeholder="8"></div>';
-  inputs+='<button class="ft-btn" onclick="plotAMH(\''+uid+'\','+W+','+H+','+pad.l+','+pad.r+','+pad.t+','+pad.b+','+maxAMH+')">Show on chart</button>';
+  inputs+='<div class="ft-input-group"><label>Your age</label><input type="number" id="'+uid+'Age" min="20" max="45" placeholder="30"></div>';
+  inputs+='<div class="ft-input-group"><label>AMH (pmol/L)</label><input type="number" id="'+uid+'Val" min="0" max="60" step="0.1" placeholder="8"></div>';
+  inputs+='<button class="ft-btn" onclick="plotAMH(\''+uid+'\','+W+','+H+','+pad.l+','+pad.r+','+pad.t+','+pad.b+')">Show on chart</button>';
   inputs+='</div><div class="ft-result" id="'+uid+'Result" style="display:none"></div>';
-  var note='<div style="padding:6px 16px 2px;font-size:10px;color:#6a9e9e;font-style:italic;font-family:DM Sans,sans-serif">* Reference data from patients who conceived naturally. Individual results should be interpreted in clinical context.</div>';
   var el=document.createElement('div');el.className='ft-widget';
-  var ftUrl=card&&card.url?escHtml(card.url):'https://fouksir.github.io/Fertool/amh-guide.html';
-  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">\ud83d\udcca</span>AMH by Age: Normogram</div><div style="padding:0 16px 2px;font-size:11px;color:var(--text-soft);font-family:DM Sans,sans-serif">Tap the curves to see age-specific AMH values</div><div class="ft-widget-body">'+svg+inputs+'</div>'+note+'<div class="ft-widget-footer"><span>Source: Fertool AMH Guide \u2014 Dr. Yuval Fouks</span><a href="'+ftUrl+'" target="_blank" style="font-size:11px;color:#2D8E8E;font-family:DM Sans,sans-serif;text-decoration:none">Explore full tool \u2192</a></div>';
+  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+svg+inputs+'</div><div class="ft-widget-footer"><span>Percentile curves based on age-specific AMH reference ranges</span><a href="'+escHtml(card.url)+'" target="_blank">Full tool \u2192</a></div>';
   return el;
 }
-function plotAMH(uid,W,H,pl,pr,pt,pb,maxAMH){
-  maxAMH=maxAMH||50;
+function plotAMH(uid,W,H,pl,pr,pt,pb){
   var age=parseFloat(document.getElementById(uid+'Age').value);
   var amh=parseFloat(document.getElementById(uid+'Val').value);
-  if(isNaN(age)||isNaN(amh)||age<20||age>50||amh<0)return;
+  if(isNaN(age)||isNaN(amh)||age<20||age>45||amh<0)return;
   var cw=W-pl-pr,ch=H-pt-pb;
-  var cx=pl+((age-20)/30)*cw,cy=pt+ch-(amh/maxAMH)*ch;
-  // Find the dot within the nearest widget
-  var btn=event&&event.target;var widget=btn?btn.closest('.ft-widget'):null;
-  var dot=widget?widget.querySelector('.amhDotEl'):document.querySelector('.amhDotEl');
+  var cx=pl+((age-20)/25)*cw,cy=pt+ch-(amh/60)*ch;
+  var dot=document.getElementById('amhDot');
   if(dot){dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.style.display='block'}
   // Interpolate percentiles at this age
   function interpAt(data,a){for(var i=0;i<data.length-1;i++){if(a>=data[i][0]&&a<=data[i+1][0]){var t=(a-data[i][0])/(data[i+1][0]-data[i][0]);return data[i][1]+(data[i+1][1]-data[i][1])*t}}return data[data.length-1][1]}
-  var p90=[[20,45],[25,38],[30,28],[35,18],[40,8],[45,2],[50,0.5]];
-  var p50=[[20,28],[25,22],[30,16],[35,10],[40,4],[45,1],[50,0.3]];
-  var p10=[[20,12],[25,8],[30,5.5],[35,3],[40,1.2],[45,0.3],[50,0.1]];
+  var p90=[[20,48],[25,42],[28,35],[30,30],[33,24],[35,20],[37,16],[39,12],[41,9],[43,7],[45,5]];
+  var p50=[[20,24],[25,20],[28,16],[30,14],[33,10],[35,8],[37,6],[39,4],[41,3],[43,2],[45,1.5]];
+  var p10=[[20,10],[25,8],[28,6],[30,4.5],[33,3],[35,2],[37,1.5],[39,1],[41,0.7],[43,0.5],[45,0.3]];
   var v90=interpAt(p90,age),v50=interpAt(p50,age),v10=interpAt(p10,age);
   var r=document.getElementById(uid+'Result');r.style.display='block';
   if(amh>v90)r.innerHTML='<strong>Above 90th percentile for age '+age+'.</strong> This is above the typical range \u2014 your specialist may want to check for PCOS.';
@@ -1190,42 +1183,28 @@ function plotAMH(uid,W,H,pl,pr,pt,pb,maxAMH){
 }
 function renderEggFreezingTable(card){
   var data=[
-    {age:'<35 years',  vals:[48,44,77,84]},
-    {age:'35\u201337 years',vals:[37,47,53,73]},
-    {age:'38\u201340 years',vals:[19,41,41,57]},
-    {age:'>40 years',  vals:[ 5,25,32,27]}
+    {age:'<35',  vals:[48,44,77,84]},
+    {age:'35-37',vals:[37,47,53,73]},
+    {age:'38-40',vals:[19,41,41,57]},
+    {age:'>40',  vals:[ 5,25,32,27]}
   ];
-  function cellColor(v){if(v>=70)return '#22c55e';if(v>=40)return '#2D8E8E';if(v>=20)return '#D4A843';return '#ef7b6e'}
+  function cellClass(v){return v>=60?'ft-high':v<30?'ft-low':''}
   var uid='ef'+Date.now();
-  var t='<div style="overflow:hidden;border-radius:12px;border:1px solid rgba(45,142,142,.1)">';
-  t+='<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif">';
-  t+='<thead><tr style="background:#2D8E8E">';
-  t+='<th style="padding:8px 10px;color:white;font-size:11px;font-weight:600;text-align:left;border:none">Age at Freeze</th>';
-  ['1\u20139 eggs','10\u201314 eggs','15\u201319 eggs','20+ eggs'].forEach(function(h){
-    t+='<th style="padding:8px 10px;color:white;font-size:11px;font-weight:600;text-align:center;border:none">'+h+'</th>';
-  });
-  t+='</tr></thead><tbody>';
+  var t='<table class="ft-table"><thead><tr><th>Age at Freeze</th><th>1\u20139 eggs</th><th>10\u201314 eggs</th><th>15\u201319 eggs</th><th>20+ eggs</th></tr></thead><tbody>';
   data.forEach(function(row,ri){
-    var bg=ri%2===0?'white':'#f0fdfa';
-    t+='<tr style="background:'+bg+'">';
-    t+='<td style="padding:8px 10px;font-size:12px;font-weight:600;border:1px solid rgba(45,142,142,.1);font-family:DM Sans,sans-serif">'+row.age+'</td>';
-    row.vals.forEach(function(v,ci){
-      t+='<td id="'+uid+'_'+ri+'_'+ci+'" style="padding:8px 10px;font-size:13px;text-align:center;color:'+cellColor(v)+';font-weight:600;border:1px solid rgba(45,142,142,.1);font-family:DM Sans,sans-serif;transition:background .3s">'+v+'%</td>';
-    });
+    t+='<tr>';t+='<td>'+row.age+'</td>';
+    row.vals.forEach(function(v,ci){t+='<td id="'+uid+'_'+ri+'_'+ci+'" class="'+cellClass(v)+'">'+v+'%</td>'});
     t+='</tr>';
   });
-  t+='</tbody></table></div>';
-  // Interactive selectors
+  t+='</tbody></table>';
+  t+='<div class="ft-source">Source: Cobo et al. RBMO 2025 (n=2,891 patients)</div>';
   t+='<div class="ft-input-row">';
   t+='<div class="ft-input-group"><label>Your age</label><select id="'+uid+'Age"><option value="">Select</option><option value="0">&lt;35</option><option value="1">35-37</option><option value="2">38-40</option><option value="3">&gt;40</option></select></div>';
   t+='<div class="ft-input-group"><label>Eggs frozen</label><select id="'+uid+'Eggs"><option value="">Select</option><option value="0">1-9</option><option value="1">10-14</option><option value="2">15-19</option><option value="3">20+</option></select></div>';
   t+='<button class="ft-btn" onclick="highlightEggCell(\''+uid+'\')">Show my rate</button>';
   t+='</div><div class="ft-result" id="'+uid+'Result" style="display:none"></div>';
-  // Key insight
-  var insight='<div style="padding:10px 12px;margin:8px 0 4px;background:#f0fdfa;border-radius:8px;font-size:12px;font-style:italic;color:#3a7070;font-family:DM Sans,sans-serif">More eggs and younger age at freezing = better chances. <strong>15+ eggs under 35 gives ~80% success rate.</strong></div>';
   var el=document.createElement('div');el.className='ft-widget';
-  var ftUrl=card&&card.url?escHtml(card.url):'https://fouksir.github.io/Fertool/egg-freezing-calculator.html';
-  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">\ud83d\udcca</span>How age and egg numbers affect success</div><div style="padding:0 16px 2px;font-size:11px;color:var(--text-soft);font-family:DM Sans,sans-serif">Live birth rate among those who returned to use their eggs</div><div class="ft-widget-body">'+t+insight+'</div><div class="ft-widget-footer"><span style="font-size:10px;color:#6a9e9e">Cobo A et al. RBMO 2025; Fouks Y et al. JAMA Netw Open 2023</span><a href="'+ftUrl+'" target="_blank" style="font-size:11px;color:#2D8E8E;font-family:DM Sans,sans-serif;text-decoration:none">Explore full tool \u2192</a></div>';
+  el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+t+'</div><div class="ft-widget-footer"><span>Live birth rates per warming cycle</span><a href="'+escHtml(card.url)+'" target="_blank">Full calculator \u2192</a></div>';
   return el;
 }
 function highlightEggCell(uid){
@@ -1234,9 +1213,9 @@ function highlightEggCell(uid){
   if(ri===''||ci==='')return;
   ri=parseInt(ri);ci=parseInt(ci);
   // Clear previous highlights
-  document.querySelectorAll('.ft-hl').forEach(function(el){el.classList.remove('ft-hl');el.style.background=''});
+  document.querySelectorAll('.ft-hl').forEach(function(el){el.classList.remove('ft-hl')});
   var cell=document.getElementById(uid+'_'+ri+'_'+ci);
-  if(cell){cell.classList.add('ft-hl');cell.style.background='rgba(45,142,142,.15)'}
+  if(cell)cell.classList.add('ft-hl');
   var val=data[ri][ci];
   var r=document.getElementById(uid+'Result');r.style.display='block';
   r.innerHTML='Your estimated live birth rate: <strong>'+val+'%</strong> per warming cycle.';
@@ -1383,7 +1362,7 @@ document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
 var fab=document.getElementById('communityFab');if(fab)fab.style.display=t==='circle'?'block':'none';
 if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart();if(t==='journey'){buildCalendar();updateJarCounts()}}
 var _oneWordShown=false;
-function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();var _inlineKeys={amh:1,egg_freezing:1};var _linkCards=fertoolCards.filter(function(c){var k=c.key||'';return!c.embed&&!_inlineKeys[k]});var _inlineCards=fertoolCards.filter(function(c){var k=c.key||'';return c.embed||_inlineKeys[k]});if(_linkCards.length>0){html+='<div class="fertool-cards" id="'+_ftId+'">'+_linkCards.map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>'}else{html+='<div class="fertool-cards" id="'+_ftId+'"></div>'}if(_inlineCards.length>0){setTimeout(function(){var container=document.getElementById(_ftId);if(!container)container=d;_inlineCards.forEach(function(c){var widget=renderFertoolWidget(c);if(widget)container.parentElement.appendChild(widget)})},50)}}
+function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();html+='<div class="fertool-cards" id="'+_ftId+'">'+fertoolCards.filter(function(c){return!c.embed}).map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>';var _ftEmbed=fertoolCards.filter(function(c){return c.embed});if(_ftEmbed.length>0){setTimeout(function(){var container=document.getElementById(_ftId);if(!container)container=d;_ftEmbed.forEach(function(c){var widget=renderFertoolWidget(c);if(widget)container.parentElement.appendChild(widget)})},50)}}
 // Add one-word check-in pill after first greeting
 if((opts&&opts.showOneWord)||false){if(!_oneWordShown){_oneWordShown=true;html+='<div class="one-word-pill" onclick="triggerOneWord(this)">One word \u2014 how do you feel?</div>'}}
 // Education quick-reply pills

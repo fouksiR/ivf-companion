@@ -631,6 +631,20 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
       <div id="world-feed"></div>
       <div id="world-loading" style="display:none;text-align:center;padding:16px;color:var(--text-soft);font-size:12px">Loading...</div>
     </div>
+    <div id="patients-like-you-card" style="margin:16px 0;padding:20px;background:linear-gradient(135deg,#e0f5f0 0%,#f0fdfa 50%,#fef9ef 100%);border-radius:20px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:12px;right:12px;background:#D4A843;color:white;font-size:10px;font-weight:700;padding:3px 10px;border-radius:50px;font-family:var(--sans)">Coming Soon</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-size:28px">&#x1F95A;</div>
+        <h3 style="font-family:var(--serif);font-size:17px;color:#1a3a3a;margin:0">Patients Like You</h3>
+      </div>
+      <p style="font-size:13px;color:#3a7070;line-height:1.5;margin:0 0 14px">See what others at your stage are feeling, asking, and finding helpful — all anonymized and AI-curated.</p>
+      <div style="filter:blur(2px);opacity:0.6;pointer-events:none">
+        <div style="background:white;border-radius:10px;padding:10px;margin-bottom:6px;font-size:12px;color:#2a2a2a">&#x1F50D; Most common concern in TWW: <strong>Is cramping normal?</strong></div>
+        <div style="background:white;border-radius:10px;padding:10px;margin-bottom:6px;font-size:12px;color:#2a2a2a">&#x1F4CA; Average mood during TWW: <strong>4.2/10</strong></div>
+        <div style="background:white;border-radius:10px;padding:10px;font-size:12px;color:#2a2a2a">&#x1F4A1; What helped others: <strong>Grounding exercises before scan</strong></div>
+      </div>
+      <p style="font-size:11px;color:#6a9e9e;margin:12px 0 0;line-height:1.4">We're building something special. As more patients join, these insights will become available.</p>
+    </div>
     <button class="community-fab" id="communityFab" onclick="openPostModal()">+</button>
   </div>
   <div class="tab-panel" id="panel-journey">
@@ -790,7 +804,8 @@ session_metrics:{duration_seconds:Math.round((Date.now()-this.sessionStart)/1000
 weekly_behavior:this._getWeeklyBehavior()};
 const n=this.buffer.length;this.buffer=[];
 try{await fetch(this.apiBase+'/passive-signals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
-if(this.debug)console.log('[Phenotyping] Flushed',n,'signals')}catch(e){this.buffer=[...p.signals,...this.buffer];if(this.debug)console.warn('[Phenotyping] Flush failed:',e.message)}}
+if(this.debug)console.log('[Phenotyping] Flushed',n,'signals');
+_communityMetrics={posts_viewed:0,posts_read_time_ms:0,reactions_given:0,post_created:false,stage_filters_used:[],time_on_circle_tab_ms:0,post_hours:[],_circleTabStart:0}}catch(e){this.buffer=[...p.signals,...this.buffer];if(this.debug)console.warn('[Phenotyping] Flush failed:',e.message)}}
 async endSession(){this.record('session_end',Date.now()-this.sessionStart,{total_touches:this.m.totalTouches,total_messages:this.m.messagesSent});await this.flush();this._unbind();clearInterval(this._ft)}
 
 // ── SESSION LOG (weekly behavior tracking) ──
@@ -889,6 +904,7 @@ if(this.m.checkinStartTime&&this.m.checkinCompletionTime)f.checkin_duration_ms=t
 f.panel_visits=this.m.panelVisits;f.education_taps_count=this.m.educationTaps.length;f.stage_modal_opens=this.m.stageModalOpens;
 const v=Object.values(this.m.panelVisits);if(v.length>0){const tot=v.reduce((a,b)=>a+b,0);f.navigation_entropy=-v.reduce((h,x)=>{const p=x/tot;return h+(p>0?p*Math.log2(p):0)},0)}
 f.battery_level=this.m.batteryLevel;f.battery_charging=this.m.batteryCharging;f.connection_type=this.m.connectionType;
+f.community_activity={posts_viewed:_communityMetrics.posts_viewed,reactions_given:_communityMetrics.reactions_given,post_created:_communityMetrics.post_created,stage_filters_used:_communityMetrics.stage_filters_used,time_on_circle_tab_ms:_communityMetrics.time_on_circle_tab_ms,post_hours:_communityMetrics.post_hours,current_stage:typeof state!=='undefined'?state.stage||'':''};
 return f}
 _hasDerived(){return this.m.totalTouches>0||this.m.messagesSent>0||this.m.totalCharsTyped>0}
 async _probeAPIs(){if(navigator.getBattery){try{const b=await navigator.getBattery();this.m.batteryLevel=Math.round(b.level*100);this.m.batteryCharging=b.charging;
@@ -906,6 +922,18 @@ _slope(a){const n=a.length;if(n<2)return 0;const xm=(n-1)/2,ym=this._mean(a);let
 /* ═══ END PASSIVE COLLECTOR ════════════════════════════════════════ */
 
 let collector = null; // initialised after onboarding
+
+// Community activity tracking (fed into passive phenotyping pipeline)
+var _communityMetrics = {
+    posts_viewed: 0,
+    posts_read_time_ms: 0,
+    reactions_given: 0,
+    post_created: false,
+    stage_filters_used: [],
+    time_on_circle_tab_ms: 0,
+    post_hours: [],
+    _circleTabStart: 0
+};
 const API_BASE='https://ivf-companion-532857641879.australia-southeast1.run.app';
 /* ── Stage SVG Icons (20x20, stroke-only, teal #2D8E8E) ── */
 var STAGE_ICONS={
@@ -1366,6 +1394,9 @@ function renderAnzardEggFreeze(){
 function switchTab(t){var prev=document.querySelector('.nav-item.active');var prevTab=prev?prev.textContent.trim().toLowerCase():'';
 document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));var idx=t==='chat'?1:t==='checkin'?2:t==='circle'?3:4;document.querySelector('.nav-item:nth-child('+idx+')').classList.add('active');document.getElementById('panel-'+t).classList.add('active');
 var fab=document.getElementById('communityFab');if(fab)fab.style.display=t==='circle'?'block':'none';
+// Track circle tab time for community phenotyping
+if(prevTab==='circle'&&_communityMetrics._circleTabStart>0){_communityMetrics.time_on_circle_tab_ms+=Date.now()-_communityMetrics._circleTabStart;_communityMetrics._circleTabStart=0}
+if(t==='circle'){_communityMetrics._circleTabStart=Date.now()}
 if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart();if(t==='journey'){buildCalendar();updateJarCounts()}}
 var _oneWordShown=false;
 function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();html+='<div class="fertool-cards" id="'+_ftId+'">'+fertoolCards.filter(function(c){return!c.embed}).map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>';var _ftEmbed=fertoolCards.filter(function(c){return c.embed});if(_ftEmbed.length>0){setTimeout(function(){var container=document.getElementById(_ftId);if(!container)container=d;_ftEmbed.forEach(function(c){var widget=renderFertoolWidget(c);if(widget)container.parentElement.appendChild(widget)})},50)}}
@@ -2451,6 +2482,15 @@ function switchCommunityTab(tab) {
     document.getElementById('community-world').style.display = tab === 'world' ? 'block' : 'none';
     document.getElementById('communityFab').style.display = tab === 'world' ? 'block' : 'none';
 
+    // Track time on circle tab for phenotyping
+    if (_communityMetrics._circleTabStart > 0) {
+        _communityMetrics.time_on_circle_tab_ms += Date.now() - _communityMetrics._circleTabStart;
+        _communityMetrics._circleTabStart = 0;
+    }
+    if (tab === 'world' || tab === 'buddies') {
+        _communityMetrics._circleTabStart = Date.now();
+    }
+
     if (tab === 'world') {
         loadStageFilters();
         loadWorldPosts();
@@ -2486,6 +2526,9 @@ function loadStageFilters() {
 
 function filterCommunity(stage) {
     _communityFilter = stage;
+    if (stage && stage !== 'all' && _communityMetrics.stage_filters_used.indexOf(stage) === -1) {
+        _communityMetrics.stage_filters_used.push(stage);
+    }
     loadStageFilters();
     loadWorldPosts();
 }
@@ -2497,6 +2540,8 @@ function submitPost() {
     var text = document.getElementById('postText').value.trim();
     if (!text) return;
     if (!API_BASE || !state.patientId) return;
+    _communityMetrics.post_created = true;
+    _communityMetrics.post_hours.push(new Date().getHours());
 
     var btn = document.querySelector('.post-modal-send');
     if (btn) { btn.disabled = true; btn.textContent = 'Posting...'; }
@@ -2570,6 +2615,7 @@ function renderCommunityPost(p) {
 
 function reactToPost(postId, reaction) {
     if (!API_BASE || !state.patientId) return;
+    _communityMetrics.reactions_given++;
     fetch(API_BASE + '/community/posts/' + postId + '/react', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},

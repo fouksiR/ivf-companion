@@ -1443,6 +1443,19 @@ def build_preconsult_briefing(patient_id: str) -> dict:
     if "Social withdrawal" in str(daily_esc.get("triggers", [])) or "Disengagement" in str(daily_esc.get("triggers", [])):
         risk_flags.append("Social withdrawal detected")
 
+    # Add community behavior flags
+    community_flags = []
+    sig_store = patient_signal_store.get(patient_id)
+    if sig_store:
+        sig_assessment = sig_store.get("current_assessment", {})
+        for flag_name in ["SEEKING_CONNECTION", "LATE_NIGHT_COMMUNITY", "ANTICIPATORY_BROWSING"]:
+            construct = sig_assessment.get("constructs", {}).get(flag_name, {})
+            if construct.get("active"):
+                community_flags.append(f"{flag_name}: {construct.get('signal', '')}")
+
+    if community_flags:
+        risk_flags.append(f"Community engagement: {'; '.join(community_flags)}")
+
     # Build the briefing
     briefing = {
         "patient_id": patient_id,
@@ -3741,6 +3754,16 @@ async def create_community_post(req: CommunityPostRequest):
     except Exception:
         pass
 
+    # Record community post for phenotyping
+    store = patient_signal_store.get(req.patient_id)
+    if store:
+        store.setdefault("community_posts", []).append({
+            "text_length": len(req.text),
+            "time_of_day": utc_now().hour,
+            "stage": patient.get("treatment_stage", ""),
+            "created_at": utc_iso(),
+        })
+
     # Return without patient_id
     safe_post = {k: v for k, v in post.items() if k not in ('patient_id', 'reported_by')}
     return {"status": "ok", "post": safe_post}
@@ -3791,6 +3814,15 @@ async def react_to_post(post_id: str, req: CommunityReactRequest):
         post["reactions"][req.reaction] = post["reactions"].get(req.reaction, 0) + 1
         community_reactions_db.setdefault(key, {})[req.patient_id] = req.reaction
 
+    # Record community reaction for phenotyping
+    store = patient_signal_store.get(req.patient_id)
+    if store:
+        store.setdefault("community_reactions", []).append({
+            "type": req.reaction,
+            "to_stage": post.get("stage", ""),
+            "created_at": utc_iso(),
+        })
+
     return {"status": "ok", "reactions": post["reactions"]}
 
 
@@ -3834,6 +3866,86 @@ async def list_community_stages():
 
     stages = sorted(stage_counts.values(), key=lambda x: x["posts"], reverse=True)
     return {"stages": stages}
+
+
+# ── "Patients Like You" — Aggregated Stage Insights ────────────────────
+
+@app.get("/community/insights/stage/{stage}", dependencies=[Depends(verify_clinician_api_key)])
+async def community_stage_insights(stage: str):
+    """Aggregated, anonymized insights for a treatment stage."""
+    # Aggregate check-in scores by stage
+    stage_checkins = []
+    for pid, checkins in checkins_db.items():
+        patient = patients_db.get(pid, {})
+        if patient.get("treatment_stage") == stage:
+            stage_checkins.extend(checkins[-10:])  # Last 10 per patient
+
+    # Count active patients at this stage
+    active_patients = sum(1 for p in patients_db.values() if p.get("treatment_stage") == stage)
+
+    # Calculate emotional summary
+    emotional_summary = {"avg_mood": 5.0, "avg_anxiety": 5.0, "most_common_concerns": [], "mood_trend": "stable"}
+    if stage_checkins:
+        moods = [c.get("mood", 5) for c in stage_checkins]
+        anxieties = [c.get("anxiety", 5) for c in stage_checkins]
+        emotional_summary["avg_mood"] = round(sum(moods) / len(moods), 1)
+        emotional_summary["avg_anxiety"] = round(sum(anxieties) / len(anxieties), 1)
+
+    # Aggregate community themes by stage
+    stage_posts = [p for p in community_posts_db if p.get("stage") == stage and p.get("visible", True)]
+    community_themes = []
+    if stage_posts:
+        # Simple keyword extraction for themes
+        all_text = " ".join(p.get("text", "") for p in stage_posts[-50:]).lower()
+        theme_keywords = {
+            "Difficulty waiting": ["wait", "waiting", "patience"],
+            "Symptom checking": ["symptom", "symptoms", "cramping", "bleeding", "spotting"],
+            "Fear of results": ["scared", "afraid", "worried", "fear", "terrified"],
+            "Medication concerns": ["medication", "injection", "side effects", "dose"],
+            "Emotional exhaustion": ["exhausted", "tired", "drained", "overwhelmed"],
+            "Isolation feelings": ["alone", "lonely", "no one understands", "isolated"],
+        }
+        for theme, keywords in theme_keywords.items():
+            if any(kw in all_text for kw in keywords):
+                community_themes.append(theme)
+
+    # Common questions from conversations
+    common_questions = []
+    stage_conversations = []
+    for pid, convs in conversations_db.items():
+        patient = patients_db.get(pid, {})
+        if patient.get("treatment_stage") == stage:
+            user_msgs = [m for m in convs[-20:] if m.get("role") == "user" and "?" in m.get("content", "")]
+            stage_conversations.extend(user_msgs)
+
+    # Simple frequency analysis of question topics
+    question_topics = {
+        "Is cramping normal?": ["cramp", "cramping"],
+        "When should I test?": ["test", "testing", "pregnancy test"],
+        "Does progesterone cause symptoms?": ["progesterone", "pessary"],
+        "What are my chances?": ["chance", "success rate", "odds"],
+        "Is bleeding normal?": ["bleed", "bleeding", "spotting"],
+    }
+    for q, keywords in question_topics.items():
+        count = sum(1 for m in stage_conversations if any(kw in m.get("content", "").lower() for kw in keywords))
+        if count > 0:
+            common_questions.append({"question": q, "frequency": count})
+    common_questions.sort(key=lambda x: x["frequency"], reverse=True)
+
+    return {
+        "stage": stage,
+        "stage_display": STAGE_DISPLAY.get(stage, stage),
+        "active_patients": active_patients,
+        "period": "last_30_days",
+        "emotional_summary": emotional_summary,
+        "common_questions": common_questions[:5],
+        "community_themes": community_themes[:5],
+        "support_that_helped": [
+            "Grounding exercises before procedures",
+            "Distraction activities during TWW",
+            "Talking to someone who's been through it"
+        ]
+    }
 
 
 # ── Static File Serving ────────────────────────────────────────────────

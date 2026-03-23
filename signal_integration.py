@@ -251,7 +251,77 @@ def analyze_passive_signals(patient_id: str, passive_data: Dict, store: Dict) ->
     else:
         assessment["summary"] = "Within normal range." if store.get("baseline_established") else "Building personal baseline."
     
+    # ── Community behavior analysis ──
+    community_signals = passive_data.get("community_activity", {})
+    if community_signals:
+        community_flags = analyze_community_behavior(community_signals, store.get("signal_history", []))
+        for cf in community_flags:
+            assessment["flags"].append(cf["flag"])
+            assessment["constructs"][cf["flag"]] = {
+                "active": True,
+                "severity": cf["severity"],
+                "signal": cf["evidence"],
+                "recommendation": cf.get("recommendation", "")
+            }
+
     return assessment
+
+
+def analyze_community_behavior(community_signals: dict, weekly_behavior: list = None) -> list:
+    """Analyze community engagement patterns for phenotyping.
+
+    Detects: SEEKING_CONNECTION, LATE_NIGHT_COMMUNITY, ANTICIPATORY_BROWSING
+    """
+    flags = []
+
+    if not community_signals:
+        return flags
+
+    # SEEKING_CONNECTION: Extended community browsing + multiple reactions
+    time_on_circle = community_signals.get('time_on_circle_tab_ms', 0)
+    reactions_given = community_signals.get('reactions_given', 0)
+
+    if time_on_circle > 120000 and reactions_given >= 3:  # >2 min + 3+ reactions
+        flags.append({
+            "flag": "SEEKING_CONNECTION",
+            "severity": "low",
+            "evidence": f"Extended community browsing ({round(time_on_circle/1000)}s) + {reactions_given} reactions",
+            "recommendation": "Patient may benefit from peer support group referral"
+        })
+    elif time_on_circle > 180000:  # >3 min even without reactions
+        flags.append({
+            "flag": "SEEKING_CONNECTION",
+            "severity": "low",
+            "evidence": f"Extended community browsing ({round(time_on_circle/1000)}s)",
+            "recommendation": "Patient spending significant time in community — may be seeking connection"
+        })
+
+    # LATE_NIGHT_COMMUNITY: Posting after 11pm
+    post_hours = community_signals.get('post_hours', [])
+    late_posts = [h for h in post_hours if h >= 23 or h <= 4]
+    if len(late_posts) >= 2:
+        flags.append({
+            "flag": "LATE_NIGHT_COMMUNITY",
+            "severity": "moderate",
+            "evidence": f"{len(late_posts)} community posts between 11pm-4am this week",
+            "recommendation": "Possible insomnia + isolation. Consider sleep support."
+        })
+
+    # ANTICIPATORY_BROWSING: Reading stages they haven't reached yet
+    stage_filters_used = community_signals.get('stage_filters_used', [])
+    current_stage = community_signals.get('current_stage', '')
+
+    if stage_filters_used:
+        other_stages = [s for s in stage_filters_used if s != current_stage]
+        if len(other_stages) >= 3:
+            flags.append({
+                "flag": "ANTICIPATORY_BROWSING",
+                "severity": "low",
+                "evidence": f"Browsing {', '.join(other_stages)} while in {current_stage}",
+                "recommendation": "May be anxious about upcoming stages"
+            })
+
+    return flags
 
 
 def _compute_baseline(history: List[Dict]) -> Dict:

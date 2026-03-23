@@ -332,12 +332,12 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .egg-companion.reaching svg{animation:eggReachOut .8s ease forwards,eggFloat 4s ease-in-out infinite}
 .egg-companion.reaching::before{opacity:1;background:radial-gradient(circle,rgba(45,142,142,.15),transparent 68%);animation:auraBreath 3s ease-in-out infinite}
 /* ── Oocyte Personality System CSS ── */
-.oc-bubble{position:fixed;z-index:60;background:white;border-radius:16px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,.08);font-family:'DM Sans','Montserrat',sans-serif;font-size:13px;color:#1a3a3a;max-width:200px;text-align:center;opacity:0;transform:scale(.8) translateY(4px) translateX(-50%);transition:opacity .25s ease-out,transform .25s ease-out;pointer-events:none}
+.oc-bubble{position:fixed;z-index:60;background:white;border-radius:18px;padding:10px 16px;box-shadow:0 4px 20px rgba(0,0,0,.12);font-family:'DM Sans','Montserrat',sans-serif;font-size:14px;color:#1a3a3a;max-width:220px;text-align:center;opacity:0;transform:scale(.7) translateY(8px) translateX(-50%);transition:opacity .3s cubic-bezier(.34,1.56,.64,1),transform .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
 .oc-bubble.visible{opacity:1;transform:scale(1) translateY(0) translateX(-50%)}
-.oc-bubble::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid white}
-.oc-bubble.whisper{font-size:11px;font-style:italic;background:rgba(255,255,255,.9);color:#6a9e9e}
-.oc-bubble.excited{font-size:14px;color:#D4A843;font-weight:600}
-.oc-bubble.gentle{background:rgba(240,253,250,.95);border:1px solid rgba(45,142,142,.08)}
+.oc-bubble::after{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid white}
+.oc-bubble.whisper{font-size:12px;font-style:italic;background:rgba(255,255,255,.92);color:#6a9e9e;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.oc-bubble.excited{font-size:16px;color:#D4A843;font-weight:700;background:linear-gradient(135deg,#fffef0,#fef3c8);box-shadow:0 4px 20px rgba(253,230,138,.3)}
+.oc-bubble.gentle{background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border:1px solid rgba(45,142,142,.1);box-shadow:0 4px 16px rgba(45,142,142,.1)}
 .confetti-p{position:fixed;pointer-events:none;z-index:61;border-radius:2px;opacity:.9}
 /* ── Stress-ball spring-back ──────────────────────────── */
 @keyframes eggSpringBack{
@@ -3366,36 +3366,69 @@ function applyReactive(){
   var R=refs();if(!R.eyeL)return;
   var m=OC.reactiveMood;
   var egg=document.getElementById('eggCompanion');if(!egg)return;
-  egg.style.transition='transform .4s ease';
+  var glow=document.getElementById('eggGlow');
+
+  // Smooth transitions
+  egg.style.transition='transform .4s ease, filter .4s ease';
 
   if(!m){
-    egg.style.transform='';
+    // Return to base — gentle ease back
+    egg.style.transform='';egg.style.filter='';
+    if(glow){glow.classList.remove('active');glow.style.background=''}
     R.eyeL.setAttribute('ry','3.5');R.eyeR.setAttribute('ry','3.5');
     if(R.browL){R.browL.setAttribute('opacity','0');R.browR.setAttribute('opacity','0')}
     R.mouth.setAttribute('d','M92,138 Q100,144 108,138');
+    R.cheeks.forEach(function(c){c.setAttribute('opacity','0.25')});
+    if(R.stars)R.stars.setAttribute('opacity','0');
     setArms('resting');return;
   }
+
   if(m==='concerned'){
-    R.eyeL.setAttribute('ry','4.2');R.eyeR.setAttribute('ry','4.2');
-    if(R.browL){R.browL.setAttribute('opacity','0.6');R.browL.setAttribute('d','M68,103 Q75,100 82,104');
-    R.browR.setAttribute('opacity','0.6');R.browR.setAttribute('d','M118,104 Q125,100 132,103')}
-    egg.style.transform='scale(1.03)';R.rays.setAttribute('opacity','0.15');
-    R.mouth.setAttribute('d','M93,138 Q100,140 107,138');setArms('reaching');
-  }else if(m==='delighted'){
-    R.eyeL.setAttribute('ry','3');R.eyeR.setAttribute('ry','3');
-    R.cheeks.forEach(function(c){c.setAttribute('opacity','0.7')});
-    if(R.stars)R.stars.setAttribute('opacity','0.5');
-    R.rays.setAttribute('opacity','0.5');R.mouth.setAttribute('d','M90,136 Q100,148 110,136');
-    egg.style.transform='scale(1.02)';setArms('resting');
-  }else if(m==='attentive'){
-    R.eyeL.setAttribute('ry','4');R.eyeR.setAttribute('ry','4');
-    egg.style.transform='rotate(3deg)';R.mouth.setAttribute('d','M93,138 Q100,141 107,138');
-  }else if(m==='leaning'){
-    egg.style.transform='scale(1.05)';R.eyeL.setAttribute('ry','3.8');R.eyeR.setAttribute('ry','3.8');
+    // DRAMATIC: egg grows, tilts toward patient, warm glow dims
+    R.eyeL.setAttribute('ry','4.5');R.eyeR.setAttribute('ry','4.5');
+    if(R.browL){R.browL.setAttribute('opacity','0.7');R.browL.setAttribute('d','M66,102 Q74,98 82,103');
+    R.browR.setAttribute('opacity','0.7');R.browR.setAttribute('d','M118,103 Q126,98 134,102')}
+    egg.style.transform='scale(1.08) translateY(-3px)';
+    egg.style.filter='drop-shadow(0 4px 16px rgba(45,142,142,.25))';
+    R.rays.setAttribute('opacity','0.12');
+    R.mouth.setAttribute('d','M93,139 Q100,140 107,139'); // neutral/concerned
+    R.cheeks.forEach(function(c){c.setAttribute('opacity','0.15')});
+    if(glow){glow.classList.add('active');glow.style.background='radial-gradient(circle,rgba(45,142,142,.15),transparent 70%)'}
     setArms('reaching');
+
+  }else if(m==='delighted'){
+    // DRAMATIC: egg bounces, bright warm glow, sparkles visible
+    R.eyeL.setAttribute('ry','2.8');R.eyeR.setAttribute('ry','2.8');
+    R.cheeks.forEach(function(c){c.setAttribute('opacity','0.8')});
+    if(R.stars)R.stars.setAttribute('opacity','0.7');
+    R.rays.setAttribute('opacity','0.6');
+    R.mouth.setAttribute('d','M88,135 Q100,150 112,135'); // big smile
+    egg.style.transform='scale(1.06) translateY(-2px)';
+    egg.style.filter='drop-shadow(0 6px 20px rgba(253,230,138,.4))';
+    if(glow){glow.classList.add('active');glow.style.background='radial-gradient(circle,rgba(253,230,138,.25),transparent 70%)'}
+    setArms('heart');
+
+  }else if(m==='attentive'){
+    // Tilt + alert eyes
+    R.eyeL.setAttribute('ry','4.2');R.eyeR.setAttribute('ry','4.2');
+    egg.style.transform='rotate(4deg) scale(1.03)';
+    egg.style.filter='drop-shadow(0 3px 12px rgba(45,142,142,.15))';
+    R.mouth.setAttribute('d','M93,138 Q100,141 107,138');
+
+  }else if(m==='leaning'){
+    // Grows bigger — "reading along"
+    egg.style.transform='scale(1.1) translateY(-4px)';
+    egg.style.filter='drop-shadow(0 6px 20px rgba(45,142,142,.2))';
+    R.eyeL.setAttribute('ry','3.8');R.eyeR.setAttribute('ry','3.8');
+    if(glow){glow.classList.add('active');glow.style.background='radial-gradient(circle,rgba(45,142,142,.1),transparent 70%)'}
+    setArms('reaching');
+
   }else if(m==='calm'){
+    // Steady, unshaken — calming presence
     R.eyeL.setAttribute('ry','3.2');R.eyeR.setAttribute('ry','3.2');
-    R.rays.setAttribute('opacity','0.25');R.mouth.setAttribute('d','M93,139 Q100,141 107,139');
+    R.rays.setAttribute('opacity','0.25');
+    R.mouth.setAttribute('d','M93,139 Q100,141 107,139');
+    egg.style.filter='drop-shadow(0 4px 16px rgba(200,184,112,.2))';
   }
 }
 
@@ -3551,9 +3584,20 @@ function initPersonality(){
   if(typeof origAdd==='function'){window.addMsg=function(role,text){if(role==='user')checkCelebration(text);return origAdd.apply(this,arguments)}}
 }
 
-// Hook into showApp
-var _origSA=window.showApp;
-window.showApp=function(){_origSA.apply(this,arguments);setTimeout(initPersonality,2000)};
+// Hook into showApp AND a fallback observer
+var _origSA=window.showApp||showApp;
+window.showApp=showApp=function(){_origSA.apply(this,arguments);setTimeout(initPersonality,2000)};
+// Fallback: if app screen appears by any path, init personality
+var _pObs=new MutationObserver(function(){
+  var app=document.getElementById('screen-app');
+  if(app&&app.classList.contains('active')&&!OC._inited){OC._inited=true;setTimeout(initPersonality,1500)}
+});
+setTimeout(function(){
+  var app=document.getElementById('screen-app');
+  if(app){_pObs.observe(app,{attributes:true,attributeFilter:['class']})}
+  // Direct fallback if already active
+  if(app&&app.classList.contains('active')&&!OC._inited){OC._inited=true;setTimeout(initPersonality,1500)}
+},500);
 
 })();
 </script>

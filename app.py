@@ -2295,6 +2295,19 @@ def evaluate_clinical_triggers(patient_id: str) -> list:
     return triggers
 
 
+def _is_data_question(msg: str) -> bool:
+    """Check if message is explicitly asking for medical data/statistics."""
+    m = msg.lower()
+    data_signals = [
+        "what are my chances", "success rate", "how likely", "statistics",
+        "how many cycles", "does age matter", "fresh vs frozen", "fresh or frozen",
+        "cause of infertility", "ivf safe", "baby outcomes", "egg freezing",
+        "freeze my eggs", "ivf improving", "how many rounds",
+        "what percentage", "data", "numbers", "evidence"
+    ]
+    return any(s in m for s in data_signals)
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
     """Main chat endpoint — triage → layers → synthesis → safety check."""
@@ -2582,10 +2595,12 @@ Weave this awareness naturally — don't announce it as a feature, just show you
         elif escalation["level"] == "AMBER":
             escalation["alerts"].append("Alert: Nurse dashboard notification")
 
-    # ANZARD charts — match on ALL messages, take priority over Fertool
-    anzard_charts = match_anzard_charts(req.message, assistant_msg) or None
-    if anzard_charts:
-        logger.info(f"[ANZARD] Charts detected: {[c['key'] for c in anzard_charts]}")
+    # ANZARD charts — only on educational/medical context (triage 2) or explicit data questions
+    anzard_charts = None
+    if triage_category == 2 or _is_data_question(req.message):
+        anzard_charts = match_anzard_charts(req.message, assistant_msg) or None
+        if anzard_charts:
+            logger.info(f"[ANZARD] Charts detected: {[c['key'] for c in anzard_charts]}")
 
     # Fertool cards — only if no ANZARD charts (never show both)
     fertool_cards = None

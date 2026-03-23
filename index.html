@@ -319,6 +319,18 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .egg-welcome-bubble.visible{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
 .egg-welcome-bubble::after{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid #f2edea;filter:drop-shadow(0 1px 1px rgba(0,0,0,.02))}
 .egg-welcome-bubble p{font-family:'Montserrat',sans-serif;font-size:12px;line-height:1.6;color:#5a7a7a;text-align:center;margin:0;font-weight:400;letter-spacing:.01em}
+/* ── Egg Proactive Support Bubble ──────────────────── */
+.egg-support-bubble{position:fixed;bottom:170px;left:16px;width:240px;background:linear-gradient(145deg,#f0fdfa,#e8f5e8);border:1.5px solid rgba(45,142,142,0.2);border-radius:20px;padding:16px 18px;box-shadow:0 8px 32px rgba(45,142,142,.12),0 2px 8px rgba(0,0,0,.04);opacity:0;pointer-events:none;transition:opacity .6s ease,transform .6s cubic-bezier(.25,1,.5,1);transform:translateY(10px) scale(.94);z-index:55}
+.egg-support-bubble.visible{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
+.egg-support-bubble::after{content:'';position:absolute;bottom:-8px;left:36px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #e8f5e8}
+.egg-support-bubble .esb-icon{font-size:20px;margin-bottom:6px}
+.egg-support-bubble .esb-text{font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.55;color:#2a4a4a;margin:0 0 10px}
+.egg-support-bubble .esb-action{display:inline-block;padding:6px 14px;border-radius:50px;background:#2D8E8E;color:white;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;border:none;cursor:pointer;transition:background .2s}
+.egg-support-bubble .esb-action:hover{background:#256f6f}
+.egg-support-bubble .esb-dismiss{position:absolute;top:8px;right:10px;background:none;border:none;color:#9ec0c0;font-size:14px;cursor:pointer;padding:2px 4px}
+@keyframes eggReachOut{0%{transform:scale(1)}30%{transform:scale(1.25)}60%{transform:scale(1.18)}100%{transform:scale(1.2)}}
+.egg-companion.reaching svg{animation:eggReachOut .8s ease forwards,eggFloat 4s ease-in-out infinite}
+.egg-companion.reaching::before{opacity:1;background:radial-gradient(circle,rgba(45,142,142,.15),transparent 68%);animation:auraBreath 3s ease-in-out infinite}
 /* ── Stress-ball spring-back ──────────────────────────── */
 @keyframes eggSpringBack{
 0%{transform:scale(1)}
@@ -1407,14 +1419,88 @@ if(opts&&opts.eduFork){html+='<div class="edu-quick-replies"><button class="edu-
 d.innerHTML=html}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'}a.appendChild(d);a.scrollTop=a.scrollHeight;if(fertoolCards&&fertoolCards.length>0){var fc=d.querySelector('.fertool-cards');if(fc){setTimeout(function(){fc.classList.add('visible')},200);if(opts&&opts.glowCards){var cards=fc.querySelectorAll('.fertool-card');cards.forEach(function(c){c.classList.add('glow')})}}}}
 function eduQuickReply(el,type){var replies={reassure:'Can you reassure me about this?',explain:'Can you explain the clinical details?',practical:'What should I actually do? Give me practical tips.'};var wrap=el.closest('.edu-quick-replies');if(wrap){var pills=wrap.querySelectorAll('.edu-quick-pill');pills.forEach(function(p){p.style.opacity='0.4';p.style.pointerEvents='none'});el.style.opacity='1';el.style.background='#2D8E8E';el.style.color='white'}var ci=document.getElementById('chat-input');ci.value=replies[type]||'';setTimeout(function(){sendMsg()},100)}
 function triggerOneWord(el){el.style.opacity='0.5';el.style.pointerEvents='none';var ci=document.getElementById('chat-input');ci.placeholder='Just one word is enough...';ci.focus();setTimeout(function(){el.remove()},300)}
-async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.capability_hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=d.capability_hint;a.appendChild(h);a.scrollTop=a.scrollHeight},800)}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){var a=document.getElementById('chat-area');d.support_widgets.forEach(function(widget){var el=renderSupportWidget(widget);if(el){a.appendChild(el);a.scrollTop=a.scrollHeight}})},300)}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
+async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.capability_hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=d.capability_hint;a.appendChild(h);a.scrollTop=a.scrollHeight},800)}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){var a=document.getElementById('chat-area');d.support_widgets.forEach(function(widget){var el=renderSupportWidget(widget);if(el){a.appendChild(el);a.scrollTop=a.scrollHeight}});eggProactiveSupport(d.support_widgets[0])},300)}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
 function addSystemMsg(t){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-system';d.innerHTML='<div class="msg-bubble">'+t+'</div>';a.appendChild(d);a.scrollTop=a.scrollHeight}
 function renderSupportWidget(type){var w=document.createElement('div');w.className='support-widget';w.style.cssText='margin:8px 48px 8px 8px;padding:14px 16px;background:linear-gradient(135deg,#f0fdfa,#e0f5f0);border-radius:14px;border:1px solid rgba(45,142,142,0.12);cursor:pointer;';var widgets={pre_procedure_checklist:{icon:'\ud83d\udccb',title:'Preparation Checklist',sub:'Things to remember before your procedure',action:function(){sendAutoMsg('Can you help me prepare for my upcoming procedure?')}},grounding_exercise:{icon:'\ud83e\uddd8',title:'2-Minute Grounding',sub:'A quick exercise to help calm your nerves',action:function(){sendAutoMsg('Can you guide me through a quick grounding exercise?')}},tww_survival_kit:{icon:'\ud83c\udfaf',title:'TWW Survival Kit',sub:'Distraction ideas and coping strategies',action:function(){sendAutoMsg('I need some distraction ideas during the TWW')}},stim_fatigue_support:{icon:'\ud83d\udc89',title:'Injection Prep & Support',sub:'Tips to make injections easier',action:function(){sendAutoMsg('Can you help me with injection tips? I\'m feeling fatigued')}},post_result_care:{icon:'\ud83d\udc9b',title:'Talk to Someone',sub:'Your clinic team is here for you',action:function(){sendAutoMsg('I\'m struggling after my results')}},gentle_nudge:{icon:'\ud83d\udc4b',title:'Welcome Back',sub:'Just checking you\'re okay. No pressure.',action:null},medication_education:{icon:'\ud83d\udc8a',title:'Medication Guide',sub:'Clear info about your medications',action:function(){sendAutoMsg('Can you explain my medications clearly?')}}};var cfg=widgets[type];if(!cfg)return null;w.innerHTML='<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">'+cfg.icon+'</span><div><div style="font-family:var(--serif);font-size:13px;font-weight:600;color:#1a3a3a">'+cfg.title+'</div><div style="font-size:11px;color:#6a9e9e;margin-top:2px">'+cfg.sub+'</div></div><span style="color:#2D8E8E;font-size:18px;margin-left:auto">\u2192</span></div>';if(cfg.action){w.onclick=cfg.action}return w}
 function sendAutoMsg(text){var input=document.getElementById('chat-input');if(input){input.value=text;sendMsg()}}
+
+// ── Egg Proactive Support — egg reaches out when triggers fire ──
+var _eggSupportTimer=null;
+var _eggSupportMessages={
+  pre_procedure_checklist:{icon:'📋',text:'Hey — your procedure is coming up soon. Take a breath. Want me to walk you through what to expect?',action:'Can you help me prepare for my upcoming procedure?',btn:'Let\'s prepare'},
+  grounding_exercise:{icon:'🧘',text:'I can see things feel heavy right now. Want to try a quick 2-minute grounding exercise together?',action:'Can you guide me through a quick grounding exercise?',btn:'Let\'s try it'},
+  tww_survival_kit:{icon:'🎯',text:'The wait is real. I have some ideas that might help take the edge off — want to see?',action:'I need some distraction ideas during the TWW',btn:'Show me'},
+  stim_fatigue_support:{icon:'💉',text:'You\'ve been going strong with stim. It\'s okay to feel tired. Want some tips to make tonight easier?',action:'Can you help me with injection tips? I\'m feeling fatigued',btn:'Yes please'},
+  post_result_care:{icon:'💛',text:'I\'m here. No rush, no pressure. Just want you to know you don\'t have to sit with this alone.',action:'I\'m struggling after my results',btn:'Talk to me'},
+  gentle_nudge:{icon:'👋',text:'Haven\'t heard from you in a bit. Just checking you\'re okay — no pressure to talk.',action:null,btn:null},
+  medication_education:{icon:'💊',text:'Medications can be confusing — that\'s totally normal. Want me to break things down simply?',action:'Can you explain my medications clearly?',btn:'Explain it'}
+};
+
+function eggProactiveSupport(widgetType){
+  var msg=_eggSupportMessages[widgetType];
+  if(!msg)return;
+
+  var egg=document.getElementById('eggCompanion');
+  if(!egg||!egg.classList.contains('visible'))return;
+
+  // Remove any existing support bubble
+  var existing=document.querySelector('.egg-support-bubble');
+  if(existing)existing.remove();
+
+  // Make egg "reach out" — grow slightly, warm glow
+  egg.classList.remove('idle');
+  egg.classList.add('reaching');
+
+  // Create support bubble
+  var bubble=document.createElement('div');
+  bubble.className='egg-support-bubble';
+
+  var html='<button class="esb-dismiss" onclick="dismissEggSupport()">&times;</button>';
+  html+='<div class="esb-icon">'+msg.icon+'</div>';
+  html+='<div class="esb-text">'+msg.text+'</div>';
+  if(msg.btn&&msg.action){
+    html+='<button class="esb-action" onclick="acceptEggSupport(\''+msg.action.replace(/'/g,"\\'")+'\')">'+ msg.btn+'</button>';
+  }
+  bubble.innerHTML=html;
+
+  // Position near egg
+  var eggRect=egg.getBoundingClientRect();
+  bubble.style.left=Math.max(8,eggRect.left-20)+'px';
+  bubble.style.bottom=(window.innerHeight-eggRect.top+12)+'px';
+
+  document.body.appendChild(bubble);
+
+  // Animate in after a beat
+  setTimeout(function(){bubble.classList.add('visible')},100);
+
+  // Auto-dismiss after 15 seconds
+  _eggSupportTimer=setTimeout(function(){dismissEggSupport()},15000);
+}
+
+function dismissEggSupport(){
+  var bubble=document.querySelector('.egg-support-bubble');
+  if(bubble){
+    bubble.classList.remove('visible');
+    setTimeout(function(){bubble.remove()},600);
+  }
+  var egg=document.getElementById('eggCompanion');
+  if(egg){
+    egg.classList.remove('reaching');
+    egg.classList.add('idle');
+  }
+  if(_eggSupportTimer){clearTimeout(_eggSupportTimer);_eggSupportTimer=null}
+}
+
+function acceptEggSupport(actionText){
+  dismissEggSupport();
+  // Switch to chat tab and send the message
+  switchTab('chat');
+  setTimeout(function(){sendAutoMsg(actionText)},300);
+}
 function showCalendarToast(count){var toast=document.createElement('div');toast.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2D8E8E;color:white;padding:10px 20px;border-radius:50px;font-size:13px;font-family:var(--sans);z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.15);animation:fadeIn .3s;';toast.textContent='\ud83d\udcc5 Your team updated '+count+' event'+(count>1?'s':'');document.body.appendChild(toast);setTimeout(function(){toast.style.opacity='0';toast.style.transition='opacity .3s';setTimeout(function(){toast.remove()},300)},4000)}
 async function submitCheckin(){var b=document.getElementById('btn-checkin');b.disabled=true;b.textContent='Submitting...';var c={mood:+document.getElementById('v-mood').textContent,anxiety:+document.getElementById('v-anxiety').textContent,loneliness:+document.getElementById('v-lonely').textContent,uncertainty:+document.getElementById('v-uncertain').textContent,hope:+document.getElementById('v-hope').textContent,note:document.getElementById('ci-note').value.trim()};
 if(collector)collector.onCheckinComplete(c);
-state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message;if(d.capability_hint){setTimeout(function(){addSystemMsg(d.capability_hint)},1000)}}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Submit check-in';updateChart()}
+state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message;if(d.capability_hint){setTimeout(function(){addSystemMsg(d.capability_hint)},1000)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){eggProactiveSupport(d.support_widgets[0])},1500)}}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Submit check-in';updateChart()}
 function getStageName(id){var s=STAGES.find(function(s){return s.id===id});return s?s.name:id}
 function updateStageUI(){document.getElementById('header-stage').textContent=getStageName(state.stage);document.getElementById('ci-stage-name').textContent=getStageName(state.stage);document.getElementById('ci-stage-cycle').textContent='Cycle '+state.cycle+' \u00b7 '+state.treatment.toUpperCase()}
 function openStageModal(){if(collector)collector.onStageModalOpen();var c=document.getElementById('modal-stages');c.innerHTML='';STAGES.forEach(function(s){var b=document.createElement('button');b.className='modal-stage-btn'+(s.id===state.stage?' current':'');b.innerHTML='<span class="stage-icon">'+(stageIcon(s.id)||'')+'</span>'+s.name;b.onclick=function(){var oldStage=state.stage;state.stage=s.id;if(collector)collector.onStageChange(oldStage,s.id);updateStageUI();buildTimeline();buildEducation();closeStageModal();addSystemMsg('Stage updated to '+s.name)};c.appendChild(b)});document.getElementById('stage-modal').classList.add('open')}

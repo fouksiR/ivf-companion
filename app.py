@@ -1548,6 +1548,7 @@ class CheckInResponse(BaseModel):
     checkin_summary: dict
     escalation: Optional[dict] = None
     trigger_screening: Optional[str] = None
+    support_widgets: Optional[list] = None
 
 class ScreeningRequest(BaseModel):
     patient_id: str
@@ -2700,12 +2701,16 @@ Don't list back all the numbers — respond to the feeling, not the data."""
         "type": "checkin_response",
     })
 
+    # Collect support widgets from clinical triggers
+    checkin_support_widgets = [t.get('support_widget') for t in clinical_triggers if t.get('support_widget')] if clinical_triggers else []
+
     return CheckInResponse(
         message=melod_msg,
         patient_id=req.patient_id,
         checkin_summary=checkin,
         escalation=escalation,
         trigger_screening=trigger_screening,
+        support_widgets=checkin_support_widgets if checkin_support_widgets else None,
     )
 
 

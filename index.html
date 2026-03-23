@@ -319,31 +319,6 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .egg-welcome-bubble.visible{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0) scale(1)}
 .egg-welcome-bubble::after{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid #f2edea;filter:drop-shadow(0 1px 1px rgba(0,0,0,.02))}
 .egg-welcome-bubble p{font-family:'Montserrat',sans-serif;font-size:12px;line-height:1.6;color:#5a7a7a;text-align:center;margin:0;font-weight:400;letter-spacing:.01em}
-/* ── Egg Proactive Support Bubble ──────────────────── */
-.egg-support-bubble{position:fixed;bottom:170px;left:16px;width:240px;background:linear-gradient(145deg,#f0fdfa,#e8f5e8);border:1.5px solid rgba(45,142,142,0.2);border-radius:20px;padding:16px 18px;box-shadow:0 8px 32px rgba(45,142,142,.12),0 2px 8px rgba(0,0,0,.04);opacity:0;pointer-events:none;transition:opacity .6s ease,transform .6s cubic-bezier(.25,1,.5,1);transform:translateY(10px) scale(.94);z-index:55}
-.egg-support-bubble.visible{opacity:1;pointer-events:auto;transform:translateY(0) scale(1)}
-.egg-support-bubble::after{content:'';position:absolute;bottom:-8px;left:36px;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #e8f5e8}
-.egg-support-bubble .esb-icon{font-size:20px;margin-bottom:6px}
-.egg-support-bubble .esb-text{font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.55;color:#2a4a4a;margin:0 0 10px}
-.egg-support-bubble .esb-action{display:inline-block;padding:6px 14px;border-radius:50px;background:#2D8E8E;color:white;font-size:11px;font-weight:600;font-family:'DM Sans',sans-serif;border:none;cursor:pointer;transition:background .2s}
-.egg-support-bubble .esb-action:hover{background:#256f6f}
-.egg-support-bubble .esb-dismiss{position:absolute;top:8px;right:10px;background:none;border:none;color:#9ec0c0;font-size:14px;cursor:pointer;padding:2px 4px}
-@keyframes eggReachOut{0%{transform:scale(1)}30%{transform:scale(1.25)}60%{transform:scale(1.18)}100%{transform:scale(1.2)}}
-.egg-companion.reaching svg{animation:eggReachOut .8s ease forwards,eggFloat 4s ease-in-out infinite}
-.egg-companion.reaching::before{opacity:1;background:radial-gradient(circle,rgba(45,142,142,.15),transparent 68%);animation:auraBreath 3s ease-in-out infinite}
-/* Oocyte personality speech bubbles */
-.oocyte-bubble{position:fixed;z-index:60;background:white;border-radius:16px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,.08);font-family:'DM Sans','Montserrat',sans-serif;font-size:13px;color:#1a3a3a;max-width:200px;text-align:center;opacity:0;transform:scale(.8) translateY(4px);transition:opacity .25s ease-out,transform .25s ease-out;pointer-events:none}
-.oocyte-bubble.visible{opacity:1;transform:scale(1) translateY(0)}
-.oocyte-bubble::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid white}
-.oocyte-bubble.whisper{font-size:11px;font-style:italic;background:rgba(255,255,255,.9);color:#6a9e9e}
-.oocyte-bubble.excited{font-size:14px;color:#D4A843;font-weight:600}
-.oocyte-bubble.gentle{background:rgba(240,253,250,.95);border:1px solid rgba(45,142,142,.08)}
-/* Celebration confetti */
-.confetti-piece{position:fixed;pointer-events:none;z-index:61;border-radius:2px;opacity:0.9}
-@keyframes confettiFall{0%{opacity:.9;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(120px) rotate(720deg)}}
-/* Oocyte candle for nighttime */
-.oocyte-candle{position:absolute;bottom:42%;left:50%;transform:translateX(-50%);opacity:0;transition:opacity .5s}
-@keyframes candleFlicker{0%,100%{opacity:.8;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.1)}}
 /* ── Stress-ball spring-back ──────────────────────────── */
 @keyframes eggSpringBack{
 0%{transform:scale(1)}
@@ -495,7 +470,10 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .float-icon svg{width:20px;height:20px;stroke:#2D8E8E;fill:none;stroke-width:1.8}
 .float-badge{position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:#f87171;color:white;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-family:'DM Sans',sans-serif}
 /* ── Music toggle ── */
-/* music toggle removed */
+.music-toggle{position:fixed;top:16px;left:16px;width:38px;height:38px;border-radius:50%;border:1.5px solid #2D8E8E;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:55;transition:background .2s}
+.music-toggle.active{background:#2D8E8E}
+.music-toggle svg{width:18px;height:18px;stroke:#2D8E8E;fill:none;stroke-width:1.8}
+.music-toggle.active svg{stroke:white}
 /* ── IVF Calendar ── */
 .cal-header{display:flex;align-items:center;justify-content:space-between;padding:0 4px;margin-bottom:12px}
 .cal-header h3{font-family:'Playfair Display',Georgia,serif;font-size:18px;margin:0;color:var(--text)}
@@ -641,32 +619,11 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     <div class="community-tabs"><button class="community-tab active" onclick="switchCommunityTab('buddies')">Buddies</button><button class="community-tab" onclick="switchCommunityTab('world')">World</button></div>
     <div id="community-buddies">
       <div class="community-invite"><h3>Journey Together!</h3><p>Celebrate, support, and lean on each other every step of the way</p><button class="community-invite-btn">Invite a Buddy</button></div>
-      <div id="buddies-feed">
-        <div style="margin-top:16px">
-          <h4 style="font-family:var(--serif);font-size:14px;color:#1a3a3a;margin:0 0 8px">Connect with patients at your stage</h4>
-          <div id="stage-groups" style="display:flex;flex-direction:column;gap:8px"></div>
-        </div>
-      </div>
+      <div id="buddies-feed"><div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">No buddies yet. Invite someone to share the journey!</div></div>
     </div>
     <div id="community-world" style="display:none">
-      <div id="activeStageCounter" style="text-align:center;padding:8px 16px;background:rgba(45,142,142,0.05);border-radius:12px;margin-bottom:10px;font-size:12px;color:#3a7070;display:none"></div>
-      <div id="stage-filter-pills" style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch"></div>
+      <div class="community-invite"><h3>You're Not Alone</h3><p>Connect with others on the same path — anonymously and safely</p></div>
       <div id="world-feed"></div>
-      <div id="world-loading" style="display:none;text-align:center;padding:16px;color:var(--text-soft);font-size:12px">Loading...</div>
-    </div>
-    <div id="patients-like-you-card" style="margin:16px 0;padding:20px;background:linear-gradient(135deg,#e0f5f0 0%,#f0fdfa 50%,#fef9ef 100%);border-radius:20px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:12px;right:12px;background:#D4A843;color:white;font-size:10px;font-weight:700;padding:3px 10px;border-radius:50px;font-family:var(--sans)">Coming Soon</div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <div style="font-size:28px">&#x1F95A;</div>
-        <h3 style="font-family:var(--serif);font-size:17px;color:#1a3a3a;margin:0">Patients Like You</h3>
-      </div>
-      <p style="font-size:13px;color:#3a7070;line-height:1.5;margin:0 0 14px">See what others at your stage are feeling, asking, and finding helpful — all anonymized and AI-curated.</p>
-      <div style="filter:blur(2px);opacity:0.6;pointer-events:none">
-        <div style="background:white;border-radius:10px;padding:10px;margin-bottom:6px;font-size:12px;color:#2a2a2a">&#x1F50D; Most common concern in TWW: <strong>Is cramping normal?</strong></div>
-        <div style="background:white;border-radius:10px;padding:10px;margin-bottom:6px;font-size:12px;color:#2a2a2a">&#x1F4CA; Average mood during TWW: <strong>4.2/10</strong></div>
-        <div style="background:white;border-radius:10px;padding:10px;font-size:12px;color:#2a2a2a">&#x1F4A1; What helped others: <strong>Grounding exercises before scan</strong></div>
-      </div>
-      <p style="font-size:11px;color:#6a9e9e;margin:12px 0 0;line-height:1.4">We're building something special. As more patients join, these insights will become available.</p>
     </div>
     <button class="community-fab" id="communityFab" onclick="openPostModal()">+</button>
   </div>
@@ -683,9 +640,9 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     </div>
     <div class="edu-section" style="padding:0 16px"><h3>Learn More</h3><div class="edu-grid" id="edu-grid"></div></div>
     </div><!-- end insight-summary -->
-    <div class="insights-panel" id="insight-weekly"><div style="padding:16px"><div id="weeklyNav" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><button onclick="shiftWeek(-1)" style="background:none;border:none;font-size:18px;color:#2D8E8E;cursor:pointer">&larr;</button><span id="weekLabel" style="font-family:'Playfair Display',serif;font-size:15px;color:#1a3a3a">This Week</span><button onclick="shiftWeek(1)" style="background:none;border:none;font-size:18px;color:#2D8E8E;cursor:pointer">&rarr;</button></div><div id="weeklySparkline" style="text-align:center;margin-bottom:12px"></div><div id="weeklyContent"></div></div></div>
-    <div class="insights-panel" id="insight-daily"><div style="padding:16px"><div id="dailyNav" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><button onclick="shiftDay(-1)" style="background:none;border:none;font-size:18px;color:#2D8E8E;cursor:pointer">&larr;</button><span id="dayLabel" style="font-family:'Playfair Display',serif;font-size:15px;color:#1a3a3a">Today</span><button onclick="shiftDay(1)" style="background:none;border:none;font-size:18px;color:#2D8E8E;cursor:pointer">&rarr;</button></div><div id="dailyEntries"></div></div></div>
-    <div class="insights-panel" id="insight-chats"><div style="padding:16px"><h3 style="font-family:'Playfair Display',serif;margin:0 0 12px;color:#1a3a3a">Chat History</h3><div id="chatHistory"></div></div></div>
+    <div class="insights-panel" id="insight-weekly"><div style="padding:16px;text-align:center;color:var(--text-soft)"><h3 style="font-family:'Playfair Display',serif">This Week</h3><p>Your weekly mood summary will appear here after a few check-ins.</p><div id="weeklyContent"></div></div></div>
+    <div class="insights-panel" id="insight-daily"><div style="padding:16px"><h3 style="font-family:'Playfair Display',serif;margin:0 0 12px">Daily Journal</h3><div id="dailyEntries"><div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">No entries yet today. Tap the oocyte to check in!</div></div></div></div>
+    <div class="insights-panel" id="insight-chats"><div style="padding:16px"><h3 style="font-family:'Playfair Display',serif;margin:0 0 12px">Chat History</h3><div id="chatHistory"><div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">Your chat sessions will appear here.</div></div></div></div>
   </div>
 </div>
 
@@ -698,6 +655,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   <div class="float-icon" onclick="switchTab('circle')"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
 </div>
 <!-- Music toggle -->
+<button class="music-toggle" id="musicToggle" onclick="toggleMusic()" style="display:none"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>
 <!-- Post creation modal -->
 <div class="post-modal-overlay" id="postModal"><div class="post-modal"><h3>Share with the community</h3><textarea id="postText" placeholder="What's on your mind?"></textarea><div class="post-modal-actions"><label class="post-modal-anon"><input type="checkbox" id="postAnon" checked> Anonymous</label><button class="post-modal-send" onclick="submitPost()">Post</button></div></div></div>
 <!-- Tour offer -->
@@ -790,11 +748,6 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
       <!-- Mouth — gentle quiet smile -->
       <path id="egMouth" d="M92,138 Q100,144 108,138" stroke="#666" fill="none" stroke-width="1.2" stroke-linecap="round"/>
     </g>
-    <!-- Arms (Feature 3) — tiny expressive appendages -->
-    <g id="egArms" opacity="0.7" style="transition:opacity 0.4s">
-      <path id="egArmL" d="M30,128 Q22,136 25,148" stroke="#c8b870" stroke-width="2.2" fill="none" stroke-linecap="round" style="transition:d 0.4s ease"/>
-      <path id="egArmR" d="M170,128 Q178,136 175,148" stroke="#c8b870" stroke-width="2.2" fill="none" stroke-linecap="round" style="transition:d 0.4s ease"/>
-    </g>
   </svg>
   <div class="egg-glow" id="eggGlow"></div>
 </div>
@@ -831,8 +784,7 @@ session_metrics:{duration_seconds:Math.round((Date.now()-this.sessionStart)/1000
 weekly_behavior:this._getWeeklyBehavior()};
 const n=this.buffer.length;this.buffer=[];
 try{await fetch(this.apiBase+'/passive-signals',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
-if(this.debug)console.log('[Phenotyping] Flushed',n,'signals');
-_communityMetrics={posts_viewed:0,posts_read_time_ms:0,reactions_given:0,post_created:false,stage_filters_used:[],time_on_circle_tab_ms:0,post_hours:[],_circleTabStart:0}}catch(e){this.buffer=[...p.signals,...this.buffer];if(this.debug)console.warn('[Phenotyping] Flush failed:',e.message)}}
+if(this.debug)console.log('[Phenotyping] Flushed',n,'signals')}catch(e){this.buffer=[...p.signals,...this.buffer];if(this.debug)console.warn('[Phenotyping] Flush failed:',e.message)}}
 async endSession(){this.record('session_end',Date.now()-this.sessionStart,{total_touches:this.m.totalTouches,total_messages:this.m.messagesSent});await this.flush();this._unbind();clearInterval(this._ft)}
 
 // ── SESSION LOG (weekly behavior tracking) ──
@@ -931,7 +883,6 @@ if(this.m.checkinStartTime&&this.m.checkinCompletionTime)f.checkin_duration_ms=t
 f.panel_visits=this.m.panelVisits;f.education_taps_count=this.m.educationTaps.length;f.stage_modal_opens=this.m.stageModalOpens;
 const v=Object.values(this.m.panelVisits);if(v.length>0){const tot=v.reduce((a,b)=>a+b,0);f.navigation_entropy=-v.reduce((h,x)=>{const p=x/tot;return h+(p>0?p*Math.log2(p):0)},0)}
 f.battery_level=this.m.batteryLevel;f.battery_charging=this.m.batteryCharging;f.connection_type=this.m.connectionType;
-f.community_activity={posts_viewed:_communityMetrics.posts_viewed,reactions_given:_communityMetrics.reactions_given,post_created:_communityMetrics.post_created,stage_filters_used:_communityMetrics.stage_filters_used,time_on_circle_tab_ms:_communityMetrics.time_on_circle_tab_ms,post_hours:_communityMetrics.post_hours,current_stage:typeof state!=='undefined'?state.stage||'':''};
 return f}
 _hasDerived(){return this.m.totalTouches>0||this.m.messagesSent>0||this.m.totalCharsTyped>0}
 async _probeAPIs(){if(navigator.getBattery){try{const b=await navigator.getBattery();this.m.batteryLevel=Math.round(b.level*100);this.m.batteryCharging=b.charging;
@@ -949,18 +900,6 @@ _slope(a){const n=a.length;if(n<2)return 0;const xm=(n-1)/2,ym=this._mean(a);let
 /* ═══ END PASSIVE COLLECTOR ════════════════════════════════════════ */
 
 let collector = null; // initialised after onboarding
-
-// Community activity tracking (fed into passive phenotyping pipeline)
-var _communityMetrics = {
-    posts_viewed: 0,
-    posts_read_time_ms: 0,
-    reactions_given: 0,
-    post_created: false,
-    stage_filters_used: [],
-    time_on_circle_tab_ms: 0,
-    post_hours: [],
-    _circleTabStart: 0
-};
 const API_BASE='https://ivf-companion-532857641879.australia-southeast1.run.app';
 /* ── Stage SVG Icons (20x20, stroke-only, teal #2D8E8E) ── */
 var STAGE_ICONS={
@@ -1421,12 +1360,7 @@ function renderAnzardEggFreeze(){
 function switchTab(t){var prev=document.querySelector('.nav-item.active');var prevTab=prev?prev.textContent.trim().toLowerCase():'';
 document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));var idx=t==='chat'?1:t==='checkin'?2:t==='circle'?3:4;document.querySelector('.nav-item:nth-child('+idx+')').classList.add('active');document.getElementById('panel-'+t).classList.add('active');
 var fab=document.getElementById('communityFab');if(fab)fab.style.display=t==='circle'?'block':'none';
-// Track circle tab time for community phenotyping
-if(prevTab==='circle'&&_communityMetrics._circleTabStart>0){_communityMetrics.time_on_circle_tab_ms+=Date.now()-_communityMetrics._circleTabStart;_communityMetrics._circleTabStart=0}
-if(t==='circle'){_communityMetrics._circleTabStart=Date.now()}
-if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart();if(t==='journey'){buildCalendar();updateJarCounts()}
-// Fire pending egg support when returning to chat
-if(t==='chat'&&_pendingEggSupport){setTimeout(function(){eggProactiveSupport(_pendingEggSupport)},800)}}
+if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart();if(t==='journey'){buildCalendar();updateJarCounts()}}
 var _oneWordShown=false;
 function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();html+='<div class="fertool-cards" id="'+_ftId+'">'+fertoolCards.filter(function(c){return!c.embed}).map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>';var _ftEmbed=fertoolCards.filter(function(c){return c.embed});if(_ftEmbed.length>0){setTimeout(function(){var container=document.getElementById(_ftId);if(!container)container=d;_ftEmbed.forEach(function(c){var widget=renderFertoolWidget(c);if(widget)container.parentElement.appendChild(widget)})},50)}}
 // Add one-word check-in pill after first greeting
@@ -1436,128 +1370,14 @@ if(opts&&opts.eduFork){html+='<div class="edu-quick-replies"><button class="edu-
 d.innerHTML=html}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'}a.appendChild(d);a.scrollTop=a.scrollHeight;if(fertoolCards&&fertoolCards.length>0){var fc=d.querySelector('.fertool-cards');if(fc){setTimeout(function(){fc.classList.add('visible')},200);if(opts&&opts.glowCards){var cards=fc.querySelectorAll('.fertool-card');cards.forEach(function(c){c.classList.add('glow')})}}}}
 function eduQuickReply(el,type){var replies={reassure:'Can you reassure me about this?',explain:'Can you explain the clinical details?',practical:'What should I actually do? Give me practical tips.'};var wrap=el.closest('.edu-quick-replies');if(wrap){var pills=wrap.querySelectorAll('.edu-quick-pill');pills.forEach(function(p){p.style.opacity='0.4';p.style.pointerEvents='none'});el.style.opacity='1';el.style.background='#2D8E8E';el.style.color='white'}var ci=document.getElementById('chat-input');ci.value=replies[type]||'';setTimeout(function(){sendMsg()},100)}
 function triggerOneWord(el){el.style.opacity='0.5';el.style.pointerEvents='none';var ci=document.getElementById('chat-input');ci.placeholder='Just one word is enough...';ci.focus();setTimeout(function(){el.remove()},300)}
-async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.capability_hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=d.capability_hint;a.appendChild(h);a.scrollTop=a.scrollHeight},800)}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){var a=document.getElementById('chat-area');d.support_widgets.forEach(function(widget){var el=renderSupportWidget(widget);if(el){a.appendChild(el);a.scrollTop=a.scrollHeight}});eggProactiveSupport(d.support_widgets[0])},300)}
-// Community entry point — if AI mentions normalizing language
-var respLow=(d.response||'').toLowerCase();if(!localStorage.getItem('melodai_community_prompt_shown')&&(respLow.indexOf('many patients')!==-1||respLow.indexOf('very common')!==-1||respLow.indexOf('not alone')!==-1||respLow.indexOf('others feel')!==-1)){localStorage.setItem('melodai_community_prompt_shown','1');setTimeout(function(){var a=document.getElementById('chat-area');var card=document.createElement('div');card.style.cssText='margin:6px 48px 6px 8px;padding:10px 14px;background:rgba(45,142,142,0.05);border-radius:12px;cursor:pointer;border:1px solid rgba(45,142,142,0.08)';card.innerHTML='<div style="font-size:12px;color:#3a7070">Others in '+getStageName(state.stage)+' are sharing too <span style="color:#2D8E8E;font-weight:600">&rarr; View community</span></div>';card.onclick=function(){switchTab('circle')};a.appendChild(card);a.scrollTop=a.scrollHeight},500)}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
+async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.capability_hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=d.capability_hint;a.appendChild(h);a.scrollTop=a.scrollHeight},800)}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){var a=document.getElementById('chat-area');d.support_widgets.forEach(function(widget){var el=renderSupportWidget(widget);if(el){a.appendChild(el);a.scrollTop=a.scrollHeight}})},300)}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
 function addSystemMsg(t){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-system';d.innerHTML='<div class="msg-bubble">'+t+'</div>';a.appendChild(d);a.scrollTop=a.scrollHeight}
 function renderSupportWidget(type){var w=document.createElement('div');w.className='support-widget';w.style.cssText='margin:8px 48px 8px 8px;padding:14px 16px;background:linear-gradient(135deg,#f0fdfa,#e0f5f0);border-radius:14px;border:1px solid rgba(45,142,142,0.12);cursor:pointer;';var widgets={pre_procedure_checklist:{icon:'\ud83d\udccb',title:'Preparation Checklist',sub:'Things to remember before your procedure',action:function(){sendAutoMsg('Can you help me prepare for my upcoming procedure?')}},grounding_exercise:{icon:'\ud83e\uddd8',title:'2-Minute Grounding',sub:'A quick exercise to help calm your nerves',action:function(){sendAutoMsg('Can you guide me through a quick grounding exercise?')}},tww_survival_kit:{icon:'\ud83c\udfaf',title:'TWW Survival Kit',sub:'Distraction ideas and coping strategies',action:function(){sendAutoMsg('I need some distraction ideas during the TWW')}},stim_fatigue_support:{icon:'\ud83d\udc89',title:'Injection Prep & Support',sub:'Tips to make injections easier',action:function(){sendAutoMsg('Can you help me with injection tips? I\'m feeling fatigued')}},post_result_care:{icon:'\ud83d\udc9b',title:'Talk to Someone',sub:'Your clinic team is here for you',action:function(){sendAutoMsg('I\'m struggling after my results')}},gentle_nudge:{icon:'\ud83d\udc4b',title:'Welcome Back',sub:'Just checking you\'re okay. No pressure.',action:null},medication_education:{icon:'\ud83d\udc8a',title:'Medication Guide',sub:'Clear info about your medications',action:function(){sendAutoMsg('Can you explain my medications clearly?')}}};var cfg=widgets[type];if(!cfg)return null;w.innerHTML='<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">'+cfg.icon+'</span><div><div style="font-family:var(--serif);font-size:13px;font-weight:600;color:#1a3a3a">'+cfg.title+'</div><div style="font-size:11px;color:#6a9e9e;margin-top:2px">'+cfg.sub+'</div></div><span style="color:#2D8E8E;font-size:18px;margin-left:auto">\u2192</span></div>';if(cfg.action){w.onclick=cfg.action}return w}
 function sendAutoMsg(text){var input=document.getElementById('chat-input');if(input){input.value=text;sendMsg()}}
-
-// ── Egg Proactive Support — egg reaches out when triggers fire ──
-var _eggSupportTimer=null;
-var _eggSupportMessages={
-  pre_procedure_checklist:{icon:'📋',text:'Hey — your procedure is coming up soon. Take a breath. Want me to walk you through what to expect?',action:'Can you help me prepare for my upcoming procedure?',btn:'Let\'s prepare'},
-  grounding_exercise:{icon:'🧘',text:'I can see things feel heavy right now. Want to try a quick 2-minute grounding exercise together?',action:'Can you guide me through a quick grounding exercise?',btn:'Let\'s try it'},
-  tww_survival_kit:{icon:'🎯',text:'The wait is real. I have some ideas that might help take the edge off — want to see?',action:'I need some distraction ideas during the TWW',btn:'Show me'},
-  stim_fatigue_support:{icon:'💉',text:'You\'ve been going strong with stim. It\'s okay to feel tired. Want some tips to make tonight easier?',action:'Can you help me with injection tips? I\'m feeling fatigued',btn:'Yes please'},
-  post_result_care:{icon:'💛',text:'I\'m here. No rush, no pressure. Just want you to know you don\'t have to sit with this alone.',action:'I\'m struggling after my results',btn:'Talk to me'},
-  gentle_nudge:{icon:'👋',text:'Haven\'t heard from you in a bit. Just checking you\'re okay — no pressure to talk.',action:null,btn:null},
-  medication_education:{icon:'💊',text:'Medications can be confusing — that\'s totally normal. Want me to break things down simply?',action:'Can you explain my medications clearly?',btn:'Explain it'}
-};
-
-function eggProactiveSupport(widgetType){
-  var msg=_eggSupportMessages[widgetType];
-  if(!msg)return;
-
-  var egg=document.getElementById('eggCompanion');
-  // If egg isn't visible (e.g. on check-in screen), queue it for when we return to chat
-  if(!egg||!egg.classList.contains('visible')){
-    _pendingEggSupport=widgetType;
-    // Also show a floating support toast immediately regardless of screen
-    _showSupportToast(msg);
-    return;
-  }
-
-  _pendingEggSupport=null;
-
-  // Remove any existing support bubble
-  var existing=document.querySelector('.egg-support-bubble');
-  if(existing)existing.remove();
-
-  // Make egg "reach out" — grow slightly, warm glow
-  egg.classList.remove('idle');
-  egg.classList.add('reaching');
-
-  // Create support bubble
-  var bubble=document.createElement('div');
-  bubble.className='egg-support-bubble';
-
-  var html='<button class="esb-dismiss" onclick="dismissEggSupport()">&times;</button>';
-  html+='<div class="esb-icon">'+msg.icon+'</div>';
-  html+='<div class="esb-text">'+msg.text+'</div>';
-  if(msg.btn&&msg.action){
-    html+='<button class="esb-action" onclick="acceptEggSupport(\''+msg.action.replace(/'/g,"\\'")+'\')">'+ msg.btn+'</button>';
-  }
-  bubble.innerHTML=html;
-
-  // Position near egg — fixed bottom-left
-  bubble.style.left='12px';
-  bubble.style.bottom='140px';
-
-  document.body.appendChild(bubble);
-
-  // Animate in after a beat
-  setTimeout(function(){bubble.classList.add('visible')},100);
-
-  // Auto-dismiss after 20 seconds
-  _eggSupportTimer=setTimeout(function(){dismissEggSupport()},20000);
-}
-var _pendingEggSupport=null;
-
-function _showSupportToast(msg){
-  // Show a floating support card that works on ANY screen (check-in, circle, etc.)
-  var existing=document.querySelector('.support-toast-card');
-  if(existing)existing.remove();
-
-  var card=document.createElement('div');
-  card.className='support-toast-card';
-  card.style.cssText='position:fixed;bottom:80px;left:16px;right:16px;max-width:340px;background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border-radius:18px;padding:16px;box-shadow:0 8px 32px rgba(45,142,142,0.2);border:1px solid rgba(45,142,142,0.15);z-index:200;transform:translateY(20px);opacity:0;transition:all .4s cubic-bezier(.25,1,.5,1);';
-
-  var html='<div style="display:flex;align-items:flex-start;gap:12px">';
-  html+='<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2D8E8E,#3aafaf);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">'+msg.icon+'</div>';
-  html+='<div style="flex:1"><div style="font-family:var(--serif);font-size:14px;font-weight:600;color:#1a3a3a;margin-bottom:4px">Your egg companion noticed something</div>';
-  html+='<div style="font-size:13px;color:#3a7070;line-height:1.45">'+msg.text+'</div>';
-  if(msg.btn&&msg.action){
-    html+='<button onclick="acceptEggSupport(\''+msg.action.replace(/'/g,"\\'")+'\');this.closest(\'.support-toast-card\').remove()" style="margin-top:10px;background:#2D8E8E;color:white;border:none;padding:8px 18px;border-radius:50px;font-size:12px;font-family:var(--sans);font-weight:600;cursor:pointer">'+msg.btn+'</button>';
-  }
-  html+='</div>';
-  html+='<button onclick="this.closest(\'.support-toast-card\').remove()" style="background:none;border:none;color:#6a9e9e;font-size:18px;cursor:pointer;padding:0;line-height:1">&times;</button>';
-  html+='</div>';
-  card.innerHTML=html;
-
-  document.body.appendChild(card);
-  setTimeout(function(){card.style.transform='translateY(0)';card.style.opacity='1'},50);
-
-  // Auto-dismiss after 20s
-  setTimeout(function(){if(card.parentNode){card.style.opacity='0';card.style.transform='translateY(20px)';setTimeout(function(){if(card.parentNode)card.remove()},400)}},20000);
-}
-
-function dismissEggSupport(){
-  var bubble=document.querySelector('.egg-support-bubble');
-  if(bubble){
-    bubble.classList.remove('visible');
-    setTimeout(function(){bubble.remove()},600);
-  }
-  var egg=document.getElementById('eggCompanion');
-  if(egg){
-    egg.classList.remove('reaching');
-    egg.classList.add('idle');
-  }
-  if(_eggSupportTimer){clearTimeout(_eggSupportTimer);_eggSupportTimer=null}
-}
-
-function acceptEggSupport(actionText){
-  dismissEggSupport();
-  // Switch to chat tab and send the message
-  switchTab('chat');
-  setTimeout(function(){sendAutoMsg(actionText)},300);
-}
 function showCalendarToast(count){var toast=document.createElement('div');toast.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2D8E8E;color:white;padding:10px 20px;border-radius:50px;font-size:13px;font-family:var(--sans);z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.15);animation:fadeIn .3s;';toast.textContent='\ud83d\udcc5 Your team updated '+count+' event'+(count>1?'s':'');document.body.appendChild(toast);setTimeout(function(){toast.style.opacity='0';toast.style.transition='opacity .3s';setTimeout(function(){toast.remove()},300)},4000)}
 async function submitCheckin(){var b=document.getElementById('btn-checkin');b.disabled=true;b.textContent='Submitting...';var c={mood:+document.getElementById('v-mood').textContent,anxiety:+document.getElementById('v-anxiety').textContent,loneliness:+document.getElementById('v-lonely').textContent,uncertainty:+document.getElementById('v-uncertain').textContent,hope:+document.getElementById('v-hope').textContent,note:document.getElementById('ci-note').value.trim()};
 if(collector)collector.onCheckinComplete(c);
-state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message;if(d.capability_hint){setTimeout(function(){addSystemMsg(d.capability_hint)},1000)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){eggProactiveSupport(d.support_widgets[0])},1500)}}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Submit check-in';updateChart();
-// Post-checkin community share prompt (only if mood < 5)
-if(c.mood<5&&!localStorage.getItem('melodai_share_dismissed')){setTimeout(function(){var prompt=document.createElement('div');prompt.style.cssText='margin:12px 0;padding:14px 16px;background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border-radius:14px;border:1px solid rgba(45,142,142,0.12);';prompt.innerHTML='<div style="font-size:13px;color:#3a7070;line-height:1.5;margin-bottom:10px">Sometimes it helps to know you\'re not alone. Want to share how you\'re feeling with the community? It\'s completely anonymous.</div><div style="display:flex;gap:8px"><button onclick="switchTab(\'circle\');setTimeout(function(){openPostModal()},300);this.closest(\'div\').parentElement.remove()" style="background:#2D8E8E;color:white;border:none;padding:8px 16px;border-radius:50px;font-size:12px;font-family:var(--sans);cursor:pointer">Share</button><button onclick="localStorage.setItem(\'melodai_share_dismissed\',\'1\');this.closest(\'div\').parentElement.remove()" style="background:none;border:1px solid rgba(45,142,142,0.15);color:#6a9e9e;padding:8px 16px;border-radius:50px;font-size:12px;font-family:var(--sans);cursor:pointer">Not now</button></div>';rp.parentElement.appendChild(prompt)},1500)}}
+state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message;if(d.capability_hint){setTimeout(function(){addSystemMsg(d.capability_hint)},1000)}}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Submit check-in';updateChart()}
 function getStageName(id){var s=STAGES.find(function(s){return s.id===id});return s?s.name:id}
 function updateStageUI(){document.getElementById('header-stage').textContent=getStageName(state.stage);document.getElementById('ci-stage-name').textContent=getStageName(state.stage);document.getElementById('ci-stage-cycle').textContent='Cycle '+state.cycle+' \u00b7 '+state.treatment.toUpperCase()}
 function openStageModal(){if(collector)collector.onStageModalOpen();var c=document.getElementById('modal-stages');c.innerHTML='';STAGES.forEach(function(s){var b=document.createElement('button');b.className='modal-stage-btn'+(s.id===state.stage?' current':'');b.innerHTML='<span class="stage-icon">'+(stageIcon(s.id)||'')+'</span>'+s.name;b.onclick=function(){var oldStage=state.stage;state.stage=s.id;if(collector)collector.onStageChange(oldStage,s.id);updateStageUI();buildTimeline();buildEducation();closeStageModal();addSystemMsg('Stage updated to '+s.name)};c.appendChild(b)});document.getElementById('stage-modal').classList.add('open')}
@@ -2294,8 +2114,8 @@ function onDragUp(e){
     snapToEdge(egg);
     startIdleFace();
   }else{
-    // Was a tap — random micro-interaction OR check-in
-    if(typeof handleOocyteTap==='function'){handleOocyteTap(e)}else{onDown(e)}
+    // Was a tap — run original onDown logic (opens check-in)
+    onDown(e);
   }
 }
 
@@ -2611,422 +2431,13 @@ function typewriterWelcome(){
 function showMotivational(){document.getElementById('step2-age').style.display='none';document.getElementById('step2-motiv').style.display='block'}
 function showStageGrid(){document.getElementById('step2-motiv').style.display='none';document.getElementById('step2-stages').style.display='block'}
 // Insights sub-tabs
-var _weekOffset=0;
-var _dayOffset=0;
-function switchInsightsTab(tab){document.querySelectorAll('.insights-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab)});document.querySelectorAll('.insights-panel').forEach(function(p){p.classList.remove('active')});var panel=document.getElementById('insight-'+tab);if(panel)panel.classList.add('active');
-if(tab==='weekly'){_weekOffset=0;buildWeeklyView()}
-if(tab==='daily'){_dayOffset=0;buildDailyView()}
-if(tab==='chats')buildChatsView()}
-function shiftWeek(dir){_weekOffset+=dir;buildWeeklyView()}
-function shiftDay(dir){_dayOffset+=dir;buildDailyView()}
-function _getMondayOfWeek(offset){var d=new Date();d.setDate(d.getDate()-(d.getDay()||7)+1+offset*7);d.setHours(0,0,0,0);return d}
-function _fmtShort(d){return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]+', '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+' '+d.getDate()}
-function _fmtDate(d){return d.toISOString().substring(0,10)}
-function _moodLabel(m){return m>=8?'Great':m>=6?'Pretty good':m>=4?'Okay':m>=2?'Tough':'Really hard'}
-function _moodClass(m){return m>=6?'good':m>=4?'tough':'hard'}
-function _getCheckinsForDate(dateStr){return(state.checkins||[]).filter(function(c){return(c.date||'').substring(0,10)===dateStr})}
-function _getEventsForDate(dateStr){return(_calEvents||[]).filter(function(e){return(e.date||'').substring(0,10)===dateStr})}
-function _eventIcon(type){var icons={injection:'💉',scan:'🔬',retrieval:'🥚',transfer:'🔄',medication:'💊',result:'📋',iui:'🩺',appointment:'📅',tww_start:'⏳'};return icons[type]||'📌'}
-function _eventColor(type){var colors={injection:'rgba(45,142,142,0.08)',scan:'rgba(212,168,67,0.08)',retrieval:'rgba(168,213,211,0.12)',transfer:'rgba(155,142,192,0.08)',medication:'rgba(45,142,142,0.06)'};return colors[type]||'rgba(45,142,142,0.05)'}
-function buildWeeklyView(){
-var monday=_getMondayOfWeek(_weekOffset);
-var label=_weekOffset===0?'This Week':_weekOffset===-1?'Last Week':'Week of '+_fmtShort(monday);
-document.getElementById('weekLabel').textContent=label;
-var container=document.getElementById('weeklyContent');container.innerHTML='';
-var moods=[];
-for(var i=0;i<7;i++){
-  var day=new Date(monday);day.setDate(monday.getDate()+i);
-  var dateStr=_fmtDate(day);var isToday=dateStr===_fmtDate(new Date());var isFuture=day>new Date();
-  var checkins=_getCheckinsForDate(dateStr);var events=_getEventsForDate(dateStr);
-  var card=document.createElement('div');card.style.cssText='background:white;border-radius:14px;padding:14px 16px;margin-bottom:8px;border:1px solid rgba(45,142,142,'+(isToday?'0.2':'0.06')+');'+(isToday?'box-shadow:0 2px 8px rgba(45,142,142,0.08);':'');
-  var html='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-family:var(--sans);font-size:13px;font-weight:600;color:#1a3a3a">'+_fmtShort(day)+'</span>'+(isToday?'<span style="font-size:9px;background:#2D8E8E;color:white;padding:2px 8px;border-radius:10px;font-weight:600">TODAY</span>':'')+'</div>';
-  if(checkins.length>0){
-    checkins.forEach(function(ci){
-      var m=ci.mood||5;moods.push(m);
-      html+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><span style="font-size:22px">'+_eggMoodEmoji(m)+'</span><span style="font-size:13px;font-weight:500;color:#1a3a3a">Mood: '+m+'/10</span><span class="mood-pill '+_moodClass(m)+'">'+_moodLabel(m)+'</span></div>';
-      var dims=[];if(ci.anxiety)dims.push('Anxiety: '+ci.anxiety);if(ci.hope)dims.push('Hope: '+ci.hope);if(ci.loneliness)dims.push('Lonely: '+ci.loneliness);if(ci.uncertainty)dims.push('Uncertain: '+ci.uncertainty);
-      if(dims.length)html+='<div style="font-size:11px;color:#6a9e9e;margin-bottom:4px">'+dims.join(' · ')+'</div>';
-    });
-  }else if(!isFuture){moods.push(null)}
-  if(events.length>0){
-    events.forEach(function(evt){
-      html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:'+_eventColor(evt.type)+';border-radius:10px;margin-bottom:4px"><span style="font-size:16px">'+_eventIcon(evt.type)+'</span><span style="font-size:12px;color:#1a3a3a;font-weight:500">'+(evt.label||evt.type)+'</span>'+(evt.time?'<span style="font-size:11px;color:#6a9e9e;margin-left:auto">'+evt.time+'</span>':'')+'</div>';
-    });
-  }
-  if(checkins.length===0&&events.length===0){
-    html+='<div style="font-size:11px;color:#b8e6e6;font-style:italic">'+(isFuture?'Upcoming':'No entries')+'</div>';
-  }
-  card.innerHTML=html;container.appendChild(card);
-}
-// Sparkline
-var sparkDiv=document.getElementById('weeklySparkline');sparkDiv.innerHTML='';
-var validMoods=moods.filter(function(m){return m!==null});
-if(validMoods.length>=2){
-  var svgW=200,svgH=36,pad=4;var step=(svgW-pad*2)/(moods.length-1);
-  var pts=[];moods.forEach(function(m,i){if(m!==null){pts.push((pad+i*step)+','+(svgH-pad-(m/10)*(svgH-pad*2)))}});
-  sparkDiv.innerHTML='<svg width="'+svgW+'" height="'+svgH+'" viewBox="0 0 '+svgW+' '+svgH+'" style="display:block;margin:0 auto"><polyline points="'+pts.join(' ')+'" fill="none" stroke="#2D8E8E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-}
-}
-function _eggMoodEmoji(m){return m>=8?'😊':m>=6?'🙂':m>=4?'😐':m>=2?'😟':'😢'}
-function buildDailyView(){
-var day=new Date();day.setDate(day.getDate()+_dayOffset);day.setHours(0,0,0,0);
-var dateStr=_fmtDate(day);var isToday=_dayOffset===0;
-document.getElementById('dayLabel').textContent=isToday?'Today':_fmtShort(day);
-var container=document.getElementById('dailyEntries');container.innerHTML='';
-var checkins=_getCheckinsForDate(dateStr);var events=_getEventsForDate(dateStr);
-if(checkins.length===0&&events.length===0){
-  container.innerHTML='<div style="text-align:center;padding:40px 20px"><div style="font-size:60px;margin-bottom:12px">'+_eggMoodEmoji(6)+'</div><div style="font-family:var(--serif);font-size:16px;color:#1a3a3a;margin-bottom:8px">No entries yet'+(isToday?' today':'')+'</div><div style="font-size:13px;color:#6a9e9e;line-height:1.5">Tap the oocyte to check in, or add an event to your calendar.</div></div>';
-  return;
-}
-// Check-ins as journal entries
-checkins.forEach(function(ci){
-  var time=ci.date?new Date(ci.date).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
-  var m=ci.mood||5;
-  var card=document.createElement('div');card.className='daily-entry';
-  var html='<div class="daily-entry-time">'+time+'</div>';
-  html+='<div class="daily-entry-mood"><span style="font-size:32px">'+_eggMoodEmoji(m)+'</span><div><div style="font-size:13px;font-weight:500;color:#1a3a3a">Mood <span class="mood-pill '+_moodClass(m)+'">'+_moodLabel(m)+' ('+m+'/10)</span></div>';
-  var dims=[];if(ci.anxiety)dims.push('Anxiety '+ci.anxiety+'/10');if(ci.hope)dims.push('Hope '+ci.hope+'/10');if(ci.loneliness)dims.push('Loneliness '+ci.loneliness+'/10');if(ci.uncertainty)dims.push('Uncertainty '+ci.uncertainty+'/10');
-  if(dims.length)html+='<div style="font-size:11px;color:#6a9e9e;margin-top:3px">'+dims.join(' · ')+'</div>';
-  if(ci.note)html+='<div style="font-size:12px;color:#3a7070;margin-top:6px;font-style:italic">"'+ci.note+'"</div>';
-  html+='</div></div>';
-  card.innerHTML=html;container.appendChild(card);
-});
-// Cycle events
-if(events.length>0){
-  var evtHeader=document.createElement('div');evtHeader.style.cssText='font-size:11px;font-weight:600;color:#6a9e9e;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px';evtHeader.textContent='Cycle Events';container.appendChild(evtHeader);
-  events.forEach(function(evt){
-    var card=document.createElement('div');card.className='daily-entry';
-    card.innerHTML='<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">'+_eventIcon(evt.type)+'</span><div><div style="font-size:13px;font-weight:500;color:#1a3a3a">'+(evt.label||evt.type)+'</div>'+(evt.time?'<div style="font-size:11px;color:#6a9e9e">'+evt.time+'</div>':'')+(evt.notes?'<div style="font-size:11px;color:#3a7070;margin-top:3px">'+evt.notes+'</div>':'')+'</div></div>';
-    container.appendChild(card);
-  });
-}
-}
-function buildChatsView(){
-var container=document.getElementById('chatHistory');container.innerHTML='';
-var msgs=document.querySelectorAll('#chat-area .msg');
-if(!msgs||msgs.length===0){container.innerHTML='<div style="text-align:center;padding:30px 20px;color:#6a9e9e;font-size:13px">No conversations yet. Tap &ldquo;Chat&rdquo; to talk to Melod&middot;AI.</div>';return}
-// Group messages by rough session (gap of >30 min = new session)
-var sessions=[];var currentSession=[];var lastTime=null;
-msgs.forEach(function(m){
-  var isUser=m.classList.contains('msg-user');var isAi=m.classList.contains('msg-ai');
-  if(!isUser&&!isAi)return;
-  var text=(m.querySelector('.msg-bubble')||{}).textContent||'';
-  var now=Date.now();// approximate
-  if(lastTime&&(now-lastTime)>1800000&&currentSession.length>0){sessions.push(currentSession);currentSession=[]}
-  currentSession.push({role:isUser?'user':'ai',text:text});lastTime=now;
-});
-if(currentSession.length>0)sessions.push(currentSession);
-// Since we don't have real timestamps from DOM, show as "Session 1, 2..."
-// But for current session messages, show today's date
-var today=new Date();
-sessions.forEach(function(session,idx){
-  var userMsgs=session.filter(function(m){return m.role==='user'});
-  var preview=userMsgs.length>0?userMsgs[0].text.substring(0,80):'Check-in conversation';
-  if(preview.length>=80)preview+='...';
-  var card=document.createElement('div');
-  card.style.cssText='background:white;border-radius:14px;padding:14px 16px;margin-bottom:8px;border:1px solid rgba(45,142,142,0.06);cursor:pointer;transition:all .2s';
-  card.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px;font-weight:600;color:#1a3a3a">Session '+(idx+1)+'</span><span style="font-size:11px;color:#6a9e9e">'+session.length+' messages</span></div><div style="font-size:12px;color:#3a7070;line-height:1.4">'+preview+'</div>';
-  var expanded=false;
-  card.onclick=function(){
-    expanded=!expanded;
-    var detail=card.querySelector('.chat-detail');
-    if(expanded&&!detail){
-      detail=document.createElement('div');detail.className='chat-detail';detail.style.cssText='margin-top:10px;border-top:1px solid rgba(45,142,142,0.08);padding-top:10px';
-      session.forEach(function(m){
-        var line=document.createElement('div');line.style.cssText='margin-bottom:6px;font-size:12px;line-height:1.4;'+(m.role==='user'?'color:#1a3a3a;font-weight:500':'color:#3a7070');
-        line.textContent=(m.role==='user'?'You: ':'Melod·AI: ')+m.text.substring(0,200);
-        detail.appendChild(line);
-      });
-      card.appendChild(detail);
-    }else if(detail){detail.style.display=expanded?'block':'none'}
-  };
-  container.appendChild(card);
-});
-}
+function switchInsightsTab(tab){document.querySelectorAll('.insights-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab)});document.querySelectorAll('.insights-panel').forEach(function(p){p.classList.remove('active')});var panel=document.getElementById('insight-'+tab);if(panel)panel.classList.add('active')}
 // Community
-var _communityFilter = 'all';
-var _communityPollTimer = null;
-var _communityLastPosts = [];
-
-function switchCommunityTab(tab) {
-    document.querySelectorAll('.community-tab').forEach(function(t) {
-        t.classList.toggle('active', t.textContent.toLowerCase() === tab);
-    });
-    document.getElementById('community-buddies').style.display = tab === 'buddies' ? 'block' : 'none';
-    document.getElementById('community-world').style.display = tab === 'world' ? 'block' : 'none';
-    document.getElementById('communityFab').style.display = tab === 'world' ? 'block' : 'none';
-
-    // Track time on circle tab for phenotyping
-    if (_communityMetrics._circleTabStart > 0) {
-        _communityMetrics.time_on_circle_tab_ms += Date.now() - _communityMetrics._circleTabStart;
-        _communityMetrics._circleTabStart = 0;
-    }
-    if (tab === 'world' || tab === 'buddies') {
-        _communityMetrics._circleTabStart = Date.now();
-    }
-
-    if (tab === 'world') {
-        loadStageFilters();
-        loadWorldPosts();
-        if (_communityPollTimer) clearInterval(_communityPollTimer);
-        _communityPollTimer = setInterval(pollNewPosts, 30000);
-    } else {
-        if (_communityPollTimer) { clearInterval(_communityPollTimer); _communityPollTimer = null; }
-        loadStageGroups();
-    }
-}
-
-function loadStageFilters() {
-    var container = document.getElementById('stage-filter-pills');
-    if (!container || !API_BASE) return;
-
-    var stages = [
-        {key: 'all', label: 'All'},
-        {key: 'stimulation', label: 'Stimulation'},
-        {key: 'retrieval_day', label: 'Retrieval'},
-        {key: 'transfer_day', label: 'Transfer'},
-        {key: 'early_tww', label: 'TWW'},
-        {key: 'late_tww', label: 'Late TWW'},
-        {key: 'result_day', label: 'Results'},
-        {key: 'between_cycles', label: 'Between Cycles'},
-        {key: 'negative_result', label: 'Processing'}
-    ];
-
-    container.innerHTML = stages.map(function(s) {
-        var active = s.key === _communityFilter;
-        return '<button style="white-space:nowrap;padding:6px 14px;border-radius:50px;border:1px solid ' + (active ? '#2D8E8E' : 'rgba(45,142,142,0.2)') + ';background:' + (active ? '#2D8E8E' : 'white') + ';color:' + (active ? 'white' : '#2D8E8E') + ';font-size:12px;font-family:var(--sans);cursor:pointer;flex-shrink:0" onclick="filterCommunity(\'' + s.key + '\')">' + s.label + '</button>';
-    }).join('');
-}
-
-function filterCommunity(stage) {
-    _communityFilter = stage;
-    if (stage && stage !== 'all' && _communityMetrics.stage_filters_used.indexOf(stage) === -1) {
-        _communityMetrics.stage_filters_used.push(stage);
-    }
-    loadStageFilters();
-    loadWorldPosts();
-}
-
+function switchCommunityTab(tab){document.querySelectorAll('.community-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab)});document.getElementById('community-buddies').style.display=tab==='buddies'?'block':'none';document.getElementById('community-world').style.display=tab==='world'?'block':'none';if(tab==='world')loadWorldPosts();document.getElementById('communityFab').style.display=tab==='world'?'block':'none'}
 function openPostModal(){document.getElementById('postModal').classList.add('active')}
 function closePostModal(){document.getElementById('postModal').classList.remove('active')}
-
-function submitPost() {
-    var text = document.getElementById('postText').value.trim();
-    if (!text) return;
-    if (!API_BASE || !state.patientId) return;
-    _communityMetrics.post_created = true;
-    _communityMetrics.post_hours.push(new Date().getHours());
-
-    var btn = document.querySelector('.post-modal-send');
-    if (btn) { btn.disabled = true; btn.textContent = 'Posting...'; }
-
-    fetch(API_BASE + '/community/posts', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            patient_id: state.patientId,
-            text: text.substring(0, 500),
-            anonymous: document.getElementById('postAnon').checked
-        })
-    }).then(function(r) {
-        if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Failed'); });
-        return r.json();
-    }).then(function(d) {
-        document.getElementById('postText').value = '';
-        closePostModal();
-        loadWorldPosts();
-    }).catch(function(e) {
-        alert(e.message || 'Could not post. Please try again.');
-    }).finally(function() {
-        if (btn) { btn.disabled = false; btn.textContent = 'Post'; }
-    });
-}
-function loadActiveStageCount(){
-  if(!API_BASE||!state.stage)return;
-  var counter=document.getElementById('activeStageCounter');
-  if(!counter)return;
-  fetch(API_BASE+'/community/active-count?stage='+state.stage).then(function(r){return r.json()}).then(function(d){
-    if(d.count>0){
-      var stageLabel=getStageName(state.stage);
-      counter.textContent=d.count+' other'+(d.count>1?'s':'')+' '+(d.count>1?'are':'is')+' in '+stageLabel+' right now';
-      counter.style.display='block';
-    }
-  }).catch(function(){});
-}
-function showCircleIntro(){
-  if(localStorage.getItem('melodai_circle_intro_seen'))return;
-  var overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;';
-  overlay.innerHTML='<div style="background:white;border-radius:20px;padding:28px 24px;max-width:320px;text-align:center"><div style="font-size:40px;margin-bottom:12px">🥚</div><div style="font-family:var(--serif);font-size:18px;color:#1a3a3a;margin-bottom:10px">Welcome to the Circle</div><div style="font-size:13px;color:#3a7070;line-height:1.5;margin-bottom:16px">This is a safe, anonymous space. Nothing you share here is connected to your name. Your care team can see community posts for moderation but never knows who wrote what.</div><button onclick="localStorage.setItem(\'melodai_circle_intro_seen\',\'1\');this.closest(\'div\').parentElement.remove()" style="background:#2D8E8E;color:white;border:none;padding:10px 28px;border-radius:50px;font-size:13px;font-family:var(--sans);font-weight:600;cursor:pointer">Got it</button></div>';
-  document.body.appendChild(overlay);
-}
-function loadWorldPosts() {
-    var feed = document.getElementById('world-feed');
-    if (!feed || !API_BASE) return;
-
-    // Show intro on first visit
-    showCircleIntro();
-    // Load active stage counter
-    loadActiveStageCount();
-
-    var url = API_BASE + '/community/posts?limit=20';
-    if (_communityFilter && _communityFilter !== 'all') url += '&stage=' + _communityFilter;
-
-    fetch(url).then(function(r) { return r.json(); }).then(function(d) {
-        var posts = d.posts || [];
-        _communityLastPosts = posts;
-
-        if (!posts.length) {
-            feed.innerHTML = '<div style="text-align:center;padding:40px 24px"><div style="font-size:60px;margin-bottom:12px">🥚</div><div style="font-family:var(--serif);font-size:18px;color:#1a3a3a;margin-bottom:8px">Be the first to share</div><div style="font-size:13px;color:#3a7070;line-height:1.5;max-width:280px;margin:0 auto 16px">This is a safe, anonymous space for patients going through fertility treatment. Your words might be exactly what someone else needs to hear today.</div><button onclick="openPostModal()" style="background:#2D8E8E;color:white;border:none;padding:10px 24px;border-radius:50px;font-size:13px;font-family:var(--sans);font-weight:600;cursor:pointer">Share something &rarr;</button></div>';
-            return;
-        }
-
-        feed.innerHTML = posts.map(function(p) {
-            return renderCommunityPost(p);
-        }).join('');
-    }).catch(function() {
-        feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">Could not load posts</div>';
-    });
-}
-
-function renderCommunityPost(p) {
-    var ago = timeAgoShort(p.created_at);
-    var stageLabel = p.stage_display || p.stage || '';
-    var myReaction = '';
-    try { myReaction = JSON.parse(localStorage.getItem('melodai_reactions') || '{}')[p.id] || ''; } catch(e) {}
-    var pid = p.id;
-
-    return '<div class="post-card" id="post-'+pid+'" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid rgba(45,142,142,0.08)">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
-            '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f0fdfa,#e8daa0);display:flex;align-items:center;justify-content:center;font-size:16px">\uD83E\uDD5A</div>' +
-            '<div style="flex:1"><span style="font-size:13px;font-weight:600;color:#1a3a3a">' + escHtml(p.display_name || 'Anonymous') + '</span>' +
-            '<span style="color:var(--text-soft);font-size:11px;margin-left:6px">' + ago + '</span></div>' +
-            (stageLabel ? '<span style="font-size:10px;padding:3px 8px;border-radius:50px;background:rgba(45,142,142,0.08);color:#2D8E8E">' + escHtml(stageLabel) + '</span>' : '') +
-        '</div>' +
-        '<div style="font-size:14px;line-height:1.5;color:#2a2a2a;margin-bottom:10px">' + escHtml(p.text) + '</div>' +
-        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
-            '<button onclick="reactToPost(\'' + pid + '\',\'support\')" style="padding:5px 10px;border-radius:50px;border:1px solid ' + (myReaction === 'support' ? '#2D8E8E' : 'rgba(45,142,142,0.15)') + ';background:' + (myReaction === 'support' ? 'rgba(45,142,142,0.08)' : 'white') + ';cursor:pointer;font-size:11px;color:#2D8E8E;display:flex;align-items:center;gap:3px">\uD83E\uDD0D <span>' + (p.reactions.support || 0) + '</span></button>' +
-            '<button onclick="reactToPost(\'' + pid + '\',\'same\')" style="padding:5px 10px;border-radius:50px;border:1px solid ' + (myReaction === 'same' ? '#2D8E8E' : 'rgba(45,142,142,0.15)') + ';background:' + (myReaction === 'same' ? 'rgba(45,142,142,0.08)' : 'white') + ';cursor:pointer;font-size:11px;color:#2D8E8E;display:flex;align-items:center;gap:3px">\uD83E\uDD1D <span>' + (p.reactions.same || 0) + '</span></button>' +
-            '<button onclick="reactToPost(\'' + pid + '\',\'strength\')" style="padding:5px 10px;border-radius:50px;border:1px solid ' + (myReaction === 'strength' ? '#2D8E8E' : 'rgba(45,142,142,0.15)') + ';background:' + (myReaction === 'strength' ? 'rgba(45,142,142,0.08)' : 'white') + ';cursor:pointer;font-size:11px;color:#2D8E8E;display:flex;align-items:center;gap:3px">\uD83D\uDCAA <span>' + (p.reactions.strength || 0) + '</span></button>' +
-            '<button onclick="toggleReplies(\'' + pid + '\')" style="padding:5px 10px;border-radius:50px;border:1px solid rgba(45,142,142,0.15);background:white;cursor:pointer;font-size:11px;color:#6a9e9e;display:flex;align-items:center;gap:3px">💬 Reply</button>' +
-            '<button onclick="reportPost(\'' + pid + '\')" style="margin-left:auto;background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:14px" title="Report">\u22EE</button>' +
-        '</div>' +
-        '<div id="replies-'+pid+'" style="display:none;margin-top:10px;border-top:1px solid rgba(45,142,142,0.06);padding-top:10px"></div>' +
-    '</div>';
-}
-
-function toggleReplies(postId){
-  var container=document.getElementById('replies-'+postId);
-  if(!container)return;
-  if(container.style.display==='none'){
-    container.style.display='block';
-    loadReplies(postId);
-  }else{
-    container.style.display='none';
-  }
-}
-function loadReplies(postId){
-  var container=document.getElementById('replies-'+postId);
-  if(!container||!API_BASE)return;
-  container.innerHTML='<div style="font-size:11px;color:#6a9e9e">Loading...</div>';
-  fetch(API_BASE+'/community/posts/'+postId+'/replies').then(function(r){return r.json()}).then(function(d){
-    var replies=d.replies||[];
-    var html='';
-    replies.forEach(function(r){
-      html+='<div style="display:flex;gap:8px;margin-bottom:8px;padding:8px;background:rgba(45,142,142,0.03);border-radius:10px"><div style="width:24px;height:24px;border-radius:50%;background:#f0fdfa;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">🥚</div><div style="flex:1"><div style="font-size:11px;color:#6a9e9e">'+escHtml(r.display_name||'Anonymous')+' · '+timeAgoShort(r.created_at)+'</div><div style="font-size:13px;color:#2a2a2a;margin-top:2px">'+escHtml(r.text)+'</div></div></div>';
-    });
-    if(replies.length<3){
-      html+='<div style="display:flex;gap:8px;margin-top:6px"><input id="reply-input-'+postId+'" placeholder="Send some support..." maxlength="200" style="flex:1;padding:8px 12px;border:1px solid rgba(45,142,142,0.15);border-radius:50px;font-size:12px;font-family:var(--sans);outline:none"><button onclick="sendReply(\''+postId+'\')" style="width:32px;height:32px;border-radius:50%;background:#2D8E8E;border:none;color:white;cursor:pointer;font-size:14px;flex-shrink:0">↑</button></div>';
-    }else{
-      html+='<div style="font-size:11px;color:#6a9e9e;text-align:center;margin-top:4px">Maximum replies reached</div>';
-    }
-    container.innerHTML=html;
-  }).catch(function(){container.innerHTML='<div style="font-size:11px;color:#6a9e9e">Could not load replies</div>'});
-}
-function sendReply(postId){
-  var input=document.getElementById('reply-input-'+postId);
-  if(!input||!input.value.trim()||!API_BASE||!state.patientId)return;
-  var text=input.value.trim();input.value='';
-  fetch(API_BASE+'/community/posts/'+postId+'/reply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,text:text,anonymous:true})}).then(function(r){return r.json()}).then(function(d){
-    if(d.status==='ok')loadReplies(postId);
-  }).catch(function(){});
-}
-
-function reactToPost(postId, reaction) {
-    if (!API_BASE || !state.patientId) return;
-    _communityMetrics.reactions_given++;
-    fetch(API_BASE + '/community/posts/' + postId + '/react', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({reaction: reaction, patient_id: state.patientId})
-    }).then(function(r) { return r.json(); }).then(function(d) {
-        try {
-            var reactions = JSON.parse(localStorage.getItem('melodai_reactions') || '{}');
-            if (reactions[postId] === reaction) { delete reactions[postId]; }
-            else { reactions[postId] = reaction; }
-            localStorage.setItem('melodai_reactions', JSON.stringify(reactions));
-        } catch(e) {}
-        loadWorldPosts();
-    }).catch(function() {});
-}
-
-function reportPost(postId) {
-    if (!confirm('Report this post?')) return;
-    if (!API_BASE || !state.patientId) return;
-    fetch(API_BASE + '/community/posts/' + postId + '/report', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({patient_id: state.patientId})
-    }).then(function(r) { return r.json(); }).then(function(d) {
-        if (d.hidden) { loadWorldPosts(); }
-        else { alert('Report submitted. Thank you.'); }
-    }).catch(function() {});
-}
-
-function pollNewPosts() {
-    if (!API_BASE || document.getElementById('community-world').style.display === 'none') return;
-    var url = API_BASE + '/community/posts?limit=5';
-    if (_communityFilter && _communityFilter !== 'all') url += '&stage=' + _communityFilter;
-
-    fetch(url).then(function(r) { return r.json(); }).then(function(d) {
-        var newPosts = d.posts || [];
-        if (newPosts.length && _communityLastPosts.length) {
-            var latestKnown = _communityLastPosts[0].id;
-            var hasNew = newPosts[0].id !== latestKnown;
-            if (hasNew) {
-                var banner = document.createElement('div');
-                banner.style.cssText = 'text-align:center;padding:8px;background:rgba(45,142,142,0.08);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:12px;color:#2D8E8E;font-weight:600;';
-                banner.textContent = '\u2728 New posts available \u2014 tap to refresh';
-                banner.onclick = function() { banner.remove(); loadWorldPosts(); };
-                var feed = document.getElementById('world-feed');
-                if (feed && !feed.querySelector('.new-posts-banner')) {
-                    banner.className = 'new-posts-banner';
-                    feed.insertBefore(banner, feed.firstChild);
-                }
-            }
-        }
-    }).catch(function() {});
-}
-
-function loadStageGroups() {
-    var container = document.getElementById('stage-groups');
-    if (!container || !API_BASE) return;
-    fetch(API_BASE + '/community/stages').then(function(r) { return r.json(); }).then(function(d) {
-        var stages = d.stages || [];
-        if (!stages.length) {
-            container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-soft);font-size:12px">No active groups yet</div>';
-            return;
-        }
-        container.innerHTML = stages.slice(0, 6).map(function(s) {
-            return '<div onclick="switchCommunityTab(\'world\');filterCommunity(\'' + s.stage + '\')" style="background:white;border-radius:12px;padding:12px;border:1px solid rgba(45,142,142,0.08);cursor:pointer;display:flex;align-items:center;gap:10px">' +
-                '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#e0f5f0,#f0fdfa);display:flex;align-items:center;justify-content:center;font-size:16px">\uD83E\uDD5A</div>' +
-                '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:#1a3a3a">' + escHtml(s.stage_display || s.stage) + ' Circle</div>' +
-                '<div style="font-size:11px;color:var(--text-soft)">' + s.posts + ' posts \u00B7 ' + s.active_today + ' active today</div></div>' +
-                '<span style="color:#2D8E8E">\u2192</span></div>';
-        }).join('');
-    }).catch(function() {});
-}
-
+function submitPost(){var text=document.getElementById('postText').value.trim();if(!text)return;var posts=JSON.parse(localStorage.getItem('melodai_posts')||'[]');posts.unshift({id:Date.now(),text:text,stage:state.stage||'',mood:5,timestamp:new Date().toISOString(),anonymous:document.getElementById('postAnon').checked});localStorage.setItem('melodai_posts',JSON.stringify(posts));document.getElementById('postText').value='';closePostModal();loadWorldPosts()}
+function loadWorldPosts(){var feed=document.getElementById('world-feed');var posts=JSON.parse(localStorage.getItem('melodai_posts')||'[]');if(!posts.length){feed.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">No posts yet. Be the first to share!</div>';return}feed.innerHTML=posts.slice(0,20).map(function(p){var ago=timeAgoShort(p.timestamp);return '<div class="post-card"><div class="post-header"><div class="post-avatar">&#x1F95A;</div><span>'+(p.anonymous?'Anonymous':'You')+'</span><span>&middot;</span><span>'+ago+'</span></div><div class="post-body">'+escHtml(p.text)+'</div><div class="post-actions"><button class="post-action-btn">&#x2764;&#xFE0F; Support</button><button class="post-action-btn">&#x1F4AC; Reply</button></div></div>'}).join('')}
 function timeAgoShort(ts){try{var d=(Date.now()-new Date(ts))/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m';if(d<86400)return Math.floor(d/3600)+'h';return Math.floor(d/86400)+'d'}catch(e){return ''}}
 // Calendar
 var _calYear,_calMonth,_calEvents=[];
@@ -3088,7 +2499,7 @@ _calEvents.push(evt);localStorage.setItem('melodai_cycle_events',JSON.stringify(
 if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(evt)}).catch(function(){})}
 closeAddEvent();buildCalendar();showDayDetail(evt.date)}
 // Music toggle
-/* toggleMusic removed */
+function toggleMusic(){var btn=document.getElementById('musicToggle');btn.classList.toggle('active');localStorage.setItem('melodai_calm_mode',btn.classList.contains('active')?'1':'0')}
 // Tour
 function showTourOffer(){if(localStorage.getItem('melodai_tour_done'))return;document.getElementById('tourOverlay').style.display='flex'}
 function dismissTour(){document.getElementById('tourOverlay').style.display='none';localStorage.setItem('melodai_tour_done','1')}
@@ -3097,7 +2508,7 @@ function startTour(){dismissTour();/* Tour steps would go here — for now just 
 function updateJarCounts(){var chatArea=document.getElementById('chat-area');var chats=chatArea?chatArea.querySelectorAll('.msg-ai').length:0;var checkins=state.checkins?state.checkins.length:0;try{var el;el=document.getElementById('jarChats');if(el)el.textContent=chats||0;el=document.getElementById('jarCheckins');if(el)el.textContent=checkins||0;el=document.getElementById('jarJournals');if(el)el.textContent=checkins||0}catch(e){}}
 // Show floating icons when app is visible
 var _origShowApp=showApp;
-showApp=function(){_origShowApp.apply(this,arguments);document.getElementById('floatingIcons').style.display='flex';document.getElementById('communityFab').style.display='none';setTimeout(showTourOffer,2000);buildCalendar();updateJarCounts();try{if(state.patientId)localStorage.setItem('melodai_patient_id',state.patientId);if(state.name)localStorage.setItem('melodai_name',state.name);if(state.stage)localStorage.setItem('melodai_stage',state.stage);if(state.cycle)localStorage.setItem('melodai_cycle',String(state.cycle));if(state.treatment)localStorage.setItem('melodai_treatment',state.treatment)}catch(e){}};
+showApp=function(){_origShowApp.apply(this,arguments);document.getElementById('floatingIcons').style.display='flex';document.getElementById('musicToggle').style.display='flex';document.getElementById('communityFab').style.display='none';setTimeout(showTourOffer,2000);buildCalendar();updateJarCounts();try{if(state.patientId)localStorage.setItem('melodai_patient_id',state.patientId);if(state.name)localStorage.setItem('melodai_name',state.name);if(state.stage)localStorage.setItem('melodai_stage',state.stage);if(state.cycle)localStorage.setItem('melodai_cycle',String(state.cycle));if(state.treatment)localStorage.setItem('melodai_treatment',state.treatment)}catch(e){}};
 
 // Logout function — clears patient data and returns to landing
 function logout(){try{localStorage.removeItem('melodai_patient_id');localStorage.removeItem('melodai_name');localStorage.removeItem('melodai_stage');localStorage.removeItem('melodai_cycle');localStorage.removeItem('melodai_treatment');localStorage.removeItem('melodai_welcomed');localStorage.removeItem('melodai_tour_done')}catch(e){}window.location.reload()}
@@ -3108,45 +2519,35 @@ initOnboarding();
   var canvas,ctx,raf,running=false;
   var dpr=window.devicePixelRatio||1;
   var sperm;
-  var SIZE=160;
   function init(){
     var egg=document.getElementById('eggCompanion');
     if(!egg)return;
     canvas=document.createElement('canvas');
     canvas.id='spermCanvas';
-    canvas.style.cssText='position:fixed;width:'+SIZE+'px;height:'+SIZE+'px;pointer-events:none;z-index:49;transition:opacity .3s;';
-    canvas.width=SIZE*dpr;canvas.height=SIZE*dpr;
-    document.body.appendChild(canvas);
+    canvas.style.cssText='position:fixed;bottom:74px;left:16px;width:160px;height:160px;pointer-events:none;z-index:49;';
+    canvas.width=160*dpr;canvas.height=160*dpr;
+    egg.parentElement.insertBefore(canvas,egg);
     ctx=canvas.getContext('2d');
     ctx.scale(dpr,dpr);
-    sperm={angle:0,speed:0.012,radius:55,wobbleAmp:6,wobbleFreq:0.35,tailPhase:0};
-  }
-  function positionCanvas(){
-    if(!canvas)return;
-    var egg=document.getElementById('eggCompanion');
-    if(!egg)return;
-    // Hide during check-in (centered/active state) or when egg not idle
-    if(!egg.classList.contains('idle')||egg.classList.contains('centered')||egg.classList.contains('active')){
-      canvas.style.opacity='0';return;
-    }
-    canvas.style.opacity='1';
-    var rect=egg.getBoundingClientRect();
-    var eggCX=rect.left+rect.width/2;
-    var eggCY=rect.top+rect.height/2;
-    canvas.style.left=(eggCX-SIZE/2)+'px';
-    canvas.style.top=(eggCY-SIZE/2)+'px';
+    // Single sperm orbiting clockwise
+    sperm={
+      angle:0,
+      speed:0.012,
+      radius:55,
+      wobbleAmp:6,
+      wobbleFreq:0.35,
+      tailPhase:0
+    };
   }
   function draw(){
     if(!running||!ctx)return;
-    var w=SIZE,h=SIZE,cx=w/2,cy=h/2;
+    var w=160,h=160,cx=w/2,cy=h/2;
     ctx.clearRect(0,0,w,h);
     var app=document.getElementById('screen-app');
     var egg=document.getElementById('eggCompanion');
     if(!app||!app.classList.contains('active')||!egg||!egg.classList.contains('idle')){
-      positionCanvas();
       raf=requestAnimationFrame(draw);return;
     }
-    positionCanvas();
     var s=sperm;
     s.angle+=s.speed;
     s.tailPhase+=0.15;
@@ -3154,6 +2555,7 @@ initOnboarding();
     var r=s.radius+wobble;
     var x=cx+Math.cos(s.angle)*r;
     var y=cy+Math.sin(s.angle)*r;
+    // Look-ahead point to compute heading direction
     var nextA=s.angle+0.1;
     var nextR=s.radius+Math.sin(nextA*s.wobbleFreq)*s.wobbleAmp;
     var nextX=cx+Math.cos(nextA)*nextR;
@@ -3162,6 +2564,7 @@ initOnboarding();
     ctx.save();
     ctx.translate(x,y);
     ctx.rotate(rot);
+    // Head — white oval with teal stroke (at front)
     ctx.beginPath();
     ctx.ellipse(0,0,5,3.5,0,0,Math.PI*2);
     ctx.fillStyle='rgba(255,255,255,0.85)';
@@ -3169,6 +2572,7 @@ initOnboarding();
     ctx.strokeStyle='rgba(45,142,142,0.3)';
     ctx.lineWidth=0.8;
     ctx.stroke();
+    // Tail — trails behind (negative-X direction)
     ctx.beginPath();
     ctx.moveTo(-5,0);
     for(var seg=0;seg<12;seg++){
@@ -3186,10 +2590,12 @@ initOnboarding();
   }
   function start(){if(running)return;running=true;if(!canvas)init();draw();}
   function stop(){running=false;if(raf)cancelAnimationFrame(raf)}
+  // Start 3 seconds after app loads
   setTimeout(function(){
     var app=document.getElementById('screen-app');
     if(app&&app.classList.contains('active'))start();
   },3000);
+  // Re-check every 5s in case app appeared later
   setInterval(function(){
     var app=document.getElementById('screen-app');
     if(app&&app.classList.contains('active')&&!running)start();
@@ -3233,464 +2639,6 @@ initOnboarding();
       state._returning=true;
     }catch(e){console.warn('Return user init failed:',e)}
   }
-})();
-
-// ═══════════════════════════════════════════════════════════════════════
-// OOCYTE PERSONALITY SYSTEM — 8 Features, 6 Priority Layers
-// ═══════════════════════════════════════════════════════════════════════
-(function oocytePersonality(){
-var _OC={
-  timeOfDay:'midday',journeyContext:null,baseMood:'content',reactiveMood:null,
-  activeInteraction:null,celebrating:false,growthMultiplier:1.0,
-  armPosition:'resting',speechBubble:null,bubblesShown:0,maxBubbles:5,
-  lastTapTime:0,checkinDoneToday:false,idleBubbleCount:0,
-  typingDebounce:null,lastInputLen:0,deletionCount:0,lastDeleteCheck:0
-};
-
-// ── SVG element references ──
-var _eyeL,_eyeR,_shineL,_shineR,_mouth,_rays,_cheeks,_stars,_browL,_browR,_armL,_armR,_tearL,_tearR,_sweat,_glow,_body,_zona;
-
-function _initRefs(){
-  _eyeL=document.getElementById('egEyeL');_eyeR=document.getElementById('egEyeR');
-  _shineL=document.getElementById('egShineL');_shineR=document.getElementById('egShineR');
-  _mouth=document.getElementById('egMouth');_rays=document.getElementById('egRays');
-  _cheeks=document.querySelectorAll('.eg-cheek');_stars=document.getElementById('egStars');
-  _browL=document.getElementById('egBrowL');_browR=document.getElementById('egBrowR');
-  _armL=document.getElementById('egArmL');_armR=document.getElementById('egArmR');
-  _tearL=document.getElementById('egTearL');_tearR=document.getElementById('egTearR');
-  _sweat=document.getElementById('egSweat');_glow=document.getElementById('eggGlow');
-  _body=document.getElementById('egBody');_zona=document.querySelector('#eggSvg circle[r="86"]');
-}
-
-// ── Feature 6: Time-of-Day ──
-function getTimeOfDay(){
-  var h=new Date().getHours();
-  if(h>=5&&h<10)return'morning';if(h>=10&&h<15)return'midday';
-  if(h>=15&&h<19)return'afternoon';if(h>=19&&h<22)return'evening';return'latenight';
-}
-
-function applyTimeOfDay(){
-  _OC.timeOfDay=getTimeOfDay();
-  if(!_rays)return;
-  var t=_OC.timeOfDay;
-  // Adjust glow/rays based on time (base layer)
-  if(t==='latenight'){
-    _rays.setAttribute('opacity','0.08');
-    _cheeks.forEach(function(c){c.setAttribute('opacity','0.15')});
-    // Sleepy eyes
-    if(_eyeL&&!_OC.reactiveMood&&!_OC.activeInteraction){
-      _eyeL.setAttribute('ry','1.8');_eyeR.setAttribute('ry','1.8');
-    }
-  }else if(t==='morning'){
-    _rays.setAttribute('opacity','0.35');
-  }else if(t==='evening'){
-    _rays.setAttribute('opacity','0.2');
-  }
-}
-
-// ── Feature 5: Speech Bubbles ──
-var _bubbleTimer=null;
-function showOocyteBubble(text,duration,style){
-  if(_OC.bubblesShown>=_OC.maxBubbles)return;
-  if(_OC.reactiveMood)return; // Don't show during typing
-  duration=duration||4000;style=style||'normal';
-  var existing=document.querySelector('.oocyte-bubble');
-  if(existing)existing.remove();
-  if(_bubbleTimer){clearTimeout(_bubbleTimer);_bubbleTimer=null}
-
-  var egg=document.getElementById('eggCompanion');
-  if(!egg||!egg.classList.contains('visible'))return;
-  var rect=egg.getBoundingClientRect();
-
-  var b=document.createElement('div');
-  b.className='oocyte-bubble'+(style!=='normal'?' '+style:'');
-  b.textContent=text;
-  b.style.left=(rect.left+rect.width/2)+'px';
-  b.style.bottom=(window.innerHeight-rect.top+8)+'px';
-  b.style.transform='scale(.8) translateY(4px) translateX(-50%)';
-  document.body.appendChild(b);
-  setTimeout(function(){b.style.transform='scale(1) translateY(0) translateX(-50%)';b.classList.add('visible')},50);
-  _OC.bubblesShown++;
-  _OC.speechBubble=text;
-  _bubbleTimer=setTimeout(function(){
-    b.classList.remove('visible');
-    b.style.transform='scale(.8) translateY(-8px) translateX(-50%)';
-    b.style.opacity='0';
-    setTimeout(function(){b.remove()},300);
-    _OC.speechBubble=null;_bubbleTimer=null;
-  },duration);
-}
-window.showOocyteBubble=showOocyteBubble;
-
-// Greeting on app open
-function showGreetingBubble(){
-  var t=_OC.timeOfDay;
-  var greetings={
-    morning:['Good morning! \u2600\ufe0f','Rise and shine!'],
-    midday:['Hey! How\'s your day going?','Good to see you!'],
-    afternoon:['Afternoon! How are you?','Hey there!'],
-    evening:['Evening. How are you holding up?','Winding down?'],
-    latenight:['Can\'t sleep?','Hey night owl.']
-  };
-  var g=greetings[t]||greetings.midday;
-  var msg=g[Math.floor(Math.random()*g.length)];
-  var style=t==='latenight'?'whisper':'normal';
-  setTimeout(function(){showOocyteBubble(msg,4000,style)},2500);
-}
-
-// Idle presence bubbles
-var _idlePhrases=['I\'m here if you need me.','Take your time.','No rush. Just being here counts.','You\'re stronger than you know.','One step at a time.'];
-function startIdleBubbles(){
-  setInterval(function(){
-    var egg=document.getElementById('eggCompanion');
-    if(!egg||!egg.classList.contains('idle'))return;
-    if(_OC.idleBubbleCount>=3||_OC.reactiveMood||_OC.activeInteraction)return;
-    if(_OC.bubblesShown>=_OC.maxBubbles)return;
-    _OC.idleBubbleCount++;
-    showOocyteBubble(_idlePhrases[Math.floor(Math.random()*_idlePhrases.length)],3500,'gentle');
-  },45000);
-}
-
-// ── Feature 1: Typing Reactions ──
-function analyzeTypingMood(text){
-  if(!text||text.length<3){_OC.reactiveMood=null;applyReactiveMood();return}
-  var t=text.toLowerCase();
-  var neg=['scared','afraid','worried','anxious','crying','cry','alone','lonely','can\'t','hate','angry','frustrated','failed','loss','lost','hurt','pain','terrified','hopeless','give up','don\'t know','confused'];
-  var pos=['happy','excited','hopeful','grateful','good news','positive','worked','pregnant','success','love','thank','amazing','wonderful','better','relieved','finally'];
-  var fury=['angry','furious','unfair','hate this','sick of','why me'];
-  var q=t.endsWith('?')||/\b(what|why|how|when|should i|is it normal|tell me)\b/.test(t);
-
-  if(fury.some(function(k){return t.indexOf(k)!==-1})){_OC.reactiveMood='calm_holding'}
-  else if(neg.some(function(k){return t.indexOf(k)!==-1})){_OC.reactiveMood='concerned'}
-  else if(pos.some(function(k){return t.indexOf(k)!==-1})){_OC.reactiveMood='delighted'}
-  else if(q){_OC.reactiveMood='attentive'}
-  else if(text.length>100){_OC.reactiveMood='leaning_in'}
-  else{_OC.reactiveMood=null}
-
-  applyReactiveMood();
-}
-
-function applyReactiveMood(){
-  if(!_eyeL)_initRefs();if(!_eyeL)return;
-  var m=_OC.reactiveMood;
-  var egg=document.getElementById('eggCompanion');
-  if(!egg)return;
-
-  // Reset transitions
-  egg.style.transition='transform .4s ease';
-
-  if(!m){
-    // Return to base
-    egg.style.transform='';
-    _eyeL.setAttribute('ry','3.5');_eyeR.setAttribute('ry','3.5');
-    if(_browL){_browL.setAttribute('opacity','0');_browR.setAttribute('opacity','0')}
-    setArms('resting');
-    return;
-  }
-
-  if(m==='concerned'){
-    _eyeL.setAttribute('ry','4.2');_eyeR.setAttribute('ry','4.2'); // wider eyes
-    if(_browL){_browL.setAttribute('opacity','0.6');_browL.setAttribute('d','M68,103 Q75,100 82,104');
-    _browR.setAttribute('opacity','0.6');_browR.setAttribute('d','M118,104 Q125,100 132,103')}
-    egg.style.transform='scale(1.03)';
-    _rays.setAttribute('opacity','0.15');
-    _mouth.setAttribute('d','M93,138 Q100,140 107,138'); // flat
-    setArms('reaching');
-  }else if(m==='delighted'){
-    _eyeL.setAttribute('ry','3');_eyeR.setAttribute('ry','3');
-    _cheeks.forEach(function(c){c.setAttribute('opacity','0.7')});
-    if(_stars)_stars.setAttribute('opacity','0.5');
-    _rays.setAttribute('opacity','0.5');
-    _mouth.setAttribute('d','M90,136 Q100,148 110,136'); // big smile
-    egg.style.transform='scale(1.02)';
-    setArms('resting');
-  }else if(m==='attentive'){
-    _eyeL.setAttribute('ry','4');_eyeR.setAttribute('ry','4');
-    egg.style.transform='rotate(3deg)'; // slight tilt
-    _mouth.setAttribute('d','M93,138 Q100,141 107,138');
-    setArms('resting');
-  }else if(m==='leaning_in'){
-    egg.style.transform='scale(1.05)';
-    _eyeL.setAttribute('ry','3.8');_eyeR.setAttribute('ry','3.8');
-    setArms('reaching');
-  }else if(m==='calm_holding'){
-    _eyeL.setAttribute('ry','3.2');_eyeR.setAttribute('ry','3.2');
-    _rays.setAttribute('opacity','0.25');
-    _mouth.setAttribute('d','M93,139 Q100,141 107,139'); // neutral
-    setArms('resting');
-  }
-}
-
-// Deletion detection
-function checkDeletion(newLen){
-  var now=Date.now();
-  if(newLen<_OC.lastInputLen)_OC.deletionCount++;
-  if(now-_OC.lastDeleteCheck>3000){
-    if(_OC.deletionCount>3){
-      _OC.reactiveMood='encouraging';
-      // Tiny nod
-      var egg=document.getElementById('eggCompanion');
-      if(egg){egg.style.transform='translateY(-2px)';setTimeout(function(){egg.style.transform=''},300)}
-    }
-    _OC.deletionCount=0;_OC.lastDeleteCheck=now;
-  }
-  _OC.lastInputLen=newLen;
-}
-
-// Wire to chat input
-function wireTypingReactions(){
-  var ci=document.getElementById('chat-input');
-  if(!ci)return;
-  ci.addEventListener('input',function(){
-    var text=ci.value;
-    checkDeletion(text.length);
-    if(_OC.typingDebounce)clearTimeout(_OC.typingDebounce);
-    _OC.typingDebounce=setTimeout(function(){analyzeTypingMood(text)},300);
-  });
-}
-
-// ── Feature 3: Arms ──
-function setArms(position){
-  if(!_armL||!_armR)return;
-  var poses={
-    resting:{l:'M30,128 Q22,136 25,148',r:'M170,128 Q178,136 175,148'},
-    waving:{l:'M30,128 Q22,136 25,148',r:'M170,128 Q180,118 175,105'},
-    heart:{l:'M30,128 Q50,145 85,140',r:'M170,128 Q150,145 115,140'},
-    hug:{l:'M30,128 Q60,130 120,135',r:'M170,128 Q140,130 80,135'},
-    reaching:{l:'M30,128 Q15,140 10,155',r:'M170,128 Q185,140 190,155'},
-    covering:{l:'M30,128 Q55,108 80,112',r:'M170,128 Q145,108 120,112'},
-    fistpump:{l:'M30,128 Q22,136 25,148',r:'M170,128 Q180,108 178,95'}
-  };
-  var p=poses[position]||poses.resting;
-  _armL.setAttribute('d',p.l);_armR.setAttribute('d',p.r);
-  _OC.armPosition=position;
-}
-
-// ── Feature 7: Random Micro-Interactions ──
-var _tapCooldown=false;
-function handleOocyteTap(e){
-  if(_tapCooldown||_OC.celebrating)return;
-  _tapCooldown=true;setTimeout(function(){_tapCooldown=false},3000);
-
-  // Weighted random
-  var r=Math.random();
-  var checkinProb=_OC.checkinDoneToday?0.15:0.50;
-
-  if(r<checkinProb){
-    // Check-in
-    onDown(e);return;
-  }
-  r=(r-checkinProb)/(1-checkinProb); // renormalize remaining probability
-
-  if(r<0.22){
-    // Giggle bounce
-    var egg=document.getElementById('eggCompanion');
-    egg.style.transition='transform .15s ease';
-    egg.style.transform='scaleX(1.1) scaleY(0.9)';
-    setTimeout(function(){egg.style.transform='scaleX(0.92) scaleY(1.08)';
-    setTimeout(function(){egg.style.transform='';},150)},150);
-    showOocyteBubble('hehe \ud83d\ude04',2000,'normal');
-    setArms('resting');
-  }else if(r<0.44){
-    // Quick affirmation
-    var affs=['You\'ve got this.','Proud of you.','One step at a time.','You\'re not alone.','Be gentle with yourself.','Brave.'];
-    showOocyteBubble(affs[Math.floor(Math.random()*affs.length)],3500,'gentle');
-  }else if(r<0.58){
-    // Peek-a-boo
-    setArms('covering');
-    setTimeout(function(){
-      setArms('resting');
-      if(_eyeL){_eyeL.setAttribute('ry','5');_eyeR.setAttribute('ry','5')}
-      showOocyteBubble('Peekaboo! \ud83d\ude0a',2000,'normal');
-      setTimeout(function(){if(_eyeL){_eyeL.setAttribute('ry','3.5');_eyeR.setAttribute('ry','3.5')}},1500);
-    },600);
-  }else if(r<0.72){
-    // Nuzzle toward tap
-    var egg=document.getElementById('eggCompanion');
-    egg.style.transition='transform .4s ease';
-    egg.style.transform='translateX(5px) scale(1.02)';
-    _rays.setAttribute('opacity','0.45');
-    _cheeks.forEach(function(c){c.setAttribute('opacity','0.7')});
-    setTimeout(function(){egg.style.transform='';_rays.setAttribute('opacity','0.3');
-    _cheeks.forEach(function(c){c.setAttribute('opacity','0.25')})},1500);
-  }else if(r<0.86){
-    // Dance
-    var egg=document.getElementById('eggCompanion');
-    egg.style.transition='transform .12s ease';
-    var seq=[{t:'rotate(-8deg)',d:120},{t:'rotate(8deg)',d:120},{t:'rotate(-5deg) translateY(-4px)',d:120},{t:'rotate(5deg) translateY(-4px)',d:120},{t:'',d:0}];
-    var i=0;
-    function danceStep(){if(i>=seq.length)return;egg.style.transform=seq[i].t;i++;if(i<seq.length)setTimeout(danceStep,seq[i-1].d)}
-    danceStep();
-    setArms('waving');
-    showOocyteBubble('Just felt like dancing. \ud83d\udc83',2500,'excited');
-    setTimeout(function(){setArms('resting')},2000);
-  }else{
-    // Hug
-    setArms('reaching');
-    _rays.setAttribute('opacity','0.45');
-    showOocyteBubble('Needed a hug? Me too.',3000,'gentle');
-    setTimeout(function(){setArms('resting');_rays.setAttribute('opacity','0.3')},3000);
-  }
-}
-window.handleOocyteTap=handleOocyteTap;
-
-// ── Feature 4: Celebration ──
-function triggerCelebration(){
-  if(_OC.celebrating)return;
-  _OC.celebrating=true;
-  var egg=document.getElementById('eggCompanion');
-  if(!egg)return;
-
-  // Jump
-  egg.style.transition='transform .3s cubic-bezier(.34,1.56,.64,1)';
-  egg.style.transform='translateY(-20px) scale(1.1)';
-  setArms('fistpump');
-
-  // Eyes wide + sparkle
-  if(_eyeL){_eyeL.setAttribute('ry','5');_eyeR.setAttribute('ry','5')}
-  if(_stars)_stars.setAttribute('opacity','0.9');
-  _rays.setAttribute('opacity','0.7');
-  _cheeks.forEach(function(c){c.setAttribute('opacity','0.9')});
-  _mouth.setAttribute('d','M88,134 Q100,152 112,134'); // big open smile
-
-  // Confetti
-  var rect=egg.getBoundingClientRect();
-  var cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
-  var colors=['#2D8E8E','#D4A843','#f4a89a','#fde68a','#a8d5d3','#9b8ec0'];
-  for(var i=0;i<25;i++){
-    var c=document.createElement('div');c.className='confetti-piece';
-    var sz=4+Math.random()*5;
-    c.style.cssText='width:'+sz+'px;height:'+sz+'px;left:'+cx+'px;top:'+cy+'px;background:'+colors[Math.floor(Math.random()*colors.length)]+';';
-    var angle=Math.random()*Math.PI*2;var dist=60+Math.random()*80;
-    c.style.transition='all 1.5s cubic-bezier(.2,.8,.3,1)';
-    document.body.appendChild(c);
-    (function(el,a,d){
-      requestAnimationFrame(function(){
-        el.style.transform='translate('+Math.cos(a)*d+'px,'+(Math.sin(a)*d-30)+'px) rotate('+(Math.random()*720)+'deg)';
-        el.style.opacity='0';
-      });
-      setTimeout(function(){el.remove()},2000);
-    })(c,angle,dist);
-  }
-
-  showOocyteBubble('YES!! \ud83c\udf89',2000,'excited');
-
-  setTimeout(function(){
-    egg.style.transform='';
-    if(_eyeL){_eyeL.setAttribute('ry','3.5');_eyeR.setAttribute('ry','3.5')}
-    _mouth.setAttribute('d','M90,136 Q100,148 110,136');
-    setArms('heart');
-    showOocyteBubble('You did it. I\'m so happy for you.',4000,'gentle');
-  },2500);
-
-  setTimeout(function(){
-    _OC.celebrating=false;
-    setArms('resting');
-    _rays.setAttribute('opacity','0.4');
-    _cheeks.forEach(function(c){c.setAttribute('opacity','0.5')});
-  },6000);
-}
-window.triggerCelebration=triggerCelebration;
-
-// Detect celebration triggers in chat
-function checkCelebrationInChat(text){
-  if(!text)return;
-  var t=text.toLowerCase();
-  if(t.indexOf('i\'m pregnant')!==-1||t.indexOf('positive test')!==-1||t.indexOf('it worked')!==-1||t.indexOf('bfp')!==-1){
-    triggerCelebration();
-  }
-}
-
-// ── Feature 2: Journey Context ──
-function applyJourneyContext(){
-  var s=state.stage||'';
-  _OC.journeyContext=s;
-  if(!_mouth)return;
-
-  // Stage-specific daily bubbles (once per day)
-  var dayKey='oc_journey_'+new Date().toDateString();
-  if(!sessionStorage.getItem(dayKey)){
-    var msgs={
-      stimulation:'Every injection is a step forward.',
-      early_tww:'One day at a time. That\'s all you need to do.',
-      late_tww:'Almost there. You\'re so brave.',
-      post_retrieval:'Your body is amazing. Let it rest.',
-      between_cycles:'This pause is part of the journey too.',
-      retrieval_day:'Big day. I\'m right here with you.',
-      transfer_day:'Everything crossed for you.',
-      early_pregnancy:'Every day is a milestone.'
-    };
-    var msg=msgs[s];
-    if(msg){
-      sessionStorage.setItem(dayKey,'1');
-      setTimeout(function(){showOocyteBubble(msg,5000,'gentle')},8000);
-    }
-  }
-}
-
-// ── Feature 8: Growth During Stim ──
-function applyGrowth(){
-  var s=state.stage||'';
-  if(s!=='stimulation'){_OC.growthMultiplier=1.0;return}
-  // Estimate stim day from injection events
-  var injections=(_calEvents||[]).filter(function(e){return e.type==='injection'});
-  var day=Math.min(injections.length,13);
-  _OC.growthMultiplier=1.0+day*0.01;
-  // Apply to egg SVG size
-  var svg=document.getElementById('eggSvg');
-  if(svg){
-    var baseW=64,baseH=84;
-    svg.setAttribute('width',Math.round(baseW*_OC.growthMultiplier));
-    svg.setAttribute('height',Math.round(baseH*_OC.growthMultiplier));
-  }
-  // Zona opacity increases
-  if(_zona){
-    var zonaOp=0.25+day*0.012;
-    _zona.setAttribute('opacity',Math.min(zonaOp,0.45).toFixed(2));
-  }
-}
-
-// ── Master Initialization ──
-function initPersonality(){
-  _initRefs();
-  applyTimeOfDay();
-  wireTypingReactions();
-  startIdleBubbles();
-  applyJourneyContext();
-  applyGrowth();
-  showGreetingBubble();
-
-  // Refresh time-of-day every 30 min
-  setInterval(applyTimeOfDay,1800000);
-  // Refresh journey context every 30 min
-  setInterval(function(){applyJourneyContext();applyGrowth()},1800000);
-
-  // Mark check-in done
-  var origSubmit=window.submitCheckin;
-  if(typeof origSubmit==='function'){
-    window.submitCheckin=function(){
-      _OC.checkinDoneToday=true;
-      return origSubmit.apply(this,arguments);
-    };
-  }
-
-  // Wire celebration detection to chat
-  var origAddMsg=window.addMsg;
-  if(typeof origAddMsg==='function'){
-    window.addMsg=function(role,text){
-      if(role==='user')checkCelebrationInChat(text);
-      return origAddMsg.apply(this,arguments);
-    };
-  }
-}
-
-// Start when app is shown
-var _origShowApp2=window.showApp;
-window.showApp=function(){
-  _origShowApp2.apply(this,arguments);
-  setTimeout(initPersonality,2000);
-};
-
 })();
 </script>
 </body>

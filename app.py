@@ -1061,6 +1061,8 @@ passive_signals_db: dict = {}  # patient_id -> list of passive behavioural signa
 cycle_events_db: dict = {}  # {patient_id: [events]}
 clinical_triggers_db: dict = {}  # {patient_id: [triggers]}
 calendar_updates_db: dict = {}  # {patient_id: [updates]}
+community_posts_db: list = []  # Global list of community posts
+community_reactions_db: dict = {}  # {post_id: {patient_id: reaction_type}}
 
 
 # ── Firebase sync helpers ────────────────────────────────────────
@@ -1568,6 +1570,15 @@ class OnboardRequest(BaseModel):
     treatment_type: str = "ivf"  # ivf, icsi, fet, iui, egg_freezing, other
     partner_name: Optional[str] = None
     clinic_name: Optional[str] = None
+
+class CommunityPostRequest(BaseModel):
+    patient_id: str
+    text: str
+    anonymous: bool = True
+
+class CommunityReactRequest(BaseModel):
+    reaction: str  # "support", "same", "strength"
+    patient_id: str
 
 
 # ── App Setup ─────────────────────────────────────────────────────────
@@ -3658,6 +3669,171 @@ async def acknowledge_calendar_updates(patient_id: str):
     for u in updates:
         u['delivered'] = True
     return {"status": "ok"}
+
+
+# ── Anonymous Community ─────────────────────────────────────────────────
+
+CRISIS_KEYWORDS = ['suicide', 'suicidal', 'kill myself', 'end it all', 'want to die', 'self-harm', 'cutting', 'overdose']
+IDENTIFYING_KEYWORDS = ['my name is', 'my doctor', 'my clinic', 'dr.', 'dr ', 'melbourne ivf', 'virtus', 'monash ivf', 'genea']
+
+
+def moderate_community_post(text: str, patient_id: str) -> dict:
+    """Check community post for crisis language, identifying info, etc."""
+    text_lower = text.lower()
+    result = {"approved": True, "flags": [], "crisis": False}
+
+    # Crisis check
+    if any(kw in text_lower for kw in CRISIS_KEYWORDS):
+        result["crisis"] = True
+        result["flags"].append("crisis_language")
+        # Trigger RED escalation
+        _sync_escalation(patient_id, {
+            "level": "RED",
+            "reason": "Crisis language in community post",
+            "signals": ["community_crisis_content"],
+            "timestamp": utc_iso(),
+        })
+
+    # Identifying info check
+    if any(kw in text_lower for kw in IDENTIFYING_KEYWORDS):
+        result["approved"] = False
+        result["flags"].append("identifying_info")
+        result["message"] = "Please keep posts anonymous — avoid sharing names, doctors, or clinic details."
+
+    return result
+
+
+@app.post("/community/posts")
+async def create_community_post(req: CommunityPostRequest):
+    """Create an anonymous community post."""
+    # Moderate
+    mod = moderate_community_post(req.text, req.patient_id)
+    if not mod["approved"]:
+        return JSONResponse(status_code=400, content={"error": mod.get("message", "Post not approved"), "flags": mod["flags"]})
+
+    patient = patients_db.get(req.patient_id, {})
+    post = {
+        "id": f"post_{uuid.uuid4().hex[:10]}",
+        "text": req.text[:500],  # 500 char limit
+        "anonymous": req.anonymous,
+        "display_name": "Anonymous" if req.anonymous else (patient.get("name", "")[:1] + "." if patient.get("name") else "Anonymous"),
+        "stage": patient.get("treatment_stage", ""),
+        "stage_display": STAGE_DISPLAY.get(patient.get("treatment_stage", ""), ""),
+        "mood": "",
+        "created_at": utc_iso(),
+        "patient_id": req.patient_id,  # stored but NEVER returned to other patients
+        "reactions": {"support": 0, "same": 0, "strength": 0},
+        "reported_count": 0,
+        "reported_by": [],
+        "visible": True,
+        "moderation_flags": mod["flags"],
+        "crisis": mod["crisis"],
+    }
+
+    community_posts_db.insert(0, post)
+
+    # Save to Firebase
+    try:
+        if firebase_db.ready:
+            from firebase_db import _fb_ref, _enabled
+            if _enabled and _fb_ref:
+                _fb_ref.child('community_posts').child(post['id']).set(post)
+    except Exception:
+        pass
+
+    # Return without patient_id
+    safe_post = {k: v for k, v in post.items() if k not in ('patient_id', 'reported_by')}
+    return {"status": "ok", "post": safe_post}
+
+
+@app.get("/community/posts")
+async def list_community_posts(stage: str = None, limit: int = 20, before: str = None):
+    """List visible community posts, optionally filtered by stage."""
+    posts = [p for p in community_posts_db if p.get("visible", True)]
+
+    if stage and stage != "all":
+        posts = [p for p in posts if p.get("stage") == stage]
+
+    if before:
+        posts = [p for p in posts if p.get("created_at", "") < before]
+
+    # NEVER return patient_id or reported_by
+    safe_posts = []
+    for p in posts[:limit]:
+        safe = {k: v for k, v in p.items() if k not in ('patient_id', 'reported_by')}
+        safe_posts.append(safe)
+
+    return {"posts": safe_posts, "total": len(posts)}
+
+
+@app.post("/community/posts/{post_id}/react")
+async def react_to_post(post_id: str, req: CommunityReactRequest):
+    """React to a community post."""
+    if req.reaction not in ("support", "same", "strength"):
+        raise HTTPException(status_code=400, detail="Invalid reaction type")
+
+    # Find post
+    post = next((p for p in community_posts_db if p["id"] == post_id), None)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    # One reaction per patient per post
+    key = f"{post_id}"
+    prev = community_reactions_db.get(key, {}).get(req.patient_id)
+    if prev:
+        # Remove previous reaction
+        post["reactions"][prev] = max(0, post["reactions"].get(prev, 0) - 1)
+
+    # Add new reaction (or toggle off if same)
+    if prev == req.reaction:
+        community_reactions_db.setdefault(key, {}).pop(req.patient_id, None)
+    else:
+        post["reactions"][req.reaction] = post["reactions"].get(req.reaction, 0) + 1
+        community_reactions_db.setdefault(key, {})[req.patient_id] = req.reaction
+
+    return {"status": "ok", "reactions": post["reactions"]}
+
+
+@app.post("/community/posts/{post_id}/report")
+async def report_post(post_id: str, request: Request):
+    """Report a community post."""
+    body = await request.json()
+    patient_id = body.get("patient_id", "")
+
+    post = next((p for p in community_posts_db if p["id"] == post_id), None)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    if patient_id not in post.get("reported_by", []):
+        post.setdefault("reported_by", []).append(patient_id)
+        post["reported_count"] = len(post["reported_by"])
+
+    # Auto-hide after 2 reports
+    if post["reported_count"] >= 2:
+        post["visible"] = False
+
+    return {"status": "ok", "reported_count": post["reported_count"], "hidden": not post["visible"]}
+
+
+@app.get("/community/stages")
+async def list_community_stages():
+    """List active stages with post counts."""
+    stage_counts = {}
+    now_iso = utc_iso()
+    today = now_iso[:10]
+
+    for p in community_posts_db:
+        if not p.get("visible", True):
+            continue
+        s = p.get("stage", "other")
+        if s not in stage_counts:
+            stage_counts[s] = {"stage": s, "stage_display": STAGE_DISPLAY.get(s, s), "posts": 0, "active_today": 0}
+        stage_counts[s]["posts"] += 1
+        if p.get("created_at", "")[:10] == today:
+            stage_counts[s]["active_today"] += 1
+
+    stages = sorted(stage_counts.values(), key=lambda x: x["posts"], reverse=True)
+    return {"stages": stages}
 
 
 # ── Static File Serving ────────────────────────────────────────────────

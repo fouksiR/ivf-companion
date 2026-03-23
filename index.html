@@ -619,11 +619,17 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     <div class="community-tabs"><button class="community-tab active" onclick="switchCommunityTab('buddies')">Buddies</button><button class="community-tab" onclick="switchCommunityTab('world')">World</button></div>
     <div id="community-buddies">
       <div class="community-invite"><h3>Journey Together!</h3><p>Celebrate, support, and lean on each other every step of the way</p><button class="community-invite-btn">Invite a Buddy</button></div>
-      <div id="buddies-feed"><div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">No buddies yet. Invite someone to share the journey!</div></div>
+      <div id="buddies-feed">
+        <div style="margin-top:16px">
+          <h4 style="font-family:var(--serif);font-size:14px;color:#1a3a3a;margin:0 0 8px">Connect with patients at your stage</h4>
+          <div id="stage-groups" style="display:flex;flex-direction:column;gap:8px"></div>
+        </div>
+      </div>
     </div>
     <div id="community-world" style="display:none">
-      <div class="community-invite"><h3>You're Not Alone</h3><p>Connect with others on the same path — anonymously and safely</p></div>
+      <div id="stage-filter-pills" style="display:flex;gap:6px;overflow-x:auto;padding:4px 0 12px;-webkit-overflow-scrolling:touch"></div>
       <div id="world-feed"></div>
+      <div id="world-loading" style="display:none;text-align:center;padding:16px;color:var(--text-soft);font-size:12px">Loading...</div>
     </div>
     <button class="community-fab" id="communityFab" onclick="openPostModal()">+</button>
   </div>
@@ -2433,11 +2439,209 @@ function showStageGrid(){document.getElementById('step2-motiv').style.display='n
 // Insights sub-tabs
 function switchInsightsTab(tab){document.querySelectorAll('.insights-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab)});document.querySelectorAll('.insights-panel').forEach(function(p){p.classList.remove('active')});var panel=document.getElementById('insight-'+tab);if(panel)panel.classList.add('active')}
 // Community
-function switchCommunityTab(tab){document.querySelectorAll('.community-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab)});document.getElementById('community-buddies').style.display=tab==='buddies'?'block':'none';document.getElementById('community-world').style.display=tab==='world'?'block':'none';if(tab==='world')loadWorldPosts();document.getElementById('communityFab').style.display=tab==='world'?'block':'none'}
+var _communityFilter = 'all';
+var _communityPollTimer = null;
+var _communityLastPosts = [];
+
+function switchCommunityTab(tab) {
+    document.querySelectorAll('.community-tab').forEach(function(t) {
+        t.classList.toggle('active', t.textContent.toLowerCase() === tab);
+    });
+    document.getElementById('community-buddies').style.display = tab === 'buddies' ? 'block' : 'none';
+    document.getElementById('community-world').style.display = tab === 'world' ? 'block' : 'none';
+    document.getElementById('communityFab').style.display = tab === 'world' ? 'block' : 'none';
+
+    if (tab === 'world') {
+        loadStageFilters();
+        loadWorldPosts();
+        if (_communityPollTimer) clearInterval(_communityPollTimer);
+        _communityPollTimer = setInterval(pollNewPosts, 30000);
+    } else {
+        if (_communityPollTimer) { clearInterval(_communityPollTimer); _communityPollTimer = null; }
+        loadStageGroups();
+    }
+}
+
+function loadStageFilters() {
+    var container = document.getElementById('stage-filter-pills');
+    if (!container || !API_BASE) return;
+
+    var stages = [
+        {key: 'all', label: 'All'},
+        {key: 'stimulation', label: 'Stimulation'},
+        {key: 'retrieval_day', label: 'Retrieval'},
+        {key: 'transfer_day', label: 'Transfer'},
+        {key: 'early_tww', label: 'TWW'},
+        {key: 'late_tww', label: 'Late TWW'},
+        {key: 'result_day', label: 'Results'},
+        {key: 'between_cycles', label: 'Between Cycles'},
+        {key: 'negative_result', label: 'Processing'}
+    ];
+
+    container.innerHTML = stages.map(function(s) {
+        var active = s.key === _communityFilter;
+        return '<button style="white-space:nowrap;padding:6px 14px;border-radius:50px;border:1px solid ' + (active ? '#2D8E8E' : 'rgba(45,142,142,0.2)') + ';background:' + (active ? '#2D8E8E' : 'white') + ';color:' + (active ? 'white' : '#2D8E8E') + ';font-size:12px;font-family:var(--sans);cursor:pointer;flex-shrink:0" onclick="filterCommunity(\'' + s.key + '\')">' + s.label + '</button>';
+    }).join('');
+}
+
+function filterCommunity(stage) {
+    _communityFilter = stage;
+    loadStageFilters();
+    loadWorldPosts();
+}
+
 function openPostModal(){document.getElementById('postModal').classList.add('active')}
 function closePostModal(){document.getElementById('postModal').classList.remove('active')}
-function submitPost(){var text=document.getElementById('postText').value.trim();if(!text)return;var posts=JSON.parse(localStorage.getItem('melodai_posts')||'[]');posts.unshift({id:Date.now(),text:text,stage:state.stage||'',mood:5,timestamp:new Date().toISOString(),anonymous:document.getElementById('postAnon').checked});localStorage.setItem('melodai_posts',JSON.stringify(posts));document.getElementById('postText').value='';closePostModal();loadWorldPosts()}
-function loadWorldPosts(){var feed=document.getElementById('world-feed');var posts=JSON.parse(localStorage.getItem('melodai_posts')||'[]');if(!posts.length){feed.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">No posts yet. Be the first to share!</div>';return}feed.innerHTML=posts.slice(0,20).map(function(p){var ago=timeAgoShort(p.timestamp);return '<div class="post-card"><div class="post-header"><div class="post-avatar">&#x1F95A;</div><span>'+(p.anonymous?'Anonymous':'You')+'</span><span>&middot;</span><span>'+ago+'</span></div><div class="post-body">'+escHtml(p.text)+'</div><div class="post-actions"><button class="post-action-btn">&#x2764;&#xFE0F; Support</button><button class="post-action-btn">&#x1F4AC; Reply</button></div></div>'}).join('')}
+
+function submitPost() {
+    var text = document.getElementById('postText').value.trim();
+    if (!text) return;
+    if (!API_BASE || !state.patientId) return;
+
+    var btn = document.querySelector('.post-modal-send');
+    if (btn) { btn.disabled = true; btn.textContent = 'Posting...'; }
+
+    fetch(API_BASE + '/community/posts', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            patient_id: state.patientId,
+            text: text.substring(0, 500),
+            anonymous: document.getElementById('postAnon').checked
+        })
+    }).then(function(r) {
+        if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Failed'); });
+        return r.json();
+    }).then(function(d) {
+        document.getElementById('postText').value = '';
+        closePostModal();
+        loadWorldPosts();
+    }).catch(function(e) {
+        alert(e.message || 'Could not post. Please try again.');
+    }).finally(function() {
+        if (btn) { btn.disabled = false; btn.textContent = 'Post'; }
+    });
+}
+function loadWorldPosts() {
+    var feed = document.getElementById('world-feed');
+    if (!feed || !API_BASE) return;
+
+    var url = API_BASE + '/community/posts?limit=20';
+    if (_communityFilter && _communityFilter !== 'all') url += '&stage=' + _communityFilter;
+
+    fetch(url).then(function(r) { return r.json(); }).then(function(d) {
+        var posts = d.posts || [];
+        _communityLastPosts = posts;
+
+        if (!posts.length) {
+            feed.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-soft);font-size:13px">No posts yet. Be the first to share!</div>';
+            return;
+        }
+
+        feed.innerHTML = posts.map(function(p) {
+            return renderCommunityPost(p);
+        }).join('');
+    }).catch(function() {
+        feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-soft);font-size:13px">Could not load posts</div>';
+    });
+}
+
+function renderCommunityPost(p) {
+    var ago = timeAgoShort(p.created_at);
+    var stageLabel = p.stage_display || p.stage || '';
+    var myReaction = '';
+    try { myReaction = JSON.parse(localStorage.getItem('melodai_reactions') || '{}')[p.id] || ''; } catch(e) {}
+
+    return '<div class="post-card" style="background:white;border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid rgba(45,142,142,0.08)">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+            '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f0fdfa,#e8daa0);display:flex;align-items:center;justify-content:center;font-size:16px">\uD83E\uDD5A</div>' +
+            '<div style="flex:1"><span style="font-size:13px;font-weight:600;color:#1a3a3a">' + escHtml(p.display_name || 'Anonymous') + '</span>' +
+            '<span style="color:var(--text-soft);font-size:11px;margin-left:6px">' + ago + '</span></div>' +
+            (stageLabel ? '<span style="font-size:10px;padding:3px 8px;border-radius:50px;background:rgba(45,142,142,0.08);color:#2D8E8E">' + escHtml(stageLabel) + '</span>' : '') +
+        '</div>' +
+        '<div style="font-size:14px;line-height:1.5;color:#2a2a2a;margin-bottom:10px">' + escHtml(p.text) + '</div>' +
+        '<div style="display:flex;gap:6px;align-items:center">' +
+            '<button onclick="reactToPost(\'' + p.id + '\',\'support\')" style="padding:5px 10px;border-radius:50px;border:1px solid ' + (myReaction === 'support' ? '#2D8E8E' : 'rgba(45,142,142,0.15)') + ';background:' + (myReaction === 'support' ? 'rgba(45,142,142,0.08)' : 'white') + ';cursor:pointer;font-size:11px;color:#2D8E8E;display:flex;align-items:center;gap:3px">\uD83E\uDD0D <span>' + (p.reactions.support || 0) + '</span></button>' +
+            '<button onclick="reactToPost(\'' + p.id + '\',\'same\')" style="padding:5px 10px;border-radius:50px;border:1px solid ' + (myReaction === 'same' ? '#2D8E8E' : 'rgba(45,142,142,0.15)') + ';background:' + (myReaction === 'same' ? 'rgba(45,142,142,0.08)' : 'white') + ';cursor:pointer;font-size:11px;color:#2D8E8E;display:flex;align-items:center;gap:3px">\uD83E\uDD1D <span>' + (p.reactions.same || 0) + '</span></button>' +
+            '<button onclick="reactToPost(\'' + p.id + '\',\'strength\')" style="padding:5px 10px;border-radius:50px;border:1px solid ' + (myReaction === 'strength' ? '#2D8E8E' : 'rgba(45,142,142,0.15)') + ';background:' + (myReaction === 'strength' ? 'rgba(45,142,142,0.08)' : 'white') + ';cursor:pointer;font-size:11px;color:#2D8E8E;display:flex;align-items:center;gap:3px">\uD83D\uDCAA <span>' + (p.reactions.strength || 0) + '</span></button>' +
+            '<button onclick="reportPost(\'' + p.id + '\')" style="margin-left:auto;background:none;border:none;color:var(--text-soft);cursor:pointer;font-size:14px" title="Report">\u22EE</button>' +
+        '</div></div>';
+}
+
+function reactToPost(postId, reaction) {
+    if (!API_BASE || !state.patientId) return;
+    fetch(API_BASE + '/community/posts/' + postId + '/react', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({reaction: reaction, patient_id: state.patientId})
+    }).then(function(r) { return r.json(); }).then(function(d) {
+        try {
+            var reactions = JSON.parse(localStorage.getItem('melodai_reactions') || '{}');
+            if (reactions[postId] === reaction) { delete reactions[postId]; }
+            else { reactions[postId] = reaction; }
+            localStorage.setItem('melodai_reactions', JSON.stringify(reactions));
+        } catch(e) {}
+        loadWorldPosts();
+    }).catch(function() {});
+}
+
+function reportPost(postId) {
+    if (!confirm('Report this post?')) return;
+    if (!API_BASE || !state.patientId) return;
+    fetch(API_BASE + '/community/posts/' + postId + '/report', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({patient_id: state.patientId})
+    }).then(function(r) { return r.json(); }).then(function(d) {
+        if (d.hidden) { loadWorldPosts(); }
+        else { alert('Report submitted. Thank you.'); }
+    }).catch(function() {});
+}
+
+function pollNewPosts() {
+    if (!API_BASE || document.getElementById('community-world').style.display === 'none') return;
+    var url = API_BASE + '/community/posts?limit=5';
+    if (_communityFilter && _communityFilter !== 'all') url += '&stage=' + _communityFilter;
+
+    fetch(url).then(function(r) { return r.json(); }).then(function(d) {
+        var newPosts = d.posts || [];
+        if (newPosts.length && _communityLastPosts.length) {
+            var latestKnown = _communityLastPosts[0].id;
+            var hasNew = newPosts[0].id !== latestKnown;
+            if (hasNew) {
+                var banner = document.createElement('div');
+                banner.style.cssText = 'text-align:center;padding:8px;background:rgba(45,142,142,0.08);border-radius:10px;margin-bottom:8px;cursor:pointer;font-size:12px;color:#2D8E8E;font-weight:600;';
+                banner.textContent = '\u2728 New posts available \u2014 tap to refresh';
+                banner.onclick = function() { banner.remove(); loadWorldPosts(); };
+                var feed = document.getElementById('world-feed');
+                if (feed && !feed.querySelector('.new-posts-banner')) {
+                    banner.className = 'new-posts-banner';
+                    feed.insertBefore(banner, feed.firstChild);
+                }
+            }
+        }
+    }).catch(function() {});
+}
+
+function loadStageGroups() {
+    var container = document.getElementById('stage-groups');
+    if (!container || !API_BASE) return;
+    fetch(API_BASE + '/community/stages').then(function(r) { return r.json(); }).then(function(d) {
+        var stages = d.stages || [];
+        if (!stages.length) {
+            container.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text-soft);font-size:12px">No active groups yet</div>';
+            return;
+        }
+        container.innerHTML = stages.slice(0, 6).map(function(s) {
+            return '<div onclick="switchCommunityTab(\'world\');filterCommunity(\'' + s.stage + '\')" style="background:white;border-radius:12px;padding:12px;border:1px solid rgba(45,142,142,0.08);cursor:pointer;display:flex;align-items:center;gap:10px">' +
+                '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#e0f5f0,#f0fdfa);display:flex;align-items:center;justify-content:center;font-size:16px">\uD83E\uDD5A</div>' +
+                '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:#1a3a3a">' + escHtml(s.stage_display || s.stage) + ' Circle</div>' +
+                '<div style="font-size:11px;color:var(--text-soft)">' + s.posts + ' posts \u00B7 ' + s.active_today + ' active today</div></div>' +
+                '<span style="color:#2D8E8E">\u2192</span></div>';
+        }).join('');
+    }).catch(function() {});
+}
+
 function timeAgoShort(ts){try{var d=(Date.now()-new Date(ts))/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m';if(d<86400)return Math.floor(d/3600)+'h';return Math.floor(d/86400)+'d'}catch(e){return ''}}
 // Calendar
 var _calYear,_calMonth,_calEvents=[];

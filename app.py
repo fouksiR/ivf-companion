@@ -2168,7 +2168,7 @@ def evaluate_clinical_triggers(patient_id: str) -> list:
         if 0 < hours_until <= 48 and evt.get('type') in procedure_types:
             anxiety = latest.get('anxiety', 5)
             mood = latest.get('mood', 5)
-            if anxiety > 6 or mood < 5:
+            if anxiety >= 5 or mood < 6:
                 triggers.append({
                     "rule": "pre_procedure_anxiety",
                     "event": f"{evt.get('type')} on {evt.get('date')}",
@@ -2222,12 +2222,14 @@ def evaluate_clinical_triggers(patient_id: str) -> list:
     tww_stages = ['early_tww', 'late_tww']
     if stage in tww_stages:
         anxiety = latest.get('anxiety', 5)
+        mood = latest.get('mood', 5)
         assessment = store.get('current_assessment', {})
         flags = assessment.get('flags', [])
         has_hyper = 'HYPER_ENGAGEMENT' in str(flags)
         late_sessions = sum(1 for h in store.get('signal_history', [])[-7:]
                           if h.get('circadian', {}).get('hour', 12) >= 23 or h.get('circadian', {}).get('hour', 12) <= 4)
-        if anxiety > 7 or has_hyper or late_sessions > 2:
+        # Lower threshold — TWW is inherently stressful; anxiety>=6 OR mood<5 suffices
+        if anxiety >= 6 or mood < 5 or has_hyper or late_sessions > 2:
             triggers.append({
                 "rule": "tww_spiral",
                 "anxiety_score": anxiety,

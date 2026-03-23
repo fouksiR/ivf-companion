@@ -1409,7 +1409,9 @@ var fab=document.getElementById('communityFab');if(fab)fab.style.display=t==='ci
 // Track circle tab time for community phenotyping
 if(prevTab==='circle'&&_communityMetrics._circleTabStart>0){_communityMetrics.time_on_circle_tab_ms+=Date.now()-_communityMetrics._circleTabStart;_communityMetrics._circleTabStart=0}
 if(t==='circle'){_communityMetrics._circleTabStart=Date.now()}
-if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart();if(t==='journey'){buildCalendar();updateJarCounts()}}
+if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart();if(t==='journey'){buildCalendar();updateJarCounts()}
+// Fire pending egg support when returning to chat
+if(t==='chat'&&_pendingEggSupport){setTimeout(function(){eggProactiveSupport(_pendingEggSupport)},800)}}
 var _oneWordShown=false;
 function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();html+='<div class="fertool-cards" id="'+_ftId+'">'+fertoolCards.filter(function(c){return!c.embed}).map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>';var _ftEmbed=fertoolCards.filter(function(c){return c.embed});if(_ftEmbed.length>0){setTimeout(function(){var container=document.getElementById(_ftId);if(!container)container=d;_ftEmbed.forEach(function(c){var widget=renderFertoolWidget(c);if(widget)container.parentElement.appendChild(widget)})},50)}}
 // Add one-word check-in pill after first greeting
@@ -1441,7 +1443,15 @@ function eggProactiveSupport(widgetType){
   if(!msg)return;
 
   var egg=document.getElementById('eggCompanion');
-  if(!egg||!egg.classList.contains('visible'))return;
+  // If egg isn't visible (e.g. on check-in screen), queue it for when we return to chat
+  if(!egg||!egg.classList.contains('visible')){
+    _pendingEggSupport=widgetType;
+    // Also show a floating support toast immediately regardless of screen
+    _showSupportToast(msg);
+    return;
+  }
+
+  _pendingEggSupport=null;
 
   // Remove any existing support bubble
   var existing=document.querySelector('.egg-support-bubble');
@@ -1463,18 +1473,46 @@ function eggProactiveSupport(widgetType){
   }
   bubble.innerHTML=html;
 
-  // Position near egg
-  var eggRect=egg.getBoundingClientRect();
-  bubble.style.left=Math.max(8,eggRect.left-20)+'px';
-  bubble.style.bottom=(window.innerHeight-eggRect.top+12)+'px';
+  // Position near egg — fixed bottom-left
+  bubble.style.left='12px';
+  bubble.style.bottom='140px';
 
   document.body.appendChild(bubble);
 
   // Animate in after a beat
   setTimeout(function(){bubble.classList.add('visible')},100);
 
-  // Auto-dismiss after 15 seconds
-  _eggSupportTimer=setTimeout(function(){dismissEggSupport()},15000);
+  // Auto-dismiss after 20 seconds
+  _eggSupportTimer=setTimeout(function(){dismissEggSupport()},20000);
+}
+var _pendingEggSupport=null;
+
+function _showSupportToast(msg){
+  // Show a floating support card that works on ANY screen (check-in, circle, etc.)
+  var existing=document.querySelector('.support-toast-card');
+  if(existing)existing.remove();
+
+  var card=document.createElement('div');
+  card.className='support-toast-card';
+  card.style.cssText='position:fixed;bottom:80px;left:16px;right:16px;max-width:340px;background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border-radius:18px;padding:16px;box-shadow:0 8px 32px rgba(45,142,142,0.2);border:1px solid rgba(45,142,142,0.15);z-index:200;transform:translateY(20px);opacity:0;transition:all .4s cubic-bezier(.25,1,.5,1);';
+
+  var html='<div style="display:flex;align-items:flex-start;gap:12px">';
+  html+='<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2D8E8E,#3aafaf);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">'+msg.icon+'</div>';
+  html+='<div style="flex:1"><div style="font-family:var(--serif);font-size:14px;font-weight:600;color:#1a3a3a;margin-bottom:4px">Your egg companion noticed something</div>';
+  html+='<div style="font-size:13px;color:#3a7070;line-height:1.45">'+msg.text+'</div>';
+  if(msg.btn&&msg.action){
+    html+='<button onclick="acceptEggSupport(\''+msg.action.replace(/'/g,"\\'")+'\');this.closest(\'.support-toast-card\').remove()" style="margin-top:10px;background:#2D8E8E;color:white;border:none;padding:8px 18px;border-radius:50px;font-size:12px;font-family:var(--sans);font-weight:600;cursor:pointer">'+msg.btn+'</button>';
+  }
+  html+='</div>';
+  html+='<button onclick="this.closest(\'.support-toast-card\').remove()" style="background:none;border:none;color:#6a9e9e;font-size:18px;cursor:pointer;padding:0;line-height:1">&times;</button>';
+  html+='</div>';
+  card.innerHTML=html;
+
+  document.body.appendChild(card);
+  setTimeout(function(){card.style.transform='translateY(0)';card.style.opacity='1'},50);
+
+  // Auto-dismiss after 20s
+  setTimeout(function(){if(card.parentNode){card.style.opacity='0';card.style.transform='translateY(20px)';setTimeout(function(){if(card.parentNode)card.remove()},400)}},20000);
 }
 
 function dismissEggSupport(){

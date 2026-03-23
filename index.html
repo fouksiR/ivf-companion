@@ -331,6 +331,14 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 @keyframes eggReachOut{0%{transform:scale(1)}30%{transform:scale(1.25)}60%{transform:scale(1.18)}100%{transform:scale(1.2)}}
 .egg-companion.reaching svg{animation:eggReachOut .8s ease forwards,eggFloat 4s ease-in-out infinite}
 .egg-companion.reaching::before{opacity:1;background:radial-gradient(circle,rgba(45,142,142,.15),transparent 68%);animation:auraBreath 3s ease-in-out infinite}
+/* ── Oocyte Personality System CSS ── */
+.oc-bubble{position:fixed;z-index:60;background:white;border-radius:16px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,.08);font-family:'DM Sans','Montserrat',sans-serif;font-size:13px;color:#1a3a3a;max-width:200px;text-align:center;opacity:0;transform:scale(.8) translateY(4px) translateX(-50%);transition:opacity .25s ease-out,transform .25s ease-out;pointer-events:none}
+.oc-bubble.visible{opacity:1;transform:scale(1) translateY(0) translateX(-50%)}
+.oc-bubble::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid white}
+.oc-bubble.whisper{font-size:11px;font-style:italic;background:rgba(255,255,255,.9);color:#6a9e9e}
+.oc-bubble.excited{font-size:14px;color:#D4A843;font-weight:600}
+.oc-bubble.gentle{background:rgba(240,253,250,.95);border:1px solid rgba(45,142,142,.08)}
+.confetti-p{position:fixed;pointer-events:none;z-index:61;border-radius:2px;opacity:.9}
 /* ── Stress-ball spring-back ──────────────────────────── */
 @keyframes eggSpringBack{
 0%{transform:scale(1)}
@@ -776,6 +784,11 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
       <ellipse class="eg-cheek" cx="132" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
       <!-- Mouth — gentle quiet smile -->
       <path id="egMouth" d="M92,138 Q100,144 108,138" stroke="#666" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+    </g>
+    <!-- Arms (personality system) -->
+    <g id="egArms" opacity="0.7" style="transition:opacity 0.4s">
+      <path id="egArmL" d="M30,128 Q22,136 25,148" stroke="#c8b870" stroke-width="2.2" fill="none" stroke-linecap="round" style="transition:d 0.4s ease"/>
+      <path id="egArmR" d="M170,128 Q178,136 175,148" stroke="#c8b870" stroke-width="2.2" fill="none" stroke-linecap="round" style="transition:d 0.4s ease"/>
     </g>
   </svg>
   <div class="egg-glow" id="eggGlow"></div>
@@ -2276,8 +2289,8 @@ function onDragUp(e){
     snapToEdge(egg);
     startIdleFace();
   }else{
-    // Was a tap — run original onDown logic (opens check-in)
-    onDown(e);
+    // Was a tap — random micro-interaction or check-in
+    if(typeof handleOocyteTap==='function'){handleOocyteTap(e)}else{onDown(e)}
   }
 }
 
@@ -3215,6 +3228,333 @@ initOnboarding();
       state._returning=true;
     }catch(e){console.warn('Return user init failed:',e)}
   }
+})();
+
+// ═══════════════════════════════════════════════════════════════════════
+// OOCYTE PERSONALITY SYSTEM — 8 Features, 6 Priority Layers
+// ═══════════════════════════════════════════════════════════════════════
+(function oocytePersonality(){
+
+// ── Central state ──
+var OC={
+  timeOfDay:'midday',journeyCtx:null,baseMood:'content',reactiveMood:null,
+  interaction:null,celebrating:false,growthMul:1.0,armPos:'resting',
+  bubbleText:null,bubblesShown:0,maxBubbles:5,lastTap:0,checkinDone:false,
+  idleBubbles:0,typingTimer:null,lastLen:0,delCount:0,delCheck:0
+};
+
+// ── SVG refs (lazy-init) ──
+var _r={};
+function refs(){
+  if(_r.eyeL)return _r;
+  _r.eyeL=document.getElementById('egEyeL');_r.eyeR=document.getElementById('egEyeR');
+  _r.shL=document.getElementById('egShineL');_r.shR=document.getElementById('egShineR');
+  _r.mouth=document.getElementById('egMouth');_r.rays=document.getElementById('egRays');
+  _r.cheeks=document.querySelectorAll('.eg-cheek');_r.stars=document.getElementById('egStars');
+  _r.browL=document.getElementById('egBrowL');_r.browR=document.getElementById('egBrowR');
+  _r.armL=document.getElementById('egArmL');_r.armR=document.getElementById('egArmR');
+  _r.tearL=document.getElementById('egTearL');_r.tearR=document.getElementById('egTearR');
+  _r.body=document.getElementById('egBody');
+  _r.zona=document.querySelector('#eggSvg circle[r="86"]');
+  return _r;
+}
+
+// ── Feature 3: Arms ──
+var armPoses={
+  resting:{l:'M30,128 Q22,136 25,148',r:'M170,128 Q178,136 175,148'},
+  waving:{l:'M30,128 Q22,136 25,148',r:'M170,128 Q180,118 175,105'},
+  heart:{l:'M30,128 Q50,145 85,140',r:'M170,128 Q150,145 115,140'},
+  hug:{l:'M30,128 Q60,130 120,135',r:'M170,128 Q140,130 80,135'},
+  reaching:{l:'M30,128 Q15,140 10,155',r:'M170,128 Q185,140 190,155'},
+  covering:{l:'M30,128 Q55,108 80,112',r:'M170,128 Q145,108 120,112'},
+  fistpump:{l:'M30,128 Q22,136 25,148',r:'M170,128 Q180,108 178,95'}
+};
+function setArms(pos){
+  var R=refs();if(!R.armL)return;
+  var p=armPoses[pos]||armPoses.resting;
+  R.armL.setAttribute('d',p.l);R.armR.setAttribute('d',p.r);
+  OC.armPos=pos;
+}
+
+// ── Feature 5: Speech Bubbles ──
+var _bTimer=null;
+function showBubble(text,dur,style){
+  if(OC.bubblesShown>=OC.maxBubbles||OC.reactiveMood)return;
+  dur=dur||4000;style=style||'normal';
+  var old=document.querySelector('.oc-bubble');if(old)old.remove();
+  if(_bTimer){clearTimeout(_bTimer);_bTimer=null}
+  var egg=document.getElementById('eggCompanion');
+  if(!egg||!egg.classList.contains('visible'))return;
+  var rect=egg.getBoundingClientRect();
+  var b=document.createElement('div');
+  b.className='oc-bubble'+(style!=='normal'?' '+style:'');
+  b.textContent=text;
+  b.style.left=(rect.left+rect.width/2)+'px';
+  b.style.bottom=(window.innerHeight-rect.top+8)+'px';
+  document.body.appendChild(b);
+  setTimeout(function(){b.classList.add('visible')},50);
+  OC.bubblesShown++;OC.bubbleText=text;
+  _bTimer=setTimeout(function(){
+    b.classList.remove('visible');b.style.opacity='0';
+    setTimeout(function(){if(b.parentNode)b.remove()},300);
+    OC.bubbleText=null;_bTimer=null;
+  },dur);
+}
+window.showOocyteBubble=showBubble;
+
+// ── Feature 6: Time-of-Day ──
+function tod(){
+  var h=new Date().getHours();
+  if(h>=5&&h<10)return'morning';if(h>=10&&h<15)return'midday';
+  if(h>=15&&h<19)return'afternoon';if(h>=19&&h<22)return'evening';return'latenight';
+}
+function applyTod(){
+  OC.timeOfDay=tod();var R=refs();if(!R.rays)return;
+  var t=OC.timeOfDay;
+  if(t==='latenight'){
+    R.rays.setAttribute('opacity','0.08');
+    R.cheeks.forEach(function(c){c.setAttribute('opacity','0.15')});
+    if(R.eyeL&&!OC.reactiveMood&&!OC.interaction){R.eyeL.setAttribute('ry','1.8');R.eyeR.setAttribute('ry','1.8')}
+  }else if(t==='morning'){R.rays.setAttribute('opacity','0.35')}
+  else if(t==='evening'){R.rays.setAttribute('opacity','0.2')}
+  else if(t==='afternoon'){R.rays.setAttribute('opacity','0.25')}
+  else{R.rays.setAttribute('opacity','0.3')}
+}
+
+// Greeting bubble
+function greetingBubble(){
+  var t=OC.timeOfDay;
+  var g={morning:['Good morning! ☀️','Rise and shine!'],midday:['Hey! How\'s your day?','Good to see you!'],
+    afternoon:['Afternoon! How are you?','Hey there!'],evening:['Evening. Holding up okay?','Winding down?'],
+    latenight:['Can\'t sleep?','Hey night owl.']};
+  var msgs=g[t]||g.midday;var msg=msgs[Math.floor(Math.random()*msgs.length)];
+  setTimeout(function(){showBubble(msg,4000,t==='latenight'?'whisper':'normal')},2500);
+}
+
+// Idle bubbles
+var _idlePhrases=['I\'m here if you need me.','Take your time.','No rush. Being here counts.','You\'re stronger than you know.','One step at a time.'];
+function startIdleBubbles(){
+  setInterval(function(){
+    var egg=document.getElementById('eggCompanion');
+    if(!egg||!egg.classList.contains('idle')||OC.reactiveMood||OC.interaction)return;
+    if(OC.idleBubbles>=3||OC.bubblesShown>=OC.maxBubbles)return;
+    OC.idleBubbles++;
+    showBubble(_idlePhrases[Math.floor(Math.random()*_idlePhrases.length)],3500,'gentle');
+  },45000);
+}
+
+// ── Feature 1: Typing Reactions ──
+var negKw=['scared','afraid','worried','anxious','crying','cry','alone','lonely','can\'t','hate','angry','frustrated','failed','loss','lost','hurt','pain','terrified','hopeless','give up','don\'t know','confused'];
+var posKw=['happy','excited','hopeful','grateful','good news','positive','worked','pregnant','success','love','thank','amazing','wonderful','better','relieved','finally'];
+var furyKw=['angry','furious','unfair','hate this','sick of','why me'];
+
+function analyzeTyping(text){
+  if(!text||text.length<3){OC.reactiveMood=null;applyReactive();return}
+  var t=text.toLowerCase();
+  var isQ=t.endsWith('?')||/\b(what|why|how|when|should i|is it normal|tell me)\b/.test(t);
+
+  if(furyKw.some(function(k){return t.indexOf(k)!==-1})){OC.reactiveMood='calm'}
+  else if(negKw.some(function(k){return t.indexOf(k)!==-1})){OC.reactiveMood='concerned'}
+  else if(posKw.some(function(k){return t.indexOf(k)!==-1})){OC.reactiveMood='delighted'}
+  else if(isQ){OC.reactiveMood='attentive'}
+  else if(text.length>100){OC.reactiveMood='leaning'}
+  else{OC.reactiveMood=null}
+  applyReactive();
+}
+
+function applyReactive(){
+  var R=refs();if(!R.eyeL)return;
+  var m=OC.reactiveMood;
+  var egg=document.getElementById('eggCompanion');if(!egg)return;
+  egg.style.transition='transform .4s ease';
+
+  if(!m){
+    egg.style.transform='';
+    R.eyeL.setAttribute('ry','3.5');R.eyeR.setAttribute('ry','3.5');
+    if(R.browL){R.browL.setAttribute('opacity','0');R.browR.setAttribute('opacity','0')}
+    R.mouth.setAttribute('d','M92,138 Q100,144 108,138');
+    setArms('resting');return;
+  }
+  if(m==='concerned'){
+    R.eyeL.setAttribute('ry','4.2');R.eyeR.setAttribute('ry','4.2');
+    if(R.browL){R.browL.setAttribute('opacity','0.6');R.browL.setAttribute('d','M68,103 Q75,100 82,104');
+    R.browR.setAttribute('opacity','0.6');R.browR.setAttribute('d','M118,104 Q125,100 132,103')}
+    egg.style.transform='scale(1.03)';R.rays.setAttribute('opacity','0.15');
+    R.mouth.setAttribute('d','M93,138 Q100,140 107,138');setArms('reaching');
+  }else if(m==='delighted'){
+    R.eyeL.setAttribute('ry','3');R.eyeR.setAttribute('ry','3');
+    R.cheeks.forEach(function(c){c.setAttribute('opacity','0.7')});
+    if(R.stars)R.stars.setAttribute('opacity','0.5');
+    R.rays.setAttribute('opacity','0.5');R.mouth.setAttribute('d','M90,136 Q100,148 110,136');
+    egg.style.transform='scale(1.02)';setArms('resting');
+  }else if(m==='attentive'){
+    R.eyeL.setAttribute('ry','4');R.eyeR.setAttribute('ry','4');
+    egg.style.transform='rotate(3deg)';R.mouth.setAttribute('d','M93,138 Q100,141 107,138');
+  }else if(m==='leaning'){
+    egg.style.transform='scale(1.05)';R.eyeL.setAttribute('ry','3.8');R.eyeR.setAttribute('ry','3.8');
+    setArms('reaching');
+  }else if(m==='calm'){
+    R.eyeL.setAttribute('ry','3.2');R.eyeR.setAttribute('ry','3.2');
+    R.rays.setAttribute('opacity','0.25');R.mouth.setAttribute('d','M93,139 Q100,141 107,139');
+  }
+}
+
+function wireTyping(){
+  var ci=document.getElementById('chat-input');if(!ci)return;
+  ci.addEventListener('input',function(){
+    var text=ci.value;
+    // Deletion tracking
+    if(text.length<OC.lastLen)OC.delCount++;
+    var now=Date.now();
+    if(now-OC.delCheck>3000){
+      if(OC.delCount>3){
+        var egg=document.getElementById('eggCompanion');
+        if(egg){egg.style.transform='translateY(-2px)';setTimeout(function(){egg.style.transform=''},300)}
+      }
+      OC.delCount=0;OC.delCheck=now;
+    }
+    OC.lastLen=text.length;
+    if(OC.typingTimer)clearTimeout(OC.typingTimer);
+    OC.typingTimer=setTimeout(function(){analyzeTyping(text)},300);
+  });
+}
+
+// ── Feature 4: Celebration ──
+function triggerCelebration(){
+  if(OC.celebrating)return;OC.celebrating=true;
+  var egg=document.getElementById('eggCompanion');if(!egg)return;
+  var R=refs();
+  egg.style.transition='transform .3s cubic-bezier(.34,1.56,.64,1)';
+  egg.style.transform='translateY(-20px) scale(1.1)';
+  setArms('fistpump');
+  if(R.eyeL){R.eyeL.setAttribute('ry','5');R.eyeR.setAttribute('ry','5')}
+  if(R.stars)R.stars.setAttribute('opacity','0.9');
+  R.rays.setAttribute('opacity','0.7');
+  R.cheeks.forEach(function(c){c.setAttribute('opacity','0.9')});
+  R.mouth.setAttribute('d','M88,134 Q100,152 112,134');
+  // Confetti
+  var rect=egg.getBoundingClientRect();var cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  var cols=['#2D8E8E','#D4A843','#f4a89a','#fde68a','#a8d5d3','#9b8ec0'];
+  for(var i=0;i<25;i++){(function(i){
+    var c=document.createElement('div');c.className='confetti-p';
+    var sz=4+Math.random()*5;
+    c.style.cssText='width:'+sz+'px;height:'+sz+'px;left:'+cx+'px;top:'+cy+'px;background:'+cols[Math.floor(Math.random()*cols.length)]+';transition:all 1.5s cubic-bezier(.2,.8,.3,1)';
+    document.body.appendChild(c);
+    var a=Math.random()*Math.PI*2,d=60+Math.random()*80;
+    requestAnimationFrame(function(){c.style.transform='translate('+Math.cos(a)*d+'px,'+(Math.sin(a)*d-30)+'px) rotate('+(Math.random()*720)+'deg)';c.style.opacity='0'});
+    setTimeout(function(){c.remove()},2000);
+  })(i)}
+  showBubble('YES!! 🎉',2000,'excited');
+  setTimeout(function(){
+    egg.style.transform='';
+    if(R.eyeL){R.eyeL.setAttribute('ry','3.5');R.eyeR.setAttribute('ry','3.5')}
+    R.mouth.setAttribute('d','M90,136 Q100,148 110,136');setArms('heart');
+    showBubble('You did it. So happy for you.',4000,'gentle');
+  },2500);
+  setTimeout(function(){OC.celebrating=false;setArms('resting');R.rays.setAttribute('opacity','0.4');
+    R.cheeks.forEach(function(c){c.setAttribute('opacity','0.5')})},6000);
+}
+window.triggerCelebration=triggerCelebration;
+
+function checkCelebration(text){
+  if(!text)return;var t=text.toLowerCase();
+  if(t.indexOf('i\'m pregnant')!==-1||t.indexOf('positive test')!==-1||t.indexOf('it worked')!==-1||t.indexOf('bfp')!==-1)triggerCelebration();
+}
+
+// ── Feature 7: Random Micro-Interactions ──
+var _tapCool=false;
+function handleOocyteTap(e){
+  if(_tapCool||OC.celebrating)return;
+  _tapCool=true;setTimeout(function(){_tapCool=false},3000);
+  var R=refs();var egg=document.getElementById('eggCompanion');
+  var r=Math.random();
+  var ciProb=OC.checkinDone?0.15:0.50;
+  if(r<ciProb){onDown(e);return}
+  r=(r-ciProb)/(1-ciProb);
+
+  if(r<0.22){
+    // Giggle bounce
+    egg.style.transition='transform .15s ease';
+    egg.style.transform='scaleX(1.1) scaleY(0.9)';
+    setTimeout(function(){egg.style.transform='scaleX(0.92) scaleY(1.08)';
+    setTimeout(function(){egg.style.transform=''},150)},150);
+    showBubble('hehe 😄',2000);
+  }else if(r<0.44){
+    // Affirmation
+    var affs=['You\'ve got this.','Proud of you.','One step at a time.','You\'re not alone.','Be gentle with yourself.','Brave.'];
+    showBubble(affs[Math.floor(Math.random()*affs.length)],3500,'gentle');
+  }else if(r<0.58){
+    // Peek-a-boo
+    setArms('covering');
+    setTimeout(function(){setArms('resting');
+      if(R.eyeL){R.eyeL.setAttribute('ry','5');R.eyeR.setAttribute('ry','5')}
+      showBubble('Peekaboo! 😊',2000);
+      setTimeout(function(){if(R.eyeL){R.eyeL.setAttribute('ry','3.5');R.eyeR.setAttribute('ry','3.5')}},1500);
+    },600);
+  }else if(r<0.72){
+    // Nuzzle
+    egg.style.transition='transform .4s ease';egg.style.transform='translateX(5px) scale(1.02)';
+    R.rays.setAttribute('opacity','0.45');R.cheeks.forEach(function(c){c.setAttribute('opacity','0.7')});
+    setTimeout(function(){egg.style.transform='';R.rays.setAttribute('opacity','0.3');R.cheeks.forEach(function(c){c.setAttribute('opacity','0.25')})},1500);
+  }else if(r<0.86){
+    // Dance
+    egg.style.transition='transform .12s ease';setArms('waving');
+    var seq=['-8deg','8deg','-5deg','5deg','0deg'];var i=0;
+    function ds(){if(i>=seq.length){egg.style.transform='';return}egg.style.transform='rotate('+seq[i]+')'+(i<4?' translateY(-3px)':'');i++;setTimeout(ds,120)}
+    ds();showBubble('Just felt like dancing. 💃',2500,'excited');
+    setTimeout(function(){setArms('resting')},2000);
+  }else{
+    // Hug
+    setArms('reaching');R.rays.setAttribute('opacity','0.45');
+    showBubble('Needed a hug? Me too.',3000,'gentle');
+    setTimeout(function(){setArms('resting');R.rays.setAttribute('opacity','0.3')},3000);
+  }
+}
+window.handleOocyteTap=handleOocyteTap;
+
+// ── Feature 2: Journey Context ──
+function applyJourney(){
+  var s=state.stage||'';OC.journeyCtx=s;
+  var R=refs();if(!R.mouth)return;
+  var dayKey='oc_j_'+new Date().toDateString();
+  if(!sessionStorage.getItem(dayKey)){
+    var msgs={stimulation:'Every injection is a step forward.',early_tww:'One day at a time.',
+      late_tww:'Almost there. You\'re so brave.',post_retrieval:'Your body is amazing. Let it rest.',
+      between_cycles:'This pause is part of the journey too.',retrieval_day:'Big day. I\'m right here with you.',
+      transfer_day:'Everything crossed for you.',early_pregnancy:'Every day is a milestone.'};
+    var msg=msgs[s];
+    if(msg){sessionStorage.setItem(dayKey,'1');setTimeout(function(){showBubble(msg,5000,'gentle')},8000)}
+  }
+}
+
+// ── Feature 8: Growth ──
+function applyGrowth(){
+  if((state.stage||'')!=='stimulation'){OC.growthMul=1.0;return}
+  var inj=(typeof _calEvents!=='undefined'?_calEvents:[]).filter(function(e){return e.type==='injection'});
+  var day=Math.min(inj.length,13);OC.growthMul=1.0+day*0.01;
+  var svg=document.getElementById('eggSvg');
+  if(svg){svg.setAttribute('width',Math.round(64*OC.growthMul));svg.setAttribute('height',Math.round(84*OC.growthMul))}
+  var R=refs();if(R.zona){R.zona.setAttribute('opacity',Math.min(0.25+day*0.012,0.45).toFixed(2))}
+}
+
+// ── Master Init ──
+function initPersonality(){
+  refs();applyTod();wireTyping();startIdleBubbles();applyJourney();applyGrowth();greetingBubble();
+  setInterval(applyTod,1800000);setInterval(function(){applyJourney();applyGrowth()},1800000);
+  // Wave on open
+  setArms('waving');setTimeout(function(){setArms('resting')},2000);
+  // Track check-in completion
+  var origSub=window.submitCheckin;
+  if(typeof origSub==='function'){window.submitCheckin=function(){OC.checkinDone=true;return origSub.apply(this,arguments)}}
+  // Celebration detection in chat
+  var origAdd=window.addMsg;
+  if(typeof origAdd==='function'){window.addMsg=function(role,text){if(role==='user')checkCelebration(text);return origAdd.apply(this,arguments)}}
+}
+
+// Hook into showApp
+var _origSA=window.showApp;
+window.showApp=function(){_origSA.apply(this,arguments);setTimeout(initPersonality,2000)};
+
 })();
 </script>
 </body>

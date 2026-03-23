@@ -705,6 +705,7 @@ function renderPatients() {
     return '<div class="patient-card esc-' + esc.toLowerCase() + '" onclick="openDetail(\'' + p.patient_id + '\')">' +
       '<div class="pc-top"><span class="pc-name">' + escHtml(p.patient_name || p.patient_id) + '</span>' + style_badge +
       '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span></div>' +
+      (p.email ? '<div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">' + escHtml(p.email) + '</div>' : '') +
       (p.cycle_number ? '<div class="pc-cycle">Cycle ' + p.cycle_number + '</div>' : '') +
       '<div class="pc-stats">' +
         '<span title="Mood">😊 ' + (ci.mood != null ? ci.mood : '–') + '</span>' +

@@ -1584,6 +1584,8 @@ class OnboardRequest(BaseModel):
     treatment_type: str = "ivf"  # ivf, icsi, fet, iui, egg_freezing, other
     partner_name: Optional[str] = None
     clinic_name: Optional[str] = None
+    patient_id: Optional[str] = None  # Firebase Auth UID — if provided, use this instead of random
+    email: Optional[str] = None  # Store email for clinician dashboard
 
 class CommunityPostRequest(BaseModel):
     patient_id: str
@@ -1713,13 +1715,18 @@ async def health():
 @app.post("/onboard")
 async def onboard_patient(req: OnboardRequest):
     """Onboard a new patient and get a welcome message."""
-    patient_id = str(uuid.uuid4())[:8]
+    # Use Firebase Auth UID if provided, else generate random
+    patient_id = req.patient_id if req.patient_id else str(uuid.uuid4())[:8]
     patient = get_or_create_patient(patient_id)
     patient["name"] = req.name
+    patient["patient_name"] = req.name  # Also store as patient_name for dashboard
     patient["treatment_stage"] = req.treatment_stage
     patient["cycle_number"] = req.cycle_number
+    patient["treatment_type"] = req.treatment_type
     patient["partner_name"] = req.partner_name
     patient["clinic_name"] = req.clinic_name
+    if req.email:
+        patient["email"] = req.email
 
     # Generate contextual welcome message using smart greeting + LLM
     stage_name = STAGE_DISPLAY.get(req.treatment_stage, req.treatment_stage)
@@ -2825,6 +2832,21 @@ async def update_patient(req: PatientUpdateRequest):
     return {"status": "updated", "patient": patient}
 
 
+@app.get("/patient/{patient_id}/profile")
+async def get_patient_profile(patient_id: str):
+    """Get basic patient profile — returns null fields if not found (for auth flow)."""
+    patient = patients_db.get(patient_id, {})
+    return {
+        "name": patient.get("patient_name", patient.get("name", "")),
+        "email": patient.get("email", ""),
+        "treatment_stage": patient.get("treatment_stage", ""),
+        "cycle_number": patient.get("cycle_number", 1),
+        "treatment_type": patient.get("treatment_type", "ivf"),
+        "created_at": patient.get("created_at", ""),
+        "exists": bool(patient),
+    }
+
+
 @app.get("/patient/{patient_id}")
 async def get_patient(patient_id: str):
     """Get patient profile and recent data."""
@@ -2898,12 +2920,13 @@ async def clinician_dashboard():
         store = patient_signal_store.get(pid, {})
         latest_ci = recent_checkins[-1] if recent_checkins else None
 
-        patient_name = patient.get("name") or "Anonymous"
+        patient_name = patient.get("patient_name") or patient.get("name") or "Anonymous"
 
         overview.append({
             "patient_id": pid,
             "patient_name": patient_name,
             "name": patient_name,  # backward compat
+            "email": patient.get("email", ""),
             "treatment_stage": STAGE_DISPLAY.get(patient["treatment_stage"], patient["treatment_stage"]),
             "cycle_number": patient["cycle_number"],
             "avg_mood_3d": avg_mood,

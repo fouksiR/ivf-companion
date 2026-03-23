@@ -12,6 +12,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+var firebaseConfig={apiKey:"AIzaSyDExample_REPLACE_ME",authDomain:"fertility-gp-portal.firebaseapp.com",projectId:"fertility-gp-portal",storageBucket:"fertility-gp-portal.appspot.com",messagingSenderId:"532857641879"};
+if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+var fbAuth=firebase.auth();
+</script>
 <style>
 :root{--white:#FFF;--bg:#eaf9f4;--bg-warm:#fff9ed;--bg-top:#d4f1f1;--bg-mid:#e0f5f0;--bg-bot:#eaf9f4;--border:#E8E6E3;--border-light:rgba(45,142,142,0.1);--text:#1a3a3a;--text-mid:#3a7070;--text-soft:#6a9e9e;--text-faint:#b8e6e6;--accent:#2D8E8E;--accent-light:#b8e6e6;--accent-hover:#1e6b6b;--warm:#D4886B;--warm-light:#FDF3EF;--green:#6ec9a0;--green-light:#c8f0dd;--amber:#D4A843;--amber-light:#f5e6c4;--red:#C25D5D;--red-light:#FDF0F0;--gold:#D4A843;--gold-soft:#f5e6c4;--cream:#fff9ed;--blush:#f4a89a;--card-bg:rgba(255,255,255,0.75);--card-border:rgba(45,142,142,0.1);--shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 2px 12px rgba(0,0,0,.06);--shadow-lg:0 4px 24px rgba(0,0,0,.08);--radius:16px;--radius-sm:10px;--radius-xs:6px;--oocyte-outer:#c8b870;--oocyte-zona:#e8daa0;--oocyte-inner:#fef3c8;--oocyte-core:#fff8dc;--oocyte-highlight:#fffef0}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -585,9 +592,20 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   <h1 class="landing-title">Melod<span class="dot">·</span>AI</h1>
   <p class="landing-tagline">Your companion through the IVF journey</p>
   <div class="landing-dots"><span class="ld-dot active"></span><span class="ld-dot"></span><span class="ld-dot"></span></div>
-  <div class="landing-buttons">
-    <button class="landing-btn landing-btn-primary" onclick="dismissWelcome()">Create Account</button>
-    <button class="landing-btn landing-btn-secondary" onclick="dismissWelcome()">Log in</button>
+  <div class="landing-buttons" id="landingButtons">
+    <button class="landing-btn landing-btn-primary" onclick="showAuthForm('signup')">Create Account</button>
+    <button class="landing-btn landing-btn-secondary" onclick="showAuthForm('login')">Log in</button>
+  </div>
+  <!-- Auth forms (hidden by default) -->
+  <div id="authFormArea" style="display:none;width:100%;max-width:320px;margin:0 auto">
+    <div id="authError" style="display:none;background:rgba(239,68,68,0.1);color:#ef4444;padding:8px 14px;border-radius:12px;font-size:12px;margin-bottom:10px;text-align:center"></div>
+    <div id="authSuccess" style="display:none;background:rgba(34,197,94,0.1);color:#22c55e;padding:8px 14px;border-radius:12px;font-size:12px;margin-bottom:10px;text-align:center"></div>
+    <input id="authEmail" type="email" placeholder="Email address" style="width:100%;padding:12px 16px;border:1.5px solid rgba(45,142,142,0.2);border-radius:50px;font-size:14px;font-family:var(--sans);margin-bottom:8px;outline:none;background:white;box-sizing:border-box" onfocus="this.style.borderColor='#2D8E8E'" onblur="this.style.borderColor='rgba(45,142,142,0.2)'">
+    <input id="authPassword" type="password" placeholder="Password (6+ characters)" style="width:100%;padding:12px 16px;border:1.5px solid rgba(45,142,142,0.2);border-radius:50px;font-size:14px;font-family:var(--sans);margin-bottom:12px;outline:none;background:white;box-sizing:border-box" onfocus="this.style.borderColor='#2D8E8E'" onblur="this.style.borderColor='rgba(45,142,142,0.2)'" onkeydown="if(event.key==='Enter')submitAuth()">
+    <button id="authSubmitBtn" class="landing-btn landing-btn-primary" onclick="submitAuth()" style="width:100%;margin-bottom:8px">Create Account</button>
+    <div id="authSwitch" style="text-align:center;font-size:12px;color:#6a9e9e;cursor:pointer" onclick="toggleAuthMode()">Already have an account? <span style="color:#2D8E8E;font-weight:600">Log in</span></div>
+    <div id="authForgot" style="text-align:center;font-size:11px;color:#6a9e9e;cursor:pointer;margin-top:6px;display:none" onclick="resetPassword()">Forgot password?</div>
+    <div style="text-align:center;margin-top:10px"><span style="font-size:11px;color:#b8e6e6;cursor:pointer" onclick="hideAuthForm()">← Back</span></div>
   </div>
 </div>
 </div>
@@ -1053,7 +1071,7 @@ if(window._softSpotDone)window._softSpotDone()}
 function goStep(n){if(n===2){state.name=document.getElementById('ob-name').value.trim();state.partnerName=document.getElementById('ob-partner').value.trim()}document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));document.getElementById('step'+n).classList.add('active');for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}}
 async function completeOnboarding(){state.treatment=document.getElementById('ob-treatment')?document.getElementById('ob-treatment').value:'ivf';state.cycle=document.getElementById('ob-cycle')?parseInt(document.getElementById('ob-cycle').value):1;state.clinic=document.getElementById('ob-clinic')?document.getElementById('ob-clinic').value.trim():'';
 var fallback=function(){state.patientId=state.patientId||('demo-'+Math.random().toString(36).slice(2,8));showApp();addMsg('ai','Hi '+state.name+". I\u2019m Melod\u00b7AI \u2014 here to walk alongside you through this journey.\n\nYou\u2019re at the "+getStageName(state.stage)+' stage, cycle '+state.cycle+". Whether you want to talk about what you\u2019re feeling, ask questions about what\u2019s happening, or just vent \u2014 I\u2019m here.\n\nHow are you doing today?",null,{showOneWord:true})};
-if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(function(){ctrl.abort()},8000);const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null}),signal:ctrl.signal});clearTimeout(timer);const d=await r.json();state.patientId=d.patient_id;showApp();if(d.message)addMsg('ai',d.message,null,{showOneWord:true});return}catch(e){console.warn('API unavailable:',e)}}fallback()}
+if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(function(){ctrl.abort()},8000);const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null,patient_id:state.patientId||null,email:localStorage.getItem('melodai_email')||null}),signal:ctrl.signal});clearTimeout(timer);const d=await r.json();if(!state.patientId)state.patientId=d.patient_id;localStorage.setItem('melodai_patient_id',state.patientId);localStorage.setItem('melodai_name',state.name);localStorage.setItem('melodai_stage',state.stage);localStorage.setItem('melodai_cycle',String(state.cycle));localStorage.setItem('melodai_treatment',state.treatment);showApp();if(d.message)addMsg('ai',d.message,null,{showOneWord:true});return}catch(e){console.warn('API unavailable:',e)}}fallback()}
 function showApp(){try{var sw=document.getElementById('screen-welcome');if(sw)sw.classList.remove('active');document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();
 document.getElementById('chat-input').addEventListener('input',resetStillHere);
 collector=new PassiveCollector({patientId:state.patientId,apiBase:API_BASE,debug:true,flushInterval:60000});collector.record('session_start',null,{stage:state.stage,cycle:state.cycle,treatment:state.treatment})}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
@@ -2506,6 +2524,165 @@ document.addEventListener('touchend',handleSquishUp,{passive:true});
 /* ── FEATURE 3: Welcome Intro Screen ─────────────────────────── */
 var WELCOME_TEXT="Hi there \uD83D\uDC9B\n\nI'm Melod\u00b7AI \u2014 your companion through IVF.\n\nI'm here to support you emotionally, answer your questions about treatment and medications, and help you feel less alone through this journey.\n\nEverything you share stays private. I use gentle background tracking \u2014 like how you're feeling over time \u2014 only to better support YOU. Never for marketing, never shared without your consent.\n\nThink of me as a knowledgeable friend who's always available, powered by AI and guided by fertility specialists.";
 
+// ── Firebase Auth Flow ──
+var _authMode='signup'; // 'signup' or 'login'
+
+function showAuthForm(mode){
+  _authMode=mode;
+  document.getElementById('landingButtons').style.display='none';
+  document.getElementById('authFormArea').style.display='block';
+  document.getElementById('authError').style.display='none';
+  document.getElementById('authSuccess').style.display='none';
+  document.getElementById('authEmail').value='';
+  document.getElementById('authPassword').value='';
+  if(mode==='signup'){
+    document.getElementById('authSubmitBtn').textContent='Create Account';
+    document.getElementById('authSwitch').innerHTML='Already have an account? <span style="color:#2D8E8E;font-weight:600">Log in</span>';
+    document.getElementById('authForgot').style.display='none';
+  }else{
+    document.getElementById('authSubmitBtn').textContent='Log in';
+    document.getElementById('authSwitch').innerHTML='Don\'t have an account? <span style="color:#2D8E8E;font-weight:600">Create one</span>';
+    document.getElementById('authForgot').style.display='block';
+  }
+  setTimeout(function(){document.getElementById('authEmail').focus()},200);
+}
+function hideAuthForm(){
+  document.getElementById('landingButtons').style.display='flex';
+  document.getElementById('authFormArea').style.display='none';
+}
+function toggleAuthMode(){showAuthForm(_authMode==='signup'?'login':'signup')}
+
+function showAuthError(msg){
+  var el=document.getElementById('authError');
+  el.textContent=msg;el.style.display='block';
+  document.getElementById('authSuccess').style.display='none';
+}
+function showAuthSuccess(msg){
+  var el=document.getElementById('authSuccess');
+  el.textContent=msg;el.style.display='block';
+  document.getElementById('authError').style.display='none';
+}
+
+function submitAuth(){
+  var email=document.getElementById('authEmail').value.trim();
+  var pass=document.getElementById('authPassword').value;
+  if(!email||!pass){showAuthError('Please enter email and password.');return}
+  if(pass.length<6){showAuthError('Password must be at least 6 characters.');return}
+  var btn=document.getElementById('authSubmitBtn');
+  btn.disabled=true;btn.textContent=_authMode==='signup'?'Creating...':'Logging in...';
+
+  var authPromise=_authMode==='signup'
+    ?fbAuth.createUserWithEmailAndPassword(email,pass)
+    :fbAuth.signInWithEmailAndPassword(email,pass);
+
+  authPromise.then(function(cred){
+    var uid=cred.user.uid;
+    localStorage.setItem('melodai_patient_id',uid);
+    localStorage.setItem('melodai_email',email);
+    localStorage.setItem('melodai_authenticated','true');
+    if(_authMode==='signup'){
+      // New user → go to onboarding
+      state.patientId=uid;
+      document.getElementById('screen-welcome').classList.remove('active');
+      document.getElementById('screen-onboard').classList.add('active');
+    }else{
+      // Existing user → load data and go to app
+      loadExistingPatient(uid,email);
+    }
+  }).catch(function(err){
+    btn.disabled=false;
+    btn.textContent=_authMode==='signup'?'Create Account':'Log in';
+    var msg=err.message;
+    if(err.code==='auth/email-already-in-use')msg='This email already has an account. Try logging in.';
+    else if(err.code==='auth/user-not-found')msg='No account with this email. Create one?';
+    else if(err.code==='auth/wrong-password'||err.code==='auth/invalid-credential')msg='Wrong password. Try again.';
+    else if(err.code==='auth/invalid-email')msg='Invalid email address.';
+    else if(err.code==='auth/too-many-requests')msg='Too many attempts. Try again later.';
+    showAuthError(msg);
+  });
+}
+
+function loadExistingPatient(uid,email){
+  // Try to load patient data from backend
+  if(API_BASE){
+    fetch(API_BASE+'/patient/'+uid+'/profile').then(function(r){
+      if(r.ok)return r.json();return null;
+    }).then(function(d){
+      if(d&&d.name){
+        state.patientId=uid;state.name=d.name;
+        state.stage=d.treatment_stage||'consultation';
+        state.cycle=d.cycle_number||1;
+        state.treatment=d.treatment_type||'ivf';
+        localStorage.setItem('melodai_name',d.name);
+        localStorage.setItem('melodai_stage',d.treatment_stage||'consultation');
+        localStorage.setItem('melodai_cycle',String(d.cycle_number||1));
+        localStorage.setItem('melodai_treatment',d.treatment_type||'ivf');
+        state._returning=true;
+        document.getElementById('screen-welcome').classList.remove('active');
+        document.getElementById('screen-app').classList.add('active');
+        showApp();
+        addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+      }else{
+        // No profile found — go to onboarding
+        state.patientId=uid;
+        document.getElementById('screen-welcome').classList.remove('active');
+        document.getElementById('screen-onboard').classList.add('active');
+      }
+    }).catch(function(){
+      // Fallback to localStorage
+      state.patientId=uid;
+      state._returning=!!localStorage.getItem('melodai_name');
+      if(state._returning){
+        state.name=localStorage.getItem('melodai_name')||'there';
+        state.stage=localStorage.getItem('melodai_stage')||'consultation';
+        document.getElementById('screen-welcome').classList.remove('active');
+        document.getElementById('screen-app').classList.add('active');
+        showApp();
+        addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+      }else{
+        document.getElementById('screen-welcome').classList.remove('active');
+        document.getElementById('screen-onboard').classList.add('active');
+      }
+    });
+  }else{
+    // No API — use localStorage
+    state.patientId=uid;state._returning=!!localStorage.getItem('melodai_name');
+    if(state._returning){
+      state.name=localStorage.getItem('melodai_name')||'there';
+      state.stage=localStorage.getItem('melodai_stage')||'consultation';
+      document.getElementById('screen-welcome').classList.remove('active');
+      document.getElementById('screen-app').classList.add('active');
+      showApp();
+      addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+    }else{
+      document.getElementById('screen-welcome').classList.remove('active');
+      document.getElementById('screen-onboard').classList.add('active');
+    }
+  }
+}
+
+function resetPassword(){
+  var email=document.getElementById('authEmail').value.trim();
+  if(!email){showAuthError('Enter your email first.');return}
+  fbAuth.sendPasswordResetEmail(email).then(function(){
+    showAuthSuccess('Reset email sent! Check your inbox.');
+  }).catch(function(err){showAuthError(err.message)});
+}
+
+function logout(){
+  fbAuth.signOut().then(function(){
+    localStorage.removeItem('melodai_patient_id');
+    localStorage.removeItem('melodai_email');
+    localStorage.removeItem('melodai_authenticated');
+    localStorage.removeItem('melodai_name');
+    localStorage.removeItem('melodai_stage');
+    localStorage.removeItem('melodai_cycle');
+    localStorage.removeItem('melodai_treatment');
+    location.reload();
+  });
+}
+window.logout=logout;
+
 function dismissWelcome(){
   try{localStorage.setItem('melodai_welcomed','1')}catch(ex){}
   // Returning user — skip onboarding, go straight to app
@@ -3214,8 +3391,25 @@ initOnboarding();
     if(avg>=9)return'happy';if(avg>=7)return'hopeful';if(avg>=5)return'content';if(avg>=3)return'anxious';return'sad';
   };
 })();
-// Returning user detection — restore state but stay on welcome screen for login
+// Returning user detection — check Firebase Auth state first, then localStorage
 (function(){
+  // Check Firebase Auth session
+  if(typeof fbAuth!=='undefined'){
+    fbAuth.onAuthStateChanged(function(user){
+      if(user&&!state._authHandled){
+        state._authHandled=true;
+        var uid=user.uid;
+        localStorage.setItem('melodai_patient_id',uid);
+        localStorage.setItem('melodai_authenticated','true');
+        // If we're still on the welcome screen, auto-login
+        var ws=document.getElementById('screen-welcome');
+        if(ws&&ws.classList.contains('active')){
+          loadExistingPatient(uid,user.email||'');
+        }
+      }
+    });
+  }
+  // Also check localStorage for backward compatibility (existing patients without auth)
   var existing=null;
   try{existing=localStorage.getItem('melodai_patient_id')}catch(e){}
   if(existing){

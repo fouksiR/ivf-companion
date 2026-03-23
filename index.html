@@ -1261,105 +1261,6 @@ function renderAssessmentChecklist(card){
   el.innerHTML='<div class="ft-widget-title"><span class="ft-icon">'+card.icon+'</span>'+escHtml(card.title)+'</div><div class="ft-widget-body">'+html+'</div><div class="ft-widget-footer"><span>Tap each item for details</span><a href="'+escHtml(card.url)+'" target="_blank">Full assessment \u2192</a></div>';
   return el;
 }
-/* ═══ INLINE FERTOOL INFOGRAPHICS (AMH + Egg Freezing) ═════════════ */
-function shouldRenderInline(card){
-  var t=((card.title||'')+' '+(card.key||'')+' '+(card.description||'')+' '+((card.tags||[]).join(' '))).toLowerCase();
-  if(t.indexOf('amh')!==-1||t.indexOf('anti-mullerian')!==-1||t.indexOf('ovarian reserve')!==-1||t.indexOf('anti mullerian')!==-1)return 'amh';
-  if(t.indexOf('egg freez')!==-1||t.indexOf('oocyte cryo')!==-1||t.indexOf('fertility preservation')!==-1||t.indexOf('freeze my eggs')!==-1||t.indexOf('social freezing')!==-1)return 'egg_freeze';
-  return null;
-}
-function renderFertoolAmhNormogram(){
-  var W=320,H=200,pad={t:18,r:16,b:32,l:40};
-  var cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
-  var maxAMH=50;
-  function sx(age){return pad.l+((age-20)/25)*cw}
-  function sy(amh){return pad.t+ch-(amh/maxAMH)*ch}
-  var p90=[[20,44],[25,47],[28,47],[30,45],[33,40],[35,35],[38,27],[40,20],[43,17],[45,16]];
-  var p50=[[20,17],[25,20],[28,21],[30,19],[33,16],[35,13],[38,10],[40,8],[43,6],[45,5]];
-  var p10=[[20,8],[25,9],[28,10],[30,9],[33,7],[35,5],[38,3.5],[40,2],[43,1],[45,0.5]];
-  function curvePath(pts){var d='M'+sx(pts[0][0])+','+sy(pts[0][1]);for(var i=1;i<pts.length;i++){var prev=pts[i-1],cur=pts[i];var mx=(sx(prev[0])+sx(cur[0]))/2;d+=' C'+mx+','+sy(prev[1])+' '+mx+','+sy(cur[1])+' '+sx(cur[0])+','+sy(cur[1])}return d}
-  // Zone fill paths
-  var zAbove='M'+sx(20)+','+sy(maxAMH);p90.forEach(function(p){zAbove+=' L'+sx(p[0])+','+sy(p[1])});zAbove+=' L'+sx(45)+','+sy(maxAMH)+' Z';
-  var zMid='';p90.forEach(function(p,i){zMid+=(i?'L':'M')+sx(p[0])+','+sy(p[1])});for(var i=p10.length-1;i>=0;i--)zMid+=' L'+sx(p10[i][0])+','+sy(p10[i][1]);zMid+=' Z';
-  var zBelow='';p10.forEach(function(p,i){zBelow+=(i?'L':'M')+sx(p[0])+','+sy(p[1])});zBelow+=' L'+sx(45)+','+sy(0)+' L'+sx(20)+','+sy(0)+' Z';
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block" xmlns="http://www.w3.org/2000/svg">';
-  svg+='<path d="'+zAbove+'" fill="rgba(180,230,180,.15)"/>';
-  svg+='<path d="'+zMid+'" fill="rgba(45,142,142,.06)"/>';
-  svg+='<path d="'+zBelow+'" fill="rgba(212,168,67,.1)"/>';
-  // Horizontal gridlines
-  [10,20,30,40,50].forEach(function(v){svg+='<line x1="'+pad.l+'" y1="'+sy(v)+'" x2="'+(W-pad.r)+'" y2="'+sy(v)+'" stroke="#ccc" stroke-width=".5" opacity=".15"/>'});
-  // Curves
-  svg+='<path d="'+curvePath(p90)+'" fill="none" stroke="#b8e6e6" stroke-width="2" stroke-dasharray="5,3"/>';
-  svg+='<path d="'+curvePath(p50)+'" fill="none" stroke="#2D8E8E" stroke-width="2.5"/>';
-  svg+='<path d="'+curvePath(p10)+'" fill="none" stroke="#D4A843" stroke-width="2" stroke-dasharray="5,3"/>';
-  // Zone labels
-  svg+='<text x="'+(W-pad.r-4)+'" y="'+(sy(48))+'" text-anchor="end" font-size="9" fill="#6a9e6a" font-family="DM Sans,sans-serif">Consider PCOS</text>';
-  svg+='<text x="'+(pad.l+cw/2)+'" y="'+(sy(20))+'" text-anchor="middle" font-size="9" fill="#2D8E8E" font-family="DM Sans,sans-serif" opacity=".6">Likely normal ovarian reserve</text>';
-  svg+='<text x="'+(pad.l+cw/2)+'" y="'+(sy(1.5))+'" text-anchor="middle" font-size="9" fill="#D4A843" font-family="DM Sans,sans-serif">Low ovarian reserve</text>';
-  // Y-axis labels
-  [0,10,20,30,40,50].forEach(function(v){svg+='<text x="'+(pad.l-4)+'" y="'+(sy(v)+3)+'" text-anchor="end" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'</text>'});
-  // X-axis labels
-  [20,25,30,35,40,45].forEach(function(v){svg+='<text x="'+sx(v)+'" y="'+(H-pad.b+13)+'" text-anchor="middle" font-size="9" fill="#999" font-family="DM Sans,sans-serif">'+v+'</text>'});
-  svg+='<text x="'+(W/2)+'" y="'+(H-2)+'" text-anchor="middle" font-size="9" fill="#999" font-family="DM Sans,sans-serif">Age (years)</text>';
-  svg+='<text x="10" y="'+(H/2)+'" text-anchor="middle" font-size="9" fill="#999" font-family="DM Sans,sans-serif" transform="rotate(-90,10,'+(H/2)+')">AMH (pmol/L)</text>';
-  svg+='</svg>';
-  // Legend
-  var legend='<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;font-size:9px;color:#6a9e9e;font-family:DM Sans,sans-serif;margin-top:4px">';
-  legend+='<span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:0;border-top:2px dashed #b8e6e6;display:inline-block"></span>90th Percentile</span>';
-  legend+='<span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:0;border-top:2.5px solid #2D8E8E;display:inline-block"></span>50th Percentile (Median)</span>';
-  legend+='<span style="display:flex;align-items:center;gap:4px"><span style="width:14px;height:0;border-top:2px dashed #D4A843;display:inline-block"></span>10th Percentile</span>';
-  legend+='</div>';
-  // Footer note
-  var footer='<div style="margin-top:8px;padding:8px;background:rgba(212,168,67,.08);border-radius:8px;font-size:10px;color:#D4A843;font-family:DM Sans,sans-serif"><strong>10th Percentile (Lower Limit)</strong> \u2014 Values below this line may indicate reduced ovarian reserve</div>';
-  var el=document.createElement('div');
-  el.style.cssText='border-radius:16px;border:1px solid rgba(45,142,142,.1);padding:16px;background:white;margin:8px 0;max-width:100%';
-  el.innerHTML='<div style="font-family:Playfair Display,serif;font-size:15px;color:#1a3a3a;font-weight:600;margin-bottom:2px">\ud83d\udcca AMH by Age \u2014 Where do you sit?</div>'
-    +'<div style="font-size:11px;color:#6a9e9e;font-family:DM Sans,sans-serif;margin-bottom:8px">Percentile curves for AMH (pmol/L) by age</div>'
-    +svg+legend+footer
-    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:9px;color:#6a9e9e;font-family:DM Sans,sans-serif">'
-    +'<span>Source: Fertool AMH Guide \u00b7 Dr. Yuval Fouks</span>'
-    +'<a href="https://fouksir.github.io/Fertool/amh-guide.html" target="_blank" style="color:#2D8E8E;text-decoration:none;font-size:11px">Explore interactive version \u2192</a>'
-    +'</div>';
-  return el;
-}
-function renderFertoolEggFreezeTable(){
-  var data=[
-    {age:'<35 years',  vals:[48,44,77,84]},
-    {age:'35\u201337 years',vals:[37,47,53,73]},
-    {age:'38\u201340 years',vals:[19,41,41,57]},
-    {age:'>40 years',  vals:[ 5,25,32,27]}
-  ];
-  function cc(v){if(v>=70)return '#22c55e';if(v>=40)return '#2D8E8E';if(v>=20)return '#D4A843';return '#ef7b6e'}
-  var t='<div style="overflow:hidden;border-radius:12px">';
-  t+='<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif">';
-  t+='<thead><tr style="background:#2D8E8E">';
-  t+='<th style="padding:10px 8px;color:white;font-size:11px;font-weight:700;text-align:left;border:none">Age at Freeze</th>';
-  ['1\u20139 eggs','10\u201314 eggs','15\u201319 eggs','20+ eggs'].forEach(function(h){
-    t+='<th style="padding:10px 8px;color:white;font-size:11px;font-weight:700;text-align:center;border:none">'+h+'</th>';
-  });
-  t+='</tr></thead><tbody>';
-  data.forEach(function(row,ri){
-    var bg=ri%2===0?'white':'#f0fdfa';
-    t+='<tr style="background:'+bg+'">';
-    t+='<td style="padding:10px 8px;font-size:12px;font-weight:600;border:1px solid rgba(45,142,142,.08)">'+row.age+'</td>';
-    row.vals.forEach(function(v){
-      t+='<td style="padding:10px 8px;font-size:13px;text-align:center;color:'+cc(v)+';font-weight:600;border:1px solid rgba(45,142,142,.08)">'+v+'%</td>';
-    });
-    t+='</tr>';
-  });
-  t+='</tbody></table></div>';
-  // Insight box
-  var insight='<div style="padding:10px;background:#f0fdfa;border-radius:10px;font-size:12px;font-style:italic;color:#3a7070;font-family:DM Sans,sans-serif;margin-top:8px"><strong>15+ eggs under 35 gives ~80% success.</strong> Each additional egg adds meaningful chance.</div>';
-  // Sources
-  var sources='<div style="font-size:9px;color:#6a9e9e;font-family:DM Sans,sans-serif;margin-top:8px;line-height:1.5">Cobo A et al. RBMO 2025;50(4):104794 (n=2,891)<br>Fouks Y et al. JAMA Netw Open 2023;6(12):e2349722</div>';
-  var el=document.createElement('div');
-  el.style.cssText='border-radius:16px;border:1px solid rgba(45,142,142,.1);padding:16px;background:white;margin:8px 0;max-width:100%';
-  el.innerHTML='<div style="font-family:Playfair Display,serif;font-size:15px;color:#1a3a3a;font-weight:600;margin-bottom:2px">\ud83d\udcca How age and egg numbers affect success</div>'
-    +'<div style="font-size:11px;color:#6a9e9e;font-family:DM Sans,sans-serif;margin-bottom:8px">Live birth rate among those who returned to use their eggs</div>'
-    +t+insight+sources
-    +'<div style="text-align:right;margin-top:6px"><a href="https://fouksir.github.io/Fertool/egg-freezing-calculator.html" target="_blank" style="color:#2D8E8E;text-decoration:none;font-size:11px;font-family:DM Sans,sans-serif">Explore calculator \u2192</a></div>';
-  return el;
-}
 /* ═══ ANZARD 2023 INFOGRAPHIC CHARTS ═══════════════════════════════ */
 function renderAnzardChart(key){
   var fn={age_outcomes:renderAnzardAge,cumulative:renderAnzardCumulative,fresh_vs_frozen:renderAnzardFreshFrozen,causes:renderAnzardCauses,baby_outcomes:renderAnzardBaby,trends:renderAnzardTrends,egg_freezing_stats:renderAnzardEggFreeze};
@@ -1461,7 +1362,7 @@ document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
 var fab=document.getElementById('communityFab');if(fab)fab.style.display=t==='circle'?'block':'none';
 if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart();if(t==='journey'){buildCalendar();updateJarCounts()}}
 var _oneWordShown=false;
-function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();var _ftLinkOnly=fertoolCards.filter(function(c){return!c.embed&&!shouldRenderInline(c)});var _ftInline=fertoolCards.filter(function(c){return c.embed||shouldRenderInline(c)});if(_ftLinkOnly.length>0){html+='<div class="fertool-cards" id="'+_ftId+'">'+_ftLinkOnly.map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>'}if(_ftInline.length>0){setTimeout(function(){_ftInline.forEach(function(c){var inType=shouldRenderInline(c);var widget=null;if(inType==='amh'){widget=renderFertoolAmhNormogram()}else if(inType==='egg_freeze'){widget=renderFertoolEggFreezeTable()}else{widget=renderFertoolWidget(c)}if(widget){d.appendChild(widget)}})},80)}}
+function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();html+='<div class="fertool-cards" id="'+_ftId+'">'+fertoolCards.filter(function(c){return!c.embed}).map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>';var _ftEmbed=fertoolCards.filter(function(c){return c.embed});if(_ftEmbed.length>0){setTimeout(function(){var container=document.getElementById(_ftId);if(!container)container=d;_ftEmbed.forEach(function(c){var widget=renderFertoolWidget(c);if(widget)container.parentElement.appendChild(widget)})},50)}}
 // Add one-word check-in pill after first greeting
 if((opts&&opts.showOneWord)||false){if(!_oneWordShown){_oneWordShown=true;html+='<div class="one-word-pill" onclick="triggerOneWord(this)">One word \u2014 how do you feel?</div>'}}
 // Education quick-reply pills
@@ -1469,8 +1370,11 @@ if(opts&&opts.eduFork){html+='<div class="edu-quick-replies"><button class="edu-
 d.innerHTML=html}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'}a.appendChild(d);a.scrollTop=a.scrollHeight;if(fertoolCards&&fertoolCards.length>0){var fc=d.querySelector('.fertool-cards');if(fc){setTimeout(function(){fc.classList.add('visible')},200);if(opts&&opts.glowCards){var cards=fc.querySelectorAll('.fertool-card');cards.forEach(function(c){c.classList.add('glow')})}}}}
 function eduQuickReply(el,type){var replies={reassure:'Can you reassure me about this?',explain:'Can you explain the clinical details?',practical:'What should I actually do? Give me practical tips.'};var wrap=el.closest('.edu-quick-replies');if(wrap){var pills=wrap.querySelectorAll('.edu-quick-pill');pills.forEach(function(p){p.style.opacity='0.4';p.style.pointerEvents='none'});el.style.opacity='1';el.style.background='#2D8E8E';el.style.color='white'}var ci=document.getElementById('chat-input');ci.value=replies[type]||'';setTimeout(function(){sendMsg()},100)}
 function triggerOneWord(el){el.style.opacity='0.5';el.style.pointerEvents='none';var ci=document.getElementById('chat-input');ci.placeholder='Just one word is enough...';ci.focus();setTimeout(function(){el.remove()},300)}
-async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.capability_hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=d.capability_hint;a.appendChild(h);a.scrollTop=a.scrollHeight},800)}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
+async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.capability_hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=d.capability_hint;a.appendChild(h);a.scrollTop=a.scrollHeight},800)}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){var a=document.getElementById('chat-area');d.support_widgets.forEach(function(widget){var el=renderSupportWidget(widget);if(el){a.appendChild(el);a.scrollTop=a.scrollHeight}})},300)}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
 function addSystemMsg(t){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-system';d.innerHTML='<div class="msg-bubble">'+t+'</div>';a.appendChild(d);a.scrollTop=a.scrollHeight}
+function renderSupportWidget(type){var w=document.createElement('div');w.className='support-widget';w.style.cssText='margin:8px 48px 8px 8px;padding:14px 16px;background:linear-gradient(135deg,#f0fdfa,#e0f5f0);border-radius:14px;border:1px solid rgba(45,142,142,0.12);cursor:pointer;';var widgets={pre_procedure_checklist:{icon:'\ud83d\udccb',title:'Preparation Checklist',sub:'Things to remember before your procedure',action:function(){sendAutoMsg('Can you help me prepare for my upcoming procedure?')}},grounding_exercise:{icon:'\ud83e\uddd8',title:'2-Minute Grounding',sub:'A quick exercise to help calm your nerves',action:function(){sendAutoMsg('Can you guide me through a quick grounding exercise?')}},tww_survival_kit:{icon:'\ud83c\udfaf',title:'TWW Survival Kit',sub:'Distraction ideas and coping strategies',action:function(){sendAutoMsg('I need some distraction ideas during the TWW')}},stim_fatigue_support:{icon:'\ud83d\udc89',title:'Injection Prep & Support',sub:'Tips to make injections easier',action:function(){sendAutoMsg('Can you help me with injection tips? I\'m feeling fatigued')}},post_result_care:{icon:'\ud83d\udc9b',title:'Talk to Someone',sub:'Your clinic team is here for you',action:function(){sendAutoMsg('I\'m struggling after my results')}},gentle_nudge:{icon:'\ud83d\udc4b',title:'Welcome Back',sub:'Just checking you\'re okay. No pressure.',action:null},medication_education:{icon:'\ud83d\udc8a',title:'Medication Guide',sub:'Clear info about your medications',action:function(){sendAutoMsg('Can you explain my medications clearly?')}}};var cfg=widgets[type];if(!cfg)return null;w.innerHTML='<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">'+cfg.icon+'</span><div><div style="font-family:var(--serif);font-size:13px;font-weight:600;color:#1a3a3a">'+cfg.title+'</div><div style="font-size:11px;color:#6a9e9e;margin-top:2px">'+cfg.sub+'</div></div><span style="color:#2D8E8E;font-size:18px;margin-left:auto">\u2192</span></div>';if(cfg.action){w.onclick=cfg.action}return w}
+function sendAutoMsg(text){var input=document.getElementById('chat-input');if(input){input.value=text;sendMsg()}}
+function showCalendarToast(count){var toast=document.createElement('div');toast.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2D8E8E;color:white;padding:10px 20px;border-radius:50px;font-size:13px;font-family:var(--sans);z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.15);animation:fadeIn .3s;';toast.textContent='\ud83d\udcc5 Your team updated '+count+' event'+(count>1?'s':'');document.body.appendChild(toast);setTimeout(function(){toast.style.opacity='0';toast.style.transition='opacity .3s';setTimeout(function(){toast.remove()},300)},4000)}
 async function submitCheckin(){var b=document.getElementById('btn-checkin');b.disabled=true;b.textContent='Submitting...';var c={mood:+document.getElementById('v-mood').textContent,anxiety:+document.getElementById('v-anxiety').textContent,loneliness:+document.getElementById('v-lonely').textContent,uncertainty:+document.getElementById('v-uncertain').textContent,hope:+document.getElementById('v-hope').textContent,note:document.getElementById('ci-note').value.trim()};
 if(collector)collector.onCheckinComplete(c);
 state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message;if(d.capability_hint){setTimeout(function(){addSystemMsg(d.capability_hint)},1000)}}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Submit check-in';updateChart()}
@@ -2562,7 +2466,7 @@ html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4a
 html+='<div id="dayDetailPanel" style="display:none"></div>';
 container.innerHTML=html;
 // Also try loading events from API
-if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events').then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.events&&d.events.length){_calEvents=d.events;localStorage.setItem('melodai_cycle_events',JSON.stringify(_calEvents));buildCalendar()}}).catch(function(){})}}
+if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events').then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.events&&d.events.length){_calEvents=d.events;localStorage.setItem('melodai_cycle_events',JSON.stringify(_calEvents));buildCalendar()}if(d&&d.calendar_updates&&d.calendar_updates.length){showCalendarToast(d.calendar_updates.length);d.calendar_updates.forEach(function(u){var evt=_calEvents.find(function(e){return e.id===u.event_id});if(evt)evt._updated=true});fetch(API_BASE+'/patient/'+state.patientId+'/calendar-updates/acknowledge',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(function(){})}}).catch(function(){})}}
 function calNav(dir){_calMonth+=dir;if(_calMonth<0){_calMonth=11;_calYear--}if(_calMonth>11){_calMonth=0;_calYear++}buildCalendar()}
 function showDayDetail(dateStr){var panel=document.getElementById('dayDetailPanel');if(!panel)return;
 var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});

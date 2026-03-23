@@ -1030,23 +1030,6 @@ ANZARD_CHARTS = {
 
 def match_anzard_charts(message: str, response_text: str, max_charts: int = 2) -> list[dict]:
     """Match patient message + AI response against ANZARD chart triggers."""
-    message_lower = message.lower()
-
-    # EXCLUSION: If the message is specifically about AMH/ovarian reserve
-    # or egg freezing outcomes — DON'T show ANZARD charts.
-    # These topics have their own dedicated Fertool inline infographics.
-    amh_exclusive = any(kw in message_lower for kw in [
-        'amh', 'anti-mullerian', 'anti mullerian', 'ovarian reserve',
-        'egg supply', 'how many eggs do i have', 'pmol',
-    ])
-    egg_freeze_exclusive = any(kw in message_lower for kw in [
-        'warm my eggs', 'thaw my eggs', 'use my frozen eggs',
-        'return to use', 'frozen eggs success', 'egg freezing success',
-        'how many eggs should i freeze', 'oocyte cryopreservation',
-    ])
-    if amh_exclusive or egg_freeze_exclusive:
-        return []  # Let Fertool inline infographics handle these topics
-
     combined = (message + " " + response_text).lower()
     scored = []
     for key, chart in ANZARD_CHARTS.items():
@@ -1075,6 +1058,9 @@ checkins_db: dict = {}       # patient_id -> list of daily check-ins
 screenings_db: dict = {}     # patient_id -> list of screening results
 escalations_db: dict = {}    # patient_id -> list of escalation events
 passive_signals_db: dict = {}  # patient_id -> list of passive behavioural signals
+cycle_events_db: dict = {}  # {patient_id: [events]}
+clinical_triggers_db: dict = {}  # {patient_id: [triggers]}
+calendar_updates_db: dict = {}  # {patient_id: [updates]}
 
 
 # ── Firebase sync helpers ────────────────────────────────────────
@@ -1528,6 +1514,8 @@ class ChatResponse(BaseModel):
     one_word_checkin: Optional[dict] = None  # If message was mapped as a one-word check-in
     education_fork: Optional[str] = None  # Clarifying question for education queries
     anzard_charts: Optional[list] = None  # ANZARD 2023 infographic charts
+    support_widgets: Optional[list] = None  # Clinical trigger support widgets
+    clinical_triggers: Optional[list] = None  # Active trigger context
     query_id: str = ""
 
 class CheckInRequest(BaseModel):
@@ -2129,6 +2117,157 @@ async def list_reflections(patient_id: str, limit: int = 10):
     return {"reflections": refs, "patient_id": patient_id}
 
 
+# ── Clinical Trigger Engine ─────────────────────────────────────────
+
+def evaluate_clinical_triggers(patient_id: str) -> list:
+    """Evaluate 6 clinical trigger rules based on mood + calendar + stage."""
+    triggers = []
+    patient = patients_db.get(patient_id, {})
+    stage = patient.get("treatment_stage", "")
+    checkins = checkins_db.get(patient_id, [])
+    recent = checkins[-5:] if checkins else []
+    latest = recent[-1] if recent else {}
+    conversations = conversations_db.get(patient_id, [])
+    events = cycle_events_db.get(patient_id, [])
+    store = patient_signal_store.get(patient_id, {})
+    now = utc_now()
+
+    # Rule 1 — PRE-PROCEDURE ANXIETY
+    procedure_types = ['retrieval', 'transfer', 'iui', 'scan']
+    for evt in events:
+        try:
+            evt_date = datetime.fromisoformat(evt.get('date', '')[:10])
+        except Exception:
+            continue
+        hours_until = (evt_date - now.replace(tzinfo=None)).total_seconds() / 3600
+        if 0 < hours_until <= 48 and evt.get('type') in procedure_types:
+            anxiety = latest.get('anxiety', 5)
+            mood = latest.get('mood', 5)
+            if anxiety > 6 or mood < 5:
+                triggers.append({
+                    "rule": "pre_procedure_anxiety",
+                    "event": f"{evt.get('type')} on {evt.get('date')}",
+                    "mood_score": mood,
+                    "anxiety_score": anxiety,
+                    "support_widget": "pre_procedure_checklist",
+                    "clinician_flag": f"Patient anxious ahead of {evt.get('type')} on {evt.get('date')}",
+                    "priority": "moderate"
+                })
+                break
+
+    # Rule 2 — POST-RESULT VULNERABILITY
+    for evt in events:
+        try:
+            evt_date = datetime.fromisoformat(evt.get('date', '')[:10])
+        except Exception:
+            continue
+        hours_since = (now.replace(tzinfo=None) - evt_date).total_seconds() / 3600
+        if 0 < hours_since <= 72 and evt.get('type') == 'result':
+            mood = latest.get('mood', 5)
+            loneliness = latest.get('loneliness', 5)
+            if mood < 4 or loneliness > 7:
+                triggers.append({
+                    "rule": "post_result_vulnerability",
+                    "event": f"result on {evt.get('date')}",
+                    "mood_score": mood,
+                    "loneliness_score": loneliness,
+                    "support_widget": "post_result_care",
+                    "clinician_flag": "Patient struggling after result day — consider outreach",
+                    "priority": "high"
+                })
+                break
+
+    # Rule 3 — STIMULATION FATIGUE
+    if stage == 'stimulation':
+        injection_events = [e for e in events if e.get('type') == 'injection']
+        if len(injection_events) >= 8:
+            if len(recent) >= 3:
+                moods = [c.get('mood', 5) for c in recent[-3:]]
+                if moods[-1] < moods[0]:  # declining
+                    triggers.append({
+                        "rule": "stim_fatigue",
+                        "day_count": len(injection_events),
+                        "mood_trend": moods,
+                        "support_widget": "stim_fatigue_support",
+                        "clinician_flag": f"Stim fatigue detected — mood declining since day {len(injection_events)-2}",
+                        "priority": "moderate"
+                    })
+
+    # Rule 4 — TWW SPIRAL
+    tww_stages = ['early_tww', 'late_tww']
+    if stage in tww_stages:
+        anxiety = latest.get('anxiety', 5)
+        assessment = store.get('current_assessment', {})
+        flags = assessment.get('flags', [])
+        has_hyper = 'HYPER_ENGAGEMENT' in str(flags)
+        late_sessions = sum(1 for h in store.get('signal_history', [])[-7:]
+                          if h.get('circadian', {}).get('hour', 12) >= 23 or h.get('circadian', {}).get('hour', 12) <= 4)
+        if anxiety > 7 or has_hyper or late_sessions > 2:
+            triggers.append({
+                "rule": "tww_spiral",
+                "anxiety_score": anxiety,
+                "late_sessions": late_sessions,
+                "support_widget": "tww_survival_kit",
+                "clinician_flag": "TWW anxiety elevated — consider reassurance",
+                "priority": "moderate"
+            })
+
+    # Rule 5 — DISENGAGEMENT WARNING
+    if checkins and conversations:
+        last_checkin_date = checkins[-1].get('date', '')
+        last_conv_date = conversations[-1].get('timestamp', '')
+        try:
+            last_activity = max(
+                datetime.fromisoformat(last_checkin_date.replace('Z', '+00:00')) if last_checkin_date else datetime.min.replace(tzinfo=timezone.utc),
+                datetime.fromisoformat(last_conv_date.replace('Z', '+00:00')) if last_conv_date else datetime.min.replace(tzinfo=timezone.utc)
+            )
+            days_silent = (now - last_activity).days
+        except Exception:
+            days_silent = 0
+
+        last_mood = latest.get('mood', 5)
+        if days_silent >= 3 and last_mood < 5:
+            triggers.append({
+                "rule": "disengagement_warning",
+                "days_silent": days_silent,
+                "last_mood": last_mood,
+                "support_widget": "gentle_nudge",
+                "clinician_flag": "Patient disengaged after low mood — dropout risk",
+                "priority": "high"
+            })
+
+    # Rule 6 — MEDICATION CONFUSION
+    med_keywords = ['medication', 'medicine', 'dose', 'dosage', 'injection', 'gonal', 'menopur', 'cetrotide', 'progesterone', 'estrogen', 'clomid', 'letrozole']
+    recent_user_msgs = [m for m in conversations[-20:] if m.get('role') == 'user'] if conversations else []
+    three_days_ago = (now - timedelta(days=3)).isoformat()
+    med_msgs = [m for m in recent_user_msgs
+                if m.get('timestamp', '') >= three_days_ago
+                and any(kw in m.get('content', '').lower() for kw in med_keywords)]
+    if len(med_msgs) >= 2:
+        triggers.append({
+            "rule": "medication_confusion",
+            "med_messages_count": len(med_msgs),
+            "support_widget": "medication_education",
+            "clinician_flag": "Medication confusion persists — may need in-person explanation",
+            "priority": "moderate"
+        })
+
+    # Store triggers in Firebase
+    if triggers:
+        trigger_record = {
+            "timestamp": utc_iso(),
+            "triggers": triggers,
+            "patient_stage": stage,
+        }
+        clinical_triggers_db.setdefault(patient_id, []).append(trigger_record)
+        try:
+            firebase_db.save_clinical_trigger(patient_id, trigger_record)
+        except Exception:
+            pass
+
+    return triggers
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
     """Main chat endpoint — triage → layers → synthesis → safety check."""
@@ -2359,6 +2498,24 @@ Context: {soft_spot['message']}
 {"Offer: " + soft_spot['what_helps'] if soft_spot.get('what_helps') else "Just be present. No fixing needed."}
 Weave this awareness naturally — don't announce it as a feature, just show you understand where they are."""
 
+    # ── Clinical Triggers ──
+    clinical_triggers = evaluate_clinical_triggers(req.patient_id)
+    support_widgets = []
+    if clinical_triggers:
+        trigger_context = "\n\nCLINICAL CONTEXT — Active support triggers:\n"
+        for t in clinical_triggers:
+            trigger_context += f"- {t['rule']}: {t.get('clinician_flag', '')}\n"
+            if t.get('support_widget'):
+                support_widgets.append(t['support_widget'])
+        trigger_context += """Adjust your response tone accordingly:
+- For pre_procedure_anxiety: Lead with reassurance about the upcoming procedure
+- For post_result_vulnerability: Lead with empathy, avoid clinical language
+- For stim_fatigue: Acknowledge exhaustion, normalize it
+- For tww_spiral: Offer distraction techniques, normalize symptom-checking anxiety
+- For disengagement_warning: Be warm, no pressure, just presence
+- For medication_confusion: Offer clear, simple medication guidance"""
+        system_prompt += trigger_context
+
     # Build conversation messages for Claude
     conv_messages = []
     for msg in get_conversation_context(req.patient_id, last_n=16):
@@ -2418,6 +2575,8 @@ Weave this awareness naturally — don't announce it as a feature, just show you
         one_word_checkin=one_word_checkin,
         education_fork=education_fork,
         anzard_charts=anzard_charts,
+        support_widgets=support_widgets if support_widgets else None,
+        clinical_triggers=[{"rule": t["rule"], "priority": t.get("priority", "moderate")} for t in clinical_triggers] if clinical_triggers else None,
         query_id=query_id,
     )
 
@@ -2464,6 +2623,18 @@ async def daily_checkin(req: CheckInRequest):
         last_gad = [s for s in screenings_db.get(req.patient_id, []) if s["instrument"] == "GAD-7"]
         if not last_gad or (datetime.now() - datetime.fromisoformat(last_gad[-1]["date"])).days >= 7:
             trigger_screening = "GAD-7"
+
+    # Run clinical triggers after check-in
+    clinical_triggers = evaluate_clinical_triggers(req.patient_id)
+    # Store any clinician flags
+    for t in clinical_triggers:
+        if t.get('priority') == 'high':
+            _sync_escalation(req.patient_id, {
+                "level": "AMBER",
+                "reason": t.get('clinician_flag', 'Clinical trigger fired'),
+                "signals": [t['rule']],
+                "timestamp": utc_iso(),
+            })
 
     # Generate companion response to check-in
     summary = (
@@ -3417,6 +3588,76 @@ async def get_passive_summary(patient_id: str):
         "patient_id": patient_id,
         "summary": summary,
     }
+
+
+# ── Cycle Events ─────────────────────────────────────────────────────
+
+@app.get("/patient/{patient_id}/cycle-events")
+async def get_cycle_events(patient_id: str):
+    """Get all cycle events for a patient."""
+    events = cycle_events_db.get(patient_id, [])
+    # Also check for undelivered calendar updates
+    updates = calendar_updates_db.get(patient_id, [])
+    undelivered = [u for u in updates if not u.get('delivered')]
+    return {"events": events, "calendar_updates": undelivered}
+
+@app.post("/patient/{patient_id}/cycle-events")
+async def add_cycle_event(patient_id: str, request: Request):
+    """Patient adds a cycle event."""
+    body = await request.json()
+    event = {
+        "id": body.get("id", f"evt_{uuid.uuid4().hex[:8]}"),
+        "date": body.get("date"),
+        "type": body.get("type", "other"),
+        "label": body.get("label", ""),
+        "notes": body.get("notes", ""),
+        "time": body.get("time", ""),
+        "source": "patient",
+        "created_at": utc_iso(),
+    }
+    cycle_events_db.setdefault(patient_id, []).append(event)
+    # Save to Firebase
+    try:
+        if firebase_db.ready:
+            firebase_db._save_cycle_event(patient_id, event)
+    except Exception:
+        pass
+    return {"status": "ok", "event": event}
+
+@app.put("/clinician/patient/{patient_id}/cycle-events/{event_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def update_cycle_event(patient_id: str, event_id: str, request: Request):
+    """Clinician modifies a cycle event date."""
+    body = await request.json()
+    events = cycle_events_db.get(patient_id, [])
+    for evt in events:
+        if evt.get('id') == event_id:
+            old_date = evt.get('date')
+            evt['date'] = body.get('date', evt['date'])
+            evt['label'] = body.get('label', evt.get('label', ''))
+            evt['modified_by'] = 'clinician'
+            evt['modified_at'] = utc_iso()
+
+            # Record the update for patient notification
+            update = {
+                "event_id": event_id,
+                "old_date": old_date,
+                "new_date": evt['date'],
+                "reason": body.get('reason', ''),
+                "modified_at": utc_iso(),
+                "delivered": False,
+            }
+            calendar_updates_db.setdefault(patient_id, []).append(update)
+            return {"status": "ok", "event": evt, "update": update}
+
+    raise HTTPException(status_code=404, detail="Event not found")
+
+@app.post("/patient/{patient_id}/calendar-updates/acknowledge")
+async def acknowledge_calendar_updates(patient_id: str):
+    """Patient acknowledges seeing calendar updates."""
+    updates = calendar_updates_db.get(patient_id, [])
+    for u in updates:
+        u['delivered'] = True
+    return {"status": "ok"}
 
 
 # ── Static File Serving ────────────────────────────────────────────────

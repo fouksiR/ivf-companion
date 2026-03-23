@@ -280,6 +280,37 @@ class FirebaseDB:
         except Exception as e:
             logger.warning(f"Firebase save_daily_insight error: {e}")
 
+    # ── Clinical Triggers ─────────────────────────────────
+
+    def save_clinical_trigger(self, patient_id: str, trigger: dict):
+        if not _enabled: return
+        try:
+            ts_key = trigger.get("timestamp", datetime.now().isoformat()).replace(".", "_").replace(":", "-")
+            _fb_ref.child('clinical_triggers').child(patient_id).child(ts_key).set(trigger)
+        except Exception as e:
+            logger.warning(f"Firebase save_clinical_trigger error: {e}")
+
+    # ── Cycle Events ─────────────────────────────────────
+
+    def _save_cycle_event(self, patient_id: str, event: dict):
+        if not _enabled: return
+        try:
+            _fb_ref.child('cycle_events').child(patient_id).push(event)
+        except Exception as e:
+            logger.warning(f"Firebase _save_cycle_event error: {e}")
+
+    def load_cycle_events(self, patient_id: str) -> list:
+        if not _enabled: return []
+        try:
+            result = _fb_ref.child('cycle_events').child(patient_id).get()
+            if result is None: return []
+            if isinstance(result, dict):
+                return [v for k, v in sorted(result.items())]
+            return result if isinstance(result, list) else []
+        except Exception as e:
+            logger.warning(f"Firebase load_cycle_events error: {e}")
+            return []
+
     # ── Passive Signals ─────────────────────────────────
 
     def append_passive_signals(self, patient_id: str, signals: list):

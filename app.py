@@ -3723,6 +3723,74 @@ def moderate_community_post(text: str, patient_id: str) -> dict:
     return result
 
 
+def seed_community_posts():
+    """Seed the community with realistic anonymous posts if empty."""
+    global community_posts_db
+    if community_posts_db:
+        return  # Already have posts
+    # Check Firebase flag
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            flag = firebase_db._fb_ref.child('community_seeded').get()
+            if flag:
+                # Load existing posts from Firebase
+                fb_posts = firebase_db._fb_ref.child('community_posts').get()
+                if fb_posts:
+                    community_posts_db = list(fb_posts.values()) if isinstance(fb_posts, dict) else fb_posts
+                return
+    except Exception:
+        pass
+
+    import random
+    seeds = [
+        {"text": "Day 3 of stim and the bloating is unreal. Anyone else feel like a balloon?", "stage": "stimulation", "mood": "anxious", "hours_ago": 2},
+        {"text": "Just got told we have 3 good embryos. Crying happy tears.", "stage": "post_retrieval", "mood": "happy", "hours_ago": 5},
+        {"text": "TWW day 7. I've googled 'early pregnancy symptoms' approximately 400 times today.", "stage": "early_tww", "mood": "anxious", "hours_ago": 3},
+        {"text": "Failed our first cycle. Taking a month off. Trying to remember who I was before all this started.", "stage": "between_cycles", "mood": "sad", "hours_ago": 8},
+        {"text": "Trigger shot tonight. Hands shaking but I've got this. Retrieval Thursday.", "stage": "stimulation", "mood": "hopeful", "hours_ago": 12},
+        {"text": "14 eggs retrieved! Sore but grateful. Now the waiting begins for the embryo report.", "stage": "post_retrieval", "mood": "hopeful", "hours_ago": 18},
+        {"text": "Does anyone else feel completely alone in this? My friends don't get it.", "stage": "stimulation", "mood": "sad", "hours_ago": 6},
+        {"text": "Transfer done. One little embryo on board. Talking to it already. Is that weird?", "stage": "early_tww", "mood": "hopeful", "hours_ago": 24},
+        {"text": "Second cycle starting. Scared but also weirdly calmer than the first time. You learn what to expect.", "stage": "stimulation", "mood": "content", "hours_ago": 36},
+        {"text": "Got my positive today. After 2 years. I can't stop shaking.", "stage": "early_pregnancy", "mood": "happy", "hours_ago": 48},
+        {"text": "The injections aren't even the hard part anymore. It's the emotional rollercoaster. Nobody warns you about that.", "stage": "stimulation", "mood": "anxious", "hours_ago": 15},
+        {"text": "My partner held the ice pack on my belly while I did the injection tonight. Small moments of being a team.", "stage": "stimulation", "mood": "content", "hours_ago": 30},
+    ]
+    now = utc_now()
+    for i, s in enumerate(seeds):
+        post = {
+            "id": f"seed_{i+1}_{int(now.timestamp())}",
+            "text": s["text"],
+            "anonymous": True,
+            "display_name": "Anonymous",
+            "stage": s["stage"],
+            "mood": s["mood"],
+            "created_at": (now - timedelta(hours=s["hours_ago"])).isoformat(),
+            "patient_id": f"seed_patient_{i+1}",
+            "reactions": {
+                "support": random.randint(1, 8),
+                "same": random.randint(0, 5),
+                "strength": random.randint(0, 3),
+            },
+            "reported": False,
+            "moderated": True,
+            "visible": True,
+        }
+        community_posts_db.append(post)
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                firebase_db._fb_ref.child('community_posts').child(post['id']).set(post)
+        except Exception:
+            pass
+    # Set seeded flag
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child('community_seeded').set(True)
+    except Exception:
+        pass
+    logger.info(f"Seeded {len(seeds)} community posts")
+
+
 @app.post("/community/posts")
 async def create_community_post(req: CommunityPostRequest):
     """Create an anonymous community post."""
@@ -3779,6 +3847,9 @@ async def create_community_post(req: CommunityPostRequest):
 @app.get("/community/posts")
 async def list_community_posts(stage: str = None, limit: int = 20, before: str = None):
     """List visible community posts, optionally filtered by stage."""
+    # Seed on first access if empty
+    if not community_posts_db:
+        seed_community_posts()
     posts = [p for p in community_posts_db if p.get("visible", True)]
 
     if stage and stage != "all":
@@ -3829,6 +3900,21 @@ async def react_to_post(post_id: str, req: CommunityReactRequest):
             "to_stage": post.get("stage", ""),
             "created_at": utc_iso(),
         })
+
+    # "Me too" notification — notify post author when someone taps "same"
+    if req.reaction == "same" and prev != "same":
+        author_id = post.get("patient_id", "")
+        if author_id and not author_id.startswith("seed_") and author_id != req.patient_id:
+            notif = {
+                "id": f"notif_{post_id}_{int(utc_now().timestamp())}",
+                "type": "same_reaction",
+                "post_id": post_id,
+                "post_preview": post.get("text", "")[:50],
+                "count": post["reactions"].get("same", 0),
+                "latest_at": utc_iso(),
+                "read": False,
+            }
+            community_notifications_db.setdefault(author_id, []).append(notif)
 
     return {"status": "ok", "reactions": post["reactions"]}
 
@@ -3953,6 +4039,115 @@ async def community_stage_insights(stage: str):
             "Talking to someone who's been through it"
         ]
     }
+
+
+# ── Community Replies (max 1 level, max 3 per post) ──────────────────
+
+community_replies_db: dict = {}  # {post_id: [replies]}
+community_notifications_db: dict = {}  # {patient_id: [notifs]}
+
+
+@app.post("/community/posts/{post_id}/reply")
+async def reply_to_post(post_id: str, request: Request):
+    """Add a reply to a community post (max 3 per post, max 200 chars)."""
+    body = await request.json()
+    patient_id = body.get("patient_id", "")
+    text = body.get("text", "").strip()
+
+    if not text or not patient_id:
+        raise HTTPException(status_code=400, detail="Missing text or patient_id")
+    if len(text) > 200:
+        text = text[:200]
+
+    post = next((p for p in community_posts_db if p["id"] == post_id), None)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    replies = community_replies_db.get(post_id, [])
+    if len(replies) >= 3:
+        raise HTTPException(status_code=400, detail="Maximum 3 replies per post")
+
+    # Moderate
+    mod = moderate_community_post(text, patient_id)
+    if not mod["approved"]:
+        return {"status": "rejected", "message": mod.get("message", "Post rejected")}
+
+    # Get replier mood
+    latest_checkins = checkins_db.get(patient_id, [])
+    mood = latest_checkins[-1].get("mood", 5) if latest_checkins else 5
+
+    reply = {
+        "id": f"reply_{post_id}_{len(replies)}_{int(utc_now().timestamp())}",
+        "post_id": post_id,
+        "text": text,
+        "anonymous": True,
+        "display_name": "Anonymous",
+        "mood": "hopeful" if mood >= 6 else "anxious" if mood >= 4 else "sad",
+        "created_at": utc_iso(),
+        "patient_id": patient_id,
+        "reported": False,
+        "visible": True,
+    }
+
+    community_replies_db.setdefault(post_id, []).append(reply)
+
+    # Save to Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("community_replies").child(post_id).child(reply["id"]).set(reply)
+    except Exception:
+        pass
+
+    # Return without patient_id
+    safe = {k: v for k, v in reply.items() if k != "patient_id"}
+    return {"status": "ok", "reply": safe}
+
+
+@app.get("/community/posts/{post_id}/replies")
+async def list_replies(post_id: str):
+    """List replies for a post."""
+    replies = community_replies_db.get(post_id, [])
+    safe = [{k: v for k, v in r.items() if k != "patient_id"} for r in replies if r.get("visible", True)]
+    return {"replies": safe, "count": len(safe)}
+
+
+@app.get("/community/active-count")
+async def community_active_count(stage: str = None):
+    """Count active patients at a stage (activity in last 7 days)."""
+    now = utc_now()
+    seven_days_ago = (now - timedelta(days=7)).isoformat()
+    count = 0
+    for pid, patient in patients_db.items():
+        if stage and patient.get("treatment_stage") != stage:
+            continue
+        # Check recent activity
+        checkins = checkins_db.get(pid, [])
+        convs = conversations_db.get(pid, [])
+        has_recent = False
+        if checkins and checkins[-1].get("date", "") >= seven_days_ago:
+            has_recent = True
+        if convs and convs[-1].get("timestamp", "") >= seven_days_ago:
+            has_recent = True
+        if has_recent:
+            count += 1
+    return {"count": max(count, 1), "stage": stage or "all"}
+
+
+@app.get("/community/notifications/{patient_id}")
+async def get_notifications(patient_id: str):
+    """Get unread community notifications for a patient."""
+    notifs = community_notifications_db.get(patient_id, [])
+    unread = [n for n in notifs if not n.get("read", False)]
+    return {"notifications": unread, "count": len(unread)}
+
+
+@app.post("/community/notifications/{patient_id}/read")
+async def mark_notifications_read(patient_id: str):
+    """Mark all community notifications as read."""
+    notifs = community_notifications_db.get(patient_id, [])
+    for n in notifs:
+        n["read"] = True
+    return {"status": "ok"}
 
 
 # ── Static File Serving ────────────────────────────────────────────────

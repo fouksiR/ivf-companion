@@ -331,6 +331,19 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 @keyframes eggReachOut{0%{transform:scale(1)}30%{transform:scale(1.25)}60%{transform:scale(1.18)}100%{transform:scale(1.2)}}
 .egg-companion.reaching svg{animation:eggReachOut .8s ease forwards,eggFloat 4s ease-in-out infinite}
 .egg-companion.reaching::before{opacity:1;background:radial-gradient(circle,rgba(45,142,142,.15),transparent 68%);animation:auraBreath 3s ease-in-out infinite}
+/* Oocyte personality speech bubbles */
+.oocyte-bubble{position:fixed;z-index:60;background:white;border-radius:16px;padding:8px 14px;box-shadow:0 2px 12px rgba(0,0,0,.08);font-family:'DM Sans','Montserrat',sans-serif;font-size:13px;color:#1a3a3a;max-width:200px;text-align:center;opacity:0;transform:scale(.8) translateY(4px);transition:opacity .25s ease-out,transform .25s ease-out;pointer-events:none}
+.oocyte-bubble.visible{opacity:1;transform:scale(1) translateY(0)}
+.oocyte-bubble::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid white}
+.oocyte-bubble.whisper{font-size:11px;font-style:italic;background:rgba(255,255,255,.9);color:#6a9e9e}
+.oocyte-bubble.excited{font-size:14px;color:#D4A843;font-weight:600}
+.oocyte-bubble.gentle{background:rgba(240,253,250,.95);border:1px solid rgba(45,142,142,.08)}
+/* Celebration confetti */
+.confetti-piece{position:fixed;pointer-events:none;z-index:61;border-radius:2px;opacity:0.9}
+@keyframes confettiFall{0%{opacity:.9;transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(120px) rotate(720deg)}}
+/* Oocyte candle for nighttime */
+.oocyte-candle{position:absolute;bottom:42%;left:50%;transform:translateX(-50%);opacity:0;transition:opacity .5s}
+@keyframes candleFlicker{0%,100%{opacity:.8;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.1)}}
 /* ── Stress-ball spring-back ──────────────────────────── */
 @keyframes eggSpringBack{
 0%{transform:scale(1)}
@@ -776,6 +789,11 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
       <ellipse class="eg-cheek" cx="132" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
       <!-- Mouth — gentle quiet smile -->
       <path id="egMouth" d="M92,138 Q100,144 108,138" stroke="#666" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+    </g>
+    <!-- Arms (Feature 3) — tiny expressive appendages -->
+    <g id="egArms" opacity="0.7" style="transition:opacity 0.4s">
+      <path id="egArmL" d="M30,128 Q22,136 25,148" stroke="#c8b870" stroke-width="2.2" fill="none" stroke-linecap="round" style="transition:d 0.4s ease"/>
+      <path id="egArmR" d="M170,128 Q178,136 175,148" stroke="#c8b870" stroke-width="2.2" fill="none" stroke-linecap="round" style="transition:d 0.4s ease"/>
     </g>
   </svg>
   <div class="egg-glow" id="eggGlow"></div>
@@ -2276,8 +2294,8 @@ function onDragUp(e){
     snapToEdge(egg);
     startIdleFace();
   }else{
-    // Was a tap — run original onDown logic (opens check-in)
-    onDown(e);
+    // Was a tap — random micro-interaction OR check-in
+    if(typeof handleOocyteTap==='function'){handleOocyteTap(e)}else{onDown(e)}
   }
 }
 
@@ -3215,6 +3233,464 @@ initOnboarding();
       state._returning=true;
     }catch(e){console.warn('Return user init failed:',e)}
   }
+})();
+
+// ═══════════════════════════════════════════════════════════════════════
+// OOCYTE PERSONALITY SYSTEM — 8 Features, 6 Priority Layers
+// ═══════════════════════════════════════════════════════════════════════
+(function oocytePersonality(){
+var _OC={
+  timeOfDay:'midday',journeyContext:null,baseMood:'content',reactiveMood:null,
+  activeInteraction:null,celebrating:false,growthMultiplier:1.0,
+  armPosition:'resting',speechBubble:null,bubblesShown:0,maxBubbles:5,
+  lastTapTime:0,checkinDoneToday:false,idleBubbleCount:0,
+  typingDebounce:null,lastInputLen:0,deletionCount:0,lastDeleteCheck:0
+};
+
+// ── SVG element references ──
+var _eyeL,_eyeR,_shineL,_shineR,_mouth,_rays,_cheeks,_stars,_browL,_browR,_armL,_armR,_tearL,_tearR,_sweat,_glow,_body,_zona;
+
+function _initRefs(){
+  _eyeL=document.getElementById('egEyeL');_eyeR=document.getElementById('egEyeR');
+  _shineL=document.getElementById('egShineL');_shineR=document.getElementById('egShineR');
+  _mouth=document.getElementById('egMouth');_rays=document.getElementById('egRays');
+  _cheeks=document.querySelectorAll('.eg-cheek');_stars=document.getElementById('egStars');
+  _browL=document.getElementById('egBrowL');_browR=document.getElementById('egBrowR');
+  _armL=document.getElementById('egArmL');_armR=document.getElementById('egArmR');
+  _tearL=document.getElementById('egTearL');_tearR=document.getElementById('egTearR');
+  _sweat=document.getElementById('egSweat');_glow=document.getElementById('eggGlow');
+  _body=document.getElementById('egBody');_zona=document.querySelector('#eggSvg circle[r="86"]');
+}
+
+// ── Feature 6: Time-of-Day ──
+function getTimeOfDay(){
+  var h=new Date().getHours();
+  if(h>=5&&h<10)return'morning';if(h>=10&&h<15)return'midday';
+  if(h>=15&&h<19)return'afternoon';if(h>=19&&h<22)return'evening';return'latenight';
+}
+
+function applyTimeOfDay(){
+  _OC.timeOfDay=getTimeOfDay();
+  if(!_rays)return;
+  var t=_OC.timeOfDay;
+  // Adjust glow/rays based on time (base layer)
+  if(t==='latenight'){
+    _rays.setAttribute('opacity','0.08');
+    _cheeks.forEach(function(c){c.setAttribute('opacity','0.15')});
+    // Sleepy eyes
+    if(_eyeL&&!_OC.reactiveMood&&!_OC.activeInteraction){
+      _eyeL.setAttribute('ry','1.8');_eyeR.setAttribute('ry','1.8');
+    }
+  }else if(t==='morning'){
+    _rays.setAttribute('opacity','0.35');
+  }else if(t==='evening'){
+    _rays.setAttribute('opacity','0.2');
+  }
+}
+
+// ── Feature 5: Speech Bubbles ──
+var _bubbleTimer=null;
+function showOocyteBubble(text,duration,style){
+  if(_OC.bubblesShown>=_OC.maxBubbles)return;
+  if(_OC.reactiveMood)return; // Don't show during typing
+  duration=duration||4000;style=style||'normal';
+  var existing=document.querySelector('.oocyte-bubble');
+  if(existing)existing.remove();
+  if(_bubbleTimer){clearTimeout(_bubbleTimer);_bubbleTimer=null}
+
+  var egg=document.getElementById('eggCompanion');
+  if(!egg||!egg.classList.contains('visible'))return;
+  var rect=egg.getBoundingClientRect();
+
+  var b=document.createElement('div');
+  b.className='oocyte-bubble'+(style!=='normal'?' '+style:'');
+  b.textContent=text;
+  b.style.left=(rect.left+rect.width/2)+'px';
+  b.style.bottom=(window.innerHeight-rect.top+8)+'px';
+  b.style.transform='scale(.8) translateY(4px) translateX(-50%)';
+  document.body.appendChild(b);
+  setTimeout(function(){b.style.transform='scale(1) translateY(0) translateX(-50%)';b.classList.add('visible')},50);
+  _OC.bubblesShown++;
+  _OC.speechBubble=text;
+  _bubbleTimer=setTimeout(function(){
+    b.classList.remove('visible');
+    b.style.transform='scale(.8) translateY(-8px) translateX(-50%)';
+    b.style.opacity='0';
+    setTimeout(function(){b.remove()},300);
+    _OC.speechBubble=null;_bubbleTimer=null;
+  },duration);
+}
+window.showOocyteBubble=showOocyteBubble;
+
+// Greeting on app open
+function showGreetingBubble(){
+  var t=_OC.timeOfDay;
+  var greetings={
+    morning:['Good morning! \u2600\ufe0f','Rise and shine!'],
+    midday:['Hey! How\'s your day going?','Good to see you!'],
+    afternoon:['Afternoon! How are you?','Hey there!'],
+    evening:['Evening. How are you holding up?','Winding down?'],
+    latenight:['Can\'t sleep?','Hey night owl.']
+  };
+  var g=greetings[t]||greetings.midday;
+  var msg=g[Math.floor(Math.random()*g.length)];
+  var style=t==='latenight'?'whisper':'normal';
+  setTimeout(function(){showOocyteBubble(msg,4000,style)},2500);
+}
+
+// Idle presence bubbles
+var _idlePhrases=['I\'m here if you need me.','Take your time.','No rush. Just being here counts.','You\'re stronger than you know.','One step at a time.'];
+function startIdleBubbles(){
+  setInterval(function(){
+    var egg=document.getElementById('eggCompanion');
+    if(!egg||!egg.classList.contains('idle'))return;
+    if(_OC.idleBubbleCount>=3||_OC.reactiveMood||_OC.activeInteraction)return;
+    if(_OC.bubblesShown>=_OC.maxBubbles)return;
+    _OC.idleBubbleCount++;
+    showOocyteBubble(_idlePhrases[Math.floor(Math.random()*_idlePhrases.length)],3500,'gentle');
+  },45000);
+}
+
+// ── Feature 1: Typing Reactions ──
+function analyzeTypingMood(text){
+  if(!text||text.length<3){_OC.reactiveMood=null;applyReactiveMood();return}
+  var t=text.toLowerCase();
+  var neg=['scared','afraid','worried','anxious','crying','cry','alone','lonely','can\'t','hate','angry','frustrated','failed','loss','lost','hurt','pain','terrified','hopeless','give up','don\'t know','confused'];
+  var pos=['happy','excited','hopeful','grateful','good news','positive','worked','pregnant','success','love','thank','amazing','wonderful','better','relieved','finally'];
+  var fury=['angry','furious','unfair','hate this','sick of','why me'];
+  var q=t.endsWith('?')||/\b(what|why|how|when|should i|is it normal|tell me)\b/.test(t);
+
+  if(fury.some(function(k){return t.indexOf(k)!==-1})){_OC.reactiveMood='calm_holding'}
+  else if(neg.some(function(k){return t.indexOf(k)!==-1})){_OC.reactiveMood='concerned'}
+  else if(pos.some(function(k){return t.indexOf(k)!==-1})){_OC.reactiveMood='delighted'}
+  else if(q){_OC.reactiveMood='attentive'}
+  else if(text.length>100){_OC.reactiveMood='leaning_in'}
+  else{_OC.reactiveMood=null}
+
+  applyReactiveMood();
+}
+
+function applyReactiveMood(){
+  if(!_eyeL)_initRefs();if(!_eyeL)return;
+  var m=_OC.reactiveMood;
+  var egg=document.getElementById('eggCompanion');
+  if(!egg)return;
+
+  // Reset transitions
+  egg.style.transition='transform .4s ease';
+
+  if(!m){
+    // Return to base
+    egg.style.transform='';
+    _eyeL.setAttribute('ry','3.5');_eyeR.setAttribute('ry','3.5');
+    if(_browL){_browL.setAttribute('opacity','0');_browR.setAttribute('opacity','0')}
+    setArms('resting');
+    return;
+  }
+
+  if(m==='concerned'){
+    _eyeL.setAttribute('ry','4.2');_eyeR.setAttribute('ry','4.2'); // wider eyes
+    if(_browL){_browL.setAttribute('opacity','0.6');_browL.setAttribute('d','M68,103 Q75,100 82,104');
+    _browR.setAttribute('opacity','0.6');_browR.setAttribute('d','M118,104 Q125,100 132,103')}
+    egg.style.transform='scale(1.03)';
+    _rays.setAttribute('opacity','0.15');
+    _mouth.setAttribute('d','M93,138 Q100,140 107,138'); // flat
+    setArms('reaching');
+  }else if(m==='delighted'){
+    _eyeL.setAttribute('ry','3');_eyeR.setAttribute('ry','3');
+    _cheeks.forEach(function(c){c.setAttribute('opacity','0.7')});
+    if(_stars)_stars.setAttribute('opacity','0.5');
+    _rays.setAttribute('opacity','0.5');
+    _mouth.setAttribute('d','M90,136 Q100,148 110,136'); // big smile
+    egg.style.transform='scale(1.02)';
+    setArms('resting');
+  }else if(m==='attentive'){
+    _eyeL.setAttribute('ry','4');_eyeR.setAttribute('ry','4');
+    egg.style.transform='rotate(3deg)'; // slight tilt
+    _mouth.setAttribute('d','M93,138 Q100,141 107,138');
+    setArms('resting');
+  }else if(m==='leaning_in'){
+    egg.style.transform='scale(1.05)';
+    _eyeL.setAttribute('ry','3.8');_eyeR.setAttribute('ry','3.8');
+    setArms('reaching');
+  }else if(m==='calm_holding'){
+    _eyeL.setAttribute('ry','3.2');_eyeR.setAttribute('ry','3.2');
+    _rays.setAttribute('opacity','0.25');
+    _mouth.setAttribute('d','M93,139 Q100,141 107,139'); // neutral
+    setArms('resting');
+  }
+}
+
+// Deletion detection
+function checkDeletion(newLen){
+  var now=Date.now();
+  if(newLen<_OC.lastInputLen)_OC.deletionCount++;
+  if(now-_OC.lastDeleteCheck>3000){
+    if(_OC.deletionCount>3){
+      _OC.reactiveMood='encouraging';
+      // Tiny nod
+      var egg=document.getElementById('eggCompanion');
+      if(egg){egg.style.transform='translateY(-2px)';setTimeout(function(){egg.style.transform=''},300)}
+    }
+    _OC.deletionCount=0;_OC.lastDeleteCheck=now;
+  }
+  _OC.lastInputLen=newLen;
+}
+
+// Wire to chat input
+function wireTypingReactions(){
+  var ci=document.getElementById('chat-input');
+  if(!ci)return;
+  ci.addEventListener('input',function(){
+    var text=ci.value;
+    checkDeletion(text.length);
+    if(_OC.typingDebounce)clearTimeout(_OC.typingDebounce);
+    _OC.typingDebounce=setTimeout(function(){analyzeTypingMood(text)},300);
+  });
+}
+
+// ── Feature 3: Arms ──
+function setArms(position){
+  if(!_armL||!_armR)return;
+  var poses={
+    resting:{l:'M30,128 Q22,136 25,148',r:'M170,128 Q178,136 175,148'},
+    waving:{l:'M30,128 Q22,136 25,148',r:'M170,128 Q180,118 175,105'},
+    heart:{l:'M30,128 Q50,145 85,140',r:'M170,128 Q150,145 115,140'},
+    hug:{l:'M30,128 Q60,130 120,135',r:'M170,128 Q140,130 80,135'},
+    reaching:{l:'M30,128 Q15,140 10,155',r:'M170,128 Q185,140 190,155'},
+    covering:{l:'M30,128 Q55,108 80,112',r:'M170,128 Q145,108 120,112'},
+    fistpump:{l:'M30,128 Q22,136 25,148',r:'M170,128 Q180,108 178,95'}
+  };
+  var p=poses[position]||poses.resting;
+  _armL.setAttribute('d',p.l);_armR.setAttribute('d',p.r);
+  _OC.armPosition=position;
+}
+
+// ── Feature 7: Random Micro-Interactions ──
+var _tapCooldown=false;
+function handleOocyteTap(e){
+  if(_tapCooldown||_OC.celebrating)return;
+  _tapCooldown=true;setTimeout(function(){_tapCooldown=false},3000);
+
+  // Weighted random
+  var r=Math.random();
+  var checkinProb=_OC.checkinDoneToday?0.15:0.50;
+
+  if(r<checkinProb){
+    // Check-in
+    onDown(e);return;
+  }
+  r=(r-checkinProb)/(1-checkinProb); // renormalize remaining probability
+
+  if(r<0.22){
+    // Giggle bounce
+    var egg=document.getElementById('eggCompanion');
+    egg.style.transition='transform .15s ease';
+    egg.style.transform='scaleX(1.1) scaleY(0.9)';
+    setTimeout(function(){egg.style.transform='scaleX(0.92) scaleY(1.08)';
+    setTimeout(function(){egg.style.transform='';},150)},150);
+    showOocyteBubble('hehe \ud83d\ude04',2000,'normal');
+    setArms('resting');
+  }else if(r<0.44){
+    // Quick affirmation
+    var affs=['You\'ve got this.','Proud of you.','One step at a time.','You\'re not alone.','Be gentle with yourself.','Brave.'];
+    showOocyteBubble(affs[Math.floor(Math.random()*affs.length)],3500,'gentle');
+  }else if(r<0.58){
+    // Peek-a-boo
+    setArms('covering');
+    setTimeout(function(){
+      setArms('resting');
+      if(_eyeL){_eyeL.setAttribute('ry','5');_eyeR.setAttribute('ry','5')}
+      showOocyteBubble('Peekaboo! \ud83d\ude0a',2000,'normal');
+      setTimeout(function(){if(_eyeL){_eyeL.setAttribute('ry','3.5');_eyeR.setAttribute('ry','3.5')}},1500);
+    },600);
+  }else if(r<0.72){
+    // Nuzzle toward tap
+    var egg=document.getElementById('eggCompanion');
+    egg.style.transition='transform .4s ease';
+    egg.style.transform='translateX(5px) scale(1.02)';
+    _rays.setAttribute('opacity','0.45');
+    _cheeks.forEach(function(c){c.setAttribute('opacity','0.7')});
+    setTimeout(function(){egg.style.transform='';_rays.setAttribute('opacity','0.3');
+    _cheeks.forEach(function(c){c.setAttribute('opacity','0.25')})},1500);
+  }else if(r<0.86){
+    // Dance
+    var egg=document.getElementById('eggCompanion');
+    egg.style.transition='transform .12s ease';
+    var seq=[{t:'rotate(-8deg)',d:120},{t:'rotate(8deg)',d:120},{t:'rotate(-5deg) translateY(-4px)',d:120},{t:'rotate(5deg) translateY(-4px)',d:120},{t:'',d:0}];
+    var i=0;
+    function danceStep(){if(i>=seq.length)return;egg.style.transform=seq[i].t;i++;if(i<seq.length)setTimeout(danceStep,seq[i-1].d)}
+    danceStep();
+    setArms('waving');
+    showOocyteBubble('Just felt like dancing. \ud83d\udc83',2500,'excited');
+    setTimeout(function(){setArms('resting')},2000);
+  }else{
+    // Hug
+    setArms('reaching');
+    _rays.setAttribute('opacity','0.45');
+    showOocyteBubble('Needed a hug? Me too.',3000,'gentle');
+    setTimeout(function(){setArms('resting');_rays.setAttribute('opacity','0.3')},3000);
+  }
+}
+window.handleOocyteTap=handleOocyteTap;
+
+// ── Feature 4: Celebration ──
+function triggerCelebration(){
+  if(_OC.celebrating)return;
+  _OC.celebrating=true;
+  var egg=document.getElementById('eggCompanion');
+  if(!egg)return;
+
+  // Jump
+  egg.style.transition='transform .3s cubic-bezier(.34,1.56,.64,1)';
+  egg.style.transform='translateY(-20px) scale(1.1)';
+  setArms('fistpump');
+
+  // Eyes wide + sparkle
+  if(_eyeL){_eyeL.setAttribute('ry','5');_eyeR.setAttribute('ry','5')}
+  if(_stars)_stars.setAttribute('opacity','0.9');
+  _rays.setAttribute('opacity','0.7');
+  _cheeks.forEach(function(c){c.setAttribute('opacity','0.9')});
+  _mouth.setAttribute('d','M88,134 Q100,152 112,134'); // big open smile
+
+  // Confetti
+  var rect=egg.getBoundingClientRect();
+  var cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  var colors=['#2D8E8E','#D4A843','#f4a89a','#fde68a','#a8d5d3','#9b8ec0'];
+  for(var i=0;i<25;i++){
+    var c=document.createElement('div');c.className='confetti-piece';
+    var sz=4+Math.random()*5;
+    c.style.cssText='width:'+sz+'px;height:'+sz+'px;left:'+cx+'px;top:'+cy+'px;background:'+colors[Math.floor(Math.random()*colors.length)]+';';
+    var angle=Math.random()*Math.PI*2;var dist=60+Math.random()*80;
+    c.style.transition='all 1.5s cubic-bezier(.2,.8,.3,1)';
+    document.body.appendChild(c);
+    (function(el,a,d){
+      requestAnimationFrame(function(){
+        el.style.transform='translate('+Math.cos(a)*d+'px,'+(Math.sin(a)*d-30)+'px) rotate('+(Math.random()*720)+'deg)';
+        el.style.opacity='0';
+      });
+      setTimeout(function(){el.remove()},2000);
+    })(c,angle,dist);
+  }
+
+  showOocyteBubble('YES!! \ud83c\udf89',2000,'excited');
+
+  setTimeout(function(){
+    egg.style.transform='';
+    if(_eyeL){_eyeL.setAttribute('ry','3.5');_eyeR.setAttribute('ry','3.5')}
+    _mouth.setAttribute('d','M90,136 Q100,148 110,136');
+    setArms('heart');
+    showOocyteBubble('You did it. I\'m so happy for you.',4000,'gentle');
+  },2500);
+
+  setTimeout(function(){
+    _OC.celebrating=false;
+    setArms('resting');
+    _rays.setAttribute('opacity','0.4');
+    _cheeks.forEach(function(c){c.setAttribute('opacity','0.5')});
+  },6000);
+}
+window.triggerCelebration=triggerCelebration;
+
+// Detect celebration triggers in chat
+function checkCelebrationInChat(text){
+  if(!text)return;
+  var t=text.toLowerCase();
+  if(t.indexOf('i\'m pregnant')!==-1||t.indexOf('positive test')!==-1||t.indexOf('it worked')!==-1||t.indexOf('bfp')!==-1){
+    triggerCelebration();
+  }
+}
+
+// ── Feature 2: Journey Context ──
+function applyJourneyContext(){
+  var s=state.stage||'';
+  _OC.journeyContext=s;
+  if(!_mouth)return;
+
+  // Stage-specific daily bubbles (once per day)
+  var dayKey='oc_journey_'+new Date().toDateString();
+  if(!sessionStorage.getItem(dayKey)){
+    var msgs={
+      stimulation:'Every injection is a step forward.',
+      early_tww:'One day at a time. That\'s all you need to do.',
+      late_tww:'Almost there. You\'re so brave.',
+      post_retrieval:'Your body is amazing. Let it rest.',
+      between_cycles:'This pause is part of the journey too.',
+      retrieval_day:'Big day. I\'m right here with you.',
+      transfer_day:'Everything crossed for you.',
+      early_pregnancy:'Every day is a milestone.'
+    };
+    var msg=msgs[s];
+    if(msg){
+      sessionStorage.setItem(dayKey,'1');
+      setTimeout(function(){showOocyteBubble(msg,5000,'gentle')},8000);
+    }
+  }
+}
+
+// ── Feature 8: Growth During Stim ──
+function applyGrowth(){
+  var s=state.stage||'';
+  if(s!=='stimulation'){_OC.growthMultiplier=1.0;return}
+  // Estimate stim day from injection events
+  var injections=(_calEvents||[]).filter(function(e){return e.type==='injection'});
+  var day=Math.min(injections.length,13);
+  _OC.growthMultiplier=1.0+day*0.01;
+  // Apply to egg SVG size
+  var svg=document.getElementById('eggSvg');
+  if(svg){
+    var baseW=64,baseH=84;
+    svg.setAttribute('width',Math.round(baseW*_OC.growthMultiplier));
+    svg.setAttribute('height',Math.round(baseH*_OC.growthMultiplier));
+  }
+  // Zona opacity increases
+  if(_zona){
+    var zonaOp=0.25+day*0.012;
+    _zona.setAttribute('opacity',Math.min(zonaOp,0.45).toFixed(2));
+  }
+}
+
+// ── Master Initialization ──
+function initPersonality(){
+  _initRefs();
+  applyTimeOfDay();
+  wireTypingReactions();
+  startIdleBubbles();
+  applyJourneyContext();
+  applyGrowth();
+  showGreetingBubble();
+
+  // Refresh time-of-day every 30 min
+  setInterval(applyTimeOfDay,1800000);
+  // Refresh journey context every 30 min
+  setInterval(function(){applyJourneyContext();applyGrowth()},1800000);
+
+  // Mark check-in done
+  var origSubmit=window.submitCheckin;
+  if(typeof origSubmit==='function'){
+    window.submitCheckin=function(){
+      _OC.checkinDoneToday=true;
+      return origSubmit.apply(this,arguments);
+    };
+  }
+
+  // Wire celebration detection to chat
+  var origAddMsg=window.addMsg;
+  if(typeof origAddMsg==='function'){
+    window.addMsg=function(role,text){
+      if(role==='user')checkCelebrationInChat(text);
+      return origAddMsg.apply(this,arguments);
+    };
+  }
+}
+
+// Start when app is shown
+var _origShowApp2=window.showApp;
+window.showApp=function(){
+  _origShowApp2.apply(this,arguments);
+  setTimeout(initPersonality,2000);
+};
+
 })();
 </script>
 </body>

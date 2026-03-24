@@ -56,6 +56,23 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .stage-option:hover{border-color:rgba(45,142,142,.2);background:rgba(45,142,142,0.03)}
 .stage-option.selected{border-left:3px solid var(--accent);background:#E8F5F5;transform:scale(1.02)}
 .stage-option .stage-icon{flex-shrink:0;width:20px;height:20px}
+/* Journey cards */
+.journey-card{background:white;border-radius:18px;padding:18px;text-align:center;cursor:pointer;border:2px solid rgba(45,142,142,.08);transition:all .25s;box-shadow:0 1px 6px rgba(0,0,0,.03)}
+.journey-card:hover{border-color:rgba(45,142,142,.2);transform:scale(1.01)}
+.journey-card.selected{border-color:#2D8E8E;background:rgba(45,142,142,.04);transform:scale(1.02)}
+/* Timeline */
+#timelineScroll::-webkit-scrollbar{display:none}
+.tl-node{width:36px;height:36px;border-radius:50%;border:2.5px solid #dbe8e7;background:white;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s;flex-shrink:0;position:relative;z-index:2}
+.tl-node.passed{background:#2D8E8E;border-color:#2D8E8E;color:white}
+.tl-node.active{border-color:#2D8E8E;border-width:3px;box-shadow:0 0 0 4px rgba(45,142,142,.15)}
+.tl-node.active::after{content:'';width:10px;height:10px;border-radius:50%;background:#2D8E8E;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.tl-stage{width:120px;flex-shrink:0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.tl-label{background:white;border-radius:14px;padding:10px;border:1px solid rgba(45,142,142,.06);font-size:12px;font-weight:600;color:#1a3a3a;transition:all .3s;width:110px}
+.tl-label.active{border-color:#2D8E8E;box-shadow:0 2px 12px rgba(45,142,142,.12);transform:translateY(-2px)}
+.tl-label .tl-desc{font-size:10px;font-weight:400;color:#6a9e9e;margin-top:2px}
+.tl-conn{width:40px;height:2px;background:#dbe8e7;flex-shrink:0;transition:background .5s}
+.tl-conn.filled{background:#2D8E8E}
 .stage-option .stage-icon svg{width:20px;height:20px}
 .stage-option .stage-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.4}
 .stage-option .stage-sub{font-size:10px;color:var(--text-soft);margin-top:2px}
@@ -623,7 +640,69 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   <div class="steps-indicator"><div class="step-dot active" id="sd1"></div><div class="step-dot" id="sd2"></div><div class="step-dot" id="sd3"></div></div>
   <div class="onboard-card active" id="step1"><h2>Welcome</h2><p class="card-desc">Let's get to know each other. What should we call you?</p><div class="field"><label>Your first name</label><input type="text" id="ob-name" placeholder="e.g. Sarah" autofocus></div><div class="field"><label>Partner's name (optional)</label><input type="text" id="ob-partner" placeholder="e.g. James"></div><button class="btn btn-primary" id="btn-step1" disabled onclick="goStep(2)">Continue</button></div>
   <div class="onboard-card" id="step2"><h2>A bit about you</h2><p class="card-desc">This helps us personalise your experience.</p><div class="onboard-age-picker"><label style="font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.8px">Your age</label><div class="age-display" id="ageDisplay">32</div><input type="range" class="age-slider" id="ageSlider" min="20" max="50" value="32" oninput="document.getElementById('ageDisplay').textContent=this.value"></div><div class="field"><label>Treatment type</label><select id="ob-treatment"><option value="ivf">IVF</option><option value="icsi">ICSI</option><option value="fet">Frozen Embryo Transfer</option><option value="iui">IUI</option><option value="egg_freezing">Egg Freezing</option><option value="other">Other</option></select></div><div class="field"><label>Which cycle is this?</label><select id="ob-cycle"><option value="1">First cycle</option><option value="2">Second cycle</option><option value="3">Third cycle</option><option value="4">Fourth or more</option></select></div><div class="field"><label>Clinic name (optional)</label><input type="text" id="ob-clinic" placeholder="e.g. Melbourne IVF"></div><div class="btn-row"><button class="btn btn-secondary btn-back" onclick="goStep(1)">Back</button><button class="btn btn-primary" onclick="goStep(3)">Continue</button></div></div>
-  <div class="onboard-card" id="step3"><h2>Where are you?</h2><p class="card-desc">Select the stage that best describes where you are right now.</p><div class="stage-picker" id="stage-grid"></div><div class="btn-row" style="margin-top:16px"><button class="btn btn-secondary btn-back" onclick="goStep(2)">Back</button><button class="btn btn-primary" id="btn-step2" disabled onclick="completeOnboarding()">Get started</button></div></div>
+  <div class="onboard-card" id="step3">
+    <h2 style="font-family:var(--serif);font-size:22px;color:#1a3a3a">What's your journey?</h2>
+    <p class="card-desc">We'll tailor everything to your specific path.</p>
+    <div id="journeyCards" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0">
+      <div class="journey-card" onclick="selectJourney('ivf',this)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2D8E8E" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="4"/></svg>
+        <div style="font-weight:600;font-size:14px;margin-top:6px">IVF / ICSI</div>
+        <div style="font-size:11px;color:#6a9e9e">Full cycle — stim to transfer</div>
+      </div>
+      <div class="journey-card" onclick="selectJourney('iui',this)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2D8E8E" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><path d="M8 12h8"/><polyline points="13 9 16 12 13 15"/></svg>
+        <div style="font-weight:600;font-size:14px;margin-top:6px">IUI</div>
+        <div style="font-size:11px;color:#6a9e9e">Insemination cycle</div>
+      </div>
+      <div class="journey-card" onclick="selectJourney('egg_freeze',this)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2D8E8E" stroke-width="1.5"><path d="M12 2v20M2 12h20M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>
+        <div style="font-weight:600;font-size:14px;margin-top:6px">Egg Freezing</div>
+        <div style="font-size:11px;color:#6a9e9e">Fertility preservation</div>
+      </div>
+      <div class="journey-card" onclick="selectJourney('frequent',this)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2D8E8E" stroke-width="1.5"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+        <div style="font-weight:600;font-size:14px;margin-top:6px">Been here before</div>
+        <div style="font-size:11px;color:#6a9e9e">Multiple cycles</div>
+      </div>
+    </div>
+    <div id="frequentPicker" style="display:none;margin:10px 0;padding:12px;background:rgba(45,142,142,.04);border-radius:14px">
+      <label style="font-size:12px;font-weight:600;color:#3a7070">Which cycle?</label>
+      <select id="ffCycle" style="width:100%;padding:8px;border:1px solid rgba(45,142,142,.15);border-radius:10px;font-size:13px;margin:6px 0">
+        <option value="2">2nd cycle</option><option value="3">3rd cycle</option><option value="4">4th cycle</option><option value="5">5th+</option>
+      </select>
+      <label style="font-size:12px;font-weight:600;color:#3a7070;margin-top:6px;display:block">Journey type?</label>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="ff-type-btn" onclick="setFFType('ivf',this)" style="flex:1;padding:8px;border:1px solid rgba(45,142,142,.15);border-radius:50px;background:white;font-size:12px;cursor:pointer;color:#2D8E8E">IVF</button>
+        <button class="ff-type-btn" onclick="setFFType('iui',this)" style="flex:1;padding:8px;border:1px solid rgba(45,142,142,.15);border-radius:50px;background:white;font-size:12px;cursor:pointer;color:#2D8E8E">IUI</button>
+        <button class="ff-type-btn" onclick="setFFType('egg_freeze',this)" style="flex:1;padding:8px;border:1px solid rgba(45,142,142,.15);border-radius:50px;background:white;font-size:12px;cursor:pointer;color:#2D8E8E">Egg Freeze</button>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-secondary btn-back" onclick="goStep(2)">Back</button>
+      <button class="btn btn-primary" id="btn-journey" disabled onclick="goStep(4)">Continue</button>
+    </div>
+  </div>
+  <!-- Step 4: Horizontal timeline -->
+  <div class="onboard-card" id="step4">
+    <h2 style="font-family:var(--serif);font-size:20px;color:#1a3a3a">Where are you now?</h2>
+    <p class="card-desc">Tap the stage you're at right now.</p>
+    <div id="timelineScroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:20px 0;position:relative">
+      <div id="timelineTrack" style="display:flex;align-items:center;min-width:max-content;padding:0 20px;position:relative"></div>
+    </div>
+    <div class="btn-row" style="margin-top:12px">
+      <button class="btn btn-secondary btn-back" onclick="goStep(3)">Back</button>
+      <button class="btn btn-primary" id="btn-timeline" disabled onclick="goStep(5)">I'm here</button>
+    </div>
+  </div>
+  <!-- Step 5: Emotional wave preview -->
+  <div class="onboard-card" id="step5">
+    <div style="text-align:right"><span style="font-size:11px;color:#6a9e9e;cursor:pointer" onclick="completeOnboarding()">Skip >></span></div>
+    <h2 style="font-family:var(--serif);font-size:20px;color:#1a3a3a">Your emotional landscape</h2>
+    <p class="card-desc">Here's what many people experience through this journey.</p>
+    <div id="emotionalWaveSvg" style="margin:12px 0"></div>
+    <p style="font-size:11px;color:#6a9e9e;text-align:center;font-style:italic;line-height:1.5;margin:8px 0">Based on what thousands of patients report. Your experience may be different — and that's completely okay.</p>
+    <button class="btn btn-primary" style="width:100%" onclick="completeOnboarding()">Continue to app</button>
+  </div>
 </div></div>
 
 
@@ -691,6 +770,15 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     <div class="insights-panel active" id="insight-summary">
     <div class="goal-banner"><h4>Your Focus</h4><p id="goalText">Stay present, one day at a time</p></div>
     <div class="memory-jar"><h3>Memory Jar</h3><div class="jar-stats"><div class="jar-stat"><span class="jar-num" id="jarJournals">0</span><span>Journals</span></div><div class="jar-stat"><span class="jar-num" id="jarChats">0</span><span>Chats</span></div><div class="jar-stat"><span class="jar-num" id="jarCheckins">0</span><span>Check-ins</span></div></div></div>
+    <!-- Emotional Propensity Wave -->
+    <div style="padding:0 16px;margin-bottom:16px">
+      <h3 style="font-family:var(--serif);font-size:15px;margin:0 0 8px;color:#1a3a3a">Your Emotional Landscape</h3>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button class="wave-toggle active" data-dim="anxiety" onclick="toggleWaveDim(this)" style="font-size:10px;padding:4px 10px;border-radius:50px;border:1px solid #ef7b6e;background:rgba(239,123,110,.08);color:#ef7b6e;cursor:pointer;font-family:var(--sans)">Anxiety</button>
+        <button class="wave-toggle active" data-dim="hope" onclick="toggleWaveDim(this)" style="font-size:10px;padding:4px 10px;border-radius:50px;border:1px solid #2D8E8E;background:rgba(45,142,142,.08);color:#2D8E8E;cursor:pointer;font-family:var(--sans)">Hope</button>
+      </div>
+      <div id="insightsWaveSvg"></div>
+    </div>
     <div style="padding:0 4px"><div id="calendarContainer"></div></div>
     <div class="journey-hero"><h2>Your Journey</h2><p>An emotional map of where you've been and where you are</p></div>
     <div style="padding:0 16px"><div class="trend-panel"><h3>Mood &amp; Anxiety</h3><div class="chart-wrap"><canvas id="trend-chart"></canvas></div></div></div>
@@ -1012,7 +1100,170 @@ const STAGES=[{id:'consultation',name:'First Consultation',group:'Getting Starte
 const STAGE_GROUPS=[{label:'Just starting',sub:'Consultation & workup',ids:['consultation','investigation','waiting_to_start']},{label:'Stimulation',sub:'Injections & monitoring',ids:['downregulation','stimulation','monitoring','trigger']},{label:'Egg retrieval',sub:'Procedure & recovery',ids:['before_retrieval','retrieval_day','post_retrieval']},{label:'Embryo stage',sub:'Fertilisation & development',ids:['fertilisation_report','embryo_development','freeze_all']},{label:'Transfer',sub:'Before & day of',ids:['before_transfer','transfer_day']},{label:'Two-week wait',sub:'The hardest part',ids:['early_tww','late_tww']},{label:'Result',sub:'Positive or negative',ids:['result_day','positive_result','negative_result']},{label:'Loss',sub:'Chemical / miscarriage',ids:['chemical_pregnancy','miscarriage']},{label:'Processing',sub:'After a cycle',ids:['failed_cycle_acute','failed_cycle_processing','wtf_appointment']},{label:'Between cycles',sub:'Recovery & decisions',ids:['between_cycles','considering_stopping']},{label:'Donor path',sub:'Donor eggs / surrogacy',ids:['donor_journey']},{label:'Early pregnancy',sub:'After positive test',ids:['early_pregnancy']}];
 let state={patientId:null,name:'',partnerName:'',stage:'consultation',cycle:1,treatment:'ivf',clinic:'',checkins:[]};
 
-function initOnboarding(){const g=document.getElementById('stage-grid');STAGE_GROUPS.forEach(s=>{const d=document.createElement('div');d.className='stage-option';var iconKey=GROUP_LABEL_MAP[s.label]||s.label;d.innerHTML='<div class="stage-icon">'+(STAGE_ICONS[iconKey]||'')+'</div><div><div class="stage-name">'+s.label+'</div><div class="stage-sub">'+s.sub+'</div></div>';d.onclick=()=>{g.querySelectorAll('.stage-option').forEach(e=>e.classList.remove('selected'));d.classList.add('selected');state.stage=s.ids[0];document.getElementById('btn-step2').disabled=false};g.appendChild(d)});document.getElementById('ob-name').addEventListener('input',e=>{document.getElementById('btn-step1').disabled=!e.target.value.trim()})}
+// ── Journey Type System ──
+var JOURNEY_STAGES={
+  ivf:[{id:'consultation',t:'Just starting',d:'Consultation & workup'},{id:'stimulation',t:'Stimulation',d:'Injections & monitoring'},{id:'retrieval_day',t:'Egg retrieval',d:'Procedure & recovery'},{id:'fertilisation_report',t:'Embryo stage',d:'Fertilisation & development'},{id:'transfer_day',t:'Transfer',d:'Before & day of'},{id:'early_tww',t:'Two-week wait',d:'The hardest part'},{id:'result_day',t:'Result',d:'Positive or negative'}],
+  iui:[{id:'consultation',t:'Just starting',d:'Consultation & workup'},{id:'monitoring',t:'Monitoring',d:'Scans & tracking'},{id:'trigger',t:'Trigger shot',d:'Timing ovulation'},{id:'transfer_day',t:'Insemination',d:'The procedure'},{id:'early_tww',t:'Two-week wait',d:'The hardest part'},{id:'result_day',t:'Result',d:'Positive or negative'}],
+  egg_freeze:[{id:'consultation',t:'Just starting',d:'Consultation & planning'},{id:'stimulation',t:'Stimulation',d:'Injections & monitoring'},{id:'retrieval_day',t:'Egg retrieval',d:'Procedure & recovery'},{id:'freeze_all',t:'Freeze',d:'Eggs safely stored'},{id:'between_cycles',t:'Complete',d:'Preserved for the future'}]
+};
+var EMOTIONAL_PROPENSITY={
+  ivf:{anxiety:[3,5,7.5,7,6.5,8.5,9],hope:[7,5.5,5.5,7,8,6,5]},
+  iui:{anxiety:[2,3,4,5,7.5,8.5],hope:[7,6.5,6,7.5,5.5,5]},
+  egg_freeze:{anxiety:[4,6,7,3,2],hope:[7,5.5,6,7.5,8]}
+};
+var _selectedJourney=null;
+var _selectedTimelineStage=null;
+var _ffType=null;
+
+function selectJourney(type,el){
+  document.querySelectorAll('.journey-card').forEach(function(c){c.classList.remove('selected')});
+  el.classList.add('selected');
+  document.getElementById('btn-journey').disabled=false;
+  var fp=document.getElementById('frequentPicker');
+  if(type==='frequent'){
+    fp.style.display='block';
+    _selectedJourney=null; // Wait for sub-selection
+    document.getElementById('btn-journey').disabled=true;
+  }else{
+    fp.style.display='none';
+    _selectedJourney=type;
+    state.treatment=type==='egg_freeze'?'egg_freezing':type;
+  }
+}
+function setFFType(type,btn){
+  _ffType=type;_selectedJourney=type;
+  state.treatment=type==='egg_freeze'?'egg_freezing':type;
+  state.cycle=parseInt(document.getElementById('ffCycle').value)||2;
+  state.frequentFlyer=true;
+  document.querySelectorAll('.ff-type-btn').forEach(function(b){b.style.background='white';b.style.borderColor='rgba(45,142,142,.15)'});
+  btn.style.background='rgba(45,142,142,.08)';btn.style.borderColor='#2D8E8E';
+  document.getElementById('btn-journey').disabled=false;
+  localStorage.setItem('melodai_frequent_flyer','true');
+}
+
+function buildJourneyTimeline(){
+  var stages=JOURNEY_STAGES[_selectedJourney]||JOURNEY_STAGES.ivf;
+  var track=document.getElementById('timelineTrack');
+  track.innerHTML='';
+  _selectedTimelineStage=null;
+  document.getElementById('btn-timeline').disabled=true;
+  stages.forEach(function(s,i){
+    // Connector
+    if(i>0){var conn=document.createElement('div');conn.className='tl-conn';conn.id='tl-conn-'+i;track.appendChild(conn)}
+    // Stage column
+    var col=document.createElement('div');col.className='tl-stage';
+    // Label card
+    var label=document.createElement('div');label.className='tl-label';label.id='tl-label-'+i;
+    label.innerHTML='<div>'+s.t+'</div><div class="tl-desc">'+s.d+'</div>';
+    // Node
+    var node=document.createElement('div');node.className='tl-node';node.id='tl-node-'+i;
+    // Click handler
+    (function(idx,stg){
+      var tap=function(){selectTimelineStage(idx,stg.id)};
+      node.onclick=tap;label.onclick=tap;
+    })(i,s);
+    col.appendChild(label);col.appendChild(node);
+    track.appendChild(col);
+  });
+  // Scroll to start
+  document.getElementById('timelineScroll').scrollLeft=0;
+}
+
+function selectTimelineStage(idx,stageId){
+  _selectedTimelineStage=stageId;
+  state.stage=stageId;
+  document.getElementById('btn-timeline').disabled=false;
+  var stages=JOURNEY_STAGES[_selectedJourney]||JOURNEY_STAGES.ivf;
+  stages.forEach(function(_,i){
+    var node=document.getElementById('tl-node-'+i);
+    var label=document.getElementById('tl-label-'+i);
+    var conn=document.getElementById('tl-conn-'+i);
+    if(!node)return;
+    node.className='tl-node'+(i<idx?' passed':i===idx?' active':'');
+    if(i<idx)node.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+    else if(i===idx)node.innerHTML='';
+    else node.innerHTML='';
+    if(label)label.className='tl-label'+(i===idx?' active':'');
+    if(conn)conn.className='tl-conn'+(i<=idx?' filled':'');
+  });
+  // Scroll to center the selected stage
+  var el=document.getElementById('tl-node-'+idx);
+  if(el)el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+}
+
+function buildEmotionalWave(){
+  var jt=_selectedJourney||'ivf';
+  var stages=JOURNEY_STAGES[jt]||JOURNEY_STAGES.ivf;
+  var prop=EMOTIONAL_PROPENSITY[jt]||EMOTIONAL_PROPENSITY.ivf;
+  var container=document.getElementById('emotionalWaveSvg');
+  var W=340,H=160,padL=10,padR=10,padT=20,padB=30;
+  var chartW=W-padL-padR,chartH=H-padT-padB;
+  var n=stages.length;
+  var stepX=chartW/(n-1);
+
+  function yVal(v){return padT+chartH-(v/10)*chartH}
+  function buildPath(data){
+    var pts=data.map(function(v,i){return(padL+i*stepX)+','+yVal(v)});
+    // Smooth curve through points
+    var d='M'+pts[0];
+    for(var i=1;i<pts.length;i++){
+      var prev=pts[i-1].split(',');var cur=pts[i].split(',');
+      var cpx=((+prev[0])+(+cur[0]))/2;
+      d+=' C'+cpx+','+prev[1]+' '+cpx+','+cur[1]+' '+cur[0]+','+cur[1];
+    }
+    return d;
+  }
+  function buildFill(data){
+    var d=buildPath(data);
+    d+=' L'+(padL+(n-1)*stepX)+','+yVal(0)+' L'+padL+','+yVal(0)+' Z';
+    return d;
+  }
+
+  // Find selected stage index
+  var selIdx=0;
+  stages.forEach(function(s,i){if(s.id===_selectedTimelineStage)selIdx=i});
+
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">';
+  // Grid lines
+  for(var g=2;g<=8;g+=2){svg+='<line x1="'+padL+'" y1="'+yVal(g)+'" x2="'+(W-padR)+'" y2="'+yVal(g)+'" stroke="#e0eded" stroke-width="0.5"/>';}
+  // Fills
+  svg+='<path d="'+buildFill(prop.anxiety)+'" fill="rgba(239,123,110,0.08)"/>';
+  svg+='<path d="'+buildFill(prop.hope)+'" fill="rgba(45,142,142,0.06)"/>';
+  // Curves
+  svg+='<path d="'+buildPath(prop.anxiety)+'" fill="none" stroke="#ef7b6e" stroke-width="2" opacity="0.7"/>';
+  svg+='<path d="'+buildPath(prop.hope)+'" fill="none" stroke="#2D8E8E" stroke-width="2" opacity="0.7"/>';
+  // "You are here" marker
+  var markerX=padL+selIdx*stepX;
+  svg+='<line x1="'+markerX+'" y1="'+padT+'" x2="'+markerX+'" y2="'+(H-padB)+'" stroke="#2D8E8E" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>';
+  svg+='<text x="'+markerX+'" y="'+(padT-6)+'" text-anchor="middle" font-size="9" fill="#2D8E8E" font-family="DM Sans,sans-serif">You are here</text>';
+  // Dots on curves at selected position
+  svg+='<circle cx="'+markerX+'" cy="'+yVal(prop.anxiety[selIdx])+'" r="4" fill="#ef7b6e" stroke="white" stroke-width="1.5"/>';
+  svg+='<circle cx="'+markerX+'" cy="'+yVal(prop.hope[selIdx])+'" r="4" fill="#2D8E8E" stroke="white" stroke-width="1.5"/>';
+  // Stage labels
+  stages.forEach(function(s,i){
+    var x=padL+i*stepX;
+    svg+='<text x="'+x+'" y="'+(H-8)+'" text-anchor="middle" font-size="8" fill="#6a9e9e" font-family="DM Sans,sans-serif">'+s.t.split(' ')[0]+'</text>';
+  });
+  // Soft spot markers (highest anxiety)
+  var maxAnx=Math.max.apply(null,prop.anxiety);
+  prop.anxiety.forEach(function(v,i){
+    if(v>=maxAnx-0.5){
+      var x=padL+i*stepX;
+      svg+='<circle cx="'+x+'" cy="'+yVal(v)+'" r="6" fill="rgba(239,123,110,0.15)" stroke="#ef7b6e" stroke-width="0.5"/>';
+    }
+  });
+  svg+='</svg>';
+  // Legend
+  svg+='<div style="display:flex;justify-content:center;gap:16px;margin-top:6px;font-size:10px;color:#6a9e9e"><span><span style="display:inline-block;width:12px;height:2px;background:#ef7b6e;vertical-align:middle;margin-right:4px"></span>Anxiety</span><span><span style="display:inline-block;width:12px;height:2px;background:#2D8E8E;vertical-align:middle;margin-right:4px"></span>Hope</span></div>';
+  container.innerHTML=svg;
+}
+
+function initOnboarding(){
+// Legacy stage grid (if it exists — now replaced by journey timeline)
+var g=document.getElementById('stage-grid');
+if(g){STAGE_GROUPS.forEach(s=>{const d=document.createElement('div');d.className='stage-option';var iconKey=GROUP_LABEL_MAP[s.label]||s.label;d.innerHTML='<div class="stage-icon">'+(STAGE_ICONS[iconKey]||'')+'</div><div><div class="stage-name">'+s.label+'</div><div class="stage-sub">'+s.sub+'</div></div>';d.onclick=()=>{g.querySelectorAll('.stage-option').forEach(e=>e.classList.remove('selected'));d.classList.add('selected');state.stage=s.ids[0];document.getElementById('btn-step2').disabled=false};g.appendChild(d)})}
+document.getElementById('ob-name').addEventListener('input',e=>{document.getElementById('btn-step1').disabled=!e.target.value.trim()})
+}
 const SOFT_SPOT_MESSAGES={
 'just_starting':"Starting fertility investigations can feel overwhelming — there's so much to learn and so many unknowns. That's exactly why I'm here. I'll be paying extra attention as you navigate this.",
 'stimulation':"Stimulation is physically and emotionally intense. Around day 7, many people tell us the hormones start to feel heavy. I'll be watching for that and checking in.",
@@ -1071,8 +1322,21 @@ var ov=document.getElementById('softSpotOverlay');
 ov.classList.remove('visible');
 setTimeout(function(){ov.style.display='none'},600);
 if(window._softSpotDone)window._softSpotDone()}
-function goStep(n){if(n===2){state.name=document.getElementById('ob-name').value.trim();state.partnerName=document.getElementById('ob-partner').value.trim()}document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));document.getElementById('step'+n).classList.add('active');for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}}
-async function completeOnboarding(){state.treatment=document.getElementById('ob-treatment')?document.getElementById('ob-treatment').value:'ivf';state.cycle=document.getElementById('ob-cycle')?parseInt(document.getElementById('ob-cycle').value):1;state.clinic=document.getElementById('ob-clinic')?document.getElementById('ob-clinic').value.trim():'';
+function goStep(n){
+if(n===2){state.name=document.getElementById('ob-name').value.trim();state.partnerName=document.getElementById('ob-partner').value.trim()}
+if(n===4){buildJourneyTimeline()}
+if(n===5){buildEmotionalWave()}
+document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));
+document.getElementById('step'+n).classList.add('active');
+for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}
+}
+async function completeOnboarding(){
+// Use journey type if set, fall back to treatment picker
+if(_selectedJourney){state.treatment=_selectedJourney==='egg_freeze'?'egg_freezing':_selectedJourney;localStorage.setItem('melodai_journey_type',_selectedJourney)}
+else{state.treatment=document.getElementById('ob-treatment')?document.getElementById('ob-treatment').value:'ivf'}
+if(state.frequentFlyer){state.cycle=parseInt(document.getElementById('ffCycle')?document.getElementById('ffCycle').value:'2')}
+else{state.cycle=document.getElementById('ob-cycle')?parseInt(document.getElementById('ob-cycle').value):1}
+state.clinic=document.getElementById('ob-clinic')?document.getElementById('ob-clinic').value.trim():'';
 var fallback=function(){state.patientId=state.patientId||('demo-'+Math.random().toString(36).slice(2,8));showApp();addMsg('ai','Hi '+state.name+". I\u2019m Melod\u00b7AI \u2014 here to walk alongside you through this journey.\n\nYou\u2019re at the "+getStageName(state.stage)+' stage, cycle '+state.cycle+". Whether you want to talk about what you\u2019re feeling, ask questions about what\u2019s happening, or just vent \u2014 I\u2019m here.\n\nHow are you doing today?",null,{showOneWord:true})};
 if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(function(){ctrl.abort()},8000);const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null,patient_id:state.patientId||null,email:localStorage.getItem('melodai_email')||null}),signal:ctrl.signal});clearTimeout(timer);const d=await r.json();if(!state.patientId)state.patientId=d.patient_id;localStorage.setItem('melodai_patient_id',state.patientId);localStorage.setItem('melodai_name',state.name);localStorage.setItem('melodai_stage',state.stage);localStorage.setItem('melodai_cycle',String(state.cycle));localStorage.setItem('melodai_treatment',state.treatment);showApp();if(d.message)addMsg('ai',d.message,null,{showOneWord:true});return}catch(e){console.warn('API unavailable:',e)}}fallback()}
 function showApp(){try{var sw=document.getElementById('screen-welcome');if(sw)sw.classList.remove('active');document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();
@@ -2789,7 +3053,50 @@ function showStageGrid(){document.getElementById('step2-motiv').style.display='n
 // Insights sub-tabs
 var _weekOffset=0;
 var _dayOffset=0;
+// Build insights wave on summary load
+function buildInsightsWave(){
+  var jt=localStorage.getItem('melodai_journey_type')||'ivf';
+  var stages=JOURNEY_STAGES[jt]||JOURNEY_STAGES.ivf;
+  var prop=EMOTIONAL_PROPENSITY[jt]||EMOTIONAL_PROPENSITY.ivf;
+  var container=document.getElementById('insightsWaveSvg');
+  if(!container)return;
+  var showAnx=document.querySelector('.wave-toggle[data-dim="anxiety"]');
+  var showHope=document.querySelector('.wave-toggle[data-dim="hope"]');
+  var drawAnx=showAnx&&showAnx.classList.contains('active');
+  var drawHope=showHope&&showHope.classList.contains('active');
+  var W=340,H=140,pL=10,pR=10,pT=16,pB=25;
+  var cW=W-pL-pR,cH=H-pT-pB,n=stages.length,sx=cW/(n-1);
+  function yV(v){return pT+cH-(v/10)*cH}
+  function bP(data){var pts=data.map(function(v,i){return(pL+i*sx)+','+yV(v)});var d='M'+pts[0];for(var i=1;i<pts.length;i++){var p=pts[i-1].split(',');var c=pts[i].split(',');var cpx=((+p[0])+(+c[0]))/2;d+=' C'+cpx+','+p[1]+' '+cpx+','+c[1]+' '+c[0]+','+c[1]}return d}
+  function bF(data){var d=bP(data);d+=' L'+(pL+(n-1)*sx)+','+yV(0)+' L'+pL+','+yV(0)+' Z';return d}
+  // Find current stage index
+  var si=0;stages.forEach(function(s,i){if(s.id===state.stage)si=i});
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">';
+  for(var g=2;g<=8;g+=2)svg+='<line x1="'+pL+'" y1="'+yV(g)+'" x2="'+(W-pR)+'" y2="'+yV(g)+'" stroke="#e8eded" stroke-width="0.5"/>';
+  if(drawAnx){svg+='<path d="'+bF(prop.anxiety)+'" fill="rgba(239,123,110,0.06)"/>';svg+='<path d="'+bP(prop.anxiety)+'" fill="none" stroke="#ef7b6e" stroke-width="2" opacity="0.6"/>';}
+  if(drawHope){svg+='<path d="'+bF(prop.hope)+'" fill="rgba(45,142,142,0.04)"/>';svg+='<path d="'+bP(prop.hope)+'" fill="none" stroke="#2D8E8E" stroke-width="2" opacity="0.6"/>';}
+  // Patient's actual check-in data as dots
+  if(state.checkins&&state.checkins.length>0){
+    // Group by stage and average
+    var stageScores={};stages.forEach(function(s){stageScores[s.id]=[]});
+    state.checkins.forEach(function(ci){if(stageScores[state.stage])stageScores[state.stage].push(ci.mood||5)});
+    // Plot current stage dot
+    var myMoods=stageScores[state.stage]||[];
+    if(myMoods.length){var avg=myMoods.reduce(function(a,b){return a+b},0)/myMoods.length;
+    svg+='<circle cx="'+(pL+si*sx)+'" cy="'+yV(avg)+'" r="5" fill="#2D8E8E" stroke="white" stroke-width="2"/>';
+    svg+='<text x="'+(pL+si*sx)+'" y="'+(yV(avg)-8)+'" text-anchor="middle" font-size="9" fill="#2D8E8E" font-family="DM Sans">You: '+avg.toFixed(1)+'</text>';}
+  }
+  // "You are here" line
+  var mx=pL+si*sx;
+  svg+='<line x1="'+mx+'" y1="'+pT+'" x2="'+mx+'" y2="'+(H-pB)+'" stroke="#2D8E8E" stroke-width="1" stroke-dasharray="3 3" opacity="0.3"/>';
+  stages.forEach(function(s,i){svg+='<text x="'+(pL+i*sx)+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="#6a9e9e" font-family="DM Sans,sans-serif">'+s.t.split(' ')[0]+'</text>'});
+  svg+='</svg>';
+  container.innerHTML=svg;
+}
+function toggleWaveDim(btn){btn.classList.toggle('active');buildInsightsWave()}
+
 function switchInsightsTab(tab){document.querySelectorAll('.insights-tab').forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab)});document.querySelectorAll('.insights-panel').forEach(function(p){p.classList.remove('active')});var panel=document.getElementById('insight-'+tab);if(panel)panel.classList.add('active');
+if(tab==='summary'){buildInsightsWave()}
 if(tab==='weekly'){_weekOffset=0;buildWeeklyView()}
 if(tab==='daily'){_dayOffset=0;buildDailyView()}
 if(tab==='chats')buildChatsView()}

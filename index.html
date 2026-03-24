@@ -1804,15 +1804,89 @@ if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collec
 // Fire pending egg support when returning to chat
 if(t==='chat'&&_pendingEggSupport){setTimeout(function(){eggProactiveSupport(_pendingEggSupport)},800)}}
 var _oneWordShown=false;
-function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';if(fertoolCards&&fertoolCards.length>0){var _ftId='fc-'+Date.now();html+='<div class="fertool-cards" id="'+_ftId+'">'+fertoolCards.filter(function(c){return!c.embed}).map(function(c){return '<a class="fertool-card" href="'+escHtml(c.url)+'" target="_blank" rel="noopener"><span class="fertool-card-icon">'+c.icon+'</span><div class="fertool-card-body"><div class="fertool-card-title">'+escHtml(c.title)+'</div><div class="fertool-card-desc">'+escHtml(c.description)+'</div></div><span class="fertool-card-arrow">Explore \u2192</span></a>'}).join('')+'</div>';var _ftEmbed=fertoolCards.filter(function(c){return c.embed});if(_ftEmbed.length>0){setTimeout(function(){var container=document.getElementById(_ftId);if(!container)container=d;_ftEmbed.forEach(function(c){var widget=renderFertoolWidget(c);if(widget)container.parentElement.appendChild(widget)})},50)}}
+function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';
+/* Fertool link cards REMOVED — inline charts are rendered separately via fertool_inline_charts */
 // Add one-word check-in pill after first greeting
 if((opts&&opts.showOneWord)||false){if(!_oneWordShown){_oneWordShown=true;html+='<div class="one-word-pill" onclick="triggerOneWord(this)">One word \u2014 how do you feel?</div>'}}
 // Education quick-reply pills
 if(opts&&opts.eduFork){html+='<div class="edu-quick-replies"><button class="edu-quick-pill" onclick="eduQuickReply(this,\'reassure\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Reassure me</button><button class="edu-quick-pill" onclick="eduQuickReply(this,\'explain\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Explain it</button><button class="edu-quick-pill" onclick="eduQuickReply(this,\'practical\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Practical tips</button></div>'}
-d.innerHTML=html}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'}a.appendChild(d);a.scrollTop=a.scrollHeight;if(fertoolCards&&fertoolCards.length>0){var fc=d.querySelector('.fertool-cards');if(fc){setTimeout(function(){fc.classList.add('visible')},200);if(opts&&opts.glowCards){var cards=fc.querySelectorAll('.fertool-card');cards.forEach(function(c){c.classList.add('glow')})}}}}
+d.innerHTML=html}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'}a.appendChild(d);a.scrollTop=a.scrollHeight}
 function eduQuickReply(el,type){var replies={reassure:'Can you reassure me about this?',explain:'Can you explain the clinical details?',practical:'What should I actually do? Give me practical tips.'};var wrap=el.closest('.edu-quick-replies');if(wrap){var pills=wrap.querySelectorAll('.edu-quick-pill');pills.forEach(function(p){p.style.opacity='0.4';p.style.pointerEvents='none'});el.style.opacity='1';el.style.background='#2D8E8E';el.style.color='white'}var ci=document.getElementById('chat-input');ci.value=replies[type]||'';setTimeout(function(){sendMsg()},100)}
 function triggerOneWord(el){el.style.opacity='0.5';el.style.pointerEvents='none';var ci=document.getElementById('chat-input');ci.placeholder='Just one word is enough...';ci.focus();setTimeout(function(){el.remove()},300)}
-async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,d.fertool_cards||null,{eduFork:d.education_fork||null,glowCards:!!d.education_fork});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.capability_hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=d.capability_hint;a.appendChild(h);a.scrollTop=a.scrollHeight},800)}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){var a=document.getElementById('chat-area');d.support_widgets.forEach(function(widget){var el=renderSupportWidget(widget);if(el){a.appendChild(el);a.scrollTop=a.scrollHeight}});eggProactiveSupport(d.support_widgets[0])},300)}
+// ── Fertool Inline Charts (AMH normogram + Egg Freeze table) ──
+function renderFertoolInlineChart(chartId){
+  if(chartId==='amh_normogram')return _renderAmhNormogram();
+  if(chartId==='egg_freeze_table')return _renderEggFreezeTable();
+  return null;
+}
+function _renderAmhNormogram(){
+  var w=document.createElement('div');
+  w.style.cssText='background:white;border-radius:16px;padding:16px;border:1px solid rgba(45,142,142,0.1);margin:6px 0;max-width:95%';
+  var W=320,H=200,pL=35,pR=10,pT=20,pB=30;
+  var cW=W-pL-pR,cH=H-pT-pB;
+  // Data: age→AMH pmol/L
+  var p90=[[20,44],[25,47],[28,47],[30,45],[33,40],[35,35],[38,27],[40,20],[43,17],[45,16]];
+  var p50=[[20,17],[25,20],[28,21],[30,19],[33,16],[35,13],[38,10],[40,8],[43,6],[45,5]];
+  var p10=[[20,8],[25,9],[28,10],[30,9],[33,7],[35,5],[38,3.5],[40,2],[43,1],[45,0.5]];
+  function sx(age){return pL+(age-20)/(45-20)*cW}
+  function sy(v){return pT+(1-v/50)*cH}
+  function smooth(pts){var d='M'+sx(pts[0][0]).toFixed(1)+' '+sy(pts[0][1]).toFixed(1);for(var i=1;i<pts.length;i++){var px=sx(pts[i-1][0]),py=sy(pts[i-1][1]),cx=sx(pts[i][0]),cy=sy(pts[i][1]);var mx=((px+cx)/2).toFixed(1);d+=' C'+mx+' '+py.toFixed(1)+','+mx+' '+cy.toFixed(1)+','+cx.toFixed(1)+' '+cy.toFixed(1)}return d}
+  function fillBetween(top,bot){var d=smooth(top);for(var i=bot.length-1;i>=0;i--)d+=' L'+sx(bot[i][0]).toFixed(1)+' '+sy(bot[i][1]).toFixed(1);d+=' Z';return d}
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">';
+  // Grid
+  for(var g=10;g<=50;g+=10)svg+='<line x1="'+pL+'" y1="'+sy(g)+'" x2="'+(W-pR)+'" y2="'+sy(g)+'" stroke="#eee" stroke-width="0.5"/>';
+  // Zone fills
+  svg+='<path d="'+fillBetween(p90,p10)+'" fill="rgba(45,142,142,0.05)"/>';
+  // Zone labels
+  svg+='<text x="'+(pL+cW*0.65)+'" y="'+(pT+12)+'" font-size="8" fill="#6a9e6a" font-family="DM Sans" opacity="0.7">Consider PCOS</text>';
+  svg+='<text x="'+(pL+cW*0.5)+'" y="'+(pT+cH*0.5)+'" font-size="8" fill="#2D8E8E" font-family="DM Sans" opacity="0.6">Typical range</text>';
+  svg+='<text x="'+(pL+cW*0.3)+'" y="'+(pT+cH-8)+'" font-size="8" fill="#D4A843" font-family="DM Sans" opacity="0.7">Low reserve</text>';
+  // Curves
+  svg+='<path d="'+smooth(p90)+'" fill="none" stroke="#b8e6e6" stroke-width="2" stroke-dasharray="4 3"/>';
+  svg+='<path d="'+smooth(p50)+'" fill="none" stroke="#2D8E8E" stroke-width="2.5"/>';
+  svg+='<path d="'+smooth(p10)+'" fill="none" stroke="#D4A843" stroke-width="2" stroke-dasharray="4 3"/>';
+  // Axes
+  for(var a=20;a<=45;a+=5)svg+='<text x="'+sx(a)+'" y="'+(H-10)+'" text-anchor="middle" font-size="9" fill="#6a9e9e" font-family="DM Sans">'+a+'</text>';
+  for(var v=0;v<=50;v+=10)svg+='<text x="'+(pL-4)+'" y="'+(sy(v)+3)+'" text-anchor="end" font-size="8" fill="#6a9e9e" font-family="DM Sans">'+v+'</text>';
+  svg+='<text x="'+pL+'" y="'+(H-2)+'" font-size="8" fill="#6a9e9e" font-family="DM Sans">Age</text>';
+  svg+='<text x="4" y="'+(pT+cH/2)+'" font-size="7" fill="#6a9e9e" font-family="DM Sans" transform="rotate(-90,4,'+(pT+cH/2)+')">pmol/L</text>';
+  svg+='</svg>';
+  w.innerHTML='<div style="font-family:Playfair Display,serif;font-size:15px;color:#1a3a3a;margin-bottom:2px">AMH by Age \u2014 Normogram</div>'+
+    '<div style="font-size:11px;color:#6a9e9e;margin-bottom:10px">Percentile curves for AMH (pmol/L)</div>'+svg+
+    '<div style="display:flex;gap:14px;justify-content:center;margin-top:8px;font-size:9px;color:#6a9e9e"><span><span style="display:inline-block;width:12px;border-top:2px dashed #b8e6e6;vertical-align:middle;margin-right:3px"></span>90th</span><span><span style="display:inline-block;width:12px;border-top:2.5px solid #2D8E8E;vertical-align:middle;margin-right:3px"></span>Median</span><span><span style="display:inline-block;width:12px;border-top:2px dashed #D4A843;vertical-align:middle;margin-right:3px"></span>10th</span></div>'+
+    '<div style="font-size:10px;color:#D4A843;background:rgba(212,168,67,0.06);padding:6px 10px;border-radius:8px;margin-top:8px">Values below 10th percentile may indicate reduced ovarian reserve</div>'+
+    '<div style="font-size:9px;color:#6a9e9e;margin-top:6px">Fertool AMH Guide \u00b7 Dr. Yuval Fouks</div>';
+  return w;
+}
+function _renderEggFreezeTable(){
+  var w=document.createElement('div');
+  w.style.cssText='background:white;border-radius:16px;padding:16px;border:1px solid rgba(45,142,142,0.1);margin:6px 0;max-width:95%';
+  var data=[
+    ['<35 years','48%','44%','77%','84%'],
+    ['35\u201337 years','37%','47%','53%','73%'],
+    ['38\u201340 years','19%','41%','41%','57%'],
+    ['>40 years','5%','25%','32%','27%']
+  ];
+  function pctColor(s){var v=parseInt(s);if(v>=70)return'#22c55e';if(v>=40)return'#2D8E8E';if(v>=20)return'#D4A843';return'#ef7b6e'}
+  var t='<div style="overflow:hidden;border-radius:12px;border:1px solid rgba(45,142,142,0.08)"><table style="width:100%;border-collapse:collapse">';
+  t+='<tr style="background:#2D8E8E;color:white"><th style="padding:8px;font-size:11px;font-weight:600;text-align:left;font-family:DM Sans,sans-serif">Age at Freeze</th><th style="padding:8px;font-size:11px;font-weight:600;text-align:center;font-family:DM Sans,sans-serif">1\u20139</th><th style="padding:8px;font-size:11px;font-weight:600;text-align:center;font-family:DM Sans,sans-serif">10\u201314</th><th style="padding:8px;font-size:11px;font-weight:600;text-align:center;font-family:DM Sans,sans-serif">15\u201319</th><th style="padding:8px;font-size:11px;font-weight:600;text-align:center;font-family:DM Sans,sans-serif">20+</th></tr>';
+  data.forEach(function(row,ri){
+    var bg=ri%2===0?'white':'#f0fdfa';
+    t+='<tr style="background:'+bg+'"><td style="padding:8px;font-size:12px;font-weight:600;border:1px solid rgba(45,142,142,0.08);font-family:DM Sans,sans-serif">'+row[0]+'</td>';
+    for(var ci=1;ci<row.length;ci++){t+='<td style="padding:8px;font-size:12px;text-align:center;color:'+pctColor(row[ci])+';font-weight:600;border:1px solid rgba(45,142,142,0.08);font-family:DM Sans,sans-serif">'+row[ci]+'</td>'}
+    t+='</tr>';
+  });
+  t+='</table></div>';
+  w.innerHTML='<div style="font-family:Playfair Display,serif;font-size:15px;color:#1a3a3a;margin-bottom:2px">How age and egg numbers affect success</div>'+
+    '<div style="font-size:11px;color:#6a9e9e;margin-bottom:10px">Live birth rate among those who returned to use their eggs</div>'+t+
+    '<div style="font-size:11px;color:#3a7070;font-style:italic;background:#f0fdfa;padding:8px;border-radius:8px;margin-top:8px">15+ eggs under 35 gives ~80% success rate.</div>'+
+    '<div style="font-size:9px;color:#6a9e9e;margin-top:6px">Cobo A et al. RBMO 2025 \u00b7 Fouks Y et al. JAMA Netw Open 2023</div>';
+  return w;
+}
+
+async function sendMsg(){var i=document.getElementById('chat-input'),t=i.value.trim();if(!t)return;i.value='';addMsg('user',t);if(collector)collector.onMessageSent(t);var typ=document.getElementById('typing');typ.style.display='block';if(API_BASE){var attempts=0;var maxRetries=2;while(attempts<=maxRetries){try{var r=await fetch(API_BASE+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,message:t})});if(!r.ok){var errBody=await r.text().catch(function(){return ''});throw new Error('Server returned '+r.status+(errBody?' — '+errBody.substring(0,120):''))}var d=await r.json();typ.style.display='none';if(d.response){addMsg('ai',d.response,null,{eduFork:d.education_fork||null});if(collector)collector.onResponseReceived(d.response.length);if(d.escalation&&d.escalation.level==='RED'){addSystemMsg('If you are in crisis, please contact Lifeline: 13 11 14 (AU) or 988 (US)')}if(d.capability_hint){setTimeout(function(){var a=document.getElementById('chat-area');var h=document.createElement('div');h.className='capability-hint';h.textContent=d.capability_hint;a.appendChild(h);a.scrollTop=a.scrollHeight},800)}if(d.anzard_charts&&d.anzard_charts.length){console.log('[ANZARD] Charts received:',d.anzard_charts.map(function(c){return c.key}));setTimeout(function(){var a=document.getElementById('chat-area');d.anzard_charts.forEach(function(ch){console.log('[ANZARD] Rendering:',ch.key);var w=renderAnzardChart(ch.key);if(w){a.appendChild(w);a.scrollTop=a.scrollHeight;console.log('[ANZARD] Rendered:',ch.key)}else{console.warn('[ANZARD] renderAnzardChart returned null for:',ch.key)}})},200)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){var a=document.getElementById('chat-area');d.support_widgets.forEach(function(widget){var el=renderSupportWidget(widget);if(el){a.appendChild(el);a.scrollTop=a.scrollHeight}});eggProactiveSupport(d.support_widgets[0])},300)}
+// Fertool inline charts (AMH normogram, egg freeze table)
+if(d.fertool_inline_charts&&d.fertool_inline_charts.length){setTimeout(function(){var a=document.getElementById('chat-area');d.fertool_inline_charts.forEach(function(cid){try{var el=renderFertoolInlineChart(cid);if(el){a.appendChild(el);a.scrollTop=a.scrollHeight}}catch(e){console.error('[FERTOOL-INLINE]',cid,e)}})},250)}
 // Community entry point — if AI mentions normalizing language
 var respLow=(d.response||'').toLowerCase();if(!localStorage.getItem('melodai_community_prompt_shown')&&(respLow.indexOf('many patients')!==-1||respLow.indexOf('very common')!==-1||respLow.indexOf('not alone')!==-1||respLow.indexOf('others feel')!==-1)){localStorage.setItem('melodai_community_prompt_shown','1');setTimeout(function(){var a=document.getElementById('chat-area');var card=document.createElement('div');card.style.cssText='margin:6px 48px 6px 8px;padding:10px 14px;background:rgba(45,142,142,0.05);border-radius:12px;cursor:pointer;border:1px solid rgba(45,142,142,0.08)';card.innerHTML='<div style="font-size:12px;color:#3a7070">Others in '+getStageName(state.stage)+' are sharing too <span style="color:#2D8E8E;font-weight:600">&rarr; View community</span></div>';card.onclick=function(){switchTab('circle')};a.appendChild(card);a.scrollTop=a.scrollHeight},500)}}else{addMsg('ai','I received your message but something went wrong generating my response. Could you try sending that again?')}return}catch(e){attempts++;console.warn('Chat API error (attempt '+attempts+'):',e);if(attempts<=maxRetries){await new Promise(function(resolve){setTimeout(resolve,1000*attempts)})}else{typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m having trouble connecting right now. Your message was received \u2014 please try again in a moment.\n\n(Error: '+e.message+')');return}}}}typ.style.display='none';addMsg('ai','\u26a0\ufe0f I\u2019m not connected to the server right now. Please check your connection and try again.')}
 function addSystemMsg(t){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-system';d.innerHTML='<div class="msg-bubble">'+t+'</div>';a.appendChild(d);a.scrollTop=a.scrollHeight}

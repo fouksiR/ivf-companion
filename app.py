@@ -966,6 +966,24 @@ def match_fertool_cards(message: str, response_text: str, max_cards: int = 2) ->
     ]
 
 
+def detect_fertool_inline_charts(message: str) -> list:
+    """Detect if message should trigger inline Fertool charts (AMH normogram, egg freeze table)."""
+    msg = message.lower()
+    charts = []
+    amh_kw = ['amh', 'anti-mullerian', 'anti mullerian', 'ovarian reserve', 'egg count',
+              'egg supply', 'how many eggs do i have', 'egg reserve', 'diminished reserve',
+              'low reserve', 'por', 'poor responder', 'pmol']
+    if any(kw in msg for kw in amh_kw):
+        charts.append('amh_normogram')
+    freeze_kw = ['egg freezing', 'freeze my eggs', 'frozen eggs', 'thaw my eggs',
+                 'warm my eggs', 'use my frozen', 'oocyte cryopreservation',
+                 'fertility preservation', 'social freezing', 'elective freezing',
+                 'how many eggs to freeze', 'eggs to live birth']
+    if any(kw in msg for kw in freeze_kw):
+        charts.append('egg_freeze_table')
+    return charts
+
+
 # ── ANZARD 2023 Infographic Charts ───────────────────────────────────
 # Source: Kotevski DP et al. 2025. ART in Australia and New Zealand 2023. NPESU, UNSW Sydney.
 
@@ -1525,7 +1543,8 @@ class ChatResponse(BaseModel):
     treatment_stage: str
     escalation: Optional[dict] = None
     suggested_education: Optional[list] = None
-    fertool_cards: Optional[list] = None
+    fertool_cards: Optional[list] = None  # DEPRECATED — always None now
+    fertool_inline_charts: Optional[list] = None  # Inline AMH normogram, egg freeze table
     one_word_checkin: Optional[dict] = None  # If message was mapped as a one-word check-in
     education_fork: Optional[str] = None  # Clarifying question for education queries
     anzard_charts: Optional[list] = None  # ANZARD 2023 infographic charts
@@ -2609,10 +2628,16 @@ Weave this awareness naturally — don't announce it as a feature, just show you
         if anzard_charts:
             logger.info(f"[ANZARD] Charts detected: {[c['key'] for c in anzard_charts]}")
 
-    # Fertool cards — only if no ANZARD charts (never show both)
-    fertool_cards = None
-    if not anzard_charts and triage_category == 2:
-        fertool_cards = match_fertool_cards(req.message, assistant_msg) or None
+    # Fertool inline charts (AMH normogram, egg freeze table)
+    fertool_inline = detect_fertool_inline_charts(req.message)
+    # If inline Fertool charts detected, remove overlapping ANZARD charts
+    if fertool_inline and anzard_charts:
+        if 'amh_normogram' in fertool_inline:
+            anzard_charts = [c for c in anzard_charts if c['key'] != 'age_outcomes']
+        if 'egg_freeze_table' in fertool_inline:
+            anzard_charts = [c for c in anzard_charts if c['key'] != 'egg_freezing_stats']
+        if not anzard_charts:
+            anzard_charts = None
 
     return ChatResponse(
         response=assistant_msg,
@@ -2620,7 +2645,8 @@ Weave this awareness naturally — don't announce it as a feature, just show you
         treatment_stage=stage,
         escalation=escalation,
         suggested_education=suggested,
-        fertool_cards=fertool_cards,
+        fertool_cards=None,  # Fertool link cards REMOVED
+        fertool_inline_charts=fertool_inline if fertool_inline else None,
         one_word_checkin=one_word_checkin,
         education_fork=education_fork,
         anzard_charts=anzard_charts,

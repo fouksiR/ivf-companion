@@ -12,15 +12,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script>
 var fbAuth=null;
 try{
-  var firebaseConfig={apiKey:"AIzaSyDfqkNkezFiO7qcXELKwzzwoK3kLvqdOFw",authDomain:"fertility-gp-portal.firebaseapp.com",databaseURL:"https://fertility-gp-portal-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"fertility-gp-portal",storageBucket:"fertility-gp-portal.appspot.com",messagingSenderId:"532857641879"};
-  if(typeof firebase!=='undefined'&&!firebase.apps.length)firebase.initializeApp(firebaseConfig);
-  if(typeof firebase!=='undefined')fbAuth=firebase.auth();
-}catch(e){console.warn('Firebase Auth init failed:',e)}
+  if(typeof firebase!=='undefined'){
+    var _fbCfg={apiKey:"AIzaSyDfqkNkezFiO7qcXELKwzzwoK3kLvqdOFw",authDomain:"fertility-gp-portal.firebaseapp.com",databaseURL:"https://fertility-gp-portal-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"fertility-gp-portal",storageBucket:"fertility-gp-portal.appspot.com",messagingSenderId:"532857641879"};
+    if(!firebase.apps.length)firebase.initializeApp(_fbCfg);
+    fbAuth=firebase.auth();
+  }
+}catch(e){console.warn('Firebase init:',e)}
 </script>
 <style>
 :root{--white:#FFF;--bg:#eaf9f4;--bg-warm:#fff9ed;--bg-top:#d4f1f1;--bg-mid:#e0f5f0;--bg-bot:#eaf9f4;--border:#E8E6E3;--border-light:rgba(45,142,142,0.1);--text:#1a3a3a;--text-mid:#3a7070;--text-soft:#6a9e9e;--text-faint:#b8e6e6;--accent:#2D8E8E;--accent-light:#b8e6e6;--accent-hover:#1e6b6b;--warm:#D4886B;--warm-light:#FDF3EF;--green:#6ec9a0;--green-light:#c8f0dd;--amber:#D4A843;--amber-light:#f5e6c4;--red:#C25D5D;--red-light:#FDF0F0;--gold:#D4A843;--gold-soft:#f5e6c4;--cream:#fff9ed;--blush:#f4a89a;--card-bg:rgba(255,255,255,0.75);--card-border:rgba(45,142,142,0.1);--shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 2px 12px rgba(0,0,0,.06);--shadow-lg:0 4px 24px rgba(0,0,0,.08);--radius:16px;--radius-sm:10px;--radius-xs:6px;--oocyte-outer:#c8b870;--oocyte-zona:#e8daa0;--oocyte-inner:#fef3c8;--oocyte-core:#fff8dc;--oocyte-highlight:#fffef0}
@@ -3211,17 +3213,11 @@ function typewriterWelcome(){
   setTimeout(typeChar,800); // initial pause
 }
 
-// Decide which screen to show first
+// Decide which screen to show first — ALWAYS start on welcome
+// Firebase onAuthStateChanged (below) will navigate authenticated users away
 (function(){
-  var welcomed=false;
-  try{welcomed=localStorage.getItem('melodai_welcomed')==='1'}catch(ex){}
-  if(welcomed){
-    // Skip welcome, go straight to onboarding/app
-    document.getElementById('screen-onboard').classList.add('active');
-  }else{
-    document.getElementById('screen-welcome').classList.add('active');
-    typewriterWelcome();
-  }
+  document.getElementById('screen-welcome').classList.add('active');
+  typewriterWelcome();
 })();
 
 })();

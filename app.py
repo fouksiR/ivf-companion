@@ -4541,6 +4541,41 @@ async def mark_clinician_messages_read(patient_id: str):
     return {"status": "ok"}
 
 
+# ── Patient Notes (sent via egg agent to care team) ──────────────────
+
+@app.post("/patient/{patient_id}/send-note")
+async def send_patient_note(patient_id: str, request: Request):
+    """Patient sends a note to their care team via the egg agent."""
+    body = await request.json()
+    text = body.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Note text required")
+
+    note = {
+        "text": text,
+        "timestamp": utc_iso(),
+        "read": False,
+        "source": body.get("source", "egg_agent"),
+    }
+
+    # Save to Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patient_notes").child(patient_id).push(note)
+    except Exception:
+        pass
+
+    # Also create a clinician alert
+    _sync_escalation(patient_id, {
+        "level": "AMBER",
+        "reason": f"Patient sent a note: {text[:80]}",
+        "signals": ["patient_note_via_egg"],
+        "timestamp": utc_iso(),
+    })
+
+    return {"status": "sent", "timestamp": note["timestamp"]}
+
+
 # ── Static File Serving ────────────────────────────────────────────────
 
 @app.get("/")

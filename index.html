@@ -382,6 +382,13 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .oc-bubble.excited{font-size:16px;color:#D4A843;font-weight:700;background:linear-gradient(135deg,#fffef0,#fef3c8);box-shadow:0 4px 20px rgba(253,230,138,.3)}
 .oc-bubble.gentle{background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border:1px solid rgba(45,142,142,.1);box-shadow:0 4px 16px rgba(45,142,142,.1)}
 .confetti-p{position:fixed;pointer-events:none;z-index:61;border-radius:2px;opacity:.9}
+/* Egg agent engagement */
+@keyframes eggSlideUp{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes eggWiggle{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
+#egg-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:998;opacity:0;transition:opacity .4s}
+#egg-backdrop.vis{opacity:1}
+.egg-agent-card{position:fixed;top:58%;left:50%;transform:translateX(-50%);width:88%;max-width:340px;background:white;border:2px solid #d4ecec;border-radius:20px;padding:18px 20px;box-shadow:0 8px 32px rgba(0,0,0,.15);z-index:1001;animation:eggSlideUp .3s ease-out}
+.egg-agent-card.gold{background:linear-gradient(135deg,#fff8e1,#fff3cd);border-color:#e8a838}
 /* ── Stress-ball spring-back ──────────────────────────── */
 @keyframes eggSpringBack{
 0%{transform:scale(1)}
@@ -2439,10 +2446,15 @@ function checkClinicianMessages(){
       var isDupe=false;
       existingMsgs.forEach(function(el){if(el.getAttribute('data-ts')===msg.timestamp)isDupe=true});
       if(isDupe)return;
-      var div=document.createElement('div');div.className='msg msg-care-team';
-      div.setAttribute('data-ts',msg.timestamp||'');
-      div.innerHTML='<div style="font-size:10px;font-weight:600;color:#D4A843;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">\uD83D\uDCEC From your care team</div><div class="msg-bubble" style="background:linear-gradient(135deg,#fef3c8,#fff8dc);border:1px solid rgba(212,168,67,0.15);color:#1a3a3a">'+escHtml(msg.text||msg.content||'')+'</div>';
-      a.appendChild(div);a.scrollTop=a.scrollHeight;
+      // Deliver via egg agent (grows, wiggles, shows card)
+      if(typeof deliverMsgViaEgg==='function'){
+        deliverMsgViaEgg(msg.text||msg.content||'',msg.sender_name||'Your care team',msg.timestamp||'');
+      }else{
+        var div=document.createElement('div');div.className='msg msg-care-team';
+        div.setAttribute('data-ts',msg.timestamp||'');
+        div.innerHTML='<div style="font-size:10px;font-weight:600;color:#D4A843;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">\uD83D\uDCEC From your care team</div><div class="msg-bubble" style="background:linear-gradient(135deg,#fef3c8,#fff8dc);border:1px solid rgba(212,168,67,0.15);color:#1a3a3a">'+escHtml(msg.text||msg.content||'')+'</div>';
+        a.appendChild(div);a.scrollTop=a.scrollHeight;
+      }
       displayed++;
     });
     // Mark as read AFTER displaying
@@ -4642,6 +4654,193 @@ var _obs=new MutationObserver(function(){
 var ws=document.getElementById('screen-welcome');
 if(ws)_obs.observe(ws,{attributes:true,attributeFilter:['class']});
 })();
+
+// ═══════════════════════════════════════════════════════════════════════
+// EGG AGENT — Grows, delivers messages, engages on low mood, breathing
+// ═══════════════════════════════════════════════════════════════════════
+var _eggGrown=false;
+
+function growEgg(){
+  if(_eggGrown)return;_eggGrown=true;
+  var egg=document.getElementById('eggCompanion');if(!egg)return;
+  // Save resting state
+  if(!egg.dataset.savedBot){
+    egg.dataset.savedBot=egg.style.bottom||'';
+    egg.dataset.savedLeft=egg.style.left||'';
+    egg.dataset.savedRight=egg.style.right||'';
+    egg.dataset.savedPos=egg.style.position||'';
+    egg.dataset.savedZ=egg.style.zIndex||'';
+    egg.dataset.savedTr=egg.style.transform||'';
+  }
+  // Backdrop
+  var bd=document.createElement('div');bd.id='egg-backdrop';
+  document.body.appendChild(bd);
+  requestAnimationFrame(function(){bd.classList.add('vis')});
+  bd.onclick=dismissAllEggUI;
+  // Grow
+  egg.style.transition='all .5s cubic-bezier(.34,1.56,.64,1)';
+  egg.style.position='fixed';egg.style.bottom='auto';egg.style.right='auto';
+  egg.style.left='50%';egg.style.top='22%';
+  egg.style.transform='translate(-50%,-50%) scale(3.5)';
+  egg.style.zIndex='999';
+}
+
+function shrinkEgg(){
+  if(!_eggGrown)return;
+  var egg=document.getElementById('eggCompanion');if(!egg)return;
+  var bd=document.getElementById('egg-backdrop');
+  if(bd){bd.classList.remove('vis');setTimeout(function(){bd.remove()},400)}
+  egg.style.transition='all .4s ease-in-out';
+  egg.style.position=egg.dataset.savedPos||'fixed';
+  egg.style.left=egg.dataset.savedLeft||'16px';
+  egg.style.bottom=egg.dataset.savedBot||'74px';
+  egg.style.top='';egg.style.right=egg.dataset.savedRight||'auto';
+  egg.style.transform=egg.dataset.savedTr||'';
+  egg.style.zIndex=egg.dataset.savedZ||'50';
+  _eggGrown=false;
+}
+
+function dismissAllEggUI(){
+  ['egg-agent-checkin','egg-agent-bubble','egg-agent-msg','egg-agent-note','egg-msg-indicator'].forEach(function(id){
+    var el=document.getElementById(id);if(el)el.remove();
+  });
+  shrinkEgg();
+}
+
+// === Part C: Egg delivers clinician messages ===
+function deliverMsgViaEgg(text,sender,ts){
+  var egg=document.getElementById('eggCompanion');
+  if(!egg||!egg.classList.contains('visible')){
+    // Fallback: just append to chat
+    _appendCareTeamChat(text,sender,ts);return;
+  }
+  growEgg();
+  egg.style.animation='eggWiggle .4s ease-in-out 3';
+  setTimeout(function(){egg.style.animation=''},1200);
+  // Indicator
+  var ind=document.createElement('div');ind.id='egg-msg-indicator';
+  ind.style.cssText='position:fixed;top:8%;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#fff8e1,#fff3cd);border:2px solid #e8a838;padding:8px 18px;border-radius:20px;font-size:14px;color:#b8860b;z-index:1001;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.1);animation:eggSlideUp .3s ease-out';
+  ind.textContent='\uD83D\uDC8C Message from '+sender;
+  ind.onclick=function(){ind.remove();showMsgCard(text,sender,ts)};
+  document.body.appendChild(ind);
+  setTimeout(function(){if(document.getElementById('egg-msg-indicator')){ind.remove();showMsgCard(text,sender,ts)}},4000);
+}
+
+function showMsgCard(text,sender,ts){
+  var old=document.getElementById('egg-agent-msg');if(old)old.remove();
+  var c=document.createElement('div');c.id='egg-agent-msg';c.className='egg-agent-card gold';
+  c.innerHTML='<div style="font-size:12px;color:#b8860b;font-weight:600;margin-bottom:6px">\uD83D\uDCAC '+escHtml(sender)+'</div>'+
+    '<div style="font-size:15px;color:#333;line-height:1.5">'+escHtml(text)+'</div>'+
+    '<div style="font-size:11px;color:#999;margin-top:6px">'+new Date(ts).toLocaleString()+'</div>'+
+    '<div style="display:flex;gap:8px;margin-top:14px">'+
+    '<button onclick="dismissAllEggUI()" style="flex:1;padding:9px;background:white;border:1px solid #e8a838;border-radius:14px;font-size:13px;color:#b8860b;cursor:pointer">Got it</button>'+
+    '<button onclick="dismissAllEggUI();var ci=document.getElementById(\'chat-input\');if(ci){ci.focus();ci.placeholder=\'Reply to your care team\u2026\'}" style="flex:1;padding:9px;background:#2D8E8E;color:white;border:none;border-radius:14px;font-size:13px;cursor:pointer">Reply</button></div>';
+  document.body.appendChild(c);
+  _appendCareTeamChat(text,sender,ts);
+}
+
+function _appendCareTeamChat(text,sender,ts){
+  var a=document.getElementById('chat-area');if(!a)return;
+  var div=document.createElement('div');div.className='msg msg-care-team';
+  div.setAttribute('data-ts',ts||'');
+  div.innerHTML='<div style="font-size:10px;font-weight:600;color:#D4A843;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">\uD83D\uDCEC '+escHtml(sender)+'</div><div class="msg-bubble" style="background:linear-gradient(135deg,#fef3c8,#fff8dc);border:1px solid rgba(212,168,67,0.15);color:#1a3a3a">'+escHtml(text)+'</div>';
+  a.appendChild(div);a.scrollTop=a.scrollHeight;
+}
+
+// === Part D: Egg reacts to low mood ===
+function eggReactToMood(scores){
+  var isLow=scores.mood<=4||scores.anxiety>=7;
+  var isGood=scores.mood>=7&&scores.anxiety<=3;
+  if(isLow){
+    growEgg();
+    var msg=scores.mood<=3?'I can see today is really hard. You don\'t have to go through this alone. \uD83D\uDC9B'
+      :scores.anxiety>=8?'Your anxiety is running high. Let\'s take a breath together.'
+      :scores.loneliness>=7?'Feeling alone is so common, and so unfair. I\'m here.'
+      :scores.hope<=3?'I know hope feels far away. That\'s okay. Let me help.'
+      :'I\'m noticing a tough time. What would help most?';
+    var actions=[
+      {label:'\uD83D\uDCAC Talk to me',fn:function(){dismissAllEggUI();var ci=document.getElementById('chat-input');if(ci)ci.focus()}},
+    ];
+    if(scores.anxiety>=7)actions.push({label:'\uD83E\uDEE7 Breathing exercise',fn:function(){dismissAllEggUI();startBreathing()}});
+    actions.push({label:'\uD83D\uDCE9 Send note to my team',fn:function(){var b=document.getElementById('egg-agent-bubble');if(b)b.remove();showSendNote(scores)}});
+    showEggAgentBubble(msg,actions);
+  }else if(isGood){
+    showEggAgentBubble('I can see you\'re doing well today! \uD83D\uDC9B',null);
+  }else{
+    showEggAgentBubble('Thanks for checking in. I\'m here whenever you need me.',null);
+  }
+}
+
+function showEggAgentBubble(msg,actions){
+  var old=document.getElementById('egg-agent-bubble');if(old)old.remove();
+  var bub=document.createElement('div');bub.id='egg-agent-bubble';bub.className='egg-agent-card';
+  var html='<div style="font-size:11px;color:#2D8E8E;font-weight:600;margin-bottom:6px">MELOD\u00B7AI</div>'+
+    '<div style="font-size:15px;color:#333;line-height:1.5;margin-bottom:12px">'+msg+'</div>';
+  if(actions&&actions.length){
+    html+='<div style="display:flex;flex-direction:column;gap:8px">';
+    actions.forEach(function(a,i){
+      html+='<button id="egg-ab-'+i+'" style="width:100%;padding:10px 16px;background:'+(i===0?'#2D8E8E':'white')+';color:'+(i===0?'white':'#2D8E8E')+';border:'+(i===0?'none':'1.5px solid #2D8E8E')+';border-radius:14px;font-size:14px;cursor:pointer">'+a.label+'</button>';
+    });html+='</div>';
+  }
+  html+='<div onclick="dismissAllEggUI()" style="position:absolute;top:8px;right:12px;font-size:18px;color:#ccc;cursor:pointer">\u00D7</div>';
+  bub.innerHTML=html;document.body.appendChild(bub);
+  if(actions){actions.forEach(function(a,i){var b=document.getElementById('egg-ab-'+i);if(b)b.addEventListener('click',a.fn)})}
+  setTimeout(function(){var e=document.getElementById('egg-agent-bubble');if(e)e.remove()},20000);
+}
+
+// === Part E: Send note to care team ===
+function showSendNote(scores){
+  var old=document.getElementById('egg-agent-note');if(old)old.remove();
+  var def=scores&&scores.mood<=3?'I\'m having a really hard day and could use some support.'
+    :scores&&scores.anxiety>=8?'My anxiety is very high. Could someone check in with me?'
+    :'I\'d like to talk to someone from my care team when possible.';
+  var c=document.createElement('div');c.id='egg-agent-note';c.className='egg-agent-card';
+  c.innerHTML='<div style="font-size:14px;font-weight:600;color:#2D8E8E;margin-bottom:4px">Send a note to your team</div>'+
+    '<div style="font-size:13px;color:#888;margin-bottom:10px">They\'ll see this and can reach out.</div>'+
+    '<textarea id="pt-note-text" rows="3" style="width:100%;padding:12px;border:2px solid #d4ecec;border-radius:12px;font-size:14px;resize:none;box-sizing:border-box;font-family:inherit">'+def+'</textarea>'+
+    '<div style="display:flex;gap:8px;margin-top:12px">'+
+    '<button onclick="dismissAllEggUI()" style="flex:1;padding:10px;background:white;border:1.5px solid #ccc;border-radius:14px;font-size:14px;color:#666;cursor:pointer">Cancel</button>'+
+    '<button onclick="sendPtNote()" style="flex:2;padding:10px;background:#2D8E8E;color:white;border:none;border-radius:14px;font-size:14px;font-weight:600;cursor:pointer">Send \uD83D\uDCE9</button></div>';
+  document.body.appendChild(c);
+}
+
+function sendPtNote(){
+  var text=(document.getElementById('pt-note-text')||{}).value;
+  if(!text||!text.trim()||!state.patientId||!API_BASE)return;
+  // POST to backend
+  fetch(API_BASE+'/patient/'+state.patientId+'/send-note',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({text:text.trim(),source:'egg_agent'})
+  }).catch(function(){});
+  dismissAllEggUI();
+  var toast=document.createElement('div');
+  toast.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#2D8E8E;color:white;padding:10px 24px;border-radius:20px;font-size:14px;z-index:1001;animation:eggSlideUp .3s';
+  toast.textContent='\u2713 Note sent to your care team';
+  document.body.appendChild(toast);
+  setTimeout(function(){toast.remove()},3000);
+}
+
+// === Part H: Breathing exercise ===
+function startBreathing(){
+  var ov=document.createElement('div');ov.id='breathing-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(45,142,142,.95);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;color:white';
+  ov.innerHTML='<div style="font-size:18px;margin-bottom:30px">Breathe with me</div>'+
+    '<div id="breath-c" style="width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.15);border:3px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:16px;transition:all 4s ease-in-out">Breathe in</div>'+
+    '<div id="breath-n" style="font-size:14px;margin-top:20px;opacity:.7">1 of 4</div>'+
+    '<button onclick="stopBreathing()" style="margin-top:40px;padding:10px 30px;background:rgba(255,255,255,.2);color:white;border:1px solid rgba(255,255,255,.4);border-radius:20px;font-size:14px;cursor:pointer">Done</button>';
+  document.body.appendChild(ov);
+  var c=document.getElementById('breath-c'),n=document.getElementById('breath-n'),rd=0;
+  (function cyc(){
+    if(rd>=4){c.textContent='Well done \uD83D\uDC9B';c.style.transform='scale(1)';n.textContent='Tap Done';return}
+    rd++;n.textContent=rd+' of 4';
+    c.textContent='Breathe in';c.style.transform='scale(1.5)';
+    setTimeout(function(){c.textContent='Hold'},4000);
+    setTimeout(function(){c.textContent='Breathe out';c.style.transform='scale(1)'},8000);
+    setTimeout(cyc,12000);
+  })();
+}
+function stopBreathing(){var o=document.getElementById('breathing-ov');if(o)o.remove()}
+window.startBreathing=startBreathing;window.stopBreathing=stopBreathing;
 </script>
 </body>
 </html>

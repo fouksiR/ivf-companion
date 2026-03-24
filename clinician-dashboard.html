@@ -466,7 +466,7 @@
       <label>Backend URL</label>
       <input id="backendUrl" type="text" value="https://ivf-companion-532857641879.australia-southeast1.run.app">
       <label>API Key</label>
-      <input id="apiKey" type="password">
+      <input id="apiKey" type="password" value="melod-clinician-2026">
       <button class="btn-connect" onclick="startPolling()">Connect</button>
       <hr style="margin:12px 0;border:none;border-top:1px solid #eee">
       <label>Clinician Name</label>
@@ -1259,6 +1259,12 @@ async function saveClinicianSettings() {
   document.querySelectorAll('.role-pill').forEach(function(p) {
     p.classList.toggle('active', p.dataset.role === selectedRole);
   });
+  // Auto-connect if URL and API key are pre-filled
+  var urlField = document.getElementById('backendUrl');
+  var keyField = document.getElementById('apiKey');
+  if (urlField && urlField.value && keyField && keyField.value) {
+    setTimeout(function() { startPolling(); }, 500);
+  }
 })();
 </script>
 </body>

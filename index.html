@@ -15,9 +15,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script>
-var firebaseConfig={apiKey:"AIzaSyDExample_REPLACE_ME",authDomain:"fertility-gp-portal.firebaseapp.com",projectId:"fertility-gp-portal",storageBucket:"fertility-gp-portal.appspot.com",messagingSenderId:"532857641879"};
-if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
-var fbAuth=firebase.auth();
+var fbAuth=null;
+try{
+  var firebaseConfig={apiKey:"AIzaSyDfqkNkezFiO7qcXELKwzzwoK3kLvqdOFw",authDomain:"fertility-gp-portal.firebaseapp.com",databaseURL:"https://fertility-gp-portal-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"fertility-gp-portal",storageBucket:"fertility-gp-portal.appspot.com",messagingSenderId:"532857641879"};
+  if(typeof firebase!=='undefined'&&!firebase.apps.length)firebase.initializeApp(firebaseConfig);
+  if(typeof firebase!=='undefined')fbAuth=firebase.auth();
+}catch(e){console.warn('Firebase Auth init failed:',e)}
 </script>
 <style>
 :root{--white:#FFF;--bg:#eaf9f4;--bg-warm:#fff9ed;--bg-top:#d4f1f1;--bg-mid:#e0f5f0;--bg-bot:#eaf9f4;--border:#E8E6E3;--border-light:rgba(45,142,142,0.1);--text:#1a3a3a;--text-mid:#3a7070;--text-soft:#6a9e9e;--text-faint:#b8e6e6;--accent:#2D8E8E;--accent-light:#b8e6e6;--accent-hover:#1e6b6b;--warm:#D4886B;--warm-light:#FDF3EF;--green:#6ec9a0;--green-light:#c8f0dd;--amber:#D4A843;--amber-light:#f5e6c4;--red:#C25D5D;--red-light:#FDF0F0;--gold:#D4A843;--gold-soft:#f5e6c4;--cream:#fff9ed;--blush:#f4a89a;--card-bg:rgba(255,255,255,0.75);--card-border:rgba(45,142,142,0.1);--shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 2px 12px rgba(0,0,0,.06);--shadow-lg:0 4px 24px rgba(0,0,0,.08);--radius:16px;--radius-sm:10px;--radius-xs:6px;--oocyte-outer:#c8b870;--oocyte-zona:#e8daa0;--oocyte-inner:#fef3c8;--oocyte-core:#fff8dc;--oocyte-highlight:#fffef0}
@@ -2568,6 +2571,7 @@ function submitAuth(){
   var pass=document.getElementById('authPassword').value;
   if(!email||!pass){showAuthError('Please enter email and password.');return}
   if(pass.length<6){showAuthError('Password must be at least 6 characters.');return}
+  if(!fbAuth){showAuthError('Auth service unavailable. Please enable Firebase Auth in the console.');return}
   var btn=document.getElementById('authSubmitBtn');
   btn.disabled=true;btn.textContent=_authMode==='signup'?'Creating...':'Logging in...';
 
@@ -3394,7 +3398,7 @@ initOnboarding();
 // Returning user detection — check Firebase Auth state first, then localStorage
 (function(){
   // Check Firebase Auth session
-  if(typeof fbAuth!=='undefined'){
+  if(fbAuth){
     fbAuth.onAuthStateChanged(function(user){
       if(user&&!state._authHandled){
         state._authHandled=true;

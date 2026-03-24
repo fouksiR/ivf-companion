@@ -702,7 +702,6 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     <h2 style="font-family:var(--serif);font-size:20px;color:#1a3a3a">Your emotional landscape</h2>
     <p class="card-desc">Here's what many people experience through this journey.</p>
     <div id="emotionalWaveSvg" style="margin:12px 0"></div>
-    <p style="font-size:11px;color:#6a9e9e;text-align:center;font-style:italic;line-height:1.5;margin:8px 0">Based on what thousands of patients report. Your experience may be different — and that's completely okay.</p>
     <button class="btn btn-primary" style="width:100%" onclick="completeOnboarding()">Continue to app</button>
   </div>
 </div></div>
@@ -777,7 +776,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
       <h3 style="font-family:var(--serif);font-size:15px;margin:0 0 8px;color:#1a3a3a">Your Emotional Landscape</h3>
       <div style="display:flex;gap:6px;margin-bottom:8px">
         <button class="wave-toggle active" data-dim="anxiety" onclick="toggleWaveDim(this)" style="font-size:10px;padding:4px 10px;border-radius:50px;border:1px solid #ef7b6e;background:rgba(239,123,110,.08);color:#ef7b6e;cursor:pointer;font-family:var(--sans)">Anxiety</button>
-        <button class="wave-toggle active" data-dim="hope" onclick="toggleWaveDim(this)" style="font-size:10px;padding:4px 10px;border-radius:50px;border:1px solid #2D8E8E;background:rgba(45,142,142,.08);color:#2D8E8E;cursor:pointer;font-family:var(--sans)">Hope</button>
+        <button class="wave-toggle active" data-dim="uncertainty" onclick="toggleWaveDim(this)" style="font-size:10px;padding:4px 10px;border-radius:50px;border:1px solid #7c5da1;background:rgba(124,93,161,.08);color:#7c5da1;cursor:pointer;font-family:var(--sans)">Uncertainty</button>
       </div>
       <div id="insightsWaveSvg"></div>
     </div>
@@ -1109,9 +1108,9 @@ var JOURNEY_STAGES={
   egg_freeze:[{id:'consultation',t:'Just starting',d:'Consultation & planning'},{id:'stimulation',t:'Stimulation',d:'Injections & monitoring'},{id:'retrieval_day',t:'Egg retrieval',d:'Procedure & recovery'},{id:'freeze_all',t:'Freeze',d:'Eggs safely stored'},{id:'between_cycles',t:'Complete',d:'Preserved for the future'}]
 };
 var EMOTIONAL_PROPENSITY={
-  ivf:{anxiety:[3,5,7.5,7,6.5,8.5,9],hope:[7,5.5,5.5,7,8,6,5]},
-  iui:{anxiety:[2,3,4,5,7.5,8.5],hope:[7,6.5,6,7.5,5.5,5]},
-  egg_freeze:{anxiety:[4,6,7,3,2],hope:[7,5.5,6,7.5,8]}
+  ivf:{anxiety:[3,5,7.5,7,6.5,8.5,9],uncertainty:[7,5,4,6,5,8,9]},
+  iui:{anxiety:[2,3,4,5,7.5,8.5],uncertainty:[5,4,4,5,7,8]},
+  egg_freeze:{anxiety:[4,6,7,3,2],uncertainty:[6,5,4.5,3,2]}
 };
 var _selectedJourney=null;
 var _selectedTimelineStage=null;
@@ -1195,9 +1194,9 @@ function selectTimelineStage(idx,stageId){
 
 // ── Wave Animation Engine ──
 var _WAVE_TURB={
-  ivf:[0.3,0.8,1.2,1.0,0.9,1.8,2.0],
-  iui:[0.2,0.3,0.6,0.7,1.5,1.8],
-  egg_freeze:[0.3,0.7,1.2,0.3,0.1]
+  ivf:[0.8,1.6,2.4,2.0,1.8,3.5,4.0],
+  iui:[0.6,0.8,1.2,1.4,3.0,3.5],
+  egg_freeze:[0.8,1.4,2.4,0.8,0.4]
 };
 var _waveAnimStopper=null;
 
@@ -1217,7 +1216,7 @@ function _startWaveAnim(container,journeyType){
   function yV(v){return pT+cH-(v/10)*cH}
   // Get base points
   var baseAnx=prop.anxiety.map(function(v,i){return{x:pL+i*sx,y:yV(v)}});
-  var baseHope=prop.hope.map(function(v,i){return{x:pL+i*sx,y:yV(v)}});
+  var baseUncert=prop.uncertainty.map(function(v,i){return{x:pL+i*sx,y:yV(v)}});
   function smooth(pts){
     if(pts.length<2)return'';
     var d='M'+pts[0].x.toFixed(1)+' '+pts[0].y.toFixed(1);
@@ -1244,29 +1243,30 @@ function _startWaveAnim(container,journeyType){
     var fAnx=svgEl.querySelector('.wave-fill-anxiety');
     if(pAnx){
       var pts=baseAnx.map(function(pt,i){
-        var turb=turbMap[i]||0.3;
-        var off=Math.sin(t*1.5+i*2.1)*turb*0.5
-              +Math.sin(t*2.3+i*1.7)*turb*0.3
-              +Math.sin(t*3.7+i*0.9)*turb*0.2;
-        if(turb>1.0)off*=1.3; // anxiety shakes more
+        var turb=turbMap[i]||0.5;
+        var off=Math.sin(t*1.5+i*2.1)*turb*0.7
+              +Math.sin(t*2.3+i*1.7)*turb*0.45
+              +Math.sin(t*3.7+i*0.9)*turb*0.3;
+        if(turb>2.0)off*=1.2;
         return{x:pt.x,y:pt.y+off};
       });
       pAnx.setAttribute('d',smooth(pts));
       if(fAnx)fAnx.setAttribute('d',smoothFill(pts));
     }
-    // Animate hope curve
-    var pHope=svgEl.querySelector('.wave-hope');
-    var fHope=svgEl.querySelector('.wave-fill-hope');
-    if(pHope){
-      var pts2=baseHope.map(function(pt,i){
-        var turb=turbMap[i]||0.3;
-        var off=Math.sin(t*1.3+i*1.9+0.7)*turb*0.4
-              +Math.sin(t*2.1+i*1.5+1.2)*turb*0.25
-              +Math.sin(t*3.1+i*0.8+0.5)*turb*0.15;
+    // Animate uncertainty curve
+    var pUncert=svgEl.querySelector('.wave-uncertainty');
+    var fUncert=svgEl.querySelector('.wave-fill-uncertainty');
+    if(pUncert){
+      var pts2=baseUncert.map(function(pt,i){
+        var turb=turbMap[i]||0.5;
+        var off=Math.sin(t*1.3+i*1.9+0.7)*turb*0.65
+              +Math.sin(t*2.1+i*1.5+1.2)*turb*0.4
+              +Math.sin(t*3.1+i*0.8+0.5)*turb*0.25;
+        if(turb>2.0)off*=1.1;
         return{x:pt.x,y:pt.y+off};
       });
-      pHope.setAttribute('d',smooth(pts2));
-      if(fHope)fHope.setAttribute('d',smoothFill(pts2));
+      pUncert.setAttribute('d',smooth(pts2));
+      if(fUncert)fUncert.setAttribute('d',smoothFill(pts2));
     }
     animId=requestAnimationFrame(frame);
   }
@@ -1311,17 +1311,17 @@ function buildEmotionalWave(){
   for(var g=2;g<=8;g+=2){svg+='<line x1="'+padL+'" y1="'+yVal(g)+'" x2="'+(W-padR)+'" y2="'+yVal(g)+'" stroke="#e0eded" stroke-width="0.5"/>';}
   // Fills (animated)
   svg+='<path class="wave-fill-anxiety" d="'+buildFill(prop.anxiety)+'" fill="rgba(239,123,110,0.08)"/>';
-  svg+='<path class="wave-fill-hope" d="'+buildFill(prop.hope)+'" fill="rgba(45,142,142,0.06)"/>';
+  svg+='<path class="wave-fill-uncertainty" d="'+buildFill(prop.uncertainty)+'" fill="rgba(124,93,161,0.06)"/>';
   // Curves (animated)
   svg+='<path class="wave-anxiety" d="'+buildPath(prop.anxiety)+'" fill="none" stroke="#ef7b6e" stroke-width="2" opacity="0.7"/>';
-  svg+='<path class="wave-hope" d="'+buildPath(prop.hope)+'" fill="none" stroke="#2D8E8E" stroke-width="2" opacity="0.7"/>';
+  svg+='<path class="wave-uncertainty" d="'+buildPath(prop.uncertainty)+'" fill="none" stroke="#7c5da1" stroke-width="2" opacity="0.7"/>';
   // "You are here" marker (pulsing)
   var markerX=padL+selIdx*stepX;
   svg+='<line x1="'+markerX+'" y1="'+padT+'" x2="'+markerX+'" y2="'+(H-padB)+'" stroke="#2D8E8E" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>';
   svg+='<text x="'+markerX+'" y="'+(padT-6)+'" text-anchor="middle" font-size="9" fill="#2D8E8E" font-family="DM Sans,sans-serif">You are here</text>';
   // Dots on curves at selected position (pulsing)
   svg+='<circle class="wave-marker" cx="'+markerX+'" cy="'+yVal(prop.anxiety[selIdx])+'" r="4" fill="#ef7b6e" stroke="white" stroke-width="1.5" style="animation:wavePulse 2s ease-in-out infinite"/>';
-  svg+='<circle class="wave-marker" cx="'+markerX+'" cy="'+yVal(prop.hope[selIdx])+'" r="4" fill="#2D8E8E" stroke="white" stroke-width="1.5" style="animation:wavePulse 2s ease-in-out infinite .5s"/>';
+  svg+='<circle class="wave-marker" cx="'+markerX+'" cy="'+yVal(prop.uncertainty[selIdx])+'" r="4" fill="#7c5da1" stroke="white" stroke-width="1.5" style="animation:wavePulse 2s ease-in-out infinite .5s"/>';
   // Stage labels
   stages.forEach(function(s,i){
     var x=padL+i*stepX;
@@ -1337,7 +1337,7 @@ function buildEmotionalWave(){
   });
   svg+='</svg>';
   // Legend
-  svg+='<div style="display:flex;justify-content:center;gap:16px;margin-top:6px;font-size:10px;color:#6a9e9e"><span><span style="display:inline-block;width:12px;height:2px;background:#ef7b6e;vertical-align:middle;margin-right:4px"></span>Anxiety</span><span><span style="display:inline-block;width:12px;height:2px;background:#2D8E8E;vertical-align:middle;margin-right:4px"></span>Hope</span></div>';
+  svg+='<div style="display:flex;justify-content:center;gap:16px;margin-top:6px;font-size:10px;color:#6a9e9e"><span><span style="display:inline-block;width:12px;height:2px;background:#ef7b6e;vertical-align:middle;margin-right:4px"></span>Anxiety</span><span><span style="display:inline-block;width:12px;height:2px;background:#7c5da1;vertical-align:middle;margin-right:4px"></span>Uncertainty</span></div>';
   // Stress particles at high-turbulence stages
   var turbMap=_WAVE_TURB[jt]||_WAVE_TURB.ivf;
   stages.forEach(function(s,i){
@@ -3157,9 +3157,9 @@ function buildInsightsWave(){
   var container=document.getElementById('insightsWaveSvg');
   if(!container)return;
   var showAnx=document.querySelector('.wave-toggle[data-dim="anxiety"]');
-  var showHope=document.querySelector('.wave-toggle[data-dim="hope"]');
+  var showUncert=document.querySelector('.wave-toggle[data-dim="uncertainty"]');
   var drawAnx=showAnx&&showAnx.classList.contains('active');
-  var drawHope=showHope&&showHope.classList.contains('active');
+  var drawUncert=showUncert&&showUncert.classList.contains('active');
   var W=340,H=140,pL=10,pR=10,pT=16,pB=25;
   var cW=W-pL-pR,cH=H-pT-pB,n=stages.length,sx=cW/(n-1);
   function yV(v){return pT+cH-(v/10)*cH}
@@ -3170,7 +3170,7 @@ function buildInsightsWave(){
   var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">';
   for(var g=2;g<=8;g+=2)svg+='<line x1="'+pL+'" y1="'+yV(g)+'" x2="'+(W-pR)+'" y2="'+yV(g)+'" stroke="#e8eded" stroke-width="0.5"/>';
   if(drawAnx){svg+='<path class="wave-fill-anxiety" d="'+bF(prop.anxiety)+'" fill="rgba(239,123,110,0.06)"/>';svg+='<path class="wave-anxiety" d="'+bP(prop.anxiety)+'" fill="none" stroke="#ef7b6e" stroke-width="2" opacity="0.6"/>';}
-  if(drawHope){svg+='<path class="wave-fill-hope" d="'+bF(prop.hope)+'" fill="rgba(45,142,142,0.04)"/>';svg+='<path class="wave-hope" d="'+bP(prop.hope)+'" fill="none" stroke="#2D8E8E" stroke-width="2" opacity="0.6"/>';}
+  if(drawUncert){svg+='<path class="wave-fill-uncertainty" d="'+bF(prop.uncertainty)+'" fill="rgba(124,93,161,0.04)"/>';svg+='<path class="wave-uncertainty" d="'+bP(prop.uncertainty)+'" fill="none" stroke="#7c5da1" stroke-width="2" opacity="0.6"/>';}
   // Patient's actual check-in data as dots
   if(state.checkins&&state.checkins.length>0){
     // Group by stage and average

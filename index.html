@@ -3128,6 +3128,11 @@ function logout(){
   else{clearAndReload()}
 }
 window.logout=logout;
+window.showAuthForm=showAuthForm;
+window.submitAuth=submitAuth;
+window.toggleAuthMode=toggleAuthMode;
+window.hideAuthForm=hideAuthForm;
+window.forgotPassword=resetPassword;
 
 function dismissWelcome(){
   try{localStorage.setItem('melodai_welcomed','1')}catch(ex){}

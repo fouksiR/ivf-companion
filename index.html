@@ -2415,16 +2415,16 @@ function dismissNudge(){document.getElementById('nudgeCard').classList.remove('v
 function checkClinicianMessages(){
   if(!state.patientId||!API_BASE)return;
   fetch(API_BASE+'/patient/'+state.patientId+'/clinician-messages').then(function(r){return r.ok?r.json():null}).then(function(d){
-    if(!d||!d.messages)return;
+    if(!d||!d.messages||!d.messages.length)return;
+    console.log('[CARE-TEAM] Messages received:',d.messages.length);
     d.messages.forEach(function(msg){
-      if(!msg.read){
-        var a=document.getElementById('chat-area');if(!a)return;
-        var div=document.createElement('div');div.className='msg msg-care-team';
-        div.innerHTML='<div style="font-size:10px;font-weight:600;color:#D4A843;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">From your care team</div><div class="msg-bubble" style="background:linear-gradient(135deg,#fef3c8,#fff8dc);border:1px solid rgba(212,168,67,0.15);color:#1a3a3a">'+escHtml(msg.text||msg.content||'')+'</div>';
-        a.appendChild(div);a.scrollTop=a.scrollHeight;
-      }
+      // Backend already filters to unread only — don't re-check msg.read
+      var a=document.getElementById('chat-area');if(!a)return;
+      var div=document.createElement('div');div.className='msg msg-care-team';
+      div.innerHTML='<div style="font-size:10px;font-weight:600;color:#D4A843;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">\uD83D\uDCEC From your care team</div><div class="msg-bubble" style="background:linear-gradient(135deg,#fef3c8,#fff8dc);border:1px solid rgba(212,168,67,0.15);color:#1a3a3a">'+escHtml(msg.text||msg.content||'')+'</div>';
+      a.appendChild(div);a.scrollTop=a.scrollHeight;
     });
-  }).catch(function(){});
+  }).catch(function(e){console.warn('[CARE-TEAM] Fetch error:',e)});
 }
 // Poll every 60s
 setInterval(checkClinicianMessages,60000);

@@ -3321,8 +3321,8 @@ async def get_clinician_messages(patient_id: str):
     convs = conversations_db.get(patient_id, [])
     for i, msg in enumerate(convs):
         if msg.get("type") == "clinician_message" and not msg.get("read", False):
-            msg["read"] = True
-            messages.append(msg)
+            messages.append({**msg, "read": False})  # Return copy with read=False
+            msg["read"] = True  # Then mark original as read
     return {"messages": messages}
 
 

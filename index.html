@@ -615,8 +615,8 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   <p class="landing-tagline">Your companion through the IVF journey</p>
   <div class="landing-dots"><span class="ld-dot active"></span><span class="ld-dot"></span><span class="ld-dot"></span></div>
   <div class="landing-buttons" id="landingButtons">
-    <button class="landing-btn landing-btn-primary" onclick="dismissWelcome()">Get Started</button>
-    <button class="landing-btn landing-btn-secondary" onclick="showAuthForm('login')">Log in with email</button>
+    <button class="landing-btn landing-btn-primary" onclick="showAuthForm('signup')">Create Account</button>
+    <button class="landing-btn landing-btn-secondary" onclick="showAuthForm('login')">Log in</button>
   </div>
   <!-- Auth forms (hidden by default) -->
   <div id="authFormArea" style="display:none;width:100%;max-width:320px;margin:0 auto">
@@ -3108,7 +3108,7 @@ function resetPassword(){
 }
 
 function logout(){
-  fbAuth.signOut().then(function(){
+  var clearAndReload=function(){
     localStorage.removeItem('melodai_patient_id');
     localStorage.removeItem('melodai_email');
     localStorage.removeItem('melodai_authenticated');
@@ -3116,13 +3116,23 @@ function logout(){
     localStorage.removeItem('melodai_stage');
     localStorage.removeItem('melodai_cycle');
     localStorage.removeItem('melodai_treatment');
+    localStorage.removeItem('melodai_welcomed');
+    localStorage.removeItem('melodai_journey_type');
+    localStorage.removeItem('melodai_frequent_flyer');
+    state._authHandled=false;state._returning=false;state.patientId=null;
     location.reload();
-  });
+  };
+  if(fbAuth){fbAuth.signOut().then(clearAndReload).catch(clearAndReload)}
+  else{clearAndReload()}
 }
 window.logout=logout;
 
 function dismissWelcome(){
   try{localStorage.setItem('melodai_welcomed','1')}catch(ex){}
+  // Only proceed if authenticated
+  if(!state.patientId||localStorage.getItem('melodai_authenticated')!=='true'){
+    showAuthForm('signup');return;
+  }
   // Returning user — skip onboarding, go straight to app
   if(state._returning&&state.patientId){
     document.getElementById('screen-welcome').classList.remove('active');
@@ -3873,25 +3883,29 @@ initOnboarding();
     if(avg>=9)return'happy';if(avg>=7)return'hopeful';if(avg>=5)return'content';if(avg>=3)return'anxious';return'sad';
   };
 })();
-// Returning user detection — check Firebase Auth state first, then localStorage
+// Auth gate — Firebase Auth is the ONLY way past the landing page
 (function(){
-  // Check Firebase Auth session — just set state, don't auto-navigate
-  // User must tap "Get Started" or "Log in" to proceed
   if(fbAuth){
     fbAuth.onAuthStateChanged(function(user){
       if(user&&!state._authHandled){
         state._authHandled=true;
         var uid=user.uid;
         localStorage.setItem('melodai_patient_id',uid);
+        localStorage.setItem('melodai_email',user.email||'');
         localStorage.setItem('melodai_authenticated','true');
         state.patientId=uid;
+        // Auto-login: load patient data and skip to app
+        var ws=document.getElementById('screen-welcome');
+        if(ws&&ws.classList.contains('active')){
+          loadExistingPatient(uid,user.email||'');
+        }
       }
     });
   }
-  // Also check localStorage for backward compatibility (existing patients without auth)
+  // Pre-populate state from localStorage (for quick display while auth loads)
   var existing=null;
   try{existing=localStorage.getItem('melodai_patient_id')}catch(e){}
-  if(existing){
+  if(existing&&localStorage.getItem('melodai_authenticated')==='true'){
     try{
       state.patientId=existing;
       state.name=localStorage.getItem('melodai_name')||'there';

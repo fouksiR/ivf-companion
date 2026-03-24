@@ -3275,8 +3275,7 @@ function updateJarCounts(){var chatArea=document.getElementById('chat-area');var
 var _origShowApp=showApp;
 showApp=function(){_origShowApp.apply(this,arguments);document.getElementById('floatingIcons').style.display='flex';document.getElementById('communityFab').style.display='none';setTimeout(showTourOffer,2000);buildCalendar();updateJarCounts();try{if(state.patientId)localStorage.setItem('melodai_patient_id',state.patientId);if(state.name)localStorage.setItem('melodai_name',state.name);if(state.stage)localStorage.setItem('melodai_stage',state.stage);if(state.cycle)localStorage.setItem('melodai_cycle',String(state.cycle));if(state.treatment)localStorage.setItem('melodai_treatment',state.treatment)}catch(e){}};
 
-// Logout function — clears patient data and returns to landing
-function logout(){try{localStorage.removeItem('melodai_patient_id');localStorage.removeItem('melodai_name');localStorage.removeItem('melodai_stage');localStorage.removeItem('melodai_cycle');localStorage.removeItem('melodai_treatment');localStorage.removeItem('melodai_welcomed');localStorage.removeItem('melodai_tour_done')}catch(e){}window.location.reload()}
+// Logout — uses Firebase auth version defined earlier (line ~2676)
 
 initOnboarding();
 // === CANVAS SPERM ANIMATION — single sperm orbiting the egg ===
@@ -3397,7 +3396,8 @@ initOnboarding();
 })();
 // Returning user detection — check Firebase Auth state first, then localStorage
 (function(){
-  // Check Firebase Auth session
+  // Check Firebase Auth session — just set state, don't auto-navigate
+  // User must tap "Get Started" or "Log in" to proceed
   if(fbAuth){
     fbAuth.onAuthStateChanged(function(user){
       if(user&&!state._authHandled){
@@ -3405,11 +3405,7 @@ initOnboarding();
         var uid=user.uid;
         localStorage.setItem('melodai_patient_id',uid);
         localStorage.setItem('melodai_authenticated','true');
-        // If we're still on the welcome screen, auto-login
-        var ws=document.getElementById('screen-welcome');
-        if(ws&&ws.classList.contains('active')){
-          loadExistingPatient(uid,user.email||'');
-        }
+        state.patientId=uid;
       }
     });
   }

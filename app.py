@@ -3300,7 +3300,7 @@ async def clinician_conversations(patient_id: str):
 
 @app.get("/patient/{patient_id}/clinician-messages")
 async def get_clinician_messages(patient_id: str):
-    """Get unread clinician messages for a patient (called by patient app)."""
+    """Get unread clinician messages. Does NOT auto-mark as read — client must POST to mark."""
     messages = []
     # Try Firebase first
     try:
@@ -3311,19 +3311,37 @@ async def get_clinician_messages(patient_id: str):
                     if not val.get("read", False):
                         val["id"] = key
                         messages.append(val)
-                        try:
-                            firebase_db._fb_ref.child("clinician_messages").child(patient_id).child(key).update({"read": True})
-                        except Exception:
-                            pass
+                        # Do NOT mark as read here — let client confirm display first
     except Exception as e:
         logger.warning(f"Firebase clinician messages read failed: {e}")
     # Also check in-memory conversations for clinician messages not yet read
     convs = conversations_db.get(patient_id, [])
     for i, msg in enumerate(convs):
         if msg.get("type") == "clinician_message" and not msg.get("read", False):
-            messages.append({**msg, "read": False})  # Return copy with read=False
-            msg["read"] = True  # Then mark original as read
+            messages.append({**msg, "read": False})
+            # Do NOT mark as read here
     return {"messages": messages}
+
+
+@app.post("/patient/{patient_id}/clinician-messages/mark-read")
+async def mark_clinician_messages_read(patient_id: str):
+    """Mark all clinician messages as read for a patient."""
+    # Mark in Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            msgs = firebase_db._fb_ref.child("clinician_messages").child(patient_id).get()
+            if msgs and isinstance(msgs, dict):
+                for key, val in msgs.items():
+                    if not val.get("read", False):
+                        firebase_db._fb_ref.child("clinician_messages").child(patient_id).child(key).update({"read": True})
+    except Exception:
+        pass
+    # Mark in memory
+    convs = conversations_db.get(patient_id, [])
+    for msg in convs:
+        if msg.get("type") == "clinician_message" and not msg.get("read", False):
+            msg["read"] = True
+    return {"status": "ok"}
 
 
 @app.get("/clinician/patient/{patient_id}/unresolved", dependencies=[Depends(verify_clinician_api_key)])

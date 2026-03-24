@@ -73,6 +73,8 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .tl-label .tl-desc{font-size:10px;font-weight:400;color:#6a9e9e;margin-top:2px}
 .tl-conn{width:40px;height:2px;background:#dbe8e7;flex-shrink:0;transition:background .5s}
 .tl-conn.filled{background:#2D8E8E}
+@keyframes wavePulse{0%,100%{r:4;opacity:1}50%{r:5.5;opacity:0.7}}
+@keyframes waveParticle{0%{opacity:0.4;transform:translateY(0)}50%{opacity:0.15}100%{opacity:0;transform:translateY(-18px)}}
 .stage-option .stage-icon svg{width:20px;height:20px}
 .stage-option .stage-name{font-size:12px;font-weight:600;color:var(--text);line-height:1.4}
 .stage-option .stage-sub{font-size:10px;color:var(--text-soft);margin-top:2px}
@@ -1191,6 +1193,87 @@ function selectTimelineStage(idx,stageId){
   if(el)el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
 }
 
+// ── Wave Animation Engine ──
+var _WAVE_TURB={
+  ivf:[0.3,0.8,1.2,1.0,0.9,1.8,2.0],
+  iui:[0.2,0.3,0.6,0.7,1.5,1.8],
+  egg_freeze:[0.3,0.7,1.2,0.3,0.1]
+};
+var _waveAnimStopper=null;
+
+function _startWaveAnim(container,journeyType){
+  // Stop any previous animation
+  if(_waveAnimStopper)_waveAnimStopper();
+  var svgEl=container.querySelector('svg');
+  if(!svgEl)return;
+  var turbMap=_WAVE_TURB[journeyType]||_WAVE_TURB.ivf;
+  var prop=EMOTIONAL_PROPENSITY[journeyType]||EMOTIONAL_PROPENSITY.ivf;
+  var stages=JOURNEY_STAGES[journeyType]||JOURNEY_STAGES.ivf;
+  var n=stages.length;
+  // Get SVG dimensions from viewBox
+  var vb=svgEl.getAttribute('viewBox').split(' ').map(Number);
+  var W=vb[2],H=vb[3],pL=10,pR=10,pT=(H>150?20:16),pB=(H>150?30:25);
+  var cW=W-pL-pR,cH=H-pT-pB,sx=cW/(n-1);
+  function yV(v){return pT+cH-(v/10)*cH}
+  // Get base points
+  var baseAnx=prop.anxiety.map(function(v,i){return{x:pL+i*sx,y:yV(v)}});
+  var baseHope=prop.hope.map(function(v,i){return{x:pL+i*sx,y:yV(v)}});
+  function smooth(pts){
+    if(pts.length<2)return'';
+    var d='M'+pts[0].x.toFixed(1)+' '+pts[0].y.toFixed(1);
+    for(var i=1;i<pts.length;i++){
+      var cpx=((pts[i-1].x+pts[i].x)/2).toFixed(1);
+      d+=' C'+cpx+' '+pts[i-1].y.toFixed(1)+','+cpx+' '+pts[i].y.toFixed(1)+','+pts[i].x.toFixed(1)+' '+pts[i].y.toFixed(1);
+    }
+    return d;
+  }
+  function smoothFill(pts){
+    var d=smooth(pts);
+    d+=' L'+pts[pts.length-1].x.toFixed(1)+' '+yV(0).toFixed(1)+' L'+pts[0].x.toFixed(1)+' '+yV(0).toFixed(1)+' Z';
+    return d;
+  }
+  var running=true;var animId=null;var lastFrame=0;
+  function frame(ts){
+    if(!running)return;
+    if(ts-lastFrame<33){animId=requestAnimationFrame(frame);return} // ~30fps
+    lastFrame=ts;
+    if(document.hidden){animId=requestAnimationFrame(frame);return}
+    var t=Date.now()/1000;
+    // Animate anxiety curve
+    var pAnx=svgEl.querySelector('.wave-anxiety');
+    var fAnx=svgEl.querySelector('.wave-fill-anxiety');
+    if(pAnx){
+      var pts=baseAnx.map(function(pt,i){
+        var turb=turbMap[i]||0.3;
+        var off=Math.sin(t*1.5+i*2.1)*turb*0.5
+              +Math.sin(t*2.3+i*1.7)*turb*0.3
+              +Math.sin(t*3.7+i*0.9)*turb*0.2;
+        if(turb>1.0)off*=1.3; // anxiety shakes more
+        return{x:pt.x,y:pt.y+off};
+      });
+      pAnx.setAttribute('d',smooth(pts));
+      if(fAnx)fAnx.setAttribute('d',smoothFill(pts));
+    }
+    // Animate hope curve
+    var pHope=svgEl.querySelector('.wave-hope');
+    var fHope=svgEl.querySelector('.wave-fill-hope');
+    if(pHope){
+      var pts2=baseHope.map(function(pt,i){
+        var turb=turbMap[i]||0.3;
+        var off=Math.sin(t*1.3+i*1.9+0.7)*turb*0.4
+              +Math.sin(t*2.1+i*1.5+1.2)*turb*0.25
+              +Math.sin(t*3.1+i*0.8+0.5)*turb*0.15;
+        return{x:pt.x,y:pt.y+off};
+      });
+      pHope.setAttribute('d',smooth(pts2));
+      if(fHope)fHope.setAttribute('d',smoothFill(pts2));
+    }
+    animId=requestAnimationFrame(frame);
+  }
+  animId=requestAnimationFrame(frame);
+  _waveAnimStopper=function(){running=false;if(animId)cancelAnimationFrame(animId);_waveAnimStopper=null};
+}
+
 function buildEmotionalWave(){
   var jt=_selectedJourney||'ivf';
   var stages=JOURNEY_STAGES[jt]||JOURNEY_STAGES.ivf;
@@ -1226,19 +1309,19 @@ function buildEmotionalWave(){
   var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">';
   // Grid lines
   for(var g=2;g<=8;g+=2){svg+='<line x1="'+padL+'" y1="'+yVal(g)+'" x2="'+(W-padR)+'" y2="'+yVal(g)+'" stroke="#e0eded" stroke-width="0.5"/>';}
-  // Fills
-  svg+='<path d="'+buildFill(prop.anxiety)+'" fill="rgba(239,123,110,0.08)"/>';
-  svg+='<path d="'+buildFill(prop.hope)+'" fill="rgba(45,142,142,0.06)"/>';
-  // Curves
-  svg+='<path d="'+buildPath(prop.anxiety)+'" fill="none" stroke="#ef7b6e" stroke-width="2" opacity="0.7"/>';
-  svg+='<path d="'+buildPath(prop.hope)+'" fill="none" stroke="#2D8E8E" stroke-width="2" opacity="0.7"/>';
-  // "You are here" marker
+  // Fills (animated)
+  svg+='<path class="wave-fill-anxiety" d="'+buildFill(prop.anxiety)+'" fill="rgba(239,123,110,0.08)"/>';
+  svg+='<path class="wave-fill-hope" d="'+buildFill(prop.hope)+'" fill="rgba(45,142,142,0.06)"/>';
+  // Curves (animated)
+  svg+='<path class="wave-anxiety" d="'+buildPath(prop.anxiety)+'" fill="none" stroke="#ef7b6e" stroke-width="2" opacity="0.7"/>';
+  svg+='<path class="wave-hope" d="'+buildPath(prop.hope)+'" fill="none" stroke="#2D8E8E" stroke-width="2" opacity="0.7"/>';
+  // "You are here" marker (pulsing)
   var markerX=padL+selIdx*stepX;
   svg+='<line x1="'+markerX+'" y1="'+padT+'" x2="'+markerX+'" y2="'+(H-padB)+'" stroke="#2D8E8E" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>';
   svg+='<text x="'+markerX+'" y="'+(padT-6)+'" text-anchor="middle" font-size="9" fill="#2D8E8E" font-family="DM Sans,sans-serif">You are here</text>';
-  // Dots on curves at selected position
-  svg+='<circle cx="'+markerX+'" cy="'+yVal(prop.anxiety[selIdx])+'" r="4" fill="#ef7b6e" stroke="white" stroke-width="1.5"/>';
-  svg+='<circle cx="'+markerX+'" cy="'+yVal(prop.hope[selIdx])+'" r="4" fill="#2D8E8E" stroke="white" stroke-width="1.5"/>';
+  // Dots on curves at selected position (pulsing)
+  svg+='<circle class="wave-marker" cx="'+markerX+'" cy="'+yVal(prop.anxiety[selIdx])+'" r="4" fill="#ef7b6e" stroke="white" stroke-width="1.5" style="animation:wavePulse 2s ease-in-out infinite"/>';
+  svg+='<circle class="wave-marker" cx="'+markerX+'" cy="'+yVal(prop.hope[selIdx])+'" r="4" fill="#2D8E8E" stroke="white" stroke-width="1.5" style="animation:wavePulse 2s ease-in-out infinite .5s"/>';
   // Stage labels
   stages.forEach(function(s,i){
     var x=padL+i*stepX;
@@ -1255,7 +1338,20 @@ function buildEmotionalWave(){
   svg+='</svg>';
   // Legend
   svg+='<div style="display:flex;justify-content:center;gap:16px;margin-top:6px;font-size:10px;color:#6a9e9e"><span><span style="display:inline-block;width:12px;height:2px;background:#ef7b6e;vertical-align:middle;margin-right:4px"></span>Anxiety</span><span><span style="display:inline-block;width:12px;height:2px;background:#2D8E8E;vertical-align:middle;margin-right:4px"></span>Hope</span></div>';
+  // Stress particles at high-turbulence stages
+  var turbMap=_WAVE_TURB[jt]||_WAVE_TURB.ivf;
+  stages.forEach(function(s,i){
+    var turb=turbMap[i]||0.3;
+    if(turb>=1.2){
+      var px=padL+i*stepX;
+      svg+='<div class="wave-particle" style="position:absolute;left:calc('+((px/W)*100)+'% - 2px);top:30%;width:4px;height:4px;border-radius:50%;background:rgba(239,123,110,0.4);animation:waveParticle 3s ease-in-out infinite '+(i*0.7)+'s"></div>';
+      svg+='<div class="wave-particle" style="position:absolute;left:calc('+(((px+3)/W)*100)+'% - 2px);top:35%;width:3px;height:3px;border-radius:50%;background:rgba(239,123,110,0.3);animation:waveParticle 3.5s ease-in-out infinite '+(i*0.7+1)+'s"></div>';
+    }
+  });
   container.innerHTML=svg;
+  container.style.position='relative';
+  // Start wave animation
+  _startWaveAnim(container,jt);
 }
 
 function initOnboarding(){
@@ -3073,8 +3169,8 @@ function buildInsightsWave(){
   var si=0;stages.forEach(function(s,i){if(s.id===state.stage)si=i});
   var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block">';
   for(var g=2;g<=8;g+=2)svg+='<line x1="'+pL+'" y1="'+yV(g)+'" x2="'+(W-pR)+'" y2="'+yV(g)+'" stroke="#e8eded" stroke-width="0.5"/>';
-  if(drawAnx){svg+='<path d="'+bF(prop.anxiety)+'" fill="rgba(239,123,110,0.06)"/>';svg+='<path d="'+bP(prop.anxiety)+'" fill="none" stroke="#ef7b6e" stroke-width="2" opacity="0.6"/>';}
-  if(drawHope){svg+='<path d="'+bF(prop.hope)+'" fill="rgba(45,142,142,0.04)"/>';svg+='<path d="'+bP(prop.hope)+'" fill="none" stroke="#2D8E8E" stroke-width="2" opacity="0.6"/>';}
+  if(drawAnx){svg+='<path class="wave-fill-anxiety" d="'+bF(prop.anxiety)+'" fill="rgba(239,123,110,0.06)"/>';svg+='<path class="wave-anxiety" d="'+bP(prop.anxiety)+'" fill="none" stroke="#ef7b6e" stroke-width="2" opacity="0.6"/>';}
+  if(drawHope){svg+='<path class="wave-fill-hope" d="'+bF(prop.hope)+'" fill="rgba(45,142,142,0.04)"/>';svg+='<path class="wave-hope" d="'+bP(prop.hope)+'" fill="none" stroke="#2D8E8E" stroke-width="2" opacity="0.6"/>';}
   // Patient's actual check-in data as dots
   if(state.checkins&&state.checkins.length>0){
     // Group by stage and average
@@ -3092,6 +3188,8 @@ function buildInsightsWave(){
   stages.forEach(function(s,i){svg+='<text x="'+(pL+i*sx)+'" y="'+(H-6)+'" text-anchor="middle" font-size="8" fill="#6a9e9e" font-family="DM Sans,sans-serif">'+s.t.split(' ')[0]+'</text>'});
   svg+='</svg>';
   container.innerHTML=svg;
+  container.style.position='relative';
+  _startWaveAnim(container,jt);
 }
 function toggleWaveDim(btn){btn.classList.toggle('active');buildInsightsWave()}
 

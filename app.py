@@ -2582,6 +2582,18 @@ Weave this awareness naturally — don't announce it as a feature, just show you
 - For medication_confusion: Offer clear, simple medication guidance"""
         system_prompt += trigger_context
 
+    # Inject flagged topics from clinician
+    patient = patients_db.get(req.patient_id, {})
+    flagged = [f for f in patient.get("flagged_topics", []) if not f.get("resolved")]
+    if flagged:
+        flag_context = "\n\nCLINICIAN FLAGGED TOPICS — weave these into the conversation naturally:\n"
+        for f in flagged[:3]:  # max 3 active flags
+            flag_context += f"- Topic: {f['topic']}"
+            if f.get("instruction"):
+                flag_context += f" (Instruction: {f['instruction']})"
+            flag_context += f" [Priority: {f.get('priority', 'when_natural')}]\n"
+        system_prompt += flag_context
+
     # Build conversation messages for Claude
     conv_messages = []
     for msg in get_conversation_context(req.patient_id, last_n=16):
@@ -3097,15 +3109,15 @@ Conversations:
 
 
 @app.get("/clinician/patient/{patient_id}/briefing", dependencies=[Depends(verify_clinician_api_key)])
-async def clinician_preconsult_briefing(patient_id: str):
+async def clinician_preconsult_briefing(patient_id: str, role: str = "doctor"):
     """
-    Pre-consultation briefing for clinicians.
-    Returns communication style, stress level, main concerns, and suggested approach.
+    Pre-consultation briefing for clinicians. Role affects detail level.
     """
     if patient_id not in patients_db:
         raise HTTPException(status_code=404, detail="Patient not found")
 
     briefing = build_preconsult_briefing(patient_id)
+    briefing["role"] = role
     return briefing
 
 
@@ -3130,6 +3142,187 @@ async def clinician_phenotype_history(patient_id: str, days: int = 30):
         "total_checkins": len(recent_checkins),
         "days": days,
     }
+
+
+# ── Clinician Action Endpoints ────────────────────────────────────────
+
+
+@app.post("/clinician/patient/{patient_id}/send-message", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_send_message(patient_id: str, request: Request):
+    """Send a message from care team to patient. Saved to conversations and Firebase."""
+    body = await request.json()
+    msg_text = body.get("message", "").strip()
+    from_role = body.get("from_role", "doctor")
+    if not msg_text:
+        raise HTTPException(status_code=400, detail="Message text required")
+
+    msg = {
+        "role": "care_team",
+        "content": msg_text,
+        "from_role": from_role,
+        "sender_name": body.get("clinician_id", "Your care team"),
+        "timestamp": utc_iso(),
+        "type": "clinician_message",
+        "read": False,
+    }
+    # Save to conversations for this patient
+    conversations_db.setdefault(patient_id, []).append(msg)
+    # Save to Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("clinician_messages").child(patient_id).push(msg)
+    except Exception:
+        pass
+    return {"status": "sent", "timestamp": msg["timestamp"]}
+
+
+@app.post("/clinician/patient/{patient_id}/flag-topic", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_flag_topic(patient_id: str, request: Request):
+    """Flag a topic for the AI to weave into the next conversation."""
+    body = await request.json()
+    topic = body.get("topic", "").strip()
+    instruction = body.get("instruction", "")
+    priority = body.get("priority", "when_natural")
+    if not topic:
+        raise HTTPException(status_code=400, detail="Topic required")
+
+    flag = {
+        "topic": topic,
+        "instruction": instruction,
+        "priority": priority,
+        "flagged_at": utc_iso(),
+        "resolved": False,
+    }
+    # Store in patient data
+    patient = patients_db.get(patient_id, {})
+    patient.setdefault("flagged_topics", []).append(flag)
+    # Save to Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("flagged_topics").child(patient_id).push(flag)
+    except Exception:
+        pass
+    return {"status": "flagged", "topic": topic}
+
+
+@app.post("/clinician/patient/{patient_id}/schedule-nudge", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_schedule_nudge(patient_id: str, request: Request):
+    """Schedule a check-in nudge for a patient."""
+    body = await request.json()
+    nudge = {
+        "message": body.get("message", "Your care team is thinking of you."),
+        "deliver_at": body.get("deliver_at", utc_iso()),
+        "from_role": body.get("from", "doctor"),
+        "scheduled_at": utc_iso(),
+        "delivered": False,
+    }
+    patient = patients_db.get(patient_id, {})
+    patient.setdefault("scheduled_nudges", []).append(nudge)
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("scheduled_nudges").child(patient_id).push(nudge)
+    except Exception:
+        pass
+    return {"status": "scheduled", "deliver_at": nudge["deliver_at"]}
+
+
+@app.post("/clinician/patient/{patient_id}/resolve-concern", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_resolve_concern(patient_id: str, request: Request):
+    """Mark an unresolved question as resolved."""
+    body = await request.json()
+    topic_key = body.get("topic_key", "")
+    resolution_note = body.get("resolution_note", "")
+    resolved_by = body.get("resolved_by", "doctor")
+
+    resolution = {
+        "topic_key": topic_key,
+        "resolution_note": resolution_note,
+        "resolved_by": resolved_by,
+        "resolved_at": utc_iso(),
+    }
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("resolved_concerns").child(patient_id).push(resolution)
+    except Exception:
+        pass
+    return {"status": "resolved", "topic_key": topic_key}
+
+
+@app.get("/clinician/patient/{patient_id}/conversations", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_conversations(patient_id: str):
+    """Return recent conversation sessions for clinician review."""
+    convs = conversations_db.get(patient_id, [])
+    if not convs:
+        return {"sessions": []}
+
+    # Group into sessions (gap > 30 min = new session)
+    sessions = []
+    current = []
+    for i, msg in enumerate(convs):
+        if i > 0 and msg.get("timestamp", "") and convs[i-1].get("timestamp", ""):
+            try:
+                t1 = datetime.fromisoformat(convs[i-1]["timestamp"].replace("Z", "+00:00"))
+                t2 = datetime.fromisoformat(msg["timestamp"].replace("Z", "+00:00"))
+                if (t2 - t1).total_seconds() > 1800:
+                    if current:
+                        sessions.append(current)
+                    current = []
+            except Exception:
+                pass
+        current.append(msg)
+    if current:
+        sessions.append(current)
+
+    # Format last 10 sessions
+    result = []
+    for session in sessions[-10:]:
+        user_msgs = [m for m in session if m.get("role") == "user"]
+        ai_msgs = [m for m in session if m.get("role") == "assistant"]
+        first_ts = session[0].get("timestamp", "")
+        emotional_tone = "calm"
+        # Detect tone from escalation context
+        for m in session:
+            if m.get("escalation_level") == "RED":
+                emotional_tone = "distressed"
+            elif m.get("escalation_level") == "AMBER":
+                emotional_tone = "anxious"
+
+        result.append({
+            "date": first_ts,
+            "message_count": len(session),
+            "one_line": user_msgs[0].get("content", "")[:100] if user_msgs else "Check-in conversation",
+            "emotional_tone": emotional_tone,
+            "full_conversation": [{"role": m.get("role", ""), "content": m.get("content", "")[:500]} for m in session[-20:]],
+        })
+
+    return {"sessions": list(reversed(result))}
+
+
+@app.get("/patient/{patient_id}/clinician-messages")
+async def get_clinician_messages(patient_id: str):
+    """Get unread clinician messages for a patient (called by patient app)."""
+    messages = []
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            msgs = firebase_db._fb_ref.child("clinician_messages").child(patient_id).get()
+            if msgs and isinstance(msgs, dict):
+                for key, val in msgs.items():
+                    if not val.get("read", False):
+                        val["id"] = key
+                        messages.append(val)
+                        # Mark as read
+                        firebase_db._fb_ref.child("clinician_messages").child(patient_id).child(key).update({"read": True})
+    except Exception:
+        pass
+    return {"messages": messages}
+
+
+@app.get("/clinician/patient/{patient_id}/unresolved", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_unresolved(patient_id: str):
+    """Return unresolved questions for this patient."""
+    patient = patients_db.get(patient_id, {})
+    unresolved = patient.get("unresolved_questions", [])
+    return {"questions": unresolved, "count": len(unresolved)}
 
 
 # ── Debug Endpoints ──────────────────────────────────────────────────

@@ -1437,7 +1437,7 @@ else{state.cycle=document.getElementById('ob-cycle')?parseInt(document.getElemen
 state.clinic=document.getElementById('ob-clinic')?document.getElementById('ob-clinic').value.trim():'';
 var fallback=function(){state.patientId=state.patientId||('demo-'+Math.random().toString(36).slice(2,8));showApp();addMsg('ai','Hi '+state.name+". I\u2019m Melod\u00b7AI \u2014 here to walk alongside you through this journey.\n\nYou\u2019re at the "+getStageName(state.stage)+' stage, cycle '+state.cycle+". Whether you want to talk about what you\u2019re feeling, ask questions about what\u2019s happening, or just vent \u2014 I\u2019m here.\n\nHow are you doing today?",null,{showOneWord:true})};
 if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(function(){ctrl.abort()},8000);const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null,patient_id:state.patientId||null,email:localStorage.getItem('melodai_email')||null}),signal:ctrl.signal});clearTimeout(timer);const d=await r.json();if(!state.patientId)state.patientId=d.patient_id;localStorage.setItem('melodai_patient_id',state.patientId);localStorage.setItem('melodai_name',state.name);localStorage.setItem('melodai_stage',state.stage);localStorage.setItem('melodai_cycle',String(state.cycle));localStorage.setItem('melodai_treatment',state.treatment);showApp();if(d.message)addMsg('ai',d.message,null,{showOneWord:true});return}catch(e){console.warn('API unavailable:',e)}}fallback()}
-function showApp(){try{var sw=document.getElementById('screen-welcome');if(sw)sw.classList.remove('active');document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();
+function showApp(){try{var sw=document.getElementById('screen-welcome');if(sw)sw.classList.remove('active');document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();checkClinicianMessages();
 document.getElementById('chat-input').addEventListener('input',resetStillHere);
 collector=new PassiveCollector({patientId:state.patientId,apiBase:API_BASE,debug:true,flushInterval:60000});collector.record('session_start',null,{stage:state.stage,cycle:state.cycle,treatment:state.treatment})}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
 /* ═══ REFLECTIONS ═══════════════════════════════════════════════════ */
@@ -2410,6 +2410,24 @@ async function fetchNudge(){
   }catch(e){console.warn('Nudge fetch failed:',e)}
 }
 function dismissNudge(){document.getElementById('nudgeCard').classList.remove('visible')}
+
+// Check for clinician messages (from care team)
+function checkClinicianMessages(){
+  if(!state.patientId||!API_BASE)return;
+  fetch(API_BASE+'/patient/'+state.patientId+'/clinician-messages').then(function(r){return r.ok?r.json():null}).then(function(d){
+    if(!d||!d.messages)return;
+    d.messages.forEach(function(msg){
+      if(!msg.read){
+        var a=document.getElementById('chat-area');if(!a)return;
+        var div=document.createElement('div');div.className='msg msg-care-team';
+        div.innerHTML='<div style="font-size:10px;font-weight:600;color:#D4A843;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">From your care team</div><div class="msg-bubble" style="background:linear-gradient(135deg,#fef3c8,#fff8dc);border:1px solid rgba(212,168,67,0.15);color:#1a3a3a">'+escHtml(msg.text||msg.content||'')+'</div>';
+        a.appendChild(div);a.scrollTop=a.scrollHeight;
+      }
+    });
+  }).catch(function(){});
+}
+// Poll every 60s
+setInterval(checkClinicianMessages,60000);
 /* ═══ END DAILY NUDGE ═══════════════════════════════════════════ */
 
 /* ═══ EGG COMPANION — expressive 5-dimension check-in ════════════ */

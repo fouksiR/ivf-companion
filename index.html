@@ -401,6 +401,8 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 }
 /* ── Welcome Intro Screen ────────────────────────────── */
 #screen-welcome{background:linear-gradient(175deg,var(--bg-top) 0%,var(--bg-mid) 35%,var(--bg-bot) 100%);align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+.sperm-flock{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.sperm-unit{position:absolute;opacity:.85;filter:drop-shadow(0 1px 3px rgba(0,0,0,.08))}
 #screen-welcome .welcome-inner{max-width:420px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;z-index:2}
 #screen-welcome .welcome-egg{width:200px;height:260px;margin-bottom:24px}
 #screen-welcome .welcome-egg svg{filter:drop-shadow(0 6px 20px rgba(122,172,172,.18)) drop-shadow(0 2px 6px rgba(0,0,0,.06));animation:eggBreathe 5s ease-in-out infinite,eggFloat 7s ease-in-out infinite}
@@ -615,13 +617,13 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
       <ellipse cx="82" cy="105" rx="22" ry="14" fill="#fff" opacity="0.25" transform="rotate(-20 82 105)"/>
       <circle cx="112" cy="42" r="4" fill="#fef3c8" stroke="#c8b870" stroke-width="0.8" opacity="0.6"/>
       <g transform="translate(0,10)">
-        <ellipse cx="82" cy="118" rx="3.2" ry="3.5" fill="#555"/>
-        <ellipse cx="118" cy="118" rx="3.2" ry="3.5" fill="#555"/>
-        <circle cx="80.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
-        <circle cx="116.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)"/>
-        <ellipse cx="68" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
-        <ellipse cx="132" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25"/>
-        <path d="M88,138 Q100,148 112,138" stroke="#666" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+        <ellipse id="wEyeL" cx="82" cy="118" rx="3.2" ry="3.5" fill="#555" style="transition:all .15s"/>
+        <ellipse id="wEyeR" cx="118" cy="118" rx="3.2" ry="3.5" fill="#555" style="transition:all .15s"/>
+        <circle id="wShineL" cx="80.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)" style="transition:all .15s"/>
+        <circle id="wShineR" cx="116.5" cy="116.5" r="1.3" fill="rgba(255,255,255,0.85)" style="transition:all .15s"/>
+        <ellipse id="wCheekL" cx="68" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25" style="transition:opacity .5s"/>
+        <ellipse id="wCheekR" cx="132" cy="130" rx="9" ry="5" fill="#f4a89a" opacity="0.25" style="transition:opacity .5s"/>
+        <path id="wMouth" d="M88,138 Q100,148 112,138" stroke="#666" fill="none" stroke-width="1.2" stroke-linecap="round" style="transition:d .3s"/>
       </g>
     </svg>
   </div>
@@ -4518,6 +4520,118 @@ if(typeof _origSubmitCI==='function'){
   };
 }
 
+})();
+
+// ═══════════════════════════════════════════════════════════════════════
+// SPERM FLOCK INTRO ANIMATION — Login page
+// ═══════════════════════════════════════════════════════════════════════
+(function(){
+var _flockDone=false;
+function initFlockAnimation(){
+  if(_flockDone)return;
+  var ws=document.getElementById('screen-welcome');
+  if(!ws||!ws.classList.contains('active'))return;
+  if(document.getElementById('spermFlockContainer'))return;
+  _flockDone=true;
+
+  var container=document.createElement('div');container.id='spermFlockContainer';container.className='sperm-flock';
+  ws.appendChild(container);
+
+  var FLOCK=10,sperm=[];
+  for(var i=0;i<FLOCK;i++){
+    var el=document.createElement('div');el.className='sperm-unit';
+    var dur=(0.3+Math.random()*0.2).toFixed(2);
+    el.innerHTML='<svg width="26" height="10" viewBox="0 0 30 10"><ellipse cx="6" cy="5" rx="5" ry="3.5" fill="rgba(255,255,255,0.82)" stroke="rgba(45,142,142,0.15)" stroke-width="0.5"/><path d="M11 5 Q16 2,20 5 Q24 8,28 5" stroke="rgba(200,184,112,0.55)" stroke-width="1.2" fill="none" stroke-linecap="round"><animate attributeName="d" values="M11 5 Q16 2,20 5 Q24 8,28 5;M11 5 Q16 8,20 5 Q24 2,28 5;M11 5 Q16 2,20 5 Q24 8,28 5" dur="'+dur+'s" repeatCount="indefinite"/></path></svg>';
+    container.appendChild(el);
+    sperm.push({el:el,ox:(Math.random()-.5)*50,oy:(Math.random()-.5)*35,ph:Math.random()*Math.PI*2});
+  }
+
+  // Waypoints: [x%, y%, duration_ms]
+  var wp=[[-8,30,0],[28,22,1600],[52,42,1500],[72,18,1200],[38,52,1500],[52,34,1000],[68,44,800],[88,22,1200],[112,30,1500]];
+  var ci=0,prevX=wp[0][0],prevY=wp[0][1],wpStart=Date.now();
+
+  // Eye elements
+  var wEL=document.getElementById('wEyeL'),wER=document.getElementById('wEyeR');
+  var wSL=document.getElementById('wShineL'),wSR=document.getElementById('wShineR');
+  var wCL=document.getElementById('wCheekL'),wCR=document.getElementById('wCheekR');
+  var wM=document.getElementById('wMouth');
+  var mascot=document.querySelector('.landing-mascot');
+
+  function frame(){
+    if(ci>=wp.length-1){
+      container.style.transition='opacity 1s';container.style.opacity='0';
+      setTimeout(function(){container.remove()},1100);
+      // Reset eyes
+      if(wEL){wEL.setAttribute('cx','82');wEL.setAttribute('ry','3.5');wER.setAttribute('cx','118');wER.setAttribute('ry','3.5')}
+      if(wSL){wSL.setAttribute('cx','80.5');wSR.setAttribute('cx','116.5')}
+      if(wCL){wCL.setAttribute('opacity','0.25');wCR.setAttribute('opacity','0.25')}
+      return;
+    }
+    var now=Date.now(),elapsed=now-wpStart,target=wp[ci+1],dur=target[2];
+    var p=Math.min(elapsed/dur,1);
+    var ease=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    var fx=prevX+(target[0]-prevX)*ease;
+    var fy=prevY+(target[1]-prevY)*ease;
+    var dx=target[0]-prevX,dy=target[1]-prevY;
+    var angle=Math.atan2(dy,dx)*180/Math.PI;
+    var t=now*.003;
+
+    // Position each sperm
+    sperm.forEach(function(s){
+      var wx=Math.sin(t+s.ph)*7,wy=Math.cos(t*1.3+s.ph)*5;
+      var x=(fx+s.ox*.01*100+wx)/100*window.innerWidth;
+      var y=(fy+s.oy*.01*100+wy)/100*window.innerHeight;
+      s.el.style.transform='translate('+x.toFixed(0)+'px,'+y.toFixed(0)+'px) rotate('+angle.toFixed(0)+'deg)';
+    });
+
+    // Eye tracking
+    if(wEL&&mascot){
+      var mr=mascot.getBoundingClientRect();
+      var ecx=mr.left+mr.width/2,ecy=mr.top+mr.height*.45;
+      var fsx=fx/100*window.innerWidth,fsy=fy/100*window.innerHeight;
+      var ddx=fsx-ecx,ddy=fsy-ecy;
+      var dist=Math.sqrt(ddx*ddx+ddy*ddy);
+      var maxS=3.5;
+      var sx=(ddx/Math.max(dist,1))*maxS,sy=(ddy/Math.max(dist,1))*maxS;
+      // Move pupils (via cx/cy offset)
+      wEL.setAttribute('cx',(82+sx).toFixed(1));wER.setAttribute('cx',(118+sx).toFixed(1));
+      wEL.setAttribute('cy',(118+sy).toFixed(1));wER.setAttribute('cy',(118+sy).toFixed(1));
+      wSL.setAttribute('cx',(80.5+sx).toFixed(1));wSR.setAttribute('cx',(116.5+sx).toFixed(1));
+      wSL.setAttribute('cy',(116.5+sy).toFixed(1));wSR.setAttribute('cy',(116.5+sy).toFixed(1));
+
+      // Close pass → blush + eyes widen
+      var distPct=Math.abs(fx-50);
+      if(distPct<18){
+        wCL.setAttribute('opacity','0.7');wCR.setAttribute('opacity','0.7');
+        wEL.setAttribute('ry','4.5');wER.setAttribute('ry','4.5');
+      }else if(fx>80){
+        // Swimming away → eyes narrow slightly (longing)
+        wCL.setAttribute('opacity','0.25');wCR.setAttribute('opacity','0.25');
+        wEL.setAttribute('ry','2.8');wER.setAttribute('ry','2.8');
+      }else{
+        wCL.setAttribute('opacity','0.25');wCR.setAttribute('opacity','0.25');
+        wEL.setAttribute('ry','3.5');wER.setAttribute('ry','3.5');
+      }
+    }
+
+    if(p>=1){prevX=target[0];prevY=target[1];ci++;wpStart=now}
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+// Trigger when welcome screen is shown
+setTimeout(function(){
+  var ws=document.getElementById('screen-welcome');
+  if(ws&&ws.classList.contains('active'))initFlockAnimation();
+},800);
+// Also observe for when it becomes active (after logout)
+var _obs=new MutationObserver(function(){
+  var ws=document.getElementById('screen-welcome');
+  if(ws&&ws.classList.contains('active')&&!_flockDone){setTimeout(initFlockAnimation,500)}
+});
+var ws=document.getElementById('screen-welcome');
+if(ws)_obs.observe(ws,{attributes:true,attributeFilter:['class']});
 })();
 </script>
 </body>

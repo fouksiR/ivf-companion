@@ -4434,6 +4434,113 @@ async def mark_notifications_read(patient_id: str):
     return {"status": "ok"}
 
 
+# ── Patient Notes (sent via egg agent to care team) ──────────────────
+
+@app.post("/patient/{patient_id}/send-note")
+async def patient_send_note(patient_id: str, request: Request):
+    """Patient sends a note to their care team via the egg companion."""
+    body = await request.json()
+    text = body.get("text", "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Empty note")
+
+    note = {
+        "text": text,
+        "timestamp": utc_iso(),
+        "read": False,
+        "source": body.get("source", "egg_agent"),
+        "patient_id": patient_id,
+    }
+
+    # Save to Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patient_notes").child(patient_id).push(note)
+    except Exception:
+        pass
+
+    # Also create a clinician alert
+    patient = patients_db.get(patient_id, {})
+    clinician_alerts.append({
+        "type": "patient_note",
+        "patient_id": patient_id,
+        "patient_name": patient.get("patient_name") or patient.get("name") or patient_id,
+        "message": f"Patient sent a note: \"{text[:100]}\"",
+        "timestamp": utc_iso(),
+        "acknowledged": False,
+    })
+
+    return {"status": "sent", "timestamp": note["timestamp"]}
+
+
+# ── Clinician → Patient Messaging ────────────────────────────────────
+
+@app.post("/clinician/patient/{patient_id}/send-message", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_send_message(patient_id: str, request: Request):
+    """Send a message from clinician to patient."""
+    body = await request.json()
+    msg = {
+        "text": body.get("message", ""),
+        "content": body.get("message", ""),
+        "from_role": body.get("from_role", "doctor"),
+        "sender_name": body.get("sender_name", "Your care team"),
+        "timestamp": utc_iso(),
+        "type": "clinician_message",
+        "read": False,
+        "role": "care_team",
+    }
+    # Save to in-memory
+    conversations_db.setdefault(patient_id, []).append(msg)
+    # Save to Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("clinician_messages").child(patient_id).push(msg)
+    except Exception:
+        pass
+    return {"status": "sent", "timestamp": msg["timestamp"]}
+
+
+@app.get("/patient/{patient_id}/clinician-messages")
+async def get_clinician_messages(patient_id: str):
+    """Get unread clinician messages. Does NOT mark as read."""
+    messages = []
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            msgs = firebase_db._fb_ref.child("clinician_messages").child(patient_id).get()
+            if msgs and isinstance(msgs, dict):
+                for key, val in msgs.items():
+                    if isinstance(val, dict) and not val.get("read", False):
+                        val["id"] = key
+                        messages.append(val)
+    except Exception as e:
+        logger.warning(f"Firebase clinician messages read failed: {e}")
+    # Also check in-memory
+    convs = conversations_db.get(patient_id, [])
+    for msg in convs:
+        if msg.get("type") == "clinician_message" and not msg.get("read", False):
+            messages.append({**msg, "read": False})
+    return {"messages": messages}
+
+
+@app.post("/patient/{patient_id}/clinician-messages/mark-read")
+async def mark_clinician_messages_read(patient_id: str):
+    """Mark all clinician messages as read for a patient."""
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            msgs = firebase_db._fb_ref.child("clinician_messages").child(patient_id).get()
+            if msgs and isinstance(msgs, dict):
+                for key, val in msgs.items():
+                    if isinstance(val, dict) and not val.get("read", False):
+                        firebase_db._fb_ref.child("clinician_messages").child(patient_id).child(key).update({"read": True})
+    except Exception:
+        pass
+    convs = conversations_db.get(patient_id, [])
+    for msg in convs:
+        if msg.get("type") == "clinician_message":
+            msg["read"] = True
+    return {"status": "ok"}
+
+
 # ── Static File Serving ────────────────────────────────────────────────
 
 @app.get("/")

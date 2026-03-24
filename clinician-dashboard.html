@@ -416,7 +416,8 @@
         .tab-btn:hover:not(.active) { color: var(--text-primary); }
 
         /* Chart wraps */
-        .chart-wrap { background: white; border-radius: 16px; padding: 16px; border: 1px solid var(--border); }
+        .chart-wrap { background: white; border-radius: 16px; padding: 16px; border: 1px solid var(--border); min-height: 200px; position: relative; }
+        .chart-wrap canvas { width: 100% !important; height: 200px !important; }
 
         /* Responsive */
         @media (max-width: 1024px) {
@@ -879,7 +880,7 @@ async function loadModalTab(patientId, tab) {
       '<div class="chart-wrap"><canvas id="chartTyping"></canvas></div>' +
       '<div class="chart-wrap"><canvas id="chartSleep"></canvas></div>' +
       '</div><div class="chart-wrap" style="margin:16px 20px"><canvas id="chartEscalation"></canvas></div></div>';
-    loadPhenotypeCharts(patientId);
+    setTimeout(function(){ loadPhenotypeCharts(patientId); }, 100); // Wait for canvas DOM
   } else if (tab === 'conversations') {
     try {
       var r = await authFetch(API_BASE + '/clinician/patient/' + patientId + '/conversations');
@@ -921,15 +922,44 @@ function renderBriefing(b) {
         (b.communication_style === 'ANALYTICAL' ? 'lead with data' : b.communication_style === 'EMOTIONAL' ? 'lead with warmth' : 'balance both') + '</div>';
     }
 
-    if (b.emotional_summary) html += '<div class="briefing-card"><div class="bc-label">Emotional Summary</div><div>' + escHtml(b.emotional_summary) + '</div></div>';
+    // Stress level
+    if (b.stress_level) {
+      var stressClass = b.stress_level === 'CRITICAL' ? 'red' : b.stress_level === 'HIGH' ? 'amber' : 'green';
+      html += '<div class="briefing-card"><div class="bc-label">Stress Level</div><span class="priority-badge ' + stressClass + '">' + b.stress_level + '</span>' +
+        (b.recent_mood_trend ? ' <span style="font-size:12px;color:var(--text-muted)">Mood trend: ' + b.recent_mood_trend + '</span>' : '') + '</div>';
+    }
 
+    // Suggested approach (maps from backend field)
+    if (b.suggested_approach) html += '<div class="briefing-card highlight"><div class="bc-label">Suggested Approach</div><div style="font-size:13px;line-height:1.6">' + escHtml(b.suggested_approach) + '</div></div>';
+
+    // Main concerns (maps from backend field)
+    if (b.main_concerns && b.main_concerns.length) {
+      html += '<div class="briefing-card"><div class="bc-label">Key Concerns</div><ul>' +
+        b.main_concerns.map(function(c) { return '<li>' + escHtml(c) + '</li>'; }).join('') + '</ul></div>';
+    }
+
+    // Patient expectations prompt
+    if (b.patient_expectations_prompt) html += '<div class="briefing-card"><div class="bc-label">Ask the Patient</div><div style="font-style:italic">"' + escHtml(b.patient_expectations_prompt) + '"</div></div>';
+
+    // Key topics discussed
+    if (b.key_topics_discussed && b.key_topics_discussed.length) {
+      html += '<div class="briefing-card"><div class="bc-label">Topics Discussed with AI</div><ul>' +
+        b.key_topics_discussed.map(function(t) { return '<li>' + escHtml(t) + '</li>'; }).join('') + '</ul></div>';
+    }
+
+    // Risk flags
+    if (b.risk_flags && b.risk_flags.length) {
+      html += '<div class="briefing-card warn"><div class="bc-label">⚠ Risk Flags</div><ul>' +
+        b.risk_flags.map(function(f) { return '<li>' + escHtml(f) + '</li>'; }).join('') + '</ul></div>';
+    }
+
+    // Legacy fields (backward compat)
+    if (b.emotional_summary) html += '<div class="briefing-card"><div class="bc-label">Emotional Summary</div><div>' + escHtml(b.emotional_summary) + '</div></div>';
     if (b.care_priorities && b.care_priorities.length) {
       html += '<div class="briefing-card"><div class="bc-label">Care Priorities</div><ol>' +
         b.care_priorities.map(function(p) { return '<li>' + escHtml(p) + '</li>'; }).join('') + '</ol></div>';
     }
-
     if (b.suggested_opener) html += '<div class="briefing-card highlight"><div class="bc-label">Suggested Opener</div><div style="font-style:italic">"' + escHtml(b.suggested_opener) + '"</div></div>';
-
     if (b.topics_to_raise && b.topics_to_raise.length) {
       html += '<div class="briefing-card"><div class="bc-label">Topics to Raise</div><ul>' +
         b.topics_to_raise.map(function(t) { return '<li>' + escHtml(t) + '</li>'; }).join('') + '</ul></div>';

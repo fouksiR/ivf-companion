@@ -3302,6 +3302,7 @@ async def clinician_conversations(patient_id: str):
 async def get_clinician_messages(patient_id: str):
     """Get unread clinician messages for a patient (called by patient app)."""
     messages = []
+    # Try Firebase first
     try:
         if firebase_db and firebase_db._fb_ref:
             msgs = firebase_db._fb_ref.child("clinician_messages").child(patient_id).get()
@@ -3310,10 +3311,18 @@ async def get_clinician_messages(patient_id: str):
                     if not val.get("read", False):
                         val["id"] = key
                         messages.append(val)
-                        # Mark as read
-                        firebase_db._fb_ref.child("clinician_messages").child(patient_id).child(key).update({"read": True})
-    except Exception:
-        pass
+                        try:
+                            firebase_db._fb_ref.child("clinician_messages").child(patient_id).child(key).update({"read": True})
+                        except Exception:
+                            pass
+    except Exception as e:
+        logger.warning(f"Firebase clinician messages read failed: {e}")
+    # Also check in-memory conversations for clinician messages not yet read
+    convs = conversations_db.get(patient_id, [])
+    for i, msg in enumerate(convs):
+        if msg.get("type") == "clinician_message" and not msg.get("read", False):
+            msg["read"] = True
+            messages.append(msg)
     return {"messages": messages}
 
 

@@ -1220,15 +1220,15 @@ def build_patient_context(patient_id: str) -> str:
     screenings = screenings_db.get(patient_id, [])[-3:]
 
     ctx = f"\nPATIENT CONTEXT:\n"
-    if patient["name"]:
-        ctx += f"- Name: {patient['name']}\n"
-    ctx += f"- Treatment stage: {STAGE_DISPLAY.get(patient['treatment_stage'], patient['treatment_stage'])}\n"
-    ctx += f"- Cycle number: {patient['cycle_number']}\n"
-    if patient["partner_name"]:
+    if patient.get("name") or patient.get("patient_name"):
+        ctx += f"- Name: {patient.get('name') or patient.get('patient_name', 'there')}\n"
+    ctx += f"- Treatment stage: {STAGE_DISPLAY.get(patient.get('treatment_stage', 'consultation'), patient.get('treatment_stage', 'consultation'))}\n"
+    ctx += f"- Cycle number: {patient.get('cycle_number', 1)}\n"
+    if patient.get("partner_name"):
         ctx += f"- Partner: {patient['partner_name']}\n"
-    if patient["clinic_name"]:
+    if patient.get("clinic_name"):
         ctx += f"- Clinic: {patient['clinic_name']}\n"
-    ctx += f"- Preferred tone: {patient['preferences'].get('tone', 'gentle')}\n"
+    ctx += f"- Preferred tone: {patient.get('preferences', {}).get('tone', 'gentle')}\n"
 
     if checkins:
         ctx += f"\nRECENT DAILY CHECK-INS (last {len(checkins)} days):\n"
@@ -1274,7 +1274,7 @@ def build_patient_context(patient_id: str) -> str:
 def build_education_context(patient_id: str) -> str:
     """Get relevant education topics for current stage."""
     patient = get_or_create_patient(patient_id)
-    stage = patient["treatment_stage"]
+    stage = patient.get("treatment_stage", "consultation")
     topics = EDUCATION_TOPICS.get(stage, [])
     if not topics:
         return ""
@@ -2456,7 +2456,7 @@ async def chat(req: ChatRequest):
     # Retrieve education RAG content if this is an education query
     rag_context = ""
     if triage_category == 2:  # Education question
-        rag_context = retrieve_education(req.message, patient["treatment_stage"])
+        rag_context = retrieve_education(req.message, patient.get("treatment_stage", "consultation"))
 
     system_prompt = COMPANION_SYSTEM.format(
         patient_context=build_patient_context(req.patient_id),
@@ -2621,7 +2621,7 @@ Weave this awareness naturally — don't announce it as a feature, just show you
     })
 
     # Suggested education topics
-    stage = patient["treatment_stage"]
+    stage = patient.get("treatment_stage", "consultation")
     suggested = EDUCATION_TOPICS.get(stage, [])[:3] if triage_category == 2 else None
 
     # Add alerts to escalation for high-risk patients

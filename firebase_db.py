@@ -69,6 +69,11 @@ class FirebaseDB:
     def __init__(self):
         self.ready = _init_firebase()
 
+    @property
+    def _fb_ref(self):
+        """Expose the module-level _fb_ref for direct access."""
+        return _fb_ref
+
     # ── Patients ────────────────────────────────────────
 
     def save_patient(self, patient_id: str, data: dict):

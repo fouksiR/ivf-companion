@@ -2939,6 +2939,7 @@ async def clinician_dashboard():
     Note: both /clinician/dashboard and /clinician/patients resolve here.
     """
     overview = []
+    logger.info(f"[DASHBOARD] patients_db has {len(patients_db)} patients: {list(patients_db.keys())[:10]}")
     for pid, patient in patients_db.items():
       try:
         recent_checkins = get_recent_checkins(pid, last_n=3)

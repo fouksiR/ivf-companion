@@ -3007,6 +3007,8 @@ async def clinician_dashboard():
         "total": len(overview),
         "alerts": sum(1 for p in overview if p["risk_level"] in ("RED", "AMBER")),
         "timestamp": utc_iso(),
+        "_debug_patients_db_count": len(patients_db),
+        "_debug_patients_db_keys": list(patients_db.keys())[:15],
     }
 
 

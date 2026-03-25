@@ -2940,12 +2940,13 @@ async def clinician_dashboard():
     """
     overview = []
     for pid, patient in patients_db.items():
+      try:
         recent_checkins = get_recent_checkins(pid, last_n=3)
         recent_esc = escalations_db.get(pid, [])[-1:] if escalations_db.get(pid) else []
 
         avg_mood = None
         if recent_checkins:
-            avg_mood = round(sum(c["mood"] for c in recent_checkins) / len(recent_checkins), 1)
+            avg_mood = round(sum(c.get("mood", 5) for c in recent_checkins) / len(recent_checkins), 1)
 
         # Determine risk level
         risk = "GREEN"
@@ -2959,19 +2960,20 @@ async def clinician_dashboard():
         latest_ci = recent_checkins[-1] if recent_checkins else None
 
         patient_name = patient.get("patient_name") or patient.get("name") or "Anonymous"
+        stage = patient.get("treatment_stage", "consultation")
 
         overview.append({
             "patient_id": pid,
             "patient_name": patient_name,
             "name": patient_name,  # backward compat
             "email": patient.get("email", ""),
-            "treatment_stage": STAGE_DISPLAY.get(patient["treatment_stage"], patient["treatment_stage"]),
-            "cycle_number": patient["cycle_number"],
+            "treatment_stage": STAGE_DISPLAY.get(stage, stage),
+            "cycle_number": patient.get("cycle_number", 1),
             "avg_mood_3d": avg_mood,
             "risk_level": risk,
             "escalation_level": risk,
-            "last_active": patient["last_active"],
-            "last_updated": patient.get("last_active"),
+            "last_active": patient.get("last_active", ""),
+            "last_updated": patient.get("last_active", ""),
             "last_escalation": recent_esc[0] if recent_esc else None,
             "session_count": store.get("session_count", 0),
             "baseline_established": store.get("baseline_established", False),
@@ -2980,6 +2982,19 @@ async def clinician_dashboard():
             "human_escalation_requested": store.get("human_escalation_requested", False),
             "communication_style": classify_patient_style(pid),
             "summary": (store.get("current_assessment") or {}).get("summary", ""),
+        })
+      except Exception as e:
+        logger.warning(f"Error building patient overview for {pid}: {e}")
+        # Still include the patient with minimal info
+        overview.append({
+            "patient_id": pid,
+            "patient_name": patient.get("patient_name") or patient.get("name") or "Unknown",
+            "name": patient.get("name", "Unknown"),
+            "email": patient.get("email", ""),
+            "treatment_stage": patient.get("treatment_stage", "unknown"),
+            "cycle_number": patient.get("cycle_number", 1),
+            "risk_level": "GREEN", "escalation_level": "GREEN",
+            "last_active": patient.get("last_active", ""),
         })
 
     # Sort by risk (RED first, then AMBER, then GREEN)

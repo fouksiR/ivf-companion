@@ -391,26 +391,39 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .nav-item.active{color:#0d7377!important}
 .nav-item svg{stroke:#8aacac!important}
 .nav-item.active svg{stroke:#0d7377!important}
-/* AI chat bubble — solid white bg */
-.msg-ai .msg-bubble{background:rgba(255,255,255,.92)!important;border:1px solid rgba(200,220,220,.5)!important;color:#1a3a3a!important}
-/* Calendar — dark numbers, visible today */
-.cal-num{color:#2a4a4e!important;font-weight:500!important;font-size:13px!important}
-.cal-day-header{color:#4a7a7e!important;font-weight:600!important}
-.cal-cell.today{background:rgba(13,115,119,.12)!important}
-.cal-cell.today .cal-num{color:#0d7377!important;font-weight:700!important}
-.cal-header h3{color:#1a3a3a!important;font-weight:700!important}
-/* Cards — solid white, not ghostly */
-.edu-item,.trend-panel,.goal-banner,.memory-jar{background:rgba(255,255,255,.92)!important;border:1px solid rgba(200,220,220,.5)!important}
-.edu-item span,.edu-item div{color:#2a4a4e!important}
-.edu-section h3,.trend-panel h3{color:#1a3a3a!important;font-weight:700!important}
-/* Stage pill — readable */
-.stage-pill{background:rgba(255,255,255,.8)!important;color:#1a5c5e!important;font-weight:700!important;border:1.5px solid rgba(26,92,94,.3)!important}
+/* AI chat bubble — adapts to sky */
+.msg-ai .msg-bubble{background:var(--card-bg)!important;border:1px solid var(--card-border)!important;color:var(--text)!important}
+.msg-ai .msg-sender{color:var(--accent)!important}
+/* Nudge card adapts */
+.nudge-card{background:var(--card-bg)!important;color:var(--text)!important;border:1px solid var(--card-border)!important}
+.nudge-card *{color:var(--text)!important}
+/* One-word pill */
+.one-word-pill{color:var(--accent)!important;border-color:var(--card-border)!important}
+/* Calendar — adapts to sky */
+.cal-num{color:var(--text)!important;font-weight:500!important;font-size:13px!important}
+.cal-day-header{color:var(--text-soft)!important;font-weight:600!important}
+.cal-cell.today{background:rgba(13,115,119,.15)!important}
+.cal-cell.today .cal-num{color:#2D8E8E!important;font-weight:700!important}
+.cal-header h3{color:var(--text)!important;font-weight:700!important}
+/* Cards adapt */
+.edu-item,.trend-panel,.goal-banner,.memory-jar{background:var(--card-bg)!important;border:1px solid var(--card-border)!important}
+.edu-item span,.edu-item div{color:var(--text)!important}
+.edu-section h3,.trend-panel h3{color:var(--text)!important;font-weight:700!important}
+/* Stage pill */
+.stage-pill{background:var(--card-bg)!important;color:var(--accent)!important;font-weight:700!important;border:1.5px solid var(--card-border)!important}
 /* Insights tabs */
-.insights-tab{color:#5a7a7e!important;font-weight:500!important}
-.insights-tab.active{color:#0d7377!important;font-weight:600!important}
-/* Wave pills vibrant */
-.wave-toggle{font-weight:600!important}
-.wave-toggle.active{background:rgba(45,142,142,.15)!important;color:#0d7377!important}
+.insights-tab{color:var(--text-soft)!important;font-weight:500!important}
+.insights-tab.active{color:var(--accent)!important;font-weight:600!important}
+/* Wave pills */
+.wave-toggle{font-weight:600!important;color:var(--text-soft)!important}
+.wave-toggle.active{background:rgba(45,142,142,.15)!important;color:var(--accent)!important}
+/* Chat input adapts */
+#chat-input,.chat-composer textarea{background:var(--card-bg)!important;color:var(--text)!important;border-color:var(--card-border)!important}
+#chat-input::placeholder{color:var(--text-soft)!important}
+/* Chat composer bar */
+.chat-composer{background:var(--sky-nav-bg,rgba(255,255,255,.95))!important;border-top:1px solid var(--card-border)!important}
+/* Send button */
+.send-btn{background:var(--accent)!important}
 /* Egg agent engagement */
 @keyframes eggSlideUp{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 @keyframes eggWiggle{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}

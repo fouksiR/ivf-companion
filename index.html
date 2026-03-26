@@ -27,7 +27,7 @@ try{
 <style>
 :root{--white:#FFF;--bg:#eaf9f4;--bg-warm:#fff9ed;--bg-top:#d4f1f1;--bg-mid:#e0f5f0;--bg-bot:#eaf9f4;--border:#E8E6E3;--border-light:rgba(45,142,142,0.1);--text:#1a3a3a;--text-mid:#3a7070;--text-soft:#6a9e9e;--text-faint:#b8e6e6;--accent:#2D8E8E;--accent-light:#b8e6e6;--accent-hover:#1e6b6b;--warm:#D4886B;--warm-light:#FDF3EF;--green:#6ec9a0;--green-light:#c8f0dd;--amber:#D4A843;--amber-light:#f5e6c4;--red:#C25D5D;--red-light:#FDF0F0;--gold:#D4A843;--gold-soft:#f5e6c4;--cream:#fff9ed;--blush:#f4a89a;--card-bg:rgba(255,255,255,0.75);--card-border:rgba(45,142,142,0.1);--shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 2px 12px rgba(0,0,0,.06);--shadow-lg:0 4px 24px rgba(0,0,0,.08);--radius:16px;--radius-sm:10px;--radius-xs:6px;--oocyte-outer:#c8b870;--oocyte-zona:#e8daa0;--oocyte-inner:#fef3c8;--oocyte-core:#fff8dc;--oocyte-highlight:#fffef0}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:'DM Sans','Montserrat',-apple-system,sans-serif;background:linear-gradient(175deg,var(--bg-top) 0%,var(--bg-mid) 35%,var(--bg-bot) 100%);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.6}
+body{font-family:'DM Sans','Montserrat',-apple-system,sans-serif;background:linear-gradient(175deg,var(--bg-top) 0%,var(--bg-mid) 35%,var(--bg-bot) 100%);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.6;transition:background 2s ease,color 2s ease}
 h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-weight:400}
 .screen{display:none;min-height:100vh}.screen.active{display:flex;flex-direction:column}
 
@@ -4837,6 +4837,53 @@ function startBreathing(){
 }
 function stopBreathing(){var o=document.getElementById('breathing-ov');if(o)o.remove()}
 window.startBreathing=startBreathing;window.stopBreathing=stopBreathing;
+
+// ═══════════════════════════════════════════════════════════════════════
+// DYNAMIC TIME-OF-DAY BACKGROUND
+// ═══════════════════════════════════════════════════════════════════════
+(function timeBackground(){
+function update(){
+  var h=new Date().getHours(),r=document.documentElement;
+  var top,mid,bot,text,textSoft,cardBg,cardBorder;
+  if(h>=5&&h<8){
+    // Sunrise — peach/rose
+    top='#fce4d6';mid='#fdf0e8';bot='#eef6f4';
+  }else if(h>=8&&h<12){
+    // Morning — fresh teal
+    top='#d4f1f1';mid='#e0f5f0';bot='#eaf9f4';
+  }else if(h>=12&&h<16){
+    // Midday — clear light
+    top='#e8f6f8';mid='#f0fafb';bot='#eef7f5';
+  }else if(h>=16&&h<19){
+    // Golden afternoon
+    top='#fdf2e0';mid='#faf5ea';bot='#eaf2f0';
+  }else if(h>=19&&h<22){
+    // Dusky evening — lavender
+    top='#e8e0f0';mid='#ede6f2';bot='#e8ecf2';
+  }else{
+    // Night — deep calm
+    top='#1a2a3a';mid='#1e2d3d';bot='#1a2838';
+    text='#e8ecf0';textSoft='#a0b0c0';
+    cardBg='rgba(255,255,255,0.08)';cardBorder='rgba(255,255,255,0.1)';
+  }
+  r.style.setProperty('--bg-top',top);
+  r.style.setProperty('--bg-mid',mid);
+  r.style.setProperty('--bg-bot',bot);
+  if(text){
+    r.style.setProperty('--text',text);
+    r.style.setProperty('--text-soft',textSoft);
+    r.style.setProperty('--card-bg',cardBg);
+    r.style.setProperty('--card-border',cardBorder);
+  }else{
+    r.style.setProperty('--text','#1a3a3a');
+    r.style.setProperty('--text-soft','#6a9e9e');
+    r.style.setProperty('--card-bg','rgba(255,255,255,0.75)');
+    r.style.setProperty('--card-border','rgba(45,142,142,0.1)');
+  }
+}
+update();
+setInterval(update,600000); // every 10 min
+})();
 </script>
 </body>
 </html>

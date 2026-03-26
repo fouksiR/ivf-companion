@@ -3022,7 +3022,7 @@ async def clinician_dashboard():
 
 
 @app.get("/clinician/patients-list", dependencies=[Depends(verify_clinician_api_key)])
-async def clinician_patients():
+async def clinician_patients_v2():
     """Returns all patients — reads from both in-memory and Firebase."""
     all_patients = dict(patients_db)
     try:

@@ -606,7 +606,7 @@ function authFetch(url, opts) {
 async function poll() {
   try {
     var [pRes, aRes] = await Promise.all([
-      authFetch(API_BASE + '/clinician/patients'),
+      authFetch(API_BASE + '/clinician/dashboard'),
       authFetch(API_BASE + '/clinician/alerts?limit=30')
     ]);
     if (pRes.ok) {

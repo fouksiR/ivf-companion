@@ -2932,30 +2932,25 @@ async def verify_clinician_api_key(x_api_key: str = Header(None)):
 # ── Clinician Dashboard Endpoints ────────────────────────────────────
 
 @app.get("/clinician/dashboard", dependencies=[Depends(verify_clinician_api_key)])
-@app.get("/clinician/patients", dependencies=[Depends(verify_clinician_api_key)])
 async def clinician_dashboard():
     """Get overview of all patients for clinician dashboard.
 
     Note: both /clinician/dashboard and /clinician/patients resolve here.
     """
     overview = []
-    # Merge in-memory patients with Firebase patients (in case of cold start data loss)
-    all_patients = dict(patients_db)  # start with in-memory
-    print(f"[DASHBOARD] In-memory: {len(patients_db)} patients, keys: {list(patients_db.keys())[:5]}")
+    # Merge in-memory patients with Firebase patients (cold start resilience)
+    all_patients = dict(patients_db)
     try:
         fb_ref = getattr(firebase_db, '_fb_ref', None)
-        print(f"[DASHBOARD] firebase_db._fb_ref = {fb_ref}")
         if fb_ref:
             fb_patients = fb_ref.child("patients").get()
-            print(f"[DASHBOARD] Firebase patients: {len(fb_patients) if fb_patients else 0}")
             if fb_patients and isinstance(fb_patients, dict):
                 for pid, pdata in fb_patients.items():
                     if pid not in all_patients and isinstance(pdata, dict):
                         all_patients[pid] = pdata
                         patients_db[pid] = pdata
-    except Exception as e:
-        print(f"[DASHBOARD] Firebase merge error: {e}")
-    print(f"[DASHBOARD] Total patients to show: {len(all_patients)}")
+    except Exception:
+        pass
     for pid, patient in all_patients.items():
       try:
         recent_checkins = get_recent_checkins(pid, last_n=3)
@@ -3023,9 +3018,13 @@ async def clinician_dashboard():
         "total": len(overview),
         "alerts": sum(1 for p in overview if p["risk_level"] in ("RED", "AMBER")),
         "timestamp": utc_iso(),
-        "_debug_patients_db_count": len(patients_db),
-        "_debug_patients_db_keys": list(patients_db.keys())[:15],
     }
+
+
+@app.get("/clinician/patients", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_patients():
+    """Alias for clinician_dashboard — returns same data."""
+    return await clinician_dashboard()
 
 
 # ── In-memory alert store (derived from escalations + check-ins) ──

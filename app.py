@@ -2941,19 +2941,21 @@ async def clinician_dashboard():
     overview = []
     # Merge in-memory patients with Firebase patients (in case of cold start data loss)
     all_patients = dict(patients_db)  # start with in-memory
+    print(f"[DASHBOARD] In-memory: {len(patients_db)} patients, keys: {list(patients_db.keys())[:5]}")
     try:
-        if firebase_db and firebase_db._fb_ref:
-            fb_patients = firebase_db._fb_ref.child("patients").get()
+        fb_ref = getattr(firebase_db, '_fb_ref', None)
+        print(f"[DASHBOARD] firebase_db._fb_ref = {fb_ref}")
+        if fb_ref:
+            fb_patients = fb_ref.child("patients").get()
+            print(f"[DASHBOARD] Firebase patients: {len(fb_patients) if fb_patients else 0}")
             if fb_patients and isinstance(fb_patients, dict):
                 for pid, pdata in fb_patients.items():
                     if pid not in all_patients and isinstance(pdata, dict):
                         all_patients[pid] = pdata
-                        # Also restore to in-memory for this session
                         patients_db[pid] = pdata
-                logger.info(f"[DASHBOARD] Merged: {len(patients_db)} in-memory + {len(fb_patients)} Firebase → {len(all_patients)} total")
     except Exception as e:
-        logger.warning(f"[DASHBOARD] Firebase patient merge failed: {e}")
-    logger.info(f"[DASHBOARD] Showing {len(all_patients)} patients")
+        print(f"[DASHBOARD] Firebase merge error: {e}")
+    print(f"[DASHBOARD] Total patients to show: {len(all_patients)}")
     for pid, patient in all_patients.items():
       try:
         recent_checkins = get_recent_checkins(pid, last_n=3)

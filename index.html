@@ -322,7 +322,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .egg-companion{position:fixed;bottom:74px;left:16px;z-index:50;display:none;touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer;transition:all .6s cubic-bezier(.25,1,.5,1)}
 .egg-companion.visible{display:block}
 .egg-companion.centered{bottom:45%;left:50%;transform:translate(-50%,50%)}
-.egg-companion svg{filter:drop-shadow(0 6px 20px rgba(122,172,172,.18)) drop-shadow(0 2px 6px rgba(0,0,0,.06))}
+.egg-companion svg{filter:drop-shadow(0 0 12px rgba(180,140,200,.25)) drop-shadow(0 6px 20px rgba(180,140,200,.15)) drop-shadow(0 2px 6px rgba(0,0,0,.04))}
 .egg-companion.idle svg{animation:eggBreathe 5s ease-in-out infinite,eggFloat 7s ease-in-out infinite}
 @keyframes eggBreathe{0%,100%{transform:scaleX(1) scaleY(1)}50%{transform:scaleX(1.012) scaleY(1.018)}}
 @keyframes eggFloat{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-2.5px) rotate(-0.6deg)}50%{transform:translateY(-4px) rotate(0deg)}75%{transform:translateY(-2px) rotate(0.6deg)}}
@@ -382,6 +382,13 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .oc-bubble.excited{font-size:16px;color:#D4A843;font-weight:700;background:linear-gradient(135deg,#fffef0,#fef3c8);box-shadow:0 4px 20px rgba(253,230,138,.3)}
 .oc-bubble.gentle{background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border:1px solid rgba(45,142,142,.1);box-shadow:0 4px 16px rgba(45,142,142,.1)}
 .confetti-p{position:fixed;pointer-events:none;z-index:61;border-radius:2px;opacity:.9}
+/* Ambient particles */
+@keyframes ambientDrift{0%,100%{transform:translate(0,0) scale(1);opacity:.6}25%{transform:translate(30px,-40px) scale(1.1);opacity:.8}50%{transform:translate(-20px,20px) scale(.95);opacity:.5}75%{transform:translate(15px,35px) scale(1.05);opacity:.7}}
+/* Glassmorphism nav */
+.nav-bar{background:rgba(255,255,255,.85)!important;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.5)!important;box-shadow:0 -2px 12px rgba(0,0,0,.04)}
+/* Softer chat bubbles */
+.msg-user .msg-bubble{background:rgba(255,255,255,.7)!important;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.5)!important;color:var(--text)!important}
+.msg-ai .msg-bubble{background:rgba(26,92,94,.06)!important;border:1px solid rgba(26,92,94,.08)!important}
 /* Egg agent engagement */
 @keyframes eggSlideUp{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 @keyframes eggWiggle{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
@@ -4883,6 +4890,35 @@ function update(){
 }
 update();
 setInterval(update,600000); // every 10 min
+})();
+
+// ═══════════════════════════════════════════════════════════════════════
+// AMBIENT PARTICLES — soft floating circles
+// ═══════════════════════════════════════════════════════════════════════
+(function ambientParticles(){
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  function init(){
+    if(document.getElementById('ambient-p'))return;
+    var c=document.createElement('div');c.id='ambient-p';
+    c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden';
+    var h=new Date().getHours();var isNight=h>=22||h<5;
+    var cols=isNight
+      ?['rgba(60,40,80,.12)','rgba(40,60,80,.1)','rgba(80,60,100,.08)','rgba(50,70,90,.08)']
+      :['rgba(240,212,224,.15)','rgba(200,170,200,.12)','rgba(180,220,230,.12)','rgba(220,200,230,.1)','rgba(250,230,210,.1)'];
+    for(var i=0;i<7;i++){
+      var p=document.createElement('div');
+      var sz=40+Math.random()*80;
+      p.style.cssText='position:absolute;border-radius:50%;width:'+sz+'px;height:'+sz+'px;'+
+        'background:'+cols[Math.floor(Math.random()*cols.length)]+';'+
+        'left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;'+
+        'animation:ambientDrift '+(20+Math.random()*30)+'s ease-in-out '+(Math.random()*-20)+'s infinite;'+
+        'filter:blur('+(10+Math.random()*12)+'px)';
+      c.appendChild(p);
+    }
+    document.body.appendChild(c);
+  }
+  // Init when app shows
+  setTimeout(init,2000);
 })();
 </script>
 </body>

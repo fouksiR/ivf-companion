@@ -3023,8 +3023,58 @@ async def clinician_dashboard():
 
 @app.get("/clinician/patients", dependencies=[Depends(verify_clinician_api_key)])
 async def clinician_patients():
-    """Alias for clinician_dashboard — returns same data."""
-    return await clinician_dashboard()
+    """Returns all patients — reads from both in-memory and Firebase."""
+    all_patients = dict(patients_db)
+    try:
+        fb_ref = getattr(firebase_db, '_fb_ref', None)
+        if fb_ref:
+            fb_patients = fb_ref.child("patients").get()
+            if fb_patients and isinstance(fb_patients, dict):
+                for pid, pdata in fb_patients.items():
+                    if pid not in all_patients and isinstance(pdata, dict):
+                        all_patients[pid] = pdata
+                        patients_db[pid] = pdata
+    except Exception:
+        pass
+
+    overview = []
+    for pid, patient in all_patients.items():
+        try:
+            patient_name = patient.get("patient_name") or patient.get("name") or "Unknown"
+            stage = patient.get("treatment_stage", "consultation")
+            recent_ci = get_recent_checkins(pid, last_n=1)
+            latest_ci = recent_ci[-1] if recent_ci else None
+            recent_esc = escalations_db.get(pid, [])[-1:] if escalations_db.get(pid) else []
+            risk = "GREEN"
+            if recent_esc and recent_esc[0].get("level") == "RED":
+                risk = "RED"
+            elif recent_esc and recent_esc[0].get("level") == "AMBER":
+                risk = "AMBER"
+            overview.append({
+                "patient_id": pid,
+                "patient_name": patient_name,
+                "name": patient_name,
+                "email": patient.get("email", ""),
+                "treatment_stage": STAGE_DISPLAY.get(stage, stage),
+                "cycle_number": patient.get("cycle_number", 1),
+                "risk_level": risk,
+                "escalation_level": risk,
+                "last_active": patient.get("last_active", ""),
+                "latest_checkin": latest_ci,
+                "communication_style": classify_patient_style(pid),
+            })
+        except Exception:
+            overview.append({
+                "patient_id": pid,
+                "patient_name": patient.get("name", "Unknown"),
+                "treatment_stage": patient.get("treatment_stage", "unknown"),
+                "risk_level": "GREEN", "escalation_level": "GREEN",
+                "last_active": patient.get("last_active", ""),
+            })
+
+    risk_order = {"RED": 0, "AMBER": 1, "GREEN": 2}
+    overview.sort(key=lambda x: risk_order.get(x.get("risk_level", "GREEN"), 3))
+    return {"patients": overview, "total": len(overview), "timestamp": utc_iso()}
 
 
 # ── In-memory alert store (derived from escalations + check-ins) ──

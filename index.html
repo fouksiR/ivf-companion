@@ -383,12 +383,33 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .oc-bubble.gentle{background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border:1px solid rgba(45,142,142,.1);box-shadow:0 4px 16px rgba(45,142,142,.1)}
 .confetti-p{position:fixed;pointer-events:none;z-index:61;border-radius:2px;opacity:.9}
 /* Ambient particles */
-@keyframes ambientDrift{0%,100%{transform:translate(0,0) scale(1);opacity:.6}25%{transform:translate(30px,-40px) scale(1.1);opacity:.8}50%{transform:translate(-20px,20px) scale(.95);opacity:.5}75%{transform:translate(15px,35px) scale(1.05);opacity:.7}}
-/* Glassmorphism nav */
-.nav-bar{background:rgba(255,255,255,.85)!important;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.5)!important;box-shadow:0 -2px 12px rgba(0,0,0,.04)}
-/* Softer chat bubbles */
-.msg-user .msg-bubble{background:rgba(255,255,255,.7)!important;backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.5)!important;color:var(--text)!important}
-.msg-ai .msg-bubble{background:rgba(26,92,94,.06)!important;border:1px solid rgba(26,92,94,.08)!important}
+@keyframes ambientDrift{0%,100%{transform:translate(0,0) scale(1);opacity:.4}25%{transform:translate(30px,-40px) scale(1.1);opacity:.5}50%{transform:translate(-20px,20px) scale(.95);opacity:.3}75%{transform:translate(15px,35px) scale(1.05);opacity:.45}}
+/* Nav bar — solid, readable */
+.nav-bar{background:rgba(255,255,255,.95)!important;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(200,215,215,.5)!important;box-shadow:0 -2px 12px rgba(0,0,0,.05)}
+.nav-item{color:#5a7a7e!important;font-weight:600!important}
+.nav-item.active{color:#0d7377!important}
+.nav-item svg{stroke:#8aacac!important}
+.nav-item.active svg{stroke:#0d7377!important}
+/* AI chat bubble — solid white bg */
+.msg-ai .msg-bubble{background:rgba(255,255,255,.92)!important;border:1px solid rgba(200,220,220,.5)!important;color:#1a3a3a!important}
+/* Calendar — dark numbers, visible today */
+.cal-num{color:#2a4a4e!important;font-weight:500!important;font-size:13px!important}
+.cal-day-header{color:#4a7a7e!important;font-weight:600!important}
+.cal-cell.today{background:rgba(13,115,119,.12)!important}
+.cal-cell.today .cal-num{color:#0d7377!important;font-weight:700!important}
+.cal-header h3{color:#1a3a3a!important;font-weight:700!important}
+/* Cards — solid white, not ghostly */
+.edu-item,.trend-panel,.goal-banner,.memory-jar{background:rgba(255,255,255,.92)!important;border:1px solid rgba(200,220,220,.5)!important}
+.edu-item span,.edu-item div{color:#2a4a4e!important}
+.edu-section h3,.trend-panel h3{color:#1a3a3a!important;font-weight:700!important}
+/* Stage pill — readable */
+.stage-pill{background:rgba(255,255,255,.8)!important;color:#1a5c5e!important;font-weight:700!important;border:1.5px solid rgba(26,92,94,.3)!important}
+/* Insights tabs */
+.insights-tab{color:#5a7a7e!important;font-weight:500!important}
+.insights-tab.active{color:#0d7377!important;font-weight:600!important}
+/* Wave pills vibrant */
+.wave-toggle{font-weight:600!important}
+.wave-toggle.active{background:rgba(45,142,142,.15)!important;color:#0d7377!important}
 /* Egg agent engagement */
 @keyframes eggSlideUp{from{transform:translateX(-50%) translateY(60px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 @keyframes eggWiggle{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-5deg)}75%{transform:rotate(5deg)}}
@@ -4853,24 +4874,24 @@ function update(){
   var h=new Date().getHours(),r=document.documentElement;
   var top,mid,bot,text,textSoft,cardBg,cardBorder;
   if(h>=5&&h<8){
-    // Sunrise — peach/rose
-    top='#fce4d6';mid='#fdf0e8';bot='#eef6f4';
+    // Sunrise — warm peach/rose
+    top='#fce4d6';mid='#faeade';bot='#eef4f0';
   }else if(h>=8&&h<12){
-    // Morning — fresh teal
-    top='#d4f1f1';mid='#e0f5f0';bot='#eaf9f4';
+    // Morning — fresh with warmth
+    top='#dff0ee';mid='#e8f4f0';bot='#f0ede6';
   }else if(h>=12&&h<16){
-    // Midday — clear light
-    top='#e8f6f8';mid='#f0fafb';bot='#eef7f5';
+    // Midday — bright with warm hints
+    top='#e2f0f2';mid='#ecf5f0';bot='#f0ede4';
   }else if(h>=16&&h<19){
-    // Golden afternoon
-    top='#fdf2e0';mid='#faf5ea';bot='#eaf2f0';
+    // Golden afternoon — richer
+    top='#f8eedc';mid='#f5f0e4';bot='#e8f0ec';
   }else if(h>=19&&h<22){
-    // Dusky evening — lavender
-    top='#e8e0f0';mid='#ede6f2';bot='#e8ecf2';
+    // Dusky evening — richer purple
+    top='#e2d8ee';mid='#e8e0f0';bot='#e0e4ec';
   }else{
     // Night — deep calm
     top='#1a2a3a';mid='#1e2d3d';bot='#1a2838';
-    text='#e8ecf0';textSoft='#a0b0c0';
+    text='#e8ecf0';textSoft='#b8c8d4';
     cardBg='rgba(255,255,255,0.08)';cardBorder='rgba(255,255,255,0.1)';
   }
   r.style.setProperty('--bg-top',top);

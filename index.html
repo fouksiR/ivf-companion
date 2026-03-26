@@ -87,8 +87,8 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .btn-secondary{background:var(--bg);color:var(--text-mid);border:1px solid var(--border)}
 .btn-row{display:flex;gap:8px;margin-top:8px}.btn-row .btn{flex:1}.btn-row .btn-back{flex:.6}
 
-#screen-app{max-width:520px;margin:0 auto;background:var(--bg);height:100vh}
-.app-header{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--card-border);position:sticky;top:0;z-index:20}
+#screen-app{max-width:520px;margin:0 auto;background:transparent;height:100vh;position:relative}
+.app-header{padding:12px 20px;display:flex;align-items:center;justify-content:space-between;background:var(--sky-nav-bg,rgba(255,255,255,.85));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--card-border);position:sticky;top:0;z-index:20}
 .app-header .brand{display:flex;align-items:center;gap:8px}
 .app-header .brand svg{width:28px;height:28px}
 .app-header .brand-text{font-family:'Playfair Display','Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text);letter-spacing:-.3px}
@@ -103,7 +103,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .nav-item.active svg{stroke:var(--accent)}
 .tab-panel{display:none;flex:1;overflow-y:auto;padding-bottom:70px}.tab-panel.active{display:flex;flex-direction:column}
 
-#panel-chat{background:var(--bg-warm)}
+#panel-chat{background:transparent}
 .chat-area{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:12px}
 .msg{max-width:82%;animation:msgIn .3s ease}
 @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -233,7 +233,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .ai-response .ar-label{font-size:10px;font-weight:600;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .ai-response .ar-text{font-size:14px;line-height:1.65;color:var(--text)}
 
-#panel-journey{padding:0;gap:0;background:var(--bg)}
+#panel-journey{padding:0;gap:0;background:transparent}
 .journey-hero{text-align:center;padding:20px 16px 12px}
 .journey-hero h2{font-size:24px;color:var(--text)}
 .journey-hero p{font-size:12px;color:var(--text-soft);margin-top:2px}
@@ -383,9 +383,10 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .oc-bubble.gentle{background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border:1px solid rgba(45,142,142,.1);box-shadow:0 4px 16px rgba(45,142,142,.1)}
 .confetti-p{position:fixed;pointer-events:none;z-index:61;border-radius:2px;opacity:.9}
 /* Ambient particles */
-@keyframes ambientDrift{0%,100%{transform:translate(0,0) scale(1);opacity:.4}25%{transform:translate(30px,-40px) scale(1.1);opacity:.5}50%{transform:translate(-20px,20px) scale(.95);opacity:.3}75%{transform:translate(15px,35px) scale(1.05);opacity:.45}}
-/* Nav bar — solid, readable */
-.nav-bar{background:rgba(255,255,255,.95)!important;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(200,215,215,.5)!important;box-shadow:0 -2px 12px rgba(0,0,0,.05)}
+@keyframes twinkle{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+@keyframes cloudDrift{0%{left:-15%}100%{left:105%}}
+/* Nav bar — adapts to sky */
+.nav-bar{background:var(--sky-nav-bg,rgba(255,255,255,.95))!important;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--card-border)!important;box-shadow:0 -2px 12px rgba(0,0,0,.05)}
 .nav-item{color:#5a7a7e!important;font-weight:600!important}
 .nav-item.active{color:#0d7377!important}
 .nav-item svg{stroke:#8aacac!important}
@@ -4867,79 +4868,95 @@ function stopBreathing(){var o=document.getElementById('breathing-ov');if(o)o.re
 window.startBreathing=startBreathing;window.stopBreathing=stopBreathing;
 
 // ═══════════════════════════════════════════════════════════════════════
-// DYNAMIC TIME-OF-DAY BACKGROUND
+// UNIFIED SKY — full-screen time-based background + sun/moon/stars
 // ═══════════════════════════════════════════════════════════════════════
-(function timeBackground(){
-function update(){
-  var h=new Date().getHours(),r=document.documentElement;
-  var top,mid,bot,text,textSoft,cardBg,cardBorder;
-  if(h>=5&&h<8){
-    // Sunrise — warm peach/rose
-    top='#fce4d6';mid='#faeade';bot='#eef4f0';
-  }else if(h>=8&&h<12){
-    // Morning — fresh with warmth
-    top='#dff0ee';mid='#e8f4f0';bot='#f0ede6';
-  }else if(h>=12&&h<16){
-    // Midday — bright with warm hints
-    top='#e2f0f2';mid='#ecf5f0';bot='#f0ede4';
-  }else if(h>=16&&h<19){
-    // Golden afternoon — richer
-    top='#f8eedc';mid='#f5f0e4';bot='#e8f0ec';
-  }else if(h>=19&&h<22){
-    // Dusky evening — richer purple
-    top='#e2d8ee';mid='#e8e0f0';bot='#e0e4ec';
-  }else{
-    // Night — deep calm
-    top='#1a2a3a';mid='#1e2d3d';bot='#1a2838';
-    text='#e8ecf0';textSoft='#b8c8d4';
-    cardBg='rgba(255,255,255,0.08)';cardBorder='rgba(255,255,255,0.1)';
-  }
-  r.style.setProperty('--bg-top',top);
-  r.style.setProperty('--bg-mid',mid);
-  r.style.setProperty('--bg-bot',bot);
-  if(text){
-    r.style.setProperty('--text',text);
-    r.style.setProperty('--text-soft',textSoft);
-    r.style.setProperty('--card-bg',cardBg);
-    r.style.setProperty('--card-border',cardBorder);
-  }else{
-    r.style.setProperty('--text','#1a3a3a');
-    r.style.setProperty('--text-soft','#6a9e9e');
-    r.style.setProperty('--card-bg','rgba(255,255,255,0.75)');
-    r.style.setProperty('--card-border','rgba(45,142,142,0.1)');
-  }
-}
-update();
-setInterval(update,600000); // every 10 min
-})();
+(function unifiedSky(){
+function updateSky(){
+  var h=new Date().getHours(),m=new Date().getMinutes(),r=document.documentElement;
+  var bg,text,textSoft,cardBg,cardBorder,navBg,theme;
 
-// ═══════════════════════════════════════════════════════════════════════
-// AMBIENT PARTICLES — soft floating circles
-// ═══════════════════════════════════════════════════════════════════════
-(function ambientParticles(){
-  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  function init(){
-    if(document.getElementById('ambient-p'))return;
-    var c=document.createElement('div');c.id='ambient-p';
-    c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden';
-    var h=new Date().getHours();var isNight=h>=22||h<5;
-    var cols=isNight
-      ?['rgba(60,40,80,.12)','rgba(40,60,80,.1)','rgba(80,60,100,.08)','rgba(50,70,90,.08)']
-      :['rgba(240,212,224,.15)','rgba(200,170,200,.12)','rgba(180,220,230,.12)','rgba(220,200,230,.1)','rgba(250,230,210,.1)'];
-    for(var i=0;i<7;i++){
-      var p=document.createElement('div');
-      var sz=40+Math.random()*80;
-      p.style.cssText='position:absolute;border-radius:50%;width:'+sz+'px;height:'+sz+'px;'+
-        'background:'+cols[Math.floor(Math.random()*cols.length)]+';'+
-        'left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;'+
-        'animation:ambientDrift '+(20+Math.random()*30)+'s ease-in-out '+(Math.random()*-20)+'s infinite;'+
-        'filter:blur('+(10+Math.random()*12)+'px)';
-      c.appendChild(p);
-    }
-    document.body.appendChild(c);
+  if(h>=5&&h<7){
+    bg='linear-gradient(180deg,#2d2040 0%,#6b3a5c 15%,#c47a6c 35%,#f0b88a 55%,#fce4c8 75%,#fdf0e0 100%)';
+    text='#2a1a1e';textSoft='#5a3a3e';cardBg='rgba(255,255,255,.88)';cardBorder='rgba(200,180,170,.4)';navBg='rgba(255,248,240,.95)';theme='dawn';
+  }else if(h>=7&&h<10){
+    bg='linear-gradient(180deg,#6aaed4 0%,#8dc4dc 20%,#b0dae8 40%,#d4ece8 60%,#e8f4f0 80%,#f0f7f4 100%)';
+    text='#1a2a30';textSoft='#3a5a60';cardBg='rgba(255,255,255,.90)';cardBorder='rgba(180,210,215,.5)';navBg='rgba(245,252,250,.95)';theme='morning';
+  }else if(h>=10&&h<14){
+    bg='linear-gradient(180deg,#58a0d0 0%,#7cb8dc 20%,#a0d0e8 40%,#c8e4f0 60%,#e2f0f4 80%,#eef6f8 100%)';
+    text='#1a2830';textSoft='#3a5860';cardBg='rgba(255,255,255,.90)';cardBorder='rgba(180,210,225,.5)';navBg='rgba(242,250,255,.95)';theme='midday';
+  }else if(h>=14&&h<17){
+    bg='linear-gradient(180deg,#70a8c8 0%,#98c0d0 18%,#c0d8dc 36%,#e0e8dc 54%,#f0ead4 72%,#f8f0e0 90%,#faf4e8 100%)';
+    text='#2a2418';textSoft='#5a5438';cardBg='rgba(255,255,255,.88)';cardBorder='rgba(210,200,180,.5)';navBg='rgba(255,252,245,.95)';theme='afternoon';
+  }else if(h>=17&&h<19){
+    bg='linear-gradient(180deg,#4878a8 0%,#7890b0 12%,#b89080 28%,#d8a070 42%,#f0c080 58%,#f8d8a0 72%,#fce8c0 88%,#faf0d8 100%)';
+    text='#2a1a10';textSoft='#5a4a30';cardBg='rgba(255,252,245,.88)';cardBorder='rgba(210,190,160,.5)';navBg='rgba(255,250,240,.95)';theme='golden';
+  }else if(h>=19&&h<21){
+    bg='linear-gradient(180deg,#2a2848 0%,#4a3860 15%,#7a5878 32%,#a87888 48%,#c89898 62%,#dab4b0 76%,#e8ccc8 90%,#f0dcd8 100%)';
+    text='#1a1420';textSoft='#4a3a50';cardBg='rgba(255,252,250,.88)';cardBorder='rgba(200,180,190,.4)';navBg='rgba(250,245,248,.95)';theme='dusk';
+  }else if(h>=21&&h<23){
+    bg='linear-gradient(180deg,#141830 0%,#1a2040 18%,#202848 36%,#283050 54%,#303860 72%,#384068 88%,#3a4470 100%)';
+    text='#d8dce8';textSoft='#a8b0c4';cardBg='rgba(40,50,70,.80)';cardBorder='rgba(80,90,120,.3)';navBg='rgba(30,38,55,.95)';theme='evening';
+  }else{
+    bg='linear-gradient(180deg,#0a0e1a 0%,#101828 20%,#141c30 40%,#182038 60%,#1a2440 80%,#1c2844 100%)';
+    text='#ccd0e0';textSoft='#8890b0';cardBg='rgba(30,40,60,.80)';cardBorder='rgba(60,70,100,.3)';navBg='rgba(20,28,45,.95)';theme='night';
   }
-  // Init when app shows
-  setTimeout(init,2000);
+  r.style.setProperty('--bg-top',bg.match(/#[0-9a-f]{6}/)[0]);
+  r.style.setProperty('--bg-mid',bg.match(/#[0-9a-f]{6}/g)[3]||bg.match(/#[0-9a-f]{6}/g)[1]);
+  r.style.setProperty('--bg-bot',bg.match(/#[0-9a-f]{6}/g).pop());
+  // Override body background directly for the full gradient
+  document.body.style.background=bg;
+  document.body.style.transition='background 3s ease';
+  r.style.setProperty('--text',text);r.style.setProperty('--text-soft',textSoft);
+  r.style.setProperty('--card-bg',cardBg);r.style.setProperty('--card-border',cardBorder);
+  r.style.setProperty('--sky-nav-bg',navBg);
+  document.body.dataset.skyTheme=theme;
+  // Sky elements
+  updateSkyEl(h,m,theme);
+}
+
+function updateSkyEl(h,m,theme){
+  var c=document.getElementById('sky-el');
+  if(!c){c=document.createElement('div');c.id='sky-el';c.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden';document.body.insertBefore(c,document.body.firstChild)}
+  var isDark=h>=21||h<5,isDawn=h>=5&&h<7,isDusk=h>=17&&h<21,isDay=h>=7&&h<17;
+  var html='';
+  // Sun
+  if(isDay||isDawn){
+    var prog=(h-5+m/60)/12;
+    var sx=15+prog*70,arc=Math.sin(prog*Math.PI),sy=60-arc*50,sz=40+arc*20;
+    var gc=isDawn?'rgba(255,180,120,.3)':'rgba(255,220,150,.25)';
+    html+='<div style="position:absolute;left:'+sx+'%;top:'+sy+'%;width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:radial-gradient(circle,#fff8e0 0%,#ffe8a0 40%,rgba(255,200,80,.5) 70%,transparent 100%);box-shadow:0 0 '+(40+arc*40)+'px '+gc+';transform:translate(-50%,-50%)"></div>';
+  }
+  // Moon
+  if(isDark||(isDusk&&h>=20)){
+    var mp=h>=21?(h-21+m/60)/8:(h+24-21+m/60)/8;
+    var mx=20+mp*60,marc=Math.sin(mp*Math.PI),my=50-marc*40;
+    html+='<div style="position:absolute;left:'+mx+'%;top:'+my+'%;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f8f4e8 0%,#e8e0d0 50%,#d8d0c0 100%);box-shadow:0 0 30px rgba(240,230,200,.3);transform:translate(-50%,-50%)"></div>';
+  }
+  // Stars
+  if(isDark||(isDusk&&h>=20)){
+    var sc=isDark?20:8,so=isDark?.7:.3;
+    for(var i=0;i<sc;i++){
+      var sx2=((i*37+13)%100),sy2=((i*23+7)%55),ss=1+(i%3),tw=2+(i%4),dl=(i*.7)%5;
+      html+='<div style="position:absolute;left:'+sx2+'%;top:'+sy2+'%;width:'+ss+'px;height:'+ss+'px;border-radius:50%;background:white;opacity:'+so+';animation:twinkle '+tw+'s ease-in-out '+dl+'s infinite"></div>';
+    }
+  }
+  // Clouds (day only)
+  if(isDay){
+    for(var ci=0;ci<3;ci++){
+      var cy=8+ci*12,cw=80+ci*30,ch=20+ci*5,co=.12-ci*.03,cd=60+ci*30,cdl=ci*-20;
+      html+='<div style="position:absolute;top:'+cy+'%;width:'+cw+'px;height:'+ch+'px;background:rgba(255,255,255,'+co+');border-radius:'+ch+'px;filter:blur(8px);animation:cloudDrift '+cd+'s linear '+cdl+'s infinite"></div>';
+    }
+  }
+  // Dawn/dusk horizon glow
+  if(isDawn||isDusk){
+    var gc2=isDawn?'rgba(255,160,100,.2)':'rgba(200,120,160,.15)';
+    html+='<div style="position:absolute;bottom:0;left:0;right:0;height:40%;background:radial-gradient(ellipse at 50% 100%,'+gc2+' 0%,transparent 70%)"></div>';
+  }
+  c.innerHTML=html;
+}
+
+updateSky();
+setInterval(updateSky,600000);
 })();
 </script>
 </body>

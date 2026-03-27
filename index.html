@@ -4285,7 +4285,7 @@ function handleOocyteTap(e){
   var R=refs();var egg=document.getElementById('eggCompanion');
   var r=Math.random();
   var ciProb=OC.checkinDone?0.15:0.50;
-  if(r<ciProb){onDown(e);return}
+  if(r<ciProb){if(typeof showCheckinChoice==='function'){showCheckinChoice(e)}else{onDown(e)}return}
   r=(r-ciProb)/(1-ciProb);
 
   if(r<0.22){
@@ -4881,6 +4881,197 @@ function startBreathing(){
 }
 function stopBreathing(){var o=document.getElementById('breathing-ov');if(o)o.remove()}
 window.startBreathing=startBreathing;window.stopBreathing=stopBreathing;
+
+// ═══════════════════════════════════════════════════════════════════════
+// COMFORT CHECK-IN — Procedure-day rating via pressure-hold
+// ═══════════════════════════════════════════════════════════════════════
+var COMFORT_DIMS=[
+  {id:'procedure_pain',label:'Pain during procedure',prompt:'How much did it hurt?',icon:'\uD83D\uDE23'},
+  {id:'pain_after',label:'Pain right now',prompt:'How much does it hurt now?',icon:'\uD83E\uDD15'},
+  {id:'comfort',label:'Physical comfort',prompt:'How comfortable did you feel?',icon:'\uD83D\uDECB\uFE0F'},
+  {id:'informed',label:'Felt informed',prompt:'Were you told what to expect?',icon:'\uD83D\uDCCB'},
+  {id:'emotional',label:'Emotional distress',prompt:'How distressing was it emotionally?',icon:'\uD83D\uDC94'},
+  {id:'rushed',label:'Felt rushed',prompt:'Did you feel rushed through it?',icon:'\u23E9'}
+];
+var PROC_TYPES=[
+  {id:'ultrasound',label:'Ultrasound Scan',emoji:'\uD83D\uDD0D'},
+  {id:'egg_collection',label:'Egg Collection',emoji:'\uD83E\uDD5A'},
+  {id:'embryo_transfer',label:'Embryo Transfer',emoji:'\uD83C\uDF31'},
+  {id:'blood_test',label:'Blood Test',emoji:'\uD83D\uDC89'},
+  {id:'hsg',label:'HSG / Tubal Assessment',emoji:'\uD83D\uDCCB'},
+  {id:'other',label:'Something Else',emoji:'\uD83D\uDCAC'}
+];
+var _cs={procedure:null,curDim:0,ratings:[],intensity:0,isPressed:false,pressStart:null,af:null,locked:false,note:'',wantER:false};
+
+function showCheckinChoice(e){
+  growEgg();
+  setTimeout(function(){
+    var old=document.getElementById('checkin-choice-card');if(old)old.remove();
+    var card=document.createElement('div');card.id='checkin-choice-card';
+    card.className='egg-agent-card';
+    card.innerHTML=
+      '<div style="text-align:center;font-size:15px;font-weight:600;color:var(--text,#1a2a2e);margin-bottom:16px">What would you like to share?</div>'+
+      '<button id="btn-mood-ci" style="width:100%;padding:14px 16px;border-radius:16px;border:1.5px solid rgba(45,142,142,.15);background:var(--card-bg,white);cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;margin-bottom:10px;color:var(--text,#1a2a2e)">'+
+      '<span style="font-size:24px">\uD83D\uDCAD</span><div><div style="font-size:14px;font-weight:600">How I\'m feeling</div>'+
+      '<div style="font-size:12px;color:var(--text-soft,#6a8a8e)">Daily mood, anxiety, hope</div></div></button>'+
+      '<button id="btn-comfort-ci" style="width:100%;padding:14px 16px;border-radius:16px;border:1.5px solid rgba(45,142,142,.15);background:var(--card-bg,white);cursor:pointer;text-align:left;display:flex;align-items:center;gap:12px;color:var(--text,#1a2a2e)">'+
+      '<span style="font-size:24px">\uD83C\uDFE5</span><div><div style="font-size:14px;font-weight:600">Rate a visit or procedure</div>'+
+      '<div style="font-size:12px;color:var(--text-soft,#6a8a8e)">Pain, comfort, how informed you felt</div></div></button>'+
+      '<div onclick="dismissAllEggUI()" style="text-align:center;margin-top:12px;font-size:13px;color:#999;cursor:pointer">Not now</div>';
+    document.body.appendChild(card);
+    document.getElementById('btn-mood-ci').addEventListener('click',function(){card.remove();shrinkEgg();onDown(e)});
+    document.getElementById('btn-comfort-ci').addEventListener('click',function(){card.remove();startComfortCheckin()});
+  },500);
+}
+window.showCheckinChoice=showCheckinChoice;
+
+function startComfortCheckin(){
+  _cs={procedure:null,curDim:0,ratings:new Array(COMFORT_DIMS.length).fill(0),intensity:0,isPressed:false,pressStart:null,af:null,locked:false,note:'',wantER:false};
+  showProcSelect();
+}
+
+function showProcSelect(){
+  var old=document.getElementById('comfort-card');if(old)old.remove();
+  var card=document.createElement('div');card.id='comfort-card';card.className='egg-agent-card';
+  card.style.maxHeight='55vh';card.style.overflowY='auto';
+  var html='<div style="text-align:center;font-size:15px;font-weight:600;color:var(--text,#1a2a2e);margin-bottom:14px">Which procedure?</div>';
+  PROC_TYPES.forEach(function(p){
+    html+='<button class="proc-sel" data-proc="'+p.id+'" style="display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;border-radius:14px;border:1.5px solid rgba(45,142,142,.1);background:var(--card-bg,white);cursor:pointer;text-align:left;margin-bottom:8px;font-size:14px;font-weight:500;color:var(--text,#2a3a3e)">'+
+      '<span style="font-size:20px">'+p.emoji+'</span>'+p.label+'</button>';
+  });
+  html+='<div onclick="dismissAllEggUI()" style="text-align:center;margin-top:8px;font-size:13px;color:#999;cursor:pointer">Cancel</div>';
+  card.innerHTML=html;document.body.appendChild(card);
+  card.querySelectorAll('.proc-sel').forEach(function(btn){
+    btn.addEventListener('click',function(){_cs.procedure=btn.dataset.proc;showComfortDim()});
+  });
+}
+
+function _iColor(v){if(!v)return'#d8e8e4';var t=v/10;return t<.3?'#7DD3A8':t<.5?'#F6C858':t<.7?'#F5945C':'#E8636E'}
+
+function showComfortDim(){
+  var dim=COMFORT_DIMS[_cs.curDim];
+  if(!dim){showComfortNote();return}
+  var old=document.getElementById('comfort-card');if(old)old.remove();
+  _cs.intensity=0;_cs.locked=false;
+  var card=document.createElement('div');card.id='comfort-card';card.className='egg-agent-card';card.style.textAlign='center';
+  // Progress dots
+  var dots='<div style="display:flex;gap:6px;justify-content:center;margin-bottom:12px">';
+  for(var i=0;i<COMFORT_DIMS.length;i++){
+    var isA=i===_cs.curDim,isDone=_cs.ratings[i]>0;
+    dots+='<div style="width:'+(isA?'24':'8')+'px;height:8px;border-radius:4px;background:'+(isA?'#0d7377':(isDone?_iColor(_cs.ratings[i]):'#d8e8e4'))+';transition:all .3s"></div>';
+  }dots+='</div>';
+  card.innerHTML=dots+
+    '<div style="font-size:22px;margin-bottom:4px">'+dim.icon+'</div>'+
+    '<div style="font-size:16px;font-weight:700;color:var(--text,#1a2a2e)">'+dim.prompt+'</div>'+
+    '<div style="margin:12px 0"><input type="range" id="comfort-slider" min="0" max="10" value="0" style="width:80%;accent-color:#0d7377" oninput="updateComfortSlider(+this.value)"></div>'+
+    '<div id="comfort-val" style="font-size:28px;font-weight:800;color:#bbb">0</div>'+
+    '<div id="comfort-label" style="font-size:12px;color:#bbb;margin-top:2px">Slide to rate</div>'+
+    '<div style="display:flex;justify-content:space-between;padding:0 20px;font-size:10px;color:#bbb"><span>None</span><span>Worst</span></div>'+
+    '<div style="display:flex;gap:10px;margin-top:16px">'+
+    '<button onclick="skipComfortDim()" style="flex:1;padding:12px;border-radius:14px;border:1.5px solid rgba(45,142,142,.1);background:var(--card-bg,white);font-size:13px;color:#999;cursor:pointer">Skip</button>'+
+    '<button id="comfort-next" onclick="confirmComfortDim()" style="flex:2;padding:12px;border-radius:14px;border:none;background:#d8e8e4;font-size:14px;font-weight:600;color:#aaa;cursor:default">Next \u2192</button></div>';
+  document.body.appendChild(card);
+}
+
+function updateComfortSlider(val){
+  _cs.intensity=val;
+  var el=document.getElementById('comfort-val');if(el){el.textContent=val;el.style.color=_iColor(val)}
+  var lb=document.getElementById('comfort-label');
+  if(lb){
+    var labels=['Slide to rate','Minimal','Minimal','Mild','Mild','Moderate','Moderate','Significant','Significant','Severe','Severe'];
+    lb.textContent=labels[val]||'';lb.style.color=_iColor(val);
+  }
+  var btn=document.getElementById('comfort-next');
+  if(btn&&val>0){btn.style.background='#0d7377';btn.style.color='white';btn.style.cursor='pointer'}
+}
+function skipComfortDim(){_cs.ratings[_cs.curDim]=0;_cs.curDim++;showComfortDim()}
+function confirmComfortDim(){
+  if(_cs.intensity===0)return;
+  _cs.ratings[_cs.curDim]=_cs.intensity;_cs.curDim++;showComfortDim();
+}
+
+function showComfortNote(){
+  var old=document.getElementById('comfort-card');if(old)old.remove();
+  var card=document.createElement('div');card.id='comfort-card';card.className='egg-agent-card';
+  card.style.maxHeight='65vh';card.style.overflowY='auto';
+  card.innerHTML=
+    '<div style="text-align:center;font-size:16px;font-weight:700;color:var(--text,#1a2a2e);margin-bottom:4px">Anything else?</div>'+
+    '<div style="text-align:center;font-size:13px;color:var(--text-soft,#7a9a94);margin-bottom:14px">Totally optional \u2014 share what felt off, or anything unsaid</div>'+
+    '<textarea id="comfort-note" rows="3" placeholder="e.g. The scan was more painful than expected and nobody warned me..." style="width:100%;padding:12px;border:1.5px solid rgba(45,142,142,.15);border-radius:14px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box;line-height:1.5;background:var(--card-bg,white);color:var(--text,#333)"></textarea>'+
+    '<button id="comfort-er" style="display:flex;align-items:center;gap:10px;width:100%;margin-top:10px;padding:12px 14px;border-radius:14px;border:1.5px solid #e0e0e0;background:var(--card-bg,white);cursor:pointer;text-align:left">'+
+    '<span style="font-size:20px">\uD83C\uDFE5</span><div>'+
+    '<div style="font-size:13px;font-weight:600;color:#666">I\'m thinking about going to Emergency</div>'+
+    '<div style="font-size:11px;color:#aaa">Your care team will be notified immediately</div></div></button>'+
+    '<div id="comfort-er-warn" style="display:none;margin-top:8px;padding:10px;border-radius:10px;background:#fff0f0;border:1px solid #f5c6cb;font-size:12px;color:#c0392b"><strong>If you\'re in severe pain, call 000 now.</strong></div>'+
+    '<button onclick="showComfortSummary()" style="width:100%;margin-top:14px;padding:14px;border-radius:14px;border:none;background:#0d7377;color:white;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 16px rgba(13,115,119,.2)">Review \u2192</button>';
+  document.body.appendChild(card);
+  document.getElementById('comfort-er').addEventListener('click',function(){
+    _cs.wantER=!_cs.wantER;
+    this.style.border=_cs.wantER?'2px solid #e8636e':'1.5px solid #e0e0e0';
+    this.style.background=_cs.wantER?'#fff0f0':'var(--card-bg,white)';
+    document.getElementById('comfort-er-warn').style.display=_cs.wantER?'block':'none';
+  });
+}
+
+function showComfortSummary(){
+  _cs.note=(document.getElementById('comfort-note')||{}).value||'';
+  var old=document.getElementById('comfort-card');if(old)old.remove();
+  var card=document.createElement('div');card.id='comfort-card';card.className='egg-agent-card';
+  card.style.maxHeight='70vh';card.style.overflowY='auto';
+  var procLabel=PROC_TYPES.find(function(p){return p.id===_cs.procedure});
+  // Score cards
+  var scores='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">';
+  COMFORT_DIMS.forEach(function(d,i){
+    var v=_cs.ratings[i]||0;
+    scores+='<div style="background:var(--card-bg,white);border-radius:10px;padding:8px 10px;border:1.5px solid '+_iColor(v)+'22">'+
+      '<div style="font-size:11px;color:var(--text-soft,#666)">'+d.icon+' '+d.label+'</div>'+
+      '<div style="font-size:20px;font-weight:800;color:'+_iColor(v)+';margin-top:2px">'+v+'<span style="font-size:11px;font-weight:400;color:#bbb">/10</span></div></div>';
+  });scores+='</div>';
+  // Escalation
+  var maxS=Math.max.apply(null,_cs.ratings);
+  var avgS=_cs.ratings.reduce(function(a,b){return a+b},0)/COMFORT_DIMS.length;
+  var esc;
+  if(_cs.wantER)esc={level:'RED',text:'ER flag + immediate nurse escalation',color:'#ef4444'};
+  else if(maxS>=8)esc={level:'RED',text:'Severe discomfort \u2014 dropout risk HIGH',color:'#ef4444'};
+  else if(maxS>=6||avgS>=5)esc={level:'AMBER',text:'Significant concern \u2014 nurse review',color:'#f59e0b'};
+  else if(maxS>=4)esc={level:'YELLOW',text:'Moderate \u2014 flagged for next consult',color:'#eab308'};
+  else esc={level:'GREEN',text:'Within expected range',color:'#22c55e'};
+
+  card.innerHTML=
+    '<div style="text-align:center;font-size:16px;font-weight:700;color:var(--text,#1a2a2e)">Your Comfort Report</div>'+
+    '<div style="text-align:center;font-size:12px;color:var(--text-soft,#8aaea6);margin-top:2px">'+(procLabel?procLabel.emoji+' '+procLabel.label:'')+'</div>'+
+    scores+
+    (_cs.note?'<div style="margin-top:10px;padding:10px;border-radius:10px;background:var(--card-bg,white);border:1px solid rgba(45,142,142,.1);font-size:13px;color:var(--text-soft,#555);font-style:italic">"'+escHtml(_cs.note)+'"</div>':'')+
+    (_cs.wantER?'<div style="margin-top:8px;padding:8px;border-radius:8px;background:#ffe8ea;font-size:12px;color:#c0392b;font-weight:600">\uD83D\uDEA8 Emergency concern flagged</div>':'')+
+    '<div style="margin-top:10px;padding:10px;border-radius:10px;background:rgba(45,142,142,.06);border:1px dashed rgba(45,142,142,.2)">'+
+    '<div style="font-size:10px;font-weight:700;color:#4a6fa5;text-transform:uppercase;letter-spacing:.5px">Dashboard Signal</div>'+
+    '<div style="font-size:12px;color:var(--text-soft,#5a7a94);margin-top:3px">\u25CF '+esc.level+' \u2014 '+esc.text+'</div></div>'+
+    '<div style="display:flex;gap:10px;margin-top:14px">'+
+    '<button onclick="startComfortCheckin()" style="flex:1;padding:12px;border-radius:14px;border:1.5px solid rgba(45,142,142,.1);background:var(--card-bg,white);font-size:13px;color:#999;cursor:pointer">Redo</button>'+
+    '<button onclick="submitComfortCI()" style="flex:2;padding:12px;border-radius:14px;border:none;background:#0d7377;color:white;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 16px rgba(13,115,119,.2)">Submit \uD83D\uDC9B</button></div>';
+  document.body.appendChild(card);
+}
+
+function submitComfortCI(){
+  if(!state.patientId||!API_BASE)return;
+  var report={patient_id:state.patientId,procedure:_cs.procedure,ratings:{},note:_cs.note,want_er:_cs.wantER,timestamp:new Date().toISOString(),source:'egg_comfort_checkin'};
+  COMFORT_DIMS.forEach(function(d,i){report.ratings[d.id]=_cs.ratings[i]||0});
+  // Escalation level
+  var maxS=Math.max.apply(null,_cs.ratings);var avgS=_cs.ratings.reduce(function(a,b){return a+b},0)/COMFORT_DIMS.length;
+  if(_cs.wantER||maxS>=8)report.escalation_level='RED';
+  else if(maxS>=6||avgS>=5)report.escalation_level='AMBER';
+  else if(maxS>=4)report.escalation_level='YELLOW';
+  else report.escalation_level='GREEN';
+  // POST to backend
+  fetch(API_BASE+'/patient/'+state.patientId+'/comfort-report',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(report)
+  }).catch(function(){});
+  dismissAllEggUI();
+  setTimeout(function(){
+    if(typeof showEggAgentBubble==='function')showEggAgentBubble('You\'re heard \uD83D\uDC9B Your care team will review this.',null);
+    setTimeout(function(){var b=document.getElementById('egg-agent-bubble');if(b)b.remove()},6000);
+  },500);
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // UNIFIED SKY — full-screen time-based background + sun/moon/stars

@@ -4753,6 +4753,74 @@ async def send_patient_note(patient_id: str, request: Request):
     return {"status": "sent", "timestamp": note["timestamp"]}
 
 
+# ── Comfort Check-in (procedure-day ratings) ────────────────────────
+
+@app.post("/patient/{patient_id}/comfort-report")
+async def submit_comfort_report(patient_id: str, request: Request):
+    """Save a comfort check-in report from the egg agent."""
+    body = await request.json()
+    report = {
+        "patient_id": patient_id,
+        "procedure": body.get("procedure", "unknown"),
+        "ratings": body.get("ratings", {}),
+        "note": body.get("note", ""),
+        "want_er": body.get("want_er", False),
+        "escalation_level": body.get("escalation_level", "GREEN"),
+        "timestamp": body.get("timestamp", utc_iso()),
+        "source": "egg_comfort_checkin",
+    }
+
+    # Save to Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("comfort_reports").child(patient_id).push(report)
+    except Exception:
+        pass
+
+    # If AMBER/RED, create escalation alert
+    if report["escalation_level"] in ("RED", "AMBER"):
+        _sync_escalation(patient_id, {
+            "level": report["escalation_level"],
+            "reason": f"Comfort check-in: {report['procedure']} — {report['escalation_level']}",
+            "signals": ["comfort_report", "want_er" if report["want_er"] else "high_discomfort"],
+            "timestamp": report["timestamp"],
+        })
+
+    # If ER flag, also save as urgent note
+    if report.get("want_er"):
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                firebase_db._fb_ref.child("patient_notes").child(patient_id).push({
+                    "text": f"URGENT: Patient considering ER after {report['procedure']}. Scores: {report['ratings']}",
+                    "timestamp": report["timestamp"],
+                    "read": False,
+                    "source": "egg_comfort_er_flag",
+                    "urgent": True,
+                })
+        except Exception:
+            pass
+
+    return {"status": "saved", "escalation_level": report["escalation_level"]}
+
+
+@app.get("/clinician/patient/{patient_id}/comfort-reports", dependencies=[Depends(verify_clinician_api_key)])
+async def get_comfort_reports(patient_id: str):
+    """Get comfort check-in reports for a patient."""
+    reports = []
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            data = firebase_db._fb_ref.child("comfort_reports").child(patient_id).get()
+            if data and isinstance(data, dict):
+                for key, val in data.items():
+                    if isinstance(val, dict):
+                        val["id"] = key
+                        reports.append(val)
+                reports.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    except Exception:
+        pass
+    return {"reports": reports}
+
+
 # ── Static File Serving ────────────────────────────────────────────────
 
 @app.get("/")

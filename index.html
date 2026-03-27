@@ -2842,7 +2842,6 @@ function onDragUp(e){
     startIdleFace();
   }else{
     // Was a tap — random micro-interaction or check-in
-    console.log('[EGG-TAP] tap detected, handleOocyteTap exists='+!!(typeof handleOocyteTap==='function'));
     if(typeof handleOocyteTap==='function'){handleOocyteTap(e)}else{onDown(e)}
   }
 }
@@ -4281,11 +4280,9 @@ function checkCelebration(text){
 // ── Feature 7: Random Micro-Interactions ──
 var _tapCool=false;
 function handleOocyteTap(e){
-  console.log('[EGG-TAP] handleOocyteTap fired, _tapCool='+_tapCool+', celebrating='+OC.celebrating);
-  if(_tapCool||OC.celebrating){console.log('[EGG-TAP] blocked by cooldown or celebration');return}
+  if(_tapCool||OC.celebrating)return;
   _tapCool=true;setTimeout(function(){_tapCool=false},3000);
   var R=refs();var egg=document.getElementById('eggCompanion');
-  console.log('[EGG-TAP] egg='+!!egg+', R.eyeL='+!!R.eyeL);
   var r=Math.random();
   var ciProb=OC.checkinDone?0.15:0.50;
   if(r<ciProb){if(typeof showCheckinChoice==='function'){showCheckinChoice(e)}else{onDown(e)}return}
@@ -4428,7 +4425,12 @@ function dismissEggAgent(){
   });
   shrinkEgg();
 }
+// Export all egg agent functions to global scope
+window.growEgg=growEgg;
+window.shrinkEgg=shrinkEgg;
 window.dismissEggAgent=dismissEggAgent;
+window.deliverViaEgg=deliverViaEgg;
+window.eggReactToMood=eggReactToMood;
 
 // ── Part B: Egg delivers clinician messages ──
 function deliverViaEgg(msg){

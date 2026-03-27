@@ -4698,53 +4698,17 @@ if(ws)_obs.observe(ws,{attributes:true,attributeFilter:['class']});
 // ═══════════════════════════════════════════════════════════════════════
 // EGG AGENT — Grows, delivers messages, engages on low mood, breathing
 // ═══════════════════════════════════════════════════════════════════════
-var _eggGrown=false;
-
-function growEgg(){
-  if(_eggGrown)return;_eggGrown=true;
-  var egg=document.getElementById('eggCompanion');if(!egg)return;
-  // Save resting state
-  if(!egg.dataset.savedBot){
-    egg.dataset.savedBot=egg.style.bottom||'';
-    egg.dataset.savedLeft=egg.style.left||'';
-    egg.dataset.savedRight=egg.style.right||'';
-    egg.dataset.savedPos=egg.style.position||'';
-    egg.dataset.savedZ=egg.style.zIndex||'';
-    egg.dataset.savedTr=egg.style.transform||'';
-  }
-  // Backdrop
-  var bd=document.createElement('div');bd.id='egg-backdrop';
-  document.body.appendChild(bd);
-  requestAnimationFrame(function(){bd.classList.add('vis')});
-  bd.onclick=dismissAllEggUI;
-  // Grow
-  egg.style.transition='all .5s cubic-bezier(.34,1.56,.64,1)';
-  egg.style.position='fixed';egg.style.bottom='auto';egg.style.right='auto';
-  egg.style.left='50%';egg.style.top='22%';
-  egg.style.transform='translate(-50%,-50%) scale(3.5)';
-  egg.style.zIndex='999';
-}
-
-function shrinkEgg(){
-  if(!_eggGrown)return;
-  var egg=document.getElementById('eggCompanion');if(!egg)return;
-  var bd=document.getElementById('egg-backdrop');
-  if(bd){bd.classList.remove('vis');setTimeout(function(){bd.remove()},400)}
-  egg.style.transition='all .4s ease-in-out';
-  egg.style.position=egg.dataset.savedPos||'fixed';
-  egg.style.left=egg.dataset.savedLeft||'16px';
-  egg.style.bottom=egg.dataset.savedBot||'74px';
-  egg.style.top='';egg.style.right=egg.dataset.savedRight||'auto';
-  egg.style.transform=egg.dataset.savedTr||'';
-  egg.style.zIndex=egg.dataset.savedZ||'50';
-  _eggGrown=false;
-}
-
+// Use the original growEgg/shrinkEgg from the egg agent system above
+// dismissAllEggUI delegates to dismissEggAgent
+// dismissAllEggUI — unified cleanup function
 function dismissAllEggUI(){
-  ['egg-agent-checkin','egg-agent-bubble','egg-agent-msg','egg-agent-note','egg-msg-indicator'].forEach(function(id){
+  ['egg-agent-checkin','egg-agent-bubble','egg-agent-msg','egg-agent-note','egg-msg-indicator',
+   'checkin-choice-card','comfort-card','eggAgentCard','eggMsgCard','eggSendNote'].forEach(function(id){
     var el=document.getElementById(id);if(el)el.remove();
   });
-  shrinkEgg();
+  // Use the original shrinkEgg (from egg agent system)
+  if(typeof shrinkEgg==='function')shrinkEgg();
+  else if(typeof dismissEggAgent==='function')dismissEggAgent();
 }
 
 // === Part C: Egg delivers clinician messages ===

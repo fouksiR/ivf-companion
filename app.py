@@ -2429,6 +2429,14 @@ async def chat(req: ChatRequest):
     else:
         logger.info(f"[{query_id}] Triage: category={triage_category} ({triage_label}) for patient={req.patient_id}")
 
+    # Update the last user message with triage info (for dashboard conversations)
+    convs = conversations_db.get(req.patient_id, [])
+    if convs and convs[-1].get("role") == "user":
+        convs[-1]["triage"] = triage_category
+        convs[-1]["triage_label"] = triage_label
+        convs[-1]["is_distress"] = is_distress
+        convs[-1]["is_crisis"] = is_crisis
+
     # ── Step 2: Safety check (parallel with response generation) ──
     context_msgs = get_conversation_context(req.patient_id, last_n=10)
     context_str = "\n".join([f"{m['role']}: {m['content']}" for m in context_msgs[-6:]])
@@ -3443,13 +3451,18 @@ async def clinician_conversations(patient_id: str):
         user_msgs = [m for m in session if m.get("role") == "user"]
         ai_msgs = [m for m in session if m.get("role") == "assistant"]
         first_ts = session[0].get("timestamp", "")
-        emotional_tone = "calm"
-        # Detect tone from escalation context
+        emotional_tone = "neutral"
+        # Detect tone from triage labels on messages
         for m in session:
-            if m.get("escalation_level") == "RED":
+            if m.get("is_crisis"):
+                emotional_tone = "crisis"
+                break
+            elif m.get("is_distress"):
                 emotional_tone = "distressed"
-            elif m.get("escalation_level") == "AMBER":
+            elif m.get("triage") == 1 and emotional_tone not in ("distressed", "crisis"):
                 emotional_tone = "anxious"
+            elif m.get("triage") == 2 and emotional_tone == "neutral":
+                emotional_tone = "curious"
 
         result.append({
             "date": first_ts,

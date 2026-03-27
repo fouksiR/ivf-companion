@@ -766,15 +766,54 @@ PHQ9_CONVERSATIONAL = [
 
 # ── Prompts ───────────────────────────────────────────────────────────
 
+DISTRESS_KEYWORDS = [
+    "cannot stand", "can't stand", "cant stand", "can't do this", "cant do this",
+    "terrified", "terrifying", "so scared", "really scared", "i am scared",
+    "super stressed", "so stressed", "extremely stressed",
+    "hopeless", "no hope", "giving up", "give up", "given up",
+    "falling apart", "breaking down", "can't cope", "cant cope",
+    "overwhelmed", "too much", "can't take", "cant take",
+    "hate this", "hate myself", "worthless",
+    "crying", "sobbing", "can't stop crying",
+    "so alone", "nobody cares", "no one cares",
+    "can't anymore", "cant anymore", "had enough",
+    "i am terrified", "i'm terrified", "im terrified",
+    "can't breathe", "panic", "panicking",
+]
+CRISIS_KEYWORDS = [
+    "want to die", "don't want to live", "dont want to live", "end it all",
+    "kill myself", "suicide", "self harm", "hurt myself",
+    "no reason to live", "better off without me", "end my life",
+]
+
+TRIAGE_LABELS = {1: "emotional_distress", 2: "educational", 3: "clinical", 4: "crisis", 5: "social"}
+
+
+def keyword_safety_check(message: str, triage_cat: int) -> tuple:
+    """Override triage if keywords indicate distress/crisis that Haiku missed.
+    Returns (category, keyword_trigger_or_None)."""
+    msg = message.lower()
+    for kw in CRISIS_KEYWORDS:
+        if kw in msg:
+            return 4, kw
+    for kw in DISTRESS_KEYWORDS:
+        if kw in msg:
+            if triage_cat not in (1, 4):
+                return 1, kw
+            return triage_cat, kw
+    return triage_cat, None
+
+
 TRIAGE_PROMPT = """You are a triage classifier for an IVF patient support companion.
 Classify the patient's message into ONE category. Reply with ONLY the number.
 
-1 = EMOTIONAL — patient is expressing feelings, seeking comfort, venting, or needs emotional support
+1 = EMOTIONAL DISTRESS — patient is expressing difficult emotions: sadness, fear, anxiety, hopelessness, frustration, anger, grief, feeling overwhelmed, crying, panic, or emotional pain. IMPORTANT: If there is ANY emotional pain or distress, classify as 1.
 2 = EDUCATION — patient is asking a factual question about IVF, fertility treatment, medications, procedures, or their body
 3 = SCREENING — patient is responding to a check-in or questionnaire prompt (e.g., rating mood, answering PHQ/GAD items)
-4 = CRISIS — patient expresses suicidal ideation, self-harm, acute distress, or hopelessness suggesting danger
+4 = CRISIS — patient expresses suicidal ideation, self-harm, or hopelessness suggesting immediate danger to self
 5 = SOCIAL — casual chat, greetings, logistics, or off-topic conversation
 
+Err on the side of detecting distress. If unsure between 1 and 5, choose 1.
 Reply ONLY with the number (1-5)."""
 
 COMPANION_SYSTEM = """You are Melod-AI, a warm and knowledgeable AI companion supporting a patient through their IVF/ART journey.
@@ -1542,6 +1581,9 @@ class ChatResponse(BaseModel):
     patient_id: str
     treatment_stage: str
     escalation: Optional[dict] = None
+    triage_label: Optional[str] = None  # emotional_distress, educational, clinical, crisis, social
+    is_distress: bool = False
+    is_crisis: bool = False
     suggested_education: Optional[list] = None
     fertool_cards: Optional[list] = None  # DEPRECATED — always None now
     fertool_inline_charts: Optional[list] = None  # Inline AMH normogram, egg freeze table
@@ -2374,9 +2416,18 @@ async def chat(req: ChatRequest):
     try:
         triage_category = int(triage_resp.content[0].text.strip())
     except (ValueError, IndexError):
-        triage_category = 1  # Default to emotional
+        triage_category = 1  # Default to emotional — safer than social
 
-    logger.info(f"[{query_id}] Triage: category={triage_category} for patient={req.patient_id}")
+    # Keyword safety net — override if Haiku missed obvious distress
+    triage_category, kw_trigger = keyword_safety_check(req.message, triage_category)
+    triage_label = TRIAGE_LABELS.get(triage_category, "emotional_distress")
+    is_distress = triage_category in (1, 4)
+    is_crisis = triage_category == 4
+
+    if kw_trigger:
+        logger.info(f"[{query_id}] Triage OVERRIDE: category={triage_category} (keyword: '{kw_trigger}') for patient={req.patient_id}")
+    else:
+        logger.info(f"[{query_id}] Triage: category={triage_category} ({triage_label}) for patient={req.patient_id}")
 
     # ── Step 2: Safety check (parallel with response generation) ──
     context_msgs = get_conversation_context(req.patient_id, last_n=10)
@@ -2384,14 +2435,41 @@ async def chat(req: ChatRequest):
 
     escalation = None
 
-    # Quick crisis check for category 4
+    # Crisis or distress escalation
     if triage_category == 4:
         escalation = {
             "level": "RED",
-            "reason": "Triage detected crisis-level content",
+            "reason": "Crisis-level content detected" + (f" (keyword: {kw_trigger})" if kw_trigger else ""),
             "signals": ["triage_crisis_classification"],
             "timestamp": utc_iso(),
         }
+        # Save alert to Firebase for dashboard
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                firebase_db._fb_ref.child("alerts").push({
+                    "patient_id": req.patient_id, "level": "RED",
+                    "message": req.message[:200], "triage_label": "crisis",
+                    "timestamp": utc_iso(), "acknowledged": False,
+                })
+        except Exception:
+            pass
+    elif triage_category == 1 and kw_trigger:
+        escalation = {
+            "level": "AMBER",
+            "reason": f"Emotional distress detected (keyword: {kw_trigger})",
+            "signals": ["keyword_distress_detection"],
+            "timestamp": utc_iso(),
+        }
+        # Save alert to Firebase
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                firebase_db._fb_ref.child("alerts").push({
+                    "patient_id": req.patient_id, "level": "AMBER",
+                    "message": req.message[:200], "triage_label": "emotional_distress",
+                    "timestamp": utc_iso(), "acknowledged": False,
+                })
+        except Exception:
+            pass
     else:
         # LLM-based safety check
         safety_resp = client.messages.create(
@@ -2656,6 +2734,9 @@ Weave this awareness naturally — don't announce it as a feature, just show you
         patient_id=req.patient_id,
         treatment_stage=stage,
         escalation=escalation,
+        triage_label=triage_label,
+        is_distress=is_distress,
+        is_crisis=is_crisis,
         suggested_education=suggested,
         fertool_cards=None,  # Fertool link cards REMOVED
         fertool_inline_charts=fertool_inline if fertool_inline else None,

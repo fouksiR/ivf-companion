@@ -1160,68 +1160,113 @@ function showToast(msg, isError) {
 }
 
 // PHENOTYPE CHARTS (keep existing logic)
+var _activeCharts = {};
+function _makeChart(id, cfg) {
+  if (_activeCharts[id]) { try { _activeCharts[id].destroy(); } catch(e){} }
+  var el = document.getElementById(id);
+  if (!el) return null;
+  _activeCharts[id] = new Chart(el, cfg);
+  return _activeCharts[id];
+}
+function _fmtLabels(timestamps) {
+  if (!timestamps || !timestamps.length) return [];
+  var dates = timestamps.map(function(t) { return (t||'').substring(0,10); });
+  var unique = dates.filter(function(d,i,a){ return a.indexOf(d)===i; });
+  if (unique.length <= 2) {
+    // Same day — show times
+    return timestamps.map(function(t) { try { return new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); } catch(e){ return t; } });
+  }
+  return timestamps.map(function(t) { var d=t||''; return d.substring(5,10); });
+}
+function _emptyState(container, msg) {
+  if (container) container.innerHTML = '<div style="text-align:center;padding:30px;color:#6b7280;"><div style="font-weight:600;margin-bottom:4px;">No data yet</div><div style="font-size:13px;">' + msg + '</div></div>';
+}
+
 async function loadPhenotypeCharts(pid) {
   try {
     var r = await authFetch(API_BASE + '/clinician/patient/' + pid + '/phenotype-history?days=30');
     if (!r.ok) return;
     var data = await r.json();
     var checkins = data.checkins || [];
-    if (!checkins.length) { document.getElementById('phenoCharts').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">No check-in data yet</div>'; return; }
+    if (!checkins.length) {
+      document.getElementById('phenoCharts').innerHTML = '<div style="padding:40px;text-align:center;color:#6b7280"><div style="font-size:15px;font-weight:600;">No check-in data yet</div><div style="font-size:13px;margin-top:4px;">Charts will appear once the patient completes a check-in.</div></div>';
+      return;
+    }
 
-    var labels = checkins.map(function(c) { return c.date ? c.date.substring(5, 10) : ''; });
+    var labels = _fmtLabels(checkins.map(function(c) { return c.date || c.timestamp || ''; }));
     var moods = checkins.map(function(c) { return c.mood; });
     var hopes = checkins.map(function(c) { return c.hope; });
     var anxieties = checkins.map(function(c) { return c.anxiety; });
     var uncertainties = checkins.map(function(c) { return c.uncertainty; });
+    var chartOpts = function(title) {
+      return { responsive: true, plugins: { title: { display: true, text: title, font: { size: 14, weight: '600' } }, legend: { labels: { font: { size: 12 } } } },
+        scales: { y: { min: 0, max: 10, title: { display: true, text: 'Score (1-10)', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.06)' } },
+          x: { grid: { display: false }, ticks: { maxRotation: 45, maxTicksLimit: 8, font: { size: 11 } } } } };
+    };
 
     // Mood & Hope
-    new Chart(document.getElementById('chartMood'), { type: 'line', data: {
+    _makeChart('chartMood', { type: 'line', data: {
       labels: labels,
       datasets: [
-        { label: 'Mood', data: moods, borderColor: '#4a7c59', backgroundColor: 'rgba(74,124,89,0.1)', fill: true, tension: 0.3 },
-        { label: 'Hope', data: hopes, borderColor: '#2D8E8E', backgroundColor: 'rgba(45,142,142,0.1)', fill: true, tension: 0.3 }
+        { label: 'Mood', data: moods, borderColor: '#0d7377', backgroundColor: 'rgba(13,115,119,0.1)', fill: true, tension: 0.3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#0d7377' },
+        { label: 'Hope', data: hopes, borderColor: '#e8953a', backgroundColor: 'rgba(232,149,58,0.1)', fill: true, tension: 0.3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#e8953a' }
       ]
-    }, options: { responsive: true, plugins: { title: { display: true, text: 'Mood & Hope' } }, scales: { y: { min: 0, max: 10 } } } });
+    }, options: chartOpts('Mood & Hope') });
 
     // Anxiety & Uncertainty
-    new Chart(document.getElementById('chartAnxiety'), { type: 'line', data: {
+    _makeChart('chartAnxiety', { type: 'line', data: {
       labels: labels,
       datasets: [
-        { label: 'Anxiety', data: anxieties, borderColor: '#c44040', backgroundColor: 'rgba(196,64,64,0.1)', fill: true, tension: 0.3 },
-        { label: 'Uncertainty', data: uncertainties, borderColor: '#b8860b', backgroundColor: 'rgba(184,134,11,0.1)', fill: true, tension: 0.3 }
+        { label: 'Anxiety', data: anxieties, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#ef4444' },
+        { label: 'Uncertainty', data: uncertainties, borderColor: '#7c5cbf', backgroundColor: 'rgba(124,92,191,0.1)', fill: true, tension: 0.3, borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#7c5cbf' }
       ]
-    }, options: { responsive: true, plugins: { title: { display: true, text: 'Anxiety & Uncertainty' } }, scales: { y: { min: 0, max: 10 } } } });
+    }, options: chartOpts('Anxiety & Uncertainty') });
 
-    // Typing biomarkers (from phenotype snapshots)
+    // Typing biomarkers
     var snapshots = data.snapshots || [];
     if (snapshots.length && document.getElementById('chartTyping')) {
-      var snapLabels = snapshots.map(function(s) { return (s.timestamp || '').substring(5, 10); });
-      var typingSpeeds = snapshots.map(function(s) { return s.derived_features ? s.derived_features.avg_typing_speed_cps : null; });
-      new Chart(document.getElementById('chartTyping'), { type: 'line', data: {
-        labels: snapLabels, datasets: [{ label: 'Typing Speed (cps)', data: typingSpeeds, borderColor: '#4a6fa5', tension: 0.3 }]
-      }, options: { responsive: true, plugins: { title: { display: true, text: 'Typing Biomarkers' } } } });
+      var typingSpeeds = snapshots.map(function(s) { return s.derived_features ? s.derived_features.avg_typing_speed_cps : null; }).filter(function(v) { return v !== null; });
+      if (typingSpeeds.length > 0) {
+        var snapLabels = _fmtLabels(snapshots.map(function(s) { return s.timestamp || ''; }));
+        _makeChart('chartTyping', { type: 'line', data: {
+          labels: snapLabels, datasets: [{ label: 'Typing Speed (cps)', data: snapshots.map(function(s) { return s.derived_features ? s.derived_features.avg_typing_speed_cps : null; }), borderColor: '#4a6fa5', borderWidth: 2, pointRadius: 3, tension: 0.3 }]
+        }, options: chartOpts('Typing Biomarkers') });
+      } else {
+        _emptyState(document.getElementById('chartTyping').parentElement, 'Typing data appears after more chat interactions.');
+      }
+    } else {
+      var te = document.getElementById('chartTyping');
+      if (te) _emptyState(te.parentElement, 'Typing data appears after more chat interactions.');
     }
 
-    // Sleep pattern
+    // Session times
     if (document.getElementById('chartSleep')) {
       var sleepData = checkins.map(function(c) {
-        var h = c.date ? parseInt(c.date.substring(11, 13)) : 12;
-        return { x: c.date ? c.date.substring(5, 10) : '', y: h };
+        var h = c.date ? parseInt(c.date.substring(11, 13)) : (c.timestamp ? parseInt(c.timestamp.substring(11, 13)) : 12);
+        return { x: c.date ? c.date.substring(5, 10) : (c.timestamp ? c.timestamp.substring(5, 10) : ''), y: h };
       });
-      new Chart(document.getElementById('chartSleep'), { type: 'scatter', data: {
-        datasets: [{ label: 'Session Hour', data: sleepData, backgroundColor: function(ctx) { var v = ctx.raw ? ctx.raw.y : 12; return v >= 22 || v < 5 ? '#c44040' : '#4a7c59'; } }]
-      }, options: { responsive: true, plugins: { title: { display: true, text: 'Session Times' } }, scales: { y: { min: 0, max: 24, title: { display: true, text: 'Hour' } } } } });
+      _makeChart('chartSleep', { type: 'scatter', data: {
+        datasets: [{ label: 'Session Hour', data: sleepData, pointRadius: 6,
+          backgroundColor: sleepData.map(function(d) { return (d.y >= 22 || d.y < 5) ? '#ef4444' : '#0d7377'; }) }]
+      }, options: { responsive: true, plugins: { title: { display: true, text: 'Session Times', font: { size: 14, weight: '600' } } },
+        scales: { y: { min: 0, max: 24, title: { display: true, text: 'Hour of Day' }, ticks: { callback: function(v) { return v + ':00'; } } },
+          x: { title: { display: true, text: 'Date' } } } } });
     }
 
     // Escalation timeline
     if (snapshots.length && document.getElementById('chartEscalation')) {
-      var escColors = { GREEN: '#4a7c59', AMBER: '#b8860b', RED: '#c44040' };
-      var escLabels = snapshots.map(function(s) { return (s.timestamp || '').substring(5, 10); });
-      var escData = snapshots.map(function(s) { return s.escalation_level === 'RED' ? 3 : s.escalation_level === 'AMBER' ? 2 : 1; });
-      var escBgColors = snapshots.map(function(s) { return escColors[s.escalation_level] || '#4a7c59'; });
-      new Chart(document.getElementById('chartEscalation'), { type: 'bar', data: {
-        labels: escLabels, datasets: [{ label: 'Escalation Level', data: escData, backgroundColor: escBgColors }]
-      }, options: { responsive: true, plugins: { title: { display: true, text: 'Escalation Timeline' } }, scales: { y: { min: 0, max: 3, ticks: { callback: function(v) { return ['', 'GREEN', 'AMBER', 'RED'][v] || ''; } } } } } });
+      var escColors = { GREEN: '#22c55e', YELLOW: '#eab308', AMBER: '#f59e0b', RED: '#ef4444' };
+      var escLabels = _fmtLabels(snapshots.map(function(s) { return s.timestamp || ''; }));
+      var escData = snapshots.map(function(s) { var l = s.escalation_level || 'GREEN'; return l === 'RED' ? 3 : l === 'AMBER' ? 2 : l === 'YELLOW' ? 2 : 1; });
+      var escBg = snapshots.map(function(s) { return escColors[s.escalation_level] || '#22c55e'; });
+      _makeChart('chartEscalation', { type: 'bar', data: {
+        labels: escLabels, datasets: [{ label: 'Escalation Level', data: escData, backgroundColor: escBg, barThickness: 8, borderRadius: 4 }]
+      }, options: { responsive: true, plugins: { title: { display: true, text: 'Escalation Timeline', font: { size: 14, weight: '600' } } },
+        scales: { y: { min: 0, max: 3, ticks: { callback: function(v) { return ['', 'GREEN', 'AMBER', 'RED'][v] || ''; } } },
+          x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } } } } });
+    } else {
+      var ee = document.getElementById('chartEscalation');
+      if (ee) _emptyState(ee.parentElement, 'Escalation data appears as check-ins accumulate.');
     }
   } catch (e) { console.warn('Phenotype charts error:', e); }
 }

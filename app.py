@@ -3281,16 +3281,159 @@ Conversations:
 
 
 @app.get("/clinician/patient/{patient_id}/briefing", dependencies=[Depends(verify_clinician_api_key)])
-async def clinician_preconsult_briefing(patient_id: str, role: str = "doctor"):
-    """
-    Pre-consultation briefing for clinicians. Role affects detail level.
-    """
-    if patient_id not in patients_db:
-        raise HTTPException(status_code=404, detail="Patient not found")
+async def clinician_preconsult_briefing(patient_id: str, role: str = "doctor", force_refresh: str = "false"):
+    """Unified one-glance briefing — synthesizes all 6 data streams via Haiku, cached 4h."""
+    import json as _json
 
-    briefing = build_preconsult_briefing(patient_id)
-    briefing["role"] = role
-    return briefing
+    # === CHECK CACHE ===
+    if force_refresh != "true":
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                cached = firebase_db._fb_ref.child("briefing_cache").child(patient_id).get()
+                if cached and isinstance(cached, dict) and cached.get("generated_at"):
+                    gen_time = datetime.fromisoformat(cached["generated_at"].replace("Z", "+00:00"))
+                    if (utc_now() - gen_time).total_seconds() < 14400:  # 4 hours
+                        return cached
+        except Exception:
+            pass
+
+    # === GATHER DATA (in-memory first, Firebase fallback) ===
+    patient = patients_db.get(patient_id, {})
+    if not patient:
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                patient = firebase_db._fb_ref.child("patients").child(patient_id).get() or {}
+        except Exception:
+            patient = {}
+
+    patient_name = patient.get("patient_name") or patient.get("name") or "Unknown"
+    patient_age = patient.get("age", "?")
+    patient_stage = STAGE_DISPLAY.get(patient.get("treatment_stage", ""), patient.get("treatment_stage", "unknown"))
+
+    # Checkins
+    checkins = checkins_db.get(patient_id, [])[-20:]
+    mood_summary = "No mood check-ins yet."
+    if checkins:
+        recent = checkins[-3:]
+        moods = [c.get("mood", 5) for c in recent]
+        anxieties = [c.get("anxiety", 5) for c in recent]
+        hopes = [c.get("hope", 5) for c in recent]
+        mood_summary = f"Last {len(recent)} check-ins — Mood: {moods}, Anxiety: {anxieties}, Hope: {hopes}"
+        if len(checkins) >= 5:
+            avg_old = sum(c.get("mood", 5) for c in checkins[:3]) / 3
+            avg_new = sum(c.get("mood", 5) for c in checkins[-3:]) / 3
+            if avg_new < avg_old - 1.5:
+                mood_summary += f". TREND: Declining (was ~{avg_old:.0f}, now ~{avg_new:.0f})"
+            elif avg_new > avg_old + 1.5:
+                mood_summary += f". TREND: Improving (was ~{avg_old:.0f}, now ~{avg_new:.0f})"
+
+    # Comfort reports (Firebase)
+    comfort_summary = "No post-visit feedback yet."
+    latest_comfort = None
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            cr = firebase_db._fb_ref.child("comfort_reports").child(patient_id).order_by_child("timestamp").limit_to_last(1).get()
+            if cr:
+                latest_comfort = list(cr.values())[0] if isinstance(cr, dict) else None
+                if latest_comfort:
+                    ratings = latest_comfort.get("ratings", {})
+                    proc = latest_comfort.get("procedure", "?")
+                    comfort_summary = f"Latest ({proc}): " + ", ".join(f"{k}: {v}/10" for k, v in ratings.items())
+                    if latest_comfort.get("note"):
+                        comfort_summary += f'. Patient: "{latest_comfort["note"]}"'
+                    if latest_comfort.get("want_er"):
+                        comfort_summary += " ⚠️ ER CONCERN FLAGGED"
+    except Exception:
+        pass
+
+    # Chat history
+    convs = conversations_db.get(patient_id, [])
+    user_msgs = [m.get("content", "") for m in convs[-20:] if m.get("role") == "user"]
+    chat_summary = "No chat history."
+    if user_msgs:
+        distress = [m for m in user_msgs if any(kw in m.lower() for kw in ["terrified", "scared", "stressed", "cannot", "can't", "hopeless", "alone", "crying"])]
+        if distress:
+            chat_summary = f'Distress: "{distress[-1][:80]}" ({len(distress)} distress msgs). '
+        else:
+            chat_summary = f"Last {len(user_msgs)} messages — routine tone. "
+
+    # Risk tier
+    risk = {}
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            risk = firebase_db._fb_ref.child("patients").child(patient_id).child("risk_tier").get() or {}
+    except Exception:
+        pass
+    risk_tier = risk.get("tier", "GREEN") if isinstance(risk, dict) else "GREEN"
+    risk_signals = risk.get("signals", []) if isinstance(risk, dict) else []
+
+    # Unread patient notes
+    unread_notes = []
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            notes = firebase_db._fb_ref.child("patient_notes").child(patient_id).get()
+            if notes and isinstance(notes, dict):
+                for k, v in notes.items():
+                    if isinstance(v, dict) and not v.get("read", False):
+                        unread_notes.append(v.get("text", ""))
+    except Exception:
+        pass
+
+    # === ROLE-BASED PROMPT ===
+    if role == "nurse":
+        role_inst = "Briefing a NURSE: focus on emotional state, distress, medication concerns, callback requests. Under 100 words."
+    elif role == "secretary":
+        role_inst = "Briefing a SECRETARY: only active/inactive status, appointment concerns, callback requests. Under 50 words."
+    else:
+        role_inst = "Briefing a DOCTOR before consult: emotional trajectory with numbers, comfort feedback with scores, communication style (analytical/emotional), specific action items. Under 150 words."
+
+    # === HAIKU BRIEFING ===
+    briefing_prompt = f"""{role_inst}
+
+PATIENT: {patient_name}, Age {patient_age}, Stage: {patient_stage}
+RISK: {risk_tier} — {', '.join(risk_signals[:4]) if risk_signals else 'no signals'}
+MOOD: {mood_summary}
+COMFORT: {comfort_summary}
+CHAT: {chat_summary}
+NOTES: {_json.dumps(unread_notes) if unread_notes else 'None'}
+
+Use these EXACT section headers:
+WHAT'S HAPPENING:
+AFTER LAST VISIT:
+WHAT THEY NEED:
+
+Every sentence must reference actual data. No generic advice."""
+
+    try:
+        resp = client.messages.create(model=HAIKU_MODEL, max_tokens=400, messages=[{"role": "user", "content": briefing_prompt}])
+        briefing_text = resp.content[0].text
+    except Exception as e:
+        briefing_text = f"Briefing generation failed: {e}"
+
+    result = {
+        "patient_id": patient_id,
+        "patient_name": patient_name,
+        "patient_age": patient_age,
+        "stage": patient_stage,
+        "risk_tier": risk_tier,
+        "risk_score": risk.get("score", 0) if isinstance(risk, dict) else 0,
+        "risk_signals": risk_signals,
+        "briefing_text": briefing_text,
+        "unread_notes": unread_notes,
+        "latest_comfort": latest_comfort,
+        "mood_trend": mood_summary,
+        "role": role,
+        "generated_at": utc_iso(),
+    }
+
+    # Cache to Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("briefing_cache").child(patient_id).set(result)
+    except Exception:
+        pass
+
+    return result
 
 
 @app.get("/clinician/patient/{patient_id}/phenotype-history", dependencies=[Depends(verify_clinician_api_key)])

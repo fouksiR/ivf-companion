@@ -909,132 +909,91 @@ async function loadModalTab(patientId, tab) {
 }
 
 function renderBriefing(b) {
-  var role = b.role || selectedRole;
   var html = '<div style="padding:20px">';
 
-  // Common header
-  html += '<div style="display:flex;gap:12px;align-items:center;margin-bottom:16px">' +
-    '<span class="stage-badge">' + escHtml(b.treatment_stage || '') + '</span>' +
-    '<span class="emotional-badge">' + escHtml(b.emotional_state || b.emotional_summary || '') + '</span>' +
-    '<span style="color:var(--text-muted);font-size:12px">Last contact: ' + escHtml(b.last_contact || '') + '</span></div>';
+  // Risk badge
+  if (b.risk_tier && b.risk_tier !== 'GREEN') {
+    var rc = {RED:'#ef4444',AMBER:'#f59e0b',YELLOW:'#eab308'};
+    var rbg = {RED:'#fef2f2',AMBER:'#fffbeb',YELLOW:'#fefce8'};
+    html += '<div style="background:'+rbg[b.risk_tier]+';border-left:4px solid '+rc[b.risk_tier]+';border-radius:10px;padding:12px 16px;margin-bottom:14px">' +
+      '<span style="background:'+rc[b.risk_tier]+';color:white;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:700">'+b.risk_tier+'</span> ' +
+      '<span style="font-size:13px;color:#555">'+(b.risk_signals||[]).join(', ')+'</span></div>';
+  }
 
-  if (role === 'secretary') {
-    // Secretary view
-    var readClass = b.appointment_readiness === 'READY' ? 'green' : b.appointment_readiness === 'FLAG' ? 'amber' : 'red';
-    html += '<div class="briefing-card"><div class="bc-label">Appointment Readiness</div>' +
-      '<div class="readiness-badge ' + readClass + '">' + b.appointment_readiness + '</div></div>';
-    if (b.flag_reason) html += '<div class="briefing-card warn"><div class="bc-label">Flag</div><div>' + escHtml(b.flag_reason) + '</div></div>';
-    html += '<div class="briefing-card"><div class="bc-label">Suggested Greeting</div><div>' + escHtml(b.suggested_greeting || '') + '</div></div>';
-    if (b.prep_notes && b.prep_notes.length) {
-      html += '<div class="briefing-card"><div class="bc-label">Prep Notes</div><ul>' +
-        b.prep_notes.map(function(n) { return '<li>' + escHtml(n) + '</li>'; }).join('') + '</ul></div>';
-    }
-  } else {
-    // Nurse + Doctor view
-    if (b.communication_style) {
-      var sc = b.communication_style === 'ANALYTICAL' ? 'blue' : b.communication_style === 'EMOTIONAL' ? 'coral' : 'purple';
-      html += '<div class="style-badge ' + sc + '">' + b.communication_style + ' — ' +
-        (b.communication_style === 'ANALYTICAL' ? 'lead with data' : b.communication_style === 'EMOTIONAL' ? 'lead with warmth' : 'balance both') + '</div>';
-    }
+  // Unread patient notes
+  if (b.unread_notes && b.unread_notes.length) {
+    b.unread_notes.forEach(function(note) {
+      html += '<div style="background:#fff8e1;border-left:4px solid #e8a838;border-radius:10px;padding:12px 16px;margin-bottom:14px">' +
+        '<div style="font-size:11px;font-weight:700;color:#b8860b;text-transform:uppercase;letter-spacing:.5px">\uD83D\uDCE9 Patient Note</div>' +
+        '<div style="font-size:14px;color:#333;margin-top:4px;font-style:italic">"'+escHtml(note)+'"</div></div>';
+    });
+  }
 
-    // Stress level
-    if (b.stress_level) {
-      var stressClass = b.stress_level === 'CRITICAL' ? 'red' : b.stress_level === 'HIGH' ? 'amber' : 'green';
-      html += '<div class="briefing-card"><div class="bc-label">Stress Level</div><span class="priority-badge ' + stressClass + '">' + b.stress_level + '</span>' +
-        (b.recent_mood_trend ? ' <span style="font-size:12px;color:var(--text-muted)">Mood trend: ' + b.recent_mood_trend + '</span>' : '') + '</div>';
-    }
+  // Header
+  html += '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">' +
+    '<span style="font-size:18px;font-weight:700;color:var(--text-primary,#1a2a2e)">'+escHtml(b.patient_name||'Patient')+'</span>' +
+    '<span style="font-size:13px;color:#888">'+(b.patient_age||'?')+'y</span>' +
+    '<span style="font-size:12px;font-weight:600;color:#0d7377;background:#e6f2f2;padding:2px 8px;border-radius:4px">'+escHtml((b.stage||'').replace(/_/g,' ').toUpperCase())+'</span></div>';
 
-    // Suggested approach (maps from backend field)
-    if (b.suggested_approach) html += '<div class="briefing-card highlight"><div class="bc-label">Suggested Approach</div><div style="font-size:13px;line-height:1.6">' + escHtml(b.suggested_approach) + '</div></div>';
+  // Briefing text — parse sections
+  if (b.briefing_text) {
+    var whMatch = b.briefing_text.match(/WHAT[''\u2019]?S HAPPENING:?\s*([\s\S]*?)(?=AFTER LAST VISIT|WHAT THEY NEED|$)/i);
+    var avMatch = b.briefing_text.match(/AFTER LAST VISIT:?\s*([\s\S]*?)(?=WHAT THEY NEED|$)/i);
+    var wnMatch = b.briefing_text.match(/WHAT THEY NEED:?\s*([\s\S]*?)$/i);
 
-    // Main concerns (maps from backend field)
-    if (b.main_concerns && b.main_concerns.length) {
-      html += '<div class="briefing-card"><div class="bc-label">Key Concerns</div><ul>' +
-        b.main_concerns.map(function(c) { return '<li>' + escHtml(c) + '</li>'; }).join('') + '</ul></div>';
+    if (whMatch && whMatch[1].trim()) {
+      html += '<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">What\'s Happening</div>' +
+        '<div style="font-size:14px;color:var(--text-primary,#1a2a2e);line-height:1.6">'+escHtml(whMatch[1].trim())+'</div></div>';
     }
-
-    // Patient expectations prompt
-    if (b.patient_expectations_prompt) html += '<div class="briefing-card"><div class="bc-label">Ask the Patient</div><div style="font-style:italic">"' + escHtml(b.patient_expectations_prompt) + '"</div></div>';
-
-    // Key topics discussed
-    if (b.key_topics_discussed && b.key_topics_discussed.length) {
-      html += '<div class="briefing-card"><div class="bc-label">Topics Discussed with AI</div><ul>' +
-        b.key_topics_discussed.map(function(t) { return '<li>' + escHtml(t) + '</li>'; }).join('') + '</ul></div>';
+    if (avMatch && avMatch[1].trim()) {
+      html += '<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">After Last Visit</div>' +
+        '<div style="font-size:14px;color:var(--text-primary,#1a2a2e);line-height:1.6">'+escHtml(avMatch[1].trim())+'</div></div>';
     }
-
-    // Risk flags
-    if (b.risk_flags && b.risk_flags.length) {
-      html += '<div class="briefing-card warn"><div class="bc-label">⚠ Risk Flags</div><ul>' +
-        b.risk_flags.map(function(f) { return '<li>' + escHtml(f) + '</li>'; }).join('') + '</ul></div>';
+    if (wnMatch && wnMatch[1].trim()) {
+      html += '<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">What They Need</div>' +
+        '<div style="font-size:14px;color:var(--text-primary,#1a2a2e);line-height:1.6;white-space:pre-wrap">'+escHtml(wnMatch[1].trim())+'</div></div>';
     }
-
-    // Legacy fields (backward compat)
-    if (b.emotional_summary) html += '<div class="briefing-card"><div class="bc-label">Emotional Summary</div><div>' + escHtml(b.emotional_summary) + '</div></div>';
-    if (b.care_priorities && b.care_priorities.length) {
-      html += '<div class="briefing-card"><div class="bc-label">Care Priorities</div><ol>' +
-        b.care_priorities.map(function(p) { return '<li>' + escHtml(p) + '</li>'; }).join('') + '</ol></div>';
-    }
-    if (b.suggested_opener) html += '<div class="briefing-card highlight"><div class="bc-label">Suggested Opener</div><div style="font-style:italic">"' + escHtml(b.suggested_opener) + '"</div></div>';
-    if (b.topics_to_raise && b.topics_to_raise.length) {
-      html += '<div class="briefing-card"><div class="bc-label">Topics to Raise</div><ul>' +
-        b.topics_to_raise.map(function(t) { return '<li>' + escHtml(t) + '</li>'; }).join('') + '</ul></div>';
-    }
-    if (b.topics_to_avoid && b.topics_to_avoid.length) {
-      html += '<div class="briefing-card warn"><div class="bc-label">⚠ Topics to Avoid</div><ul>' +
-        b.topics_to_avoid.map(function(t) { return '<li>' + escHtml(t) + '</li>'; }).join('') + '</ul></div>';
-    }
-
-    if (b.unresolved_questions && b.unresolved_questions.length) {
-      html += '<div class="briefing-card warn"><div class="bc-label">Unresolved Questions (' + b.unresolved_questions.length + ')</div>';
-      b.unresolved_questions.forEach(function(q) {
-        html += '<div class="uq-item"><strong>' + escHtml(q.question) + '</strong> — asked ' + q.times_asked + 'x' +
-          (q.needs_clinician ? ' <span class="needs-clinician">Needs clinician</span>' : '') +
-          '<div class="uq-reason">' + escHtml(q.reason || '') + '</div></div>';
-      });
-      html += '</div>';
-    }
-
-    if (b.phenotype_flags && b.phenotype_flags.length) {
-      html += '<div class="briefing-card"><div class="bc-label">Phenotype Flags</div><ul>' +
-        b.phenotype_flags.map(function(f) { return '<li>' + escHtml(f) + '</li>'; }).join('') + '</ul></div>';
-    }
-
-    // Doctor-only sections
-    if (role === 'doctor' && b.clinical_recommendations && b.clinical_recommendations.length) {
-      html += '<div class="bc-label" style="margin-top:20px">Clinical Recommendations</div>';
-      b.clinical_recommendations.forEach(function(rec) {
-        var priClass = rec.priority === 'high' ? 'red' : rec.priority === 'medium' ? 'amber' : 'green';
-        html += '<div class="rec-card"><div class="rec-header"><span class="rec-type">' + escHtml(rec.type || '') + '</span>' +
-          '<span class="priority-badge ' + priClass + '">' + escHtml(rec.priority || '') + '</span></div>' +
-          '<div class="rec-topic">' + escHtml(rec.topic || '') + '</div>' +
-          '<div class="rec-detail">' + escHtml(rec.detail || '') + '</div>' +
-          '<div class="rec-action"><strong>Suggested:</strong> ' + escHtml(rec.suggested_action || '') + '</div></div>';
-      });
-    }
-
-    if (role === 'doctor' && b.patient_confidence) {
-      var conf = b.patient_confidence;
-      var confClass = conf.in_treatment_plan === 'HIGH' ? 'green' : conf.in_treatment_plan === 'LOW' ? 'red' : 'amber';
-      html += '<div class="briefing-card"><div class="bc-label">Patient Confidence in Treatment</div>' +
-        '<div class="confidence-meter"><div class="conf-bar ' + confClass + '"></div><span>' + conf.in_treatment_plan +
-        (conf.trend ? ' (' + conf.trend + ')' : '') + '</span></div>' +
-        (conf.evidence ? '<div class="conf-evidence">' + escHtml(conf.evidence) + '</div>' : '') + '</div>';
-    }
-
-    if (role === 'doctor' && b.ai_handled_topics && b.ai_handled_topics.length) {
-      html += '<div class="briefing-card"><div class="bc-label">AI-Handled Topics</div>';
-      b.ai_handled_topics.forEach(function(t) {
-        var statusIcon = t.status === 'resolved' ? '✓' : '⚠';
-        var statusClass = t.status === 'resolved' ? 'resolved' : 'unresolved';
-        html += '<div class="ai-topic ' + statusClass + '"><span>' + statusIcon + '</span> ' + escHtml(t.topic) +
-          (t.patient_satisfied === false ? ' <span class="unsatisfied">Patient unsatisfied</span>' : '') + '</div>';
-      });
-      html += '</div>';
+    // Fallback if no sections parsed
+    if (!whMatch && !avMatch && !wnMatch) {
+      html += '<div style="margin-top:14px;font-size:14px;color:var(--text-primary,#1a2a2e);line-height:1.6;white-space:pre-wrap">'+escHtml(b.briefing_text)+'</div>';
     }
   }
 
+  // Latest comfort report mini-card
+  if (b.latest_comfort) {
+    var lc = b.latest_comfort;
+    var ratings = lc.ratings || {};
+    var dimLabels = {procedure_pain:'Pain',pain_after:'Pain now',comfort:'Comfort',informed:'Informed',emotional:'Emotional',rushed:'Rushed'};
+    html += '<div style="margin-top:16px;padding:12px 16px;border-radius:10px;background:#f8f9fb;border:1px solid #e8eaed">' +
+      '<div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Comfort Report — '+(lc.procedure||'?')+'</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    Object.keys(ratings).forEach(function(k) {
+      var v = ratings[k]; var c = v >= 7 ? '#ef4444' : v >= 5 ? '#f59e0b' : '#22c55e';
+      html += '<div style="background:white;border:1px solid '+c+'33;border-radius:6px;padding:4px 8px">' +
+        '<span style="font-size:11px;color:#888">'+(dimLabels[k]||k)+'</span> <span style="font-size:13px;font-weight:700;color:'+c+'">'+v+'</span></div>';
+    });
+    html += '</div>';
+    if (lc.note) html += '<div style="margin-top:6px;font-size:13px;color:#555;font-style:italic">"'+escHtml(lc.note)+'"</div>';
+    html += '</div>';
+  }
+
+  // Cache info + refresh
+  var cTime = b.generated_at ? new Date(b.generated_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '?';
+  html += '<div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">' +
+    '<span style="font-size:11px;color:#bbb">Generated '+cTime+'</span>' +
+    '<button onclick="refreshBriefing(\''+escHtml(b.patient_id||currentPatientId)+'\')" style="font-size:12px;color:#0d7377;background:none;border:1px solid #0d7377;border-radius:6px;padding:4px 12px;cursor:pointer;font-weight:500">\u21BB Refresh</button></div>';
+
   html += '</div>';
   return html;
+}
+
+function refreshBriefing(pid) {
+  var body = document.getElementById('modalBody');
+  body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Refreshing briefing...</div>';
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/briefing?role=' + selectedRole + '&force_refresh=true')
+    .then(function(r) { return r.json(); })
+    .then(function(b) { body.innerHTML = renderBriefing(b); })
+    .catch(function(e) { body.innerHTML = '<div style="padding:40px;color:var(--red)">Refresh failed: '+e.message+'</div>'; });
 }
 
 function renderConversations(sessions) {

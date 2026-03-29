@@ -635,7 +635,7 @@ async function poll() {
     if (pRes.ok) {
       patients = (await pRes.json()).patients || [];
       renderPatients();
-      renderSpreadsheet(patients);
+      // renderSpreadsheet(patients);
       document.getElementById('statusDot').className = 'status-dot connected';
       document.getElementById('statusText').textContent = 'Connected';
     }
@@ -1602,7 +1602,7 @@ function wireSSEvents(){
 
 function reloadSS(){
   authFetch(API_BASE+'/clinician/patients').then(function(r){return r.json()}).then(function(d){
-    var p=d.patients||d;if(Array.isArray(p))renderSpreadsheet(p);
+    var p=d.patients||d;// spreadsheet disabled;
   });
 }
 

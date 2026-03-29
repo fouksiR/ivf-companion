@@ -728,19 +728,24 @@ function renderPatients() {
     }
 
     var dotClass = esc === "RED" ? "red" : esc === "AMBER" ? "amber" : "green";
-    return '<div><div class="patient-card" style="display:flex;align-items:center;gap:8px;">' +
-      '<span data-cycle-toggle="' + p.patient_id + '" onclick="event.stopPropagation();toggleCycleGrid(\'' + p.patient_id + '\')" style="cursor:pointer;font-size:10px;color:#888;padding:4px;">▶</span>' +
+    var dayHeaders = '';
+    for (var dd = 1; dd <= 14; dd++) dayHeaders += '<th style="border:1px solid #ddd;padding:1px 2px;background:#f8f9fb;font-size:9px;color:#999;min-width:32px;">D' + dd + '</th>';
+    return '<div style="border-bottom:1px solid #eee;padding:4px 0;">' +
+      '<div class="patient-card" style="display:flex;align-items:center;gap:8px;">' +
       '<div class="risk-dot ' + dotClass + '"></div>' +
       '<div style="flex:1;min-width:0" onclick="openDetail(\'' + p.patient_id + '\')">' +
         '<div class="pc-name">' + escHtml(p.patient_name || p.patient_id) + '</div>' +
-        '<div class="pc-active' + lastActiveClass + '">' +
-          (p.email ? escHtml(p.email) + ' · ' : '') + lastActive +
-        '</div>' +
+        '<div class="pc-active' + lastActiveClass + '">' + (p.email ? escHtml(p.email) + ' · ' : '') + lastActive + '</div>' +
       '</div>' +
       '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span>' +
+      '<button onclick="event.stopPropagation();addMedRow(\'' + p.patient_id + '\')" style="font-size:16px;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:0 6px;color:#0d7377;">+</button>' +
       '</div>' +
-      '<div id="cycle-grid-' + p.patient_id + '" style="display:none;padding:4px 12px 12px 28px;border-bottom:1px solid #eee;background:#fafcfc;"></div></div>';
+      '<div style="overflow-x:auto;"><table id="medgrid-' + p.patient_id + '" style="border-collapse:collapse;margin:0 0 4px 20px;font-size:11px;">' +
+      '<thead><tr><th style="border:1px solid #ddd;padding:2px 4px;background:#f8f9fb;font-size:10px;color:#888;min-width:85px;">Med</th>' + dayHeaders + '</tr></thead>' +
+      '<tbody></tbody></table></div></div>';
   }).join('');
+  // Load saved meds for each patient
+  sorted.forEach(function(p) { if (typeof loadSavedMeds === 'function') loadSavedMeds(p.patient_id); });
 }
 function sortPatientList(list) {
   var sort = document.getElementById('patientSort') ? document.getElementById('patientSort').value : 'escalation';
@@ -1724,6 +1729,71 @@ function toggleCycleGrid(pid) {
         if (a) a.textContent = '▼';
         loadMedGrid(pid);
     }
+}
+// === SIMPLE MED GRID — [+] adds rows, type doses, auto-save ===
+function addMedRow(pid) {
+  var grid = document.getElementById('medgrid-' + pid);
+  if (!grid) return;
+  var tbody = grid.querySelector('tbody');
+  if (!tbody) return;
+  var tr = document.createElement('tr');
+  var h = '<td style="border:1px solid #ddd;padding:2px;background:#fff;"><input type="text" placeholder="Med name" style="width:80px;border:none;font-size:11px;outline:none;font-weight:600;"></td>';
+  for (var i = 0; i < 14; i++) {
+    h += '<td style="border:1px solid #eee;padding:1px;"><input type="text" style="width:30px;border:none;font-size:11px;text-align:center;outline:none;"></td>';
+  }
+  tr.innerHTML = h;
+  tbody.appendChild(tr);
+}
+
+function saveMedGrid(pid) {
+  var grid = document.getElementById('medgrid-' + pid);
+  if (!grid) return;
+  var rows = grid.querySelectorAll('tbody tr');
+  var meds = {};
+  rows.forEach(function(row, i) {
+    var inputs = row.querySelectorAll('input');
+    var name = inputs[0] ? inputs[0].value.trim() : '';
+    if (!name) return;
+    var doses = {};
+    for (var d = 1; d < inputs.length; d++) {
+      var val = inputs[d].value.trim();
+      if (val) doses['d' + d] = val;
+    }
+    meds['med_' + i] = { name: name, doses: doses };
+  });
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ medications_simple: meds })
+  }).catch(function(e) { console.error('Med save error:', e); });
+}
+
+// Auto-save on blur (when user tabs/clicks away from a cell)
+document.addEventListener('focusout', function(e) {
+  var grid = e.target.closest('[id^="medgrid-"]');
+  if (!grid) return;
+  var pid = grid.id.replace('medgrid-', '');
+  saveMedGrid(pid);
+});
+
+function loadSavedMeds(pid) {
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle')
+  .then(function(r) { return r.json(); })
+  .then(function(cycle) {
+    if (!cycle || !cycle.medications_simple) return;
+    var meds = cycle.medications_simple;
+    Object.values(meds).forEach(function(m) {
+      addMedRow(pid);
+      var grid = document.getElementById('medgrid-' + pid);
+      if (!grid) return;
+      var lastRow = grid.querySelector('tbody tr:last-child');
+      var inputs = lastRow.querySelectorAll('input');
+      if (inputs[0]) inputs[0].value = m.name || '';
+      var doses = m.doses || {};
+      for (var d = 1; d <= 14; d++) {
+        if (inputs[d] && doses['d' + d]) inputs[d].value = doses['d' + d];
+      }
+    });
+  }).catch(function() {});
 }
 </script>
 </body>

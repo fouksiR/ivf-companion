@@ -1731,21 +1731,21 @@ function toggleCycleGrid(pid) {
     }
 }
 // === SIMPLE MED GRID — [+] adds rows, type doses, auto-save ===
-function addMedRow(pid) {
+function addMedRow(pid) { try {
   var grid = document.getElementById('medgrid-' + pid);
   if (!grid) return;
   var tbody = grid.querySelector('tbody');
   if (!tbody) return;
   var tr = document.createElement('tr');
-  var h = '<td style="border:1px solid #ddd;padding:2px;background:#fff;"><input type="text" placeholder="Med name" style="width:80px;border:none;font-size:11px;outline:none;font-weight:600;"></td>';
+  var h = '<td style="border:1px solid #ddd;padding:2px;background:#fff;"><input type="text" placeholder="Med name" autocomplete="off" data-lpignore="true" style="width:80px;border:none;font-size:11px;outline:none;font-weight:600;"></td>';
   for (var i = 0; i < 14; i++) {
-    h += '<td style="border:1px solid #eee;padding:1px;"><input type="text" style="width:30px;border:none;font-size:11px;text-align:center;outline:none;"></td>';
+    h += '<td style="border:1px solid #eee;padding:1px;"><input type="text" autocomplete="off" data-lpignore="true" style="width:30px;border:none;font-size:11px;text-align:center;outline:none;"></td>';
   }
   tr.innerHTML = h;
   tbody.appendChild(tr);
 }
 
-function saveMedGrid(pid) {
+function saveMedGrid(pid) { try {
   var grid = document.getElementById('medgrid-' + pid);
   if (!grid) return;
   var rows = grid.querySelectorAll('tbody tr');
@@ -1764,7 +1764,7 @@ function saveMedGrid(pid) {
   authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ medications_simple: meds })
-  }).catch(function(e) { console.error('Med save error:', e); });
+  }).catch(function(e) { console.error("Med save error:", e); }); } catch(err) { console.error("saveMedGrid crash:", err); }
 }
 
 // Auto-save on blur (when user tabs/clicks away from a cell)

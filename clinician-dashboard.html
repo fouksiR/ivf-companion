@@ -1742,7 +1742,7 @@ function addMedRow(pid) { try {
     h += '<td style="border:1px solid #eee;padding:1px;"><input type="text" autocomplete="off" data-lpignore="true" style="width:30px;border:none;font-size:11px;text-align:center;outline:none;"></td>';
   }
   tr.innerHTML = h;
-  tbody.appendChild(tr);
+  tbody.appendChild(tr); } catch(e){ console.error("addMedRow:",e); }
 }
 
 function saveMedGrid(pid) { try {

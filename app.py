@@ -4964,6 +4964,88 @@ async def get_comfort_reports(patient_id: str):
     return {"reports": reports}
 
 
+
+
+# ── Cycle Management (medications, dates, protocol) ──────────────────
+
+@app.get("/clinician/patient/{patient_id}/cycle", dependencies=[Depends(verify_clinician_api_key)])
+async def get_patient_cycle(patient_id: str):
+    """Get patient's current cycle data."""
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            cycle = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").get()
+            return cycle or {}
+    except Exception as e:
+        return {"error": str(e)}
+    return {}
+
+@app.post("/clinician/patient/{patient_id}/cycle", dependencies=[Depends(verify_clinician_api_key)])
+async def update_patient_cycle(patient_id: str, request: Request):
+    """Update patient cycle data."""
+    data = await request.json()
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            ref = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle")
+            existing = ref.get() or {}
+            for key in data:
+                if key == 'key_dates' and isinstance(data[key], dict):
+                    kd = existing.get('key_dates', {})
+                    kd.update(data[key])
+                    existing['key_dates'] = kd
+                else:
+                    existing[key] = data[key]
+            existing['updated_at'] = utc_iso()
+            ref.set(existing)
+            return {"status": "updated"}
+    except Exception as e:
+        return {"error": str(e)}
+    return {"status": "no_firebase"}
+
+@app.post("/clinician/patient/{patient_id}/cycle/medication", dependencies=[Depends(verify_clinician_api_key)])
+async def add_cycle_medication(patient_id: str, request: Request):
+    """Add a medication to the patient's cycle."""
+    data = await request.json()
+    try:
+        med_id = (data.get('name', 'med').lower().replace(' ', '_').replace('-', '_')
+                  + '_' + str(int(utc_now().timestamp()) % 100000))
+        med = {
+            'name': data.get('name', ''),
+            'category': data.get('category', 'other'),
+            'dose': data.get('dose', 0),
+            'unit': data.get('unit', ''),
+            'start_date': data.get('start_date', utc_now().strftime('%Y-%m-%d')),
+            'end_date': data.get('end_date'),
+        }
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").child("medications").child(med_id).set(med)
+        return {"status": "added", "id": med_id}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.delete("/clinician/patient/{patient_id}/cycle/medication/{med_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def delete_cycle_medication(patient_id: str, med_id: str):
+    """Remove a medication."""
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").child("medications").child(med_id).delete()
+        return {"status": "deleted"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/clinician/patient/{patient_id}/cycle/medication/{med_id}/dose", dependencies=[Depends(verify_clinician_api_key)])
+async def update_med_dose(patient_id: str, med_id: str, request: Request):
+    """Update a specific date's dose."""
+    data = await request.json()
+    try:
+        date_str = data.get('date')
+        dose = data.get('dose')
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").child("medications").child(med_id).child("doses").child(date_str).set(dose)
+        return {"status": "updated"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ── Static File Serving ────────────────────────────────────────────────
 
 @app.get("/")

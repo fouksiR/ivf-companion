@@ -3063,6 +3063,23 @@ async def clinician_dashboard():
         patient_name = patient.get("patient_name") or patient.get("name") or "Anonymous"
         stage = patient.get("treatment_stage", "consultation")
 
+        # Load cycle data for spreadsheet view
+        cycle_data = None
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                cd = firebase_db._fb_ref.child("patients").child(pid).child("cycle").get()
+                if cd and isinstance(cd, dict):
+                    cycle_data = {
+                        "type": cd.get("type") or cd.get("protocol", ""),
+                        "cycle_number": cd.get("cycle_number", 1),
+                        "start_date": cd.get("start_date") or (cd.get("key_dates") or {}).get("cycle_start", ""),
+                        "key_dates": cd.get("key_dates", {}),
+                        "medications": cd.get("medications", {}),
+                        "notes": cd.get("notes", ""),
+                    }
+        except Exception:
+            pass
+
         overview.append({
             "patient_id": pid,
             "patient_name": patient_name,
@@ -3083,6 +3100,8 @@ async def clinician_dashboard():
             "human_escalation_requested": store.get("human_escalation_requested", False),
             "communication_style": classify_patient_style(pid),
             "summary": (store.get("current_assessment") or {}).get("summary", ""),
+            "age": patient.get("age", ""),
+            "cycle": cycle_data,
         })
       except Exception as e:
         logger.warning(f"Error building patient overview for {pid}: {e}")

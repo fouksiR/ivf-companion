@@ -280,7 +280,11 @@
         /* Main layout */
         .main { display: grid; grid-template-columns: 320px 1fr; gap: 0; height: calc(100vh - 56px); }
         .panel-left { background: var(--white); border-right: 1px solid var(--border); padding: 0; overflow-y: auto; }
-        .panel-right { background: var(--off-white); padding: 24px; overflow-y: auto; }
+        .panel-left, .panel-right { display: none !important; }
+        .main { display: block !important; }
+        .ss-prow:hover td { background: #f0f8f8 !important; }
+        .ss-dose:hover { background: #e0f4f4 !important; outline: 2px solid #0d7377; }
+        .panel-right-DISABLED { background: var(--off-white); padding: 24px; overflow-y: auto; }
         .patient-grid { display: flex; flex-direction: column; gap: 0; }
         .section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; padding: 16px 20px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
         .section-count { font-size: 12px; background: var(--warm-gray-100); padding: 2px 8px; border-radius: 4px; font-family: var(--sans); color: var(--text-muted); }
@@ -631,6 +635,7 @@ async function poll() {
     if (pRes.ok) {
       patients = (await pRes.json()).patients || [];
       renderPatients();
+      renderSpreadsheet(patients);
       document.getElementById('statusDot').className = 'status-dot connected';
       document.getElementById('statusText').textContent = 'Connected';
     }
@@ -1431,6 +1436,175 @@ async function deleteCycleMed(pid,medId){
   await authFetch(API_BASE+'/clinician/patient/'+pid+'/cycle/medication/'+medId,{method:'DELETE'});
   loadCycleTab(pid);
 }
+
+
+// === SPREADSHEET DASHBOARD ===
+var _expanded={};
+var _ssPatients=null;
+
+function renderSpreadsheet(pList){
+  _ssPatients=pList;
+  var main=document.querySelector('.main');if(!main)return;
+  var today=new Date();
+  var gridStart=new Date(today);gridStart.setDate(gridStart.getDate()-7);
+  var totalDays=21;
+
+  var sorted=pList.slice().sort(function(a,b){
+    var o={RED:0,AMBER:1,YELLOW:2,GREEN:3};
+    return (o[a.risk_level||a.escalation_level||'GREEN']||3)-(o[b.risk_level||b.escalation_level||'GREEN']||3);
+  });
+
+  var h='<div id="ss-wrap" style="overflow-x:auto;overflow-y:auto;height:calc(100vh - 60px)">';
+  h+='<table id="ss-table" style="border-collapse:collapse;font-size:12px;width:max-content;min-width:100%">';
+
+  // Header
+  h+='<thead><tr style="position:sticky;top:0;z-index:10;background:#f8f9fb">';
+  h+='<th style="padding:6px 10px;border:1px solid #e8eaed;background:#f8f9fb;text-align:left;min-width:200px;position:sticky;left:0;z-index:11">Patient</th>';
+  for(var d=0;d<totalDays;d++){
+    var dt=new Date(gridStart);dt.setDate(dt.getDate()+d);
+    var isT=dt.toDateString()===today.toDateString();
+    var bg=isT?'#dff0ee':'#f8f9fb';
+    h+='<th style="padding:4px 2px;border:1px solid #e8eaed;background:'+bg+';min-width:44px;text-align:center;font-weight:'+(isT?'700':'400')+'">';
+    h+='<div style="font-size:9px;color:#aaa">'+['S','M','T','W','T','F','S'][dt.getDay()]+'</div>';
+    h+='<div style="font-size:10px;color:'+(isT?'#0d7377':'#666')+'">'+(dt.getMonth()+1)+'/'+dt.getDate()+'</div></th>';
+  }
+  h+='</tr></thead><tbody>';
+
+  sorted.forEach(function(p){
+    var pid=p.patient_id;
+    var isExp=_expanded[pid];
+    var rc={RED:'#ef4444',AMBER:'#f59e0b',YELLOW:'#eab308',GREEN:'#22c55e'};
+    var rCol=rc[p.risk_level||p.escalation_level||'GREEN']||rc.GREEN;
+    var cy=p.cycle||{};
+    var kd=cy.key_dates||{};
+    var meds=cy.medications?Object.entries(cy.medications):[];
+    var cyStart=cy.start_date?new Date(cy.start_date):null;
+    var cyDay='';
+    if(cyStart){var cd=Math.floor((today-cyStart)/86400000)+1;if(cd>0&&cd<60)cyDay='D'+cd}
+
+    // Patient row
+    h+='<tr class="ss-prow" data-pid="'+pid+'" style="cursor:pointer;border-top:2px solid #e0e0e0">';
+    h+='<td style="padding:8px 10px;border:1px solid #e8eaed;background:white;position:sticky;left:0;z-index:5;white-space:nowrap">';
+    h+='<div style="display:flex;align-items:center;gap:8px">';
+    h+='<span class="ss-arrow" style="font-size:10px;color:#888;transition:transform .2s;transform:rotate('+(isExp?'90':'0')+'deg)">&#9654;</span>';
+    h+='<span style="width:8px;height:8px;border-radius:50%;background:'+rCol+';flex-shrink:0"></span>';
+    h+='<div><span class="ss-name" data-pid="'+pid+'" style="font-weight:600;color:#1a2a2e;text-decoration:underline;cursor:pointer">'+escHtml(p.patient_name||p.name||'?')+'</span>';
+    h+=' <span style="font-size:11px;color:#888">'+(p.age||'')+'</span>';
+    h+='<div style="font-size:10px;color:#0d7377;font-weight:500">'+(cy.type||'')+' '+(cyDay?cyDay+' \u00b7 ':'')+(p.treatment_stage||'').replace(/_/g,' ')+'</div>';
+    h+='</div></div></td>';
+
+    // Day cells with key date markers
+    for(var d=0;d<totalDays;d++){
+      var dt=new Date(gridStart);dt.setDate(dt.getDate()+d);
+      var ds=dt.toISOString().substring(0,10);
+      var mk='',bg='white';
+      if(kd.retrieval===ds||kd.opu===ds){mk='<div style="font-size:7px;color:#f59e0b;font-weight:700">OPU</div>';bg='#fef9e7'}
+      if(kd.transfer===ds||kd.et===ds){mk='<div style="font-size:7px;color:#22c55e;font-weight:700">ET</div>';bg='#e8f8f0'}
+      if(kd.trigger===ds){mk='<div style="font-size:7px;color:#ef4444;font-weight:700">TRIG</div>';bg='#fef2f2'}
+      if(kd.beta===ds){mk='<div style="font-size:7px;color:#8b5cf6;font-weight:700">\u03B2hCG</div>';bg='#f3f0ff'}
+      if(kd.stim_start===ds||kd.cycle_start===ds){mk='<div style="font-size:7px;color:#3b82f6;font-weight:700">START</div>';bg='#eff6ff'}
+      h+='<td style="padding:2px;border:1px solid #e8eaed;text-align:center;background:'+bg+'">'+mk+'</td>';
+    }
+    h+='</tr>';
+
+    // Med rows
+    var disp=isExp?'':'display:none;';
+    var cc={gonadotropin:'#3b82f6',antagonist:'#8b5cf6',agonist:'#6366f1',trigger:'#ef4444',suppression:'#f59e0b',progesterone:'#ec4899',support:'#ec4899',oral:'#2da87a',other:'#6b7280'};
+    meds.forEach(function(me){
+      var mid=me[0],m=me[1],c=cc[m.category]||'#6b7280';
+      var mS=new Date(m.start_date||cy.start_date||today);
+      var mE=m.end_date?new Date(m.end_date):null;
+      h+='<tr class="ss-med" data-pid="'+pid+'" style="'+disp+'">';
+      h+='<td style="padding:3px 10px 3px 34px;border:1px solid #e8eaed;background:#fafafa;position:sticky;left:0;z-index:5;white-space:nowrap">';
+      h+='<span style="display:inline-block;width:6px;height:6px;border-radius:2px;background:'+c+';margin-right:6px;vertical-align:middle"></span>';
+      h+='<span style="font-size:11px;font-weight:500">'+escHtml(m.name||'')+'</span>';
+      h+=' <span style="font-size:10px;color:#aaa">'+(m.unit||'')+'</span>';
+      h+='<span class="ss-delmed" data-pid="'+pid+'" data-mid="'+mid+'" style="float:right;cursor:pointer;color:#ddd;font-size:14px" title="Remove">&times;</span></td>';
+      for(var d=0;d<totalDays;d++){
+        var dt=new Date(gridStart);dt.setDate(dt.getDate()+d);
+        var ds=dt.toISOString().substring(0,10);
+        var active=dt>=mS&&(!mE||dt<=mE);
+        var dose=(m.doses&&m.doses[ds])||(active?m.dose:'');
+        var bg2=active?c+'10':'#fafafa';
+        h+='<td class="ss-dose" data-pid="'+pid+'" data-mid="'+mid+'" data-date="'+ds+'" data-dose="'+(dose||0)+'" ';
+        h+='style="padding:1px;border:1px solid #e8eaed;text-align:center;background:'+bg2+';'+(active?'cursor:pointer;':'')+'">';
+        if(active&&dose)h+='<span style="font-size:10px;font-weight:700;color:'+c+'">'+dose+'</span>';
+        h+='</td>';
+      }
+      h+='</tr>';
+    });
+
+    // Add med row
+    h+='<tr class="ss-addmed" data-pid="'+pid+'" style="'+disp+'">';
+    h+='<td style="padding:4px 10px 4px 34px;border:1px solid #e8eaed;background:#fafafa;position:sticky;left:0;z-index:5">';
+    h+='<select class="ss-addsel" data-pid="'+pid+'" style="padding:2px 4px;border:1px solid #ddd;border-radius:3px;font-size:10px;color:#888;background:white;width:100%">';
+    h+='<option value="">+ Add medication...</option>';
+    h+='<optgroup label="Gonadotropins"><option value="Gonal-F|IU|225|gonadotropin">Gonal-F</option><option value="Puregon|IU|200|gonadotropin">Puregon</option><option value="Menopur|IU|150|gonadotropin">Menopur</option><option value="Bemfola|IU|225|gonadotropin">Bemfola</option><option value="Elonva|mcg|150|gonadotropin">Elonva</option></optgroup>';
+    h+='<optgroup label="Antagonist"><option value="Orgalutran|mg|0.25|antagonist">Orgalutran</option><option value="Cetrotide|mg|0.25|antagonist">Cetrotide</option></optgroup>';
+    h+='<optgroup label="Trigger"><option value="Ovidrel|mcg|250|trigger">Ovidrel</option><option value="Pregnyl|IU|5000|trigger">Pregnyl</option></optgroup>';
+    h+='<optgroup label="Luteal"><option value="Crinone|gel|1|progesterone">Crinone</option><option value="Utrogestan|mg|200|progesterone">Utrogestan</option><option value="Progesterone pessary|mg|400|progesterone">Progesterone</option></optgroup>';
+    h+='<optgroup label="Other"><option value="Prednisolone|mg|5|other">Prednisolone</option><option value="Clexane|mg|40|other">Clexane</option><option value="Aspirin|mg|100|other">Aspirin</option><option value="Letrozole|mg|2.5|other">Letrozole</option><option value="Estradiol valerate|mg|2|other">Estradiol</option><option value="Folic acid|mg|5|other">Folic acid</option></optgroup>';
+    h+='</select></td>';
+    for(var d=0;d<totalDays;d++)h+='<td style="border:1px solid #e8eaed;background:#fafafa"></td>';
+    h+='</tr>';
+  });
+
+  h+='</tbody></table></div>';
+  main.innerHTML=h;
+  wireSSEvents();
+}
+
+function wireSSEvents(){
+  // Expand/collapse
+  document.querySelectorAll('.ss-prow').forEach(function(r){
+    r.addEventListener('click',function(e){
+      if(e.target.classList.contains('ss-name'))return;
+      var pid=r.dataset.pid;_expanded[pid]=!_expanded[pid];
+      var a=r.querySelector('.ss-arrow');if(a)a.style.transform=_expanded[pid]?'rotate(90deg)':'rotate(0deg)';
+      document.querySelectorAll('.ss-med[data-pid="'+pid+'"],.ss-addmed[data-pid="'+pid+'"]').forEach(function(x){x.style.display=_expanded[pid]?'':'none'});
+    });
+  });
+  // Click name -> modal
+  document.querySelectorAll('.ss-name').forEach(function(n){
+    n.addEventListener('click',function(e){e.stopPropagation();openDetail(n.dataset.pid)});
+  });
+  // Edit dose
+  document.querySelectorAll('.ss-dose').forEach(function(c){
+    c.addEventListener('click',function(){
+      if(!c.dataset.mid)return;
+      var nd=prompt('Dose for '+c.dataset.date+':',c.dataset.dose);
+      if(nd===null)return;
+      authFetch(API_BASE+'/clinician/patient/'+c.dataset.pid+'/cycle/medication/'+c.dataset.mid+'/dose',{
+        method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:c.dataset.date,dose:parseFloat(nd)||0})
+      }).then(function(){reloadSS()});
+    });
+  });
+  // Delete med
+  document.querySelectorAll('.ss-delmed').forEach(function(b){
+    b.addEventListener('click',function(e){e.stopPropagation();
+      if(!confirm('Remove this medication?'))return;
+      authFetch(API_BASE+'/clinician/patient/'+b.dataset.pid+'/cycle/medication/'+b.dataset.mid,{method:'DELETE'}).then(function(){reloadSS()});
+    });
+  });
+  // Add med
+  document.querySelectorAll('.ss-addsel').forEach(function(s){
+    s.addEventListener('change',function(){
+      if(!s.value)return;var parts=s.value.split('|');var pid=s.dataset.pid;
+      _expanded[pid]=true;
+      authFetch(API_BASE+'/clinician/patient/'+pid+'/cycle/medication',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:parts[0],unit:parts[1],dose:parseFloat(parts[2])||0,category:parts[3]||'other',start_date:new Date().toISOString().substring(0,10)})
+      }).then(function(){reloadSS()});
+    });
+  });
+}
+
+function reloadSS(){
+  authFetch(API_BASE+'/clinician/patients').then(function(r){return r.json()}).then(function(d){
+    var p=d.patients||d;if(Array.isArray(p))renderSpreadsheet(p);
+  });
+}
+
 
 </script>
 </body>

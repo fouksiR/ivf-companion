@@ -1290,161 +1290,145 @@ async function saveClinicianSettings() {
   }
 })();
 
-// ── Cycle Management Tab ──
-var COMMON_MEDS = [
-  {name:'Gonal-F',cat:'gonadotropin',unit:'IU'},
-  {name:'Menopur',cat:'gonadotropin',unit:'IU'},
-  {name:'Cetrotide',cat:'antagonist',unit:'mg'},
-  {name:'Orgalutran',cat:'antagonist',unit:'mg'},
-  {name:'Ovidrel',cat:'trigger',unit:'mcg'},
-  {name:'Lucrin',cat:'trigger',unit:'mg'},
-  {name:'Progesterone',cat:'support',unit:'mg'},
-  {name:'Estrogen',cat:'support',unit:'mg'},
-  {name:'Clomid',cat:'oral',unit:'mg'},
-  {name:'Letrozole',cat:'oral',unit:'mg'},
-  {name:'Prednisolone',cat:'other',unit:'mg'},
-  {name:'Aspirin',cat:'other',unit:'mg'},
+// ── Cycle Management Tab (clean version) ──
+var COMMON_MEDS=[
+{n:'Gonal-F',c:'gonadotropin',u:'IU'},{n:'Menopur',c:'gonadotropin',u:'IU'},
+{n:'Cetrotide',c:'antagonist',u:'mg'},{n:'Orgalutran',c:'antagonist',u:'mg'},
+{n:'Ovidrel',c:'trigger',u:'mcg'},{n:'Lucrin',c:'trigger',u:'mg'},
+{n:'Progesterone',c:'support',u:'mg'},{n:'Estrogen',c:'support',u:'mg'},
+{n:'Clomid',c:'oral',u:'mg'},{n:'Letrozole',c:'oral',u:'mg'},
+{n:'Prednisolone',c:'other',u:'mg'},{n:'Aspirin',c:'other',u:'mg'}
 ];
-var CAT_COLORS = {gonadotropin:'#0d7377',antagonist:'#7c5cbf',trigger:'#e8953a',support:'#d4548a',oral:'#2da87a',other:'#6b7280'};
+var CAT_COL={gonadotropin:'#0d7377',antagonist:'#7c5cbf',trigger:'#e8953a',support:'#d4548a',oral:'#2da87a',other:'#6b7280'};
+var _cyclePid='';
 
-async function loadCycleTab(pid) {
-  var body = document.getElementById('modalBody');
-  try {
-    var r = await authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle');
-    var cycle = r.ok ? await r.json() : {};
-    body.innerHTML = renderCycleTab(pid, cycle);
-  } catch(e) {
-    body.innerHTML = '<div style="padding:20px;color:#e74c3c">Failed to load cycle: '+e.message+'</div>';
-  }
+async function loadCycleTab(pid){
+  _cyclePid=pid;
+  var body=document.getElementById('modalBody');
+  try{
+    var r=await authFetch(API_BASE+'/clinician/patient/'+pid+'/cycle');
+    var cycle=r.ok?await r.json():{};
+    renderCycleContent(cycle);
+  }catch(e){body.innerHTML='<div style="padding:20px;color:#e74c3c">Failed: '+e.message+'</div>'}
 }
 
-function renderCycleTab(pid, cycle) {
-  var meds = cycle.medications || {};
-  var dates = cycle.key_dates || {};
-  var protocol = cycle.protocol || '';
-  var notes = cycle.notes || '';
+function renderCycleContent(cycle){
+  var body=document.getElementById('modalBody');
+  var meds=cycle.medications||{};
+  var dates=cycle.key_dates||{};
+  var protocol=cycle.protocol||'';
+  var notes=cycle.notes||'';
+  var pid=_cyclePid;
 
-  var html = '<div style="padding:20px">';
+  var h='<div style="padding:20px">';
 
-  // Protocol selector
-  html += '<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;margin-bottom:4px">Protocol</div>' +
-    '<select id="cycleProtocol" onchange="saveCycleField(\x27'+pid+'\x27,\x27protocol\x27,this.value)" style="padding:8px 12px;border:1px solid #e8eaed;border-radius:8px;font-size:13px;width:100%">' +
-    '<option value="">Select protocol...</option>' +
-    '<option value="antagonist"'+(protocol==='antagonist'?' selected':'')+'>Antagonist</option>' +
-    '<option value="long_agonist"'+(protocol==='long_agonist'?' selected':'')+'>Long Agonist</option>' +
-    '<option value="short_flare"'+(protocol==='short_flare'?' selected':'')+'>Short/Flare</option>' +
-    '<option value="mini_ivf"'+(protocol==='mini_ivf'?' selected':'')+'>Mini IVF</option>' +
-    '<option value="natural"'+(protocol==='natural'?' selected':'')+'>Natural Cycle</option>' +
-    '<option value="fet"'+(protocol==='fet'?' selected':'')+'>FET</option>' +
-    '<option value="iui"'+(protocol==='iui'?' selected':'')+'>IUI</option>' +
-    '</select></div>';
+  // Protocol
+  h+='<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;margin-bottom:4px">Protocol</div>'+
+    '<select id="cyProto" style="padding:8px 12px;border:1px solid #e8eaed;border-radius:8px;font-size:13px;width:100%">'+
+    '<option value="">Select...</option>'+
+    ['antagonist','long_agonist','short_flare','mini_ivf','natural','fet','iui'].map(function(p){
+      return '<option value="'+p+'"'+(protocol===p?' selected':'')+'>'+p.replace(/_/g,' ').replace(/\b\w/g,function(l){return l.toUpperCase()})+'</option>';
+    }).join('')+'</select></div>';
 
   // Key dates
-  html += '<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;margin-bottom:6px">Key Dates</div>' +
+  h+='<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;margin-bottom:6px">Key Dates</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  var dateFields = [
-    ['cycle_start','Cycle Start'],['stim_start','Stim Start'],
-    ['trigger','Trigger'],['retrieval','Retrieval'],
-    ['transfer','Transfer'],['beta','Beta HCG']
-  ];
-  dateFields.forEach(function(df) {
-    var val = dates[df[0]] || '';
-    html += '<div><label style="font-size:11px;color:#888">'+df[1]+'</label>' +
-      '<input type="date" value="'+val+'" onchange="saveCycleDate(\x27'+pid+'\x27,\x27'+df[0]+'',this.value)" ' +
-      'style="width:100%;padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px"></div>';
+  [['cycle_start','Cycle Start'],['stim_start','Stim Start'],['trigger','Trigger'],['retrieval','Retrieval'],['transfer','Transfer'],['beta','Beta HCG']].forEach(function(df){
+    h+='<div><label style="font-size:11px;color:#888">'+df[1]+'</label>'+
+      '<input type="date" data-datekey="'+df[0]+'" value="'+(dates[df[0]]||'')+'" class="cy-date" '+
+      'style="width:100%;padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px;box-sizing:border-box"></div>';
   });
-  html += '</div></div>';
+  h+='</div></div>';
 
   // Medications
-  html += '<div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
-    '<div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase">Medications</div>' +
-    '<button onclick="showAddMedForm(\x27'+pid+'\x27,this)" style="font-size:12px;color:#0d7377;background:none;border:1px solid #0d7377;border-radius:6px;padding:4px 10px;cursor:pointer">+ Add</button></div>';
+  h+='<div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+    '<div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase">Medications</div>'+
+    '<button id="btnAddMed" style="font-size:12px;color:#0d7377;background:none;border:1px solid #0d7377;border-radius:6px;padding:4px 10px;cursor:pointer">+ Add</button></div>';
 
-  var medKeys = Object.keys(meds);
-  if (medKeys.length === 0) {
-    html += '<div style="padding:20px;text-align:center;color:#bbb;font-size:13px">No medications added yet. Click + Add to start.</div>';
-  } else {
-    medKeys.forEach(function(mk) {
-      var m = meds[mk];
-      var catColor = CAT_COLORS[m.category] || '#6b7280';
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid #e8eaed;margin-bottom:6px;background:white">' +
-        '<div style="width:4px;height:32px;border-radius:2px;background:'+catColor+'"></div>' +
-        '<div style="flex:1"><div style="font-size:14px;font-weight:600;color:#1a2a2e">'+escHtml(m.name)+'</div>' +
-        '<div style="font-size:11px;color:#888">'+m.dose+' '+m.unit+' &middot; '+m.category+' &middot; from '+(m.start_date||'?')+'</div></div>' +
-        '<button onclick="deleteMed(\x27'+pid+'\x27,\x27'+mk+'\x27,this)" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px" title="Remove">&times;</button></div>';
+  var mk=Object.keys(meds);
+  if(!mk.length){
+    h+='<div style="padding:20px;text-align:center;color:#bbb;font-size:13px">No medications yet</div>';
+  }else{
+    mk.forEach(function(k){
+      var m=meds[k];var cc=CAT_COL[m.category]||'#6b7280';
+      h+='<div class="cy-med" data-medid="'+k+'" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid #e8eaed;margin-bottom:6px;background:white">'+
+        '<div style="width:4px;height:32px;border-radius:2px;background:'+cc+'"></div>'+
+        '<div style="flex:1"><div style="font-size:14px;font-weight:600;color:#1a2a2e">'+escHtml(m.name)+'</div>'+
+        '<div style="font-size:11px;color:#888">'+(m.dose||'')+' '+(m.unit||'')+' &middot; '+(m.category||'')+' &middot; from '+(m.start_date||'?')+'</div></div>'+
+        '<button class="cy-del" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px" title="Remove">&times;</button></div>';
     });
   }
-  html += '</div>';
+
+  // Add med form (hidden)
+  h+='<div id="addMedArea" style="display:none;padding:12px;border:1px solid #e8eaed;border-radius:10px;margin-bottom:10px;background:#f8f9fb">'+
+    '<select id="medSel" style="width:100%;padding:8px;border:1px solid #e8eaed;border-radius:6px;margin-bottom:6px;font-size:13px">'+
+    '<option value="">Select medication...</option>'+
+    COMMON_MEDS.map(function(m){return '<option value="'+m.n+'" data-cat="'+m.c+'" data-unit="'+m.u+'">'+m.n+'</option>'}).join('')+
+    '<option value="__custom">Other (custom)</option></select>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+    '<input id="medDose" type="number" placeholder="Dose" style="padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px">'+
+    '<input id="medUnit" placeholder="Unit" style="padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px"></div>'+
+    '<input id="medStart" type="date" value="'+new Date().toISOString().substring(0,10)+'" style="width:100%;padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px;margin-bottom:6px;box-sizing:border-box">'+
+    '<button id="btnSubmitMed" style="width:100%;padding:8px;background:#0d7377;color:white;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">Add Medication</button></div>';
+
+  h+='</div>';
 
   // Notes
-  html += '<div><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;margin-bottom:4px">Cycle Notes</div>' +
-    '<textarea id="cycleNotes" onblur="saveCycleField(\x27'+pid+'\x27,\x27notes\x27,this.value)" rows="3" style="width:100%;padding:10px;border:1px solid #e8eaed;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box">'+escHtml(notes)+'</textarea></div>';
+  h+='<div><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;margin-bottom:4px">Cycle Notes</div>'+
+    '<textarea id="cyNotes" rows="3" style="width:100%;padding:10px;border:1px solid #e8eaed;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box">'+escHtml(notes)+'</textarea></div>';
 
-  html += '</div>';
-  return html;
-}
+  h+='</div>';
+  body.innerHTML=h;
 
-function saveCycleField(pid, field, value) {
-  var body = {}; body[field] = value;
-  authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
-    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+  // Wire events via addEventListener (no inline onclick!)
+  document.getElementById('cyProto').addEventListener('change',function(){
+    saveCycleField(pid,'protocol',this.value);
+  });
+  document.querySelectorAll('.cy-date').forEach(function(el){
+    el.addEventListener('change',function(){saveCycleDate(pid,el.dataset.datekey,el.value)});
+  });
+  document.getElementById('btnAddMed').addEventListener('click',function(){
+    var area=document.getElementById('addMedArea');
+    area.style.display=area.style.display==='none'?'block':'none';
+  });
+  document.getElementById('medSel').addEventListener('change',function(){
+    var opt=this.options[this.selectedIndex];
+    if(opt.dataset.unit)document.getElementById('medUnit').value=opt.dataset.unit;
+  });
+  document.getElementById('btnSubmitMed').addEventListener('click',function(){submitCycleMed(pid)});
+  document.querySelectorAll('.cy-del').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var medId=btn.closest('.cy-med').dataset.medid;
+      if(confirm('Remove this medication?')){deleteCycleMed(pid,medId)}
+    });
+  });
+  document.getElementById('cyNotes').addEventListener('blur',function(){
+    saveCycleField(pid,'notes',this.value);
   });
 }
 
-function saveCycleDate(pid, dateKey, value) {
-  var body = {key_dates:{}}; body.key_dates[dateKey] = value;
-  authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
-    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
-  });
+function saveCycleField(pid,field,value){
+  var b={};b[field]=value;
+  authFetch(API_BASE+'/clinician/patient/'+pid+'/cycle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
 }
-
-function showAddMedForm(pid, btn) {
-  var existing = document.getElementById('addMedForm');
-  if (existing) { existing.remove(); return; }
-  var form = document.createElement('div');
-  form.id = 'addMedForm';
-  form.style.cssText = 'padding:12px;border:1px solid #e8eaed;border-radius:10px;margin-bottom:10px;background:#f8f9fb';
-  var opts = COMMON_MEDS.map(function(m){return '<option value="'+m.name+'" data-cat="'+m.cat+'" data-unit="'+m.unit+'">'+m.name+'</option>'}).join('');
-  form.innerHTML = '<select id="medSelect" onchange="prefillMed()" style="width:100%;padding:8px;border:1px solid #e8eaed;border-radius:6px;margin-bottom:6px;font-size:13px"><option value="">Select medication...</option>'+opts+'<option value="custom">Other (custom)</option></select>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">' +
-    '<input id="medDose" type="number" placeholder="Dose" style="padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px">' +
-    '<input id="medUnit" placeholder="Unit" style="padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px">' +
-    '</div>' +
-    '<input id="medStart" type="date" value="'+new Date().toISOString().substring(0,10)+'" style="width:100%;padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px;margin-bottom:6px;box-sizing:border-box">' +
-    '<button onclick="submitMed(\x27'+pid+'\x27,this)" style="width:100%;padding:8px;background:#0d7377;color:white;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">Add Medication</button>';
-  btn.parentElement.parentElement.insertBefore(form, btn.parentElement.nextSibling);
+function saveCycleDate(pid,key,value){
+  var b={key_dates:{}};b.key_dates[key]=value;
+  authFetch(API_BASE+'/clinician/patient/'+pid+'/cycle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
 }
-
-function prefillMed() {
-  var sel = document.getElementById('medSelect');
-  var opt = sel.options[sel.selectedIndex];
-  if (opt.dataset.unit) document.getElementById('medUnit').value = opt.dataset.unit;
-}
-
-async function submitMed(pid, btn) {
-  var name = document.getElementById('medSelect').value;
-  if (name === 'custom') name = prompt('Medication name:');
-  if (!name) return;
-  var sel = document.getElementById('medSelect');
-  var opt = sel.options[sel.selectedIndex];
-  btn.textContent = 'Adding...'; btn.disabled = true;
-  await authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle/medication', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      name: name,
-      category: opt.dataset && opt.dataset.cat || 'other',
-      dose: parseFloat(document.getElementById('medDose').value) || 0,
-      unit: document.getElementById('medUnit').value || '',
-      start_date: document.getElementById('medStart').value,
-    })
+async function submitCycleMed(pid){
+  var name=document.getElementById('medSel').value;
+  if(name==='__custom')name=prompt('Medication name:');
+  if(!name)return;
+  var sel=document.getElementById('medSel');
+  var opt=sel.options[sel.selectedIndex];
+  await authFetch(API_BASE+'/clinician/patient/'+pid+'/cycle/medication',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name,category:opt.dataset&&opt.dataset.cat||'other',dose:parseFloat(document.getElementById('medDose').value)||0,unit:document.getElementById('medUnit').value||'',start_date:document.getElementById('medStart').value})
   });
   loadCycleTab(pid);
 }
-
-async function deleteMed(pid, medId, btn) {
-  if (!confirm('Remove this medication?')) return;
-  btn.textContent = '...';
-  await authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle/medication/' + medId, {method:'DELETE'});
+async function deleteCycleMed(pid,medId){
+  await authFetch(API_BASE+'/clinician/patient/'+pid+'/cycle/medication/'+medId,{method:'DELETE'});
   loadCycleTab(pid);
 }
 

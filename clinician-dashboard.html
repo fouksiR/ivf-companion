@@ -1328,7 +1328,7 @@ function renderCycleTab(pid, cycle) {
 
   // Protocol selector
   html += '<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;margin-bottom:4px">Protocol</div>' +
-    '<select id="cycleProtocol" onchange="saveCycleField(''+pid+'','protocol',this.value)" style="padding:8px 12px;border:1px solid #e8eaed;border-radius:8px;font-size:13px;width:100%">' +
+    '<select id="cycleProtocol" onchange="saveCycleField(\x27'+pid+'\x27,\x27protocol\x27,this.value)" style="padding:8px 12px;border:1px solid #e8eaed;border-radius:8px;font-size:13px;width:100%">' +
     '<option value="">Select protocol...</option>' +
     '<option value="antagonist"'+(protocol==='antagonist'?' selected':'')+'>Antagonist</option>' +
     '<option value="long_agonist"'+(protocol==='long_agonist'?' selected':'')+'>Long Agonist</option>' +
@@ -1350,7 +1350,7 @@ function renderCycleTab(pid, cycle) {
   dateFields.forEach(function(df) {
     var val = dates[df[0]] || '';
     html += '<div><label style="font-size:11px;color:#888">'+df[1]+'</label>' +
-      '<input type="date" value="'+val+'" onchange="saveCycleDate(''+pid+'',''+df[0]+'',this.value)" ' +
+      '<input type="date" value="'+val+'" onchange="saveCycleDate(\x27'+pid+'\x27,\x27'+df[0]+'',this.value)" ' +
       'style="width:100%;padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px"></div>';
   });
   html += '</div></div>';
@@ -1358,7 +1358,7 @@ function renderCycleTab(pid, cycle) {
   // Medications
   html += '<div style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
     '<div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase">Medications</div>' +
-    '<button onclick="showAddMedForm(''+pid+'',this)" style="font-size:12px;color:#0d7377;background:none;border:1px solid #0d7377;border-radius:6px;padding:4px 10px;cursor:pointer">+ Add</button></div>';
+    '<button onclick="showAddMedForm(\x27'+pid+'\x27,this)" style="font-size:12px;color:#0d7377;background:none;border:1px solid #0d7377;border-radius:6px;padding:4px 10px;cursor:pointer">+ Add</button></div>';
 
   var medKeys = Object.keys(meds);
   if (medKeys.length === 0) {
@@ -1371,14 +1371,14 @@ function renderCycleTab(pid, cycle) {
         '<div style="width:4px;height:32px;border-radius:2px;background:'+catColor+'"></div>' +
         '<div style="flex:1"><div style="font-size:14px;font-weight:600;color:#1a2a2e">'+escHtml(m.name)+'</div>' +
         '<div style="font-size:11px;color:#888">'+m.dose+' '+m.unit+' &middot; '+m.category+' &middot; from '+(m.start_date||'?')+'</div></div>' +
-        '<button onclick="deleteMed(''+pid+'',''+mk+'',this)" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px" title="Remove">&times;</button></div>';
+        '<button onclick="deleteMed(\x27'+pid+'\x27,\x27'+mk+'\x27,this)" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px" title="Remove">&times;</button></div>';
     });
   }
   html += '</div>';
 
   // Notes
   html += '<div><div style="font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;margin-bottom:4px">Cycle Notes</div>' +
-    '<textarea id="cycleNotes" onblur="saveCycleField(''+pid+'','notes',this.value)" rows="3" style="width:100%;padding:10px;border:1px solid #e8eaed;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box">'+escHtml(notes)+'</textarea></div>';
+    '<textarea id="cycleNotes" onblur="saveCycleField(\x27'+pid+'\x27,\x27notes\x27,this.value)" rows="3" style="width:100%;padding:10px;border:1px solid #e8eaed;border-radius:8px;font-size:13px;resize:vertical;box-sizing:border-box">'+escHtml(notes)+'</textarea></div>';
 
   html += '</div>';
   return html;
@@ -1411,7 +1411,7 @@ function showAddMedForm(pid, btn) {
     '<input id="medUnit" placeholder="Unit" style="padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px">' +
     '</div>' +
     '<input id="medStart" type="date" value="'+new Date().toISOString().substring(0,10)+'" style="width:100%;padding:6px 8px;border:1px solid #e8eaed;border-radius:6px;font-size:12px;margin-bottom:6px;box-sizing:border-box">' +
-    '<button onclick="submitMed(''+pid+'',this)" style="width:100%;padding:8px;background:#0d7377;color:white;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">Add Medication</button>';
+    '<button onclick="submitMed(\x27'+pid+'\x27,this)" style="width:100%;padding:8px;background:#0d7377;color:white;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600">Add Medication</button>';
   btn.parentElement.parentElement.insertBefore(form, btn.parentElement.nextSibling);
 }
 

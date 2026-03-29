@@ -886,7 +886,7 @@ async function loadModalTab(patientId, tab) {
       var r = await authFetch(API_BASE + '/clinician/patient/' + patientId + '/briefing?role=' + selectedRole);
       if (!r.ok) throw new Error('Failed');
       var b = await r.json();
-      body.innerHTML = renderBriefing(b);
+      console.log("[BRIEFING] Data received:", JSON.stringify(b).substring(0,200)); body.innerHTML = renderBriefing(b); console.log("[BRIEFING] Rendered HTML length:", body.innerHTML.length);
     } catch (e) { body.innerHTML = '<div style="padding:40px;color:var(--red)">Failed to load briefing</div>'; }
   } else if (tab === 'phenotype') {
     body.innerHTML = '<div id="phenoCharts" style="padding:20px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
@@ -992,7 +992,7 @@ function refreshBriefing(pid) {
   body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted)">Refreshing briefing...</div>';
   authFetch(API_BASE + '/clinician/patient/' + pid + '/briefing?role=' + selectedRole + '&force_refresh=true')
     .then(function(r) { return r.json(); })
-    .then(function(b) { body.innerHTML = renderBriefing(b); })
+    .then(function(b) { console.log("[BRIEFING] Data received:", JSON.stringify(b).substring(0,200)); body.innerHTML = renderBriefing(b); console.log("[BRIEFING] Rendered HTML length:", body.innerHTML.length); })
     .catch(function(e) { body.innerHTML = '<div style="padding:40px;color:var(--red)">Refresh failed: '+e.message+'</div>'; });
 }
 

@@ -727,20 +727,21 @@ function renderPatients() {
       style_badge = '<span class="style-mini ' + sc + '">' + p.communication_style.charAt(0) + '</span>';
     }
 
-    var dotClass = esc === 'RED' ? 'red' : esc === 'AMBER' ? 'amber' : 'green';
-    return '<div class="patient-card" onclick="openDetail(\'' + p.patient_id + '\')">' +
+    var dotClass = esc === "RED" ? "red" : esc === "AMBER" ? "amber" : "green";
+    return '<div><div class="patient-card" style="display:flex;align-items:center;gap:8px;">' +
+      '<span data-cycle-toggle="' + p.patient_id + '" onclick="event.stopPropagation();toggleCycleGrid(\'' + p.patient_id + '\')" style="cursor:pointer;font-size:10px;color:#888;padding:4px;">▶</span>' +
       '<div class="risk-dot ' + dotClass + '"></div>' +
-      '<div style="flex:1;min-width:0">' +
+      '<div style="flex:1;min-width:0" onclick="openDetail(\'' + p.patient_id + '\')">' +
         '<div class="pc-name">' + escHtml(p.patient_name || p.patient_id) + '</div>' +
         '<div class="pc-active' + lastActiveClass + '">' +
           (p.email ? escHtml(p.email) + ' · ' : '') + lastActive +
         '</div>' +
       '</div>' +
       '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span>' +
-      '</div>';
+      '</div>' +
+      '<div id="cycle-grid-' + p.patient_id + '" style="display:none;padding:4px 12px 12px 28px;border-bottom:1px solid #eee;background:#fafcfc;"></div></div>';
   }).join('');
 }
-
 function sortPatientList(list) {
   var sort = document.getElementById('patientSort') ? document.getElementById('patientSort').value : 'escalation';
   var escOrder = { RED: 0, AMBER: 1, YELLOW: 1, GREEN: 2 };
@@ -1609,7 +1610,7 @@ function reloadSS(){
 
 // === MEDICATION GRID — INSIDE RIGHT PANEL ===
 function loadMedGrid(patientId) {
-    var container = document.getElementById('cycle-grid-area');
+    var container = document.getElementById('cycle-grid-' + patientId) || document.getElementById('cycle-grid-area');
     if (!container) return;
     fetch(API_BASE + '/clinician/patient/' + patientId + '/cycle', {
         headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' }
@@ -1698,6 +1699,31 @@ function wireMedEvents(pid) {
             }).then(function(){loadMedGrid(sel.dataset.pid)});
         });
     });
+}
+// === COLLAPSE/EXPAND CYCLE GRIDS ===
+var _expandedCycle = null;
+function toggleCycleGrid(pid) {
+    if (_expandedCycle && _expandedCycle !== pid) {
+        var prev = document.getElementById('cycle-grid-' + _expandedCycle);
+        if (prev) prev.style.display = 'none';
+        var prevA = document.querySelector('[data-cycle-toggle="' + _expandedCycle + '"]');
+        if (prevA) prevA.textContent = '▶';
+    }
+    var el = document.getElementById('cycle-grid-' + pid);
+    if (!el) return;
+    var vis = el.style.display !== 'none';
+    if (vis) {
+        el.style.display = 'none';
+        _expandedCycle = null;
+        var a = document.querySelector('[data-cycle-toggle="' + pid + '"]');
+        if (a) a.textContent = '▶';
+    } else {
+        el.style.display = 'block';
+        _expandedCycle = pid;
+        var a = document.querySelector('[data-cycle-toggle="' + pid + '"]');
+        if (a) a.textContent = '▼';
+        loadMedGrid(pid);
+    }
 }
 </script>
 </body>

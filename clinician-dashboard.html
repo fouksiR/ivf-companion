@@ -1968,12 +1968,12 @@ function loadSavedMeds(pid) {
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() {
-      // disabled auto-load;
-      // disabled auto-load;
+      setTimeout(injectMedGrids, 2000);
+      setTimeout(injectMedGrids, 2000);
     });
   } else {
-    // disabled auto-load;
-    // disabled auto-load;
+    setTimeout(injectMedGrids, 2000);
+    setTimeout(injectMedGrids, 2000);
   }
 
   var observer = new MutationObserver(function(mutations) {

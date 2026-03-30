@@ -1970,7 +1970,9 @@ function loadSavedMeds(pid) {
     }).catch(function() {
       buildMedGridForPatient(pid, container, null);
     });
-  };on injectMedGrids() {
+  };
+
+  function injectMedGrids() {
     var dbg = 'MedGrid: containers=' + document.querySelectorAll('[id^="medgrid-container-"]').length + ' API_KEY=' + (typeof API_KEY !== "undefined" && API_KEY ? "SET" : "EMPTY");
     document.title = dbg;
     console.log(dbg);

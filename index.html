@@ -5134,5 +5134,25 @@ updateSky();
 setInterval(updateSky,600000);
 })();
 </script>
+
+<script>
+// === CYCLE DATA ON PATIENT CALENDAR ===
+function loadCycleToCalendar() {
+  var pid = localStorage.getItem('melodai_patient_id');
+  if (!pid || typeof db === 'undefined') return;
+  db.ref('melod_ai/patients/' + pid + '/cycle').once('value').then(function(snap) {
+    var cycle = snap.val();
+    if (!cycle || !cycle.medications_simple) return;
+    window.patientCycleMeds = cycle.medications_simple;
+    if (typeof renderCalendar === 'function') renderCalendar();
+  }).catch(function() {});
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() { setTimeout(loadCycleToCalendar, 2000); });
+} else {
+  setTimeout(loadCycleToCalendar, 2000);
+}
+</script>
+
 </body>
 </html>

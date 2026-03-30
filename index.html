@@ -3810,7 +3810,9 @@ if(state.checkins){var ci=state.checkins.find(function(c){return (c.date||'').su
 // Event icons
 var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
 if(dayEvts.length>0){eventDot='<div class="cal-event">'+dayEvts.slice(0,2).map(function(e){return evtIcons[e.type]||'·'}).join('')+(dayEvts.length>2?'+':'')+'</div>'}
-html+='<div class="'+cls+'" data-date="'+dateStr+'" onclick="showDayDetail(\''+dateStr+'\')"><div class="cal-num">'+d+'</div>'+moodDot+eventDot+'</div>'}
+var medDot='';
+if(window.cycleMedsByDate&&window.cycleMedsByDate[dateStr]){medDot='<div style="font-size:7px;color:#0d7377;line-height:1;">'+String.fromCharCode(128138)+'</div>'}
+html+='<div class="'+cls+'" data-date="'+dateStr+'" onclick="showDayDetail(\''+dateStr+'\')"><div class="cal-num">'+d+'</div>'+moodDot+eventDot+medDot+'</div>'}
 html+='</div>';
 html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4ade80"></span>Good</span><span><span class="leg-dot" style="background:#fbbf24"></span>Tough</span><span><span class="leg-dot" style="background:#f87171"></span>Hard</span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.injection+'<small>Inj</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.scan+'<small>Scan</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.retrieval+'<small>Ret</small></span></div>';
 html+='<div id="dayDetailPanel" style="display:none"></div>';
@@ -3825,6 +3827,7 @@ var detailIcons={};Object.keys(_calPaths).forEach(function(k){detailIcons[k]=_ca
 var html='<div style="padding:12px;background:var(--white);border-radius:12px;border:1px solid var(--border-light);margin-top:8px">';
 html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><strong>'+dateStr+'</strong><button style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px" onclick="openAddEvent(\''+dateStr+'\')">+ Add event</button></div>';
 if(ci){var m=ci.mood||5;html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px"><span class="cal-mood '+(m>=7?'good':m>=4?'tough':'hard')+'" style="display:inline-block"></span> Mood: '+m+'/10</div>'}
+if(window.cycleMedsByDate&&window.cycleMedsByDate[dateStr]){html+='<div style="margin-bottom:6px;padding:6px 8px;background:rgba(13,115,119,0.05);border-radius:6px;font-size:12px"><strong style="color:#0d7377">'+String.fromCharCode(128138)+' Medications:</strong>';window.cycleMedsByDate[dateStr].forEach(function(m){html+='<div style="padding:2px 0;color:#333">'+m+'</div>'});html+='</div>'}
 if(dayEvts.length){dayEvts.forEach(function(e){html+='<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px;border-bottom:1px solid var(--border-light)"><span>'+(detailIcons[e.type]||'·')+'</span><span><strong>'+escHtml(e.label||e.type)+'</strong>'+(e.time?' at '+e.time:'')+(e.notes?' — '+escHtml(e.notes):'')+'</span></div>'})}else if(!ci){html+='<div style="font-size:12px;color:var(--text-soft);text-align:center;padding:8px">No entries for this day</div>'}
 html+='</div>';
 panel.style.display='block';panel.innerHTML=html}

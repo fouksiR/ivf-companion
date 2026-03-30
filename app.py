@@ -5140,8 +5140,10 @@ async def delete_cycle_med(patient_id: str, med_id: str, request: Request):
 async def get_patient_cycle_meds(patient_id: str):
     """Public endpoint for patient app to read their own cycle data."""
     try:
-        cycle = firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle").get()
-        return cycle or {}
+        if firebase_db and firebase_db._fb_ref:
+            cycle = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").get()
+            return cycle or {}
+        return {}
     except Exception as e:
         return {}
 

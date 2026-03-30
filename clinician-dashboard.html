@@ -614,7 +614,7 @@ function startPolling() {
   document.getElementById('settingsDropdown').style.display = 'none';
   if (pollTimer) clearInterval(pollTimer);
   poll();
-  pollTimer = setInterval(poll, 8000);
+  pollTimer = setInterval(poll, 300000);
   // Load digest on first connect
   if (!digestLoaded) loadDigest();
 }

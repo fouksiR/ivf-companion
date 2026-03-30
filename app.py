@@ -5134,6 +5134,18 @@ async def delete_cycle_med(patient_id: str, med_id: str, request: Request):
         return {"error": str(e)}
 
 
+
+
+@app.get("/patient/{patient_id}/cycle-meds")
+async def get_patient_cycle_meds(patient_id: str):
+    """Public endpoint for patient app to read their own cycle data."""
+    try:
+        cycle = firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle").get()
+        return cycle or {}
+    except Exception as e:
+        return {}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)

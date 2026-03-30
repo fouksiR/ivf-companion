@@ -5142,15 +5142,15 @@ setInterval(updateSky,600000);
 // === CYCLE DATA ON PATIENT CALENDAR ===
 function loadCycleToCalendar() {
   var pid = localStorage.getItem('melodai_patient_id');
-  if (!pid || typeof db === 'undefined') return;
-  db.ref('melod_ai/patients/' + pid + '/cycle').once('value').then(function(snap) {
-    var cycle = snap.val();
+  if (!pid || !API_BASE) return;
+  fetch(API_BASE + '/patient/' + pid + '/cycle-meds').then(function(r) {
+    return r.ok ? r.json() : null;
+  }).then(function(cycle) {
     if (!cycle || !cycle.medications_simple) return;
     window.patientCycleMeds = cycle.medications_simple;
-    window.patientCycleStart = cycle.start_date || cycle.updated_at.substring(0,10);
-    // Build date-to-meds map
+    var startDate = cycle.start_date || cycle.updated_at.substring(0,10);
     window.cycleMedsByDate = {};
-    var start = new Date(window.patientCycleStart);
+    var start = new Date(startDate);
     Object.values(cycle.medications_simple).forEach(function(med) {
       if (!med.doses) return;
       Object.keys(med.doses).forEach(function(dk) {

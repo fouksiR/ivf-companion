@@ -1731,7 +1731,7 @@ function toggleCycleGrid(pid) {
     }
 }
 // === SIMPLE MED GRID — [+] adds rows, type doses, auto-save ===
-function addMedRow(pid) { try {
+function OLD_addMedRow(pid) { try {
   var grid = document.getElementById('medgrid-' + pid);
   if (!grid) return;
   var tbody = grid.querySelector('tbody');

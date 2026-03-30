@@ -1811,7 +1811,7 @@ function loadSavedMeds(pid) {
     for (var d = 1; d <= MED_DAYS; d++) {
       var th = document.createElement('th');
       th.style.cssText = 'background:#f8f9fb;border:1px solid #e0e0e0;padding:3px 2px;font-weight:500;color:#999;font-size:9px;text-align:center;min-width:36px;';
-      th.textContent = 'D' + d;
+      var dt = new Date(); dt.setDate(dt.getDate() + d - 1); th.innerHTML = 'D' + d + '<br><span style="font-size:8px;color:#aaa;">' + (dt.getMonth()+1) + '/' + dt.getDate() + '</span>';
       hr.appendChild(th);
     }
     var thDel = document.createElement('th');

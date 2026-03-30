@@ -5162,7 +5162,7 @@ function loadCycleToCalendar() {
         window.cycleMedsByDate[ds].push(med.name + ' ' + med.doses[dk]);
       });
     });
-    if (typeof renderCalendar === 'function') renderCalendar();
+    if (typeof buildCalendar === 'function') buildCalendar();
   }).catch(function(e) { console.log('Cycle load error:', e); });
 }
 if (document.readyState === 'loading') {

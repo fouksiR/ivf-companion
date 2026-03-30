@@ -1909,6 +1909,7 @@ function loadSavedMeds(pid) {
   function doSaveMeds(pid, tbody, statusEl) {
     try {
       var rows = tbody.querySelectorAll('tr');
+      // Also save to localStorage for instant persistence
       var meds = {};
       rows.forEach(function(row, i) {
         var inputs = row.querySelectorAll('input');
@@ -1935,6 +1936,8 @@ function loadSavedMeds(pid) {
           setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
         }
       }).catch(function(e) { console.error('Med save failed:', e); });
+      // ALSO save to localStorage so refresh always works
+      try { localStorage.setItem('medgrid_' + pid, JSON.stringify(meds)); } catch(le) {}
     } catch(e) { console.error('doSaveMeds error:', e); }
   }
 
@@ -1943,6 +1946,14 @@ function loadSavedMeds(pid) {
   window.doSaveMeds = doSaveMeds;
 
   window.loadAndBuildMedGrid = function(pid) {
+    // Try localStorage first for instant load
+    try {
+      var cached = localStorage.getItem('medgrid_' + pid);
+      if (cached) {
+        var container = document.getElementById('medgrid-container-' + pid);
+        if (container) buildMedGridForPatient(pid, container, JSON.parse(cached));
+      }
+    } catch(ce) {}
     console.log('MEDGRID LOADING:', pid, 'API_BASE:', typeof API_BASE !== 'undefined' ? API_BASE : 'UNDEF', 'API_KEY:', typeof API_KEY !== 'undefined' && API_KEY ? 'SET' : 'EMPTY');
     var container = document.getElementById('medgrid-container-' + pid);
     if (!container) return;

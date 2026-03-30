@@ -5144,8 +5144,23 @@ function loadCycleToCalendar() {
     var cycle = snap.val();
     if (!cycle || !cycle.medications_simple) return;
     window.patientCycleMeds = cycle.medications_simple;
+    window.patientCycleStart = cycle.start_date || cycle.updated_at.substring(0,10);
+    // Build date-to-meds map
+    window.cycleMedsByDate = {};
+    var start = new Date(window.patientCycleStart);
+    Object.values(cycle.medications_simple).forEach(function(med) {
+      if (!med.doses) return;
+      Object.keys(med.doses).forEach(function(dk) {
+        var dayNum = parseInt(dk.replace('d','')) - 1;
+        var d = new Date(start);
+        d.setDate(d.getDate() + dayNum);
+        var ds = d.toISOString().substring(0,10);
+        if (!window.cycleMedsByDate[ds]) window.cycleMedsByDate[ds] = [];
+        window.cycleMedsByDate[ds].push(med.name + ' ' + med.doses[dk]);
+      });
+    });
     if (typeof renderCalendar === 'function') renderCalendar();
-  }).catch(function() {});
+  }).catch(function(e) { console.log('Cycle load error:', e); });
 }
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', function() { setTimeout(loadCycleToCalendar, 2000); });

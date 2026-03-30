@@ -1929,7 +1929,7 @@ function loadSavedMeds(pid) {
     fetch(saveUrl, {
         method: 'POST',
         headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ medications_simple: meds, updated_at: new Date().toISOString() })
+        body: JSON.stringify({ medications_simple: meds, start_date: new Date().toISOString().substring(0,10), updated_at: new Date().toISOString() })
       }).then(function(r) {
         if (r.ok && statusEl) {
           statusEl.style.display = 'inline';

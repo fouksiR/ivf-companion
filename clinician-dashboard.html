@@ -1923,7 +1923,9 @@ function loadSavedMeds(pid) {
       });
       var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
       var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
-      fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
+      var saveUrl = baseUrl + '/clinician/patient/' + pid + '/cycle';
+    console.log('SAVE URL:', saveUrl, 'MEDS:', JSON.stringify(meds));
+    fetch(saveUrl, {
         method: 'POST',
         headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
         body: JSON.stringify({ medications_simple: meds, updated_at: new Date().toISOString() })

@@ -1941,6 +1941,7 @@ function loadSavedMeds(pid) {
   window.doSaveMeds = doSaveMeds;
 
   window.loadAndBuildMedGrid = function(pid) {
+    console.log('MEDGRID LOADING:', pid, 'API_BASE:', typeof API_BASE !== 'undefined' ? API_BASE : 'UNDEF', 'API_KEY:', typeof API_KEY !== 'undefined' && API_KEY ? 'SET' : 'EMPTY');
     var container = document.getElementById('medgrid-container-' + pid);
     if (!container) return;
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
@@ -1956,6 +1957,9 @@ function loadSavedMeds(pid) {
   };
 
   function injectMedGrids() {
+    var dbg = 'MedGrid: containers=' + document.querySelectorAll('[id^="medgrid-container-"]').length + ' API_KEY=' + (typeof API_KEY !== "undefined" && API_KEY ? "SET" : "EMPTY");
+    document.title = dbg;
+    console.log(dbg);
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
     document.querySelectorAll('[id^="medgrid-container-"]').forEach(function(el) {

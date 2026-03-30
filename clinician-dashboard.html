@@ -1946,30 +1946,31 @@ function loadSavedMeds(pid) {
   window.doSaveMeds = doSaveMeds;
 
   window.loadAndBuildMedGrid = function(pid) {
-    // Try localStorage first for instant load
-    try {
-      var cached = localStorage.getItem('medgrid_' + pid);
-      if (cached) {
-        var container = document.getElementById('medgrid-container-' + pid);
-        if (container) buildMedGridForPatient(pid, container, JSON.parse(cached));
-      }
-    } catch(ce) {}
-    console.log('MEDGRID LOADING:', pid, 'API_BASE:', typeof API_BASE !== 'undefined' ? API_BASE : 'UNDEF', 'API_KEY:', typeof API_KEY !== 'undefined' && API_KEY ? 'SET' : 'EMPTY');
     var container = document.getElementById('medgrid-container-' + pid);
     if (!container) return;
+    var cached = null;
+    try {
+      var raw = localStorage.getItem('medgrid_' + pid);
+      if (raw) cached = JSON.parse(raw);
+    } catch(ce) {}
+    if (cached && Object.keys(cached).length > 0) {
+      buildMedGridForPatient(pid, container, cached);
+      return;
+    }
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
     fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
       headers: { 'X-API-Key': key }
     }).then(function(r) { return r.json(); }).then(function(data) {
       var meds = (data && data.medications_simple) ? data.medications_simple : null;
+      if (meds) {
+        try { localStorage.setItem('medgrid_' + pid, JSON.stringify(meds)); } catch(e) {}
+      }
       buildMedGridForPatient(pid, container, meds);
     }).catch(function() {
       buildMedGridForPatient(pid, container, null);
     });
-  };
-
-  function injectMedGrids() {
+  };on injectMedGrids() {
     var dbg = 'MedGrid: containers=' + document.querySelectorAll('[id^="medgrid-container-"]').length + ' API_KEY=' + (typeof API_KEY !== "undefined" && API_KEY ? "SET" : "EMPTY");
     document.title = dbg;
     console.log(dbg);

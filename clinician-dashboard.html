@@ -1921,7 +1921,7 @@ function loadSavedMeds(pid) {
         }
         meds['med_' + i] = { name: name, doses: doses };
       });
-      var baseUrl = typeof API_URL !== 'undefined' ? API_URL : '';
+      var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
       var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
       fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
         method: 'POST',
@@ -1943,7 +1943,7 @@ function loadSavedMeds(pid) {
   window.loadAndBuildMedGrid = function(pid) {
     var container = document.getElementById('medgrid-container-' + pid);
     if (!container) return;
-    var baseUrl = typeof API_URL !== 'undefined' ? API_URL : '';
+    var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
     fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
       headers: { 'X-API-Key': key }
@@ -1956,7 +1956,7 @@ function loadSavedMeds(pid) {
   };
 
   function injectMedGrids() {
-    var baseUrl = typeof API_URL !== 'undefined' ? API_URL : '';
+    var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
     document.querySelectorAll('[id^="medgrid-container-"]').forEach(function(el) {
       var pid = el.id.replace('medgrid-container-', '');

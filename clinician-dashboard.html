@@ -738,9 +738,9 @@ function renderPatients() {
         '<div class="pc-active' + lastActiveClass + '">' + (p.email ? escHtml(p.email) + ' · ' : '') + lastActive + '</div>' +
       '</div>' +
       '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span>' +
-      '<button onclick="event.stopPropagation();addMedRow(\'' + p.patient_id + '\')" style="font-size:16px;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:0 6px;color:#0d7377;">+</button>' +
+      '<button onclick="event.stopPropagation();window.loadAndBuildMedGrid(\'' + p.patient_id + '\')" style="font-size:16px;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:0 6px;color:#0d7377;">+</button>' +
       '</div>' +
-      '<div style="overflow-x:auto;"><table id="medgrid-' + p.patient_id + '" style="border-collapse:collapse;margin:0 0 4px 20px;font-size:11px;">' +
+      '<div id="medgrid-container-' + p.patient_id + '" style="border-collapse:collapse;margin:0 0 4px 20px;font-size:11px;">' +
       '<thead><tr><th style="border:1px solid #ddd;padding:2px 4px;background:#f8f9fb;font-size:10px;color:#888;min-width:85px;">Med</th>' + dayHeaders + '</tr></thead>' +
       '<tbody></tbody></table></div></div>';
   }).join('');

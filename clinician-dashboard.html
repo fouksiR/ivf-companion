@@ -1992,6 +1992,14 @@ function loadSavedMeds(pid) {
   });
   observer.observe(document.body, { childList: true, subtree: true });
 })();
+
+(function retryMedGrids() {
+  var k = typeof API_KEY !== 'undefined' ? API_KEY : '';
+  document.title = 'MG: key=' + (k ? 'SET' : 'EMPTY') + ' containers=' + document.querySelectorAll('[id^="medgrid-container-"]').length;
+  if (k === '') { setTimeout(retryMedGrids, 2000); return; }
+  if (typeof injectMedGrids === 'function') injectMedGrids();
+})();
+
 </script>
 </body>
 </html>

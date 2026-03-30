@@ -5079,6 +5079,61 @@ async def serve_dashboard():
 
 # ── Run ───────────────────────────────────────────────────────────────
 
+
+
+@app.get("/clinician/patient/{patient_id}/cycle")
+async def get_patient_cycle(patient_id: str, request: Request):
+    api_key = request.headers.get("X-API-Key", "")
+    if api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        ref = firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle")
+        data = ref.get()
+        return data or {}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/clinician/patient/{patient_id}/cycle")
+async def update_patient_cycle(patient_id: str, request: Request):
+    api_key = request.headers.get("X-API-Key", "")
+    if api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        data = await request.json()
+        ref = firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle")
+        existing = ref.get() or {}
+        existing.update(data)
+        ref.set(existing)
+        return {"status": "updated"}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/clinician/patient/{patient_id}/cycle/medication")
+async def add_cycle_med(patient_id: str, request: Request):
+    api_key = request.headers.get("X-API-Key", "")
+    if api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        data = await request.json()
+        from datetime import datetime
+        med_id = data.get("name", "med").lower().replace(" ", "_") + "_" + str(int(datetime.utcnow().timestamp()) % 100000)
+        firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle/medications/{med_id}").set(data)
+        return {"status": "added", "id": med_id}
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.delete("/clinician/patient/{patient_id}/cycle/medication/{med_id}")
+async def delete_cycle_med(patient_id: str, med_id: str, request: Request):
+    api_key = request.headers.get("X-API-Key", "")
+    if api_key != CLINICIAN_API_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    try:
+        firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle/medications/{med_id}").delete()
+        return {"status": "deleted"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)

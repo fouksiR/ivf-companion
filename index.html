@@ -3797,7 +3797,7 @@ function _calIcon(type,sz){return _calSvg(sz||14,_calPaths[type]||_calPaths.othe
 var evtIcons={};Object.keys(_calPaths).forEach(function(k){evtIcons[k]=_calIcon(k,14)});
 function buildCalendar(){var container=document.getElementById('calendarContainer');if(!container)return;var now=new Date();if(!_calYear){_calYear=now.getFullYear();_calMonth=now.getMonth()}var year=_calYear,month=_calMonth;var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];var firstDay=new Date(year,month,1).getDay();var daysInMonth=new Date(year,month+1,0).getDate();var today=now.getDate();var isCurrentMonth=(year===now.getFullYear()&&month===now.getMonth());
 // Load events from localStorage
-try{_calEvents=JSON.parse(localStorage.getItem('melodai_cycle_events')||'[]')}catch(e){_calEvents=[]}
+try{var _cpid=localStorage.getItem('melodai_patient_id')||'';_calEvents=JSON.parse(localStorage.getItem('melodai_cycle_events_'+_cpid)||'[]')}catch(e){_calEvents=[]}
 var html='<div class="cal-header"><button class="cal-nav" onclick="calNav(-1)">&lt;</button><h3>'+monthNames[month]+' '+year+'</h3><button class="cal-nav" onclick="calNav(1)">&gt;</button></div>';
 html+='<div class="cal-grid">';
 ['S','M','T','W','T','F','S'].forEach(function(d){html+='<div class="cal-day-header">'+d+'</div>'});

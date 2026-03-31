@@ -80,7 +80,7 @@ class FirebaseDB:
         """Save/update a patient record."""
         if not _enabled: return
         try:
-            _fb_ref.child('patients').child(patient_id).set(data)
+            _fb_ref.child('patients').child(patient_id).update(data)
         except Exception as e:
             logger.warning(f"Firebase save_patient error: {e}")
 

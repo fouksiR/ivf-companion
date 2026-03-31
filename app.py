@@ -5148,6 +5148,26 @@ async def get_patient_cycle_meds(patient_id: str):
         return {}
 
 
+
+
+@app.get("/debug/firebase-check/{patient_id}")
+async def debug_firebase(patient_id: str):
+    """Temporary debug — check Firebase connectivity."""
+    result = {"checks": []}
+    try:
+        from firebase_db import _fb_ref, _enabled
+        result["enabled"] = _enabled
+        result["fb_ref_exists"] = _fb_ref is not None
+        if _fb_ref:
+            result["fb_ref_path"] = str(_fb_ref.path)
+            test = _fb_ref.child("patients").child(patient_id).child("cycle").get()
+            result["cycle_data"] = test
+            result["checks"].append("direct_read_ok")
+    except Exception as e:
+        result["error"] = str(e)
+    return result
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)

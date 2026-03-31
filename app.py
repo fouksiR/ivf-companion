@@ -5192,20 +5192,37 @@ async def cleanup_patients(keep_id: str):
 
 @app.delete("/clinician/patient/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
 async def delete_patient(patient_id: str):
-    """Delete a patient from Firebase DB and Auth."""
+    """Permanently delete ALL patient data from every source."""
+    deleted_from = []
     try:
         from firebase_db import _fb_ref
         if _fb_ref:
-            _fb_ref.child("patients").child(patient_id).delete()
-            _fb_ref.child("conversations").child(patient_id).delete()
-            _fb_ref.child("checkins").child(patient_id).delete()
-        # Also delete from Firebase Auth
+            paths = ["patients", "conversations", "checkins", "phenotype_history",
+                     "alerts", "briefing_cache", "comfort_reports", "community_posts",
+                     "screenings", "reflections"]
+            for path in paths:
+                try:
+                    _fb_ref.child(path).child(patient_id).delete()
+                    deleted_from.append("db/" + path)
+                except Exception:
+                    pass
+        # Delete from Firebase Auth (kills their login permanently)
         try:
             import firebase_admin.auth as fb_auth
             fb_auth.delete_user(patient_id)
+            deleted_from.append("firebase_auth")
         except Exception:
             pass
-        return {"status": "deleted", "patient_id": patient_id}
+        # Delete from in-memory storage
+        if "patients" in dir() or True:
+            try:
+                from app import patients as mem_patients
+                if patient_id in mem_patients:
+                    del mem_patients[patient_id]
+                    deleted_from.append("in_memory")
+            except Exception:
+                pass
+        return {"status": "permanently_deleted", "patient_id": patient_id, "deleted_from": deleted_from}
     except Exception as e:
         return {"error": str(e)}
 

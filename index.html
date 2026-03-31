@@ -3811,7 +3811,20 @@ if(state.checkins){var ci=state.checkins.find(function(c){return (c.date||'').su
 var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
 if(dayEvts.length>0){eventDot='<div class="cal-event">'+dayEvts.slice(0,2).map(function(e){return evtIcons[e.type]||'·'}).join('')+(dayEvts.length>2?'+':'')+'</div>'}
 var medDot='';
-if(window.cycleMedsByDate&&window.cycleMedsByDate[dateStr]){medDot='<div style="font-size:7px;color:#0d7377;line-height:1;">'+String.fromCharCode(128138)+'</div>'}
+if(window.cycleMedsByDate&&window.cycleMedsByDate[dateStr]){
+var mc=window.cycleMedsByDate[dateStr];
+var dots='';
+mc.forEach(function(m){
+var col='#0d7377';
+if(m.match(/scan|ultra/i))col='#185FA5';
+else if(m.match(/OPU|retrieval/i))col='#854F0B';
+else if(m.match(/ET|transfer/i))col='#0F6E56';
+else if(m.match(/test|beta|hCG/i))col='#534AB7';
+else if(m.match(/trigger/i))col='#993C1D';
+dots+='<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:'+col+';margin:0 1px;"></span>';
+});
+medDot='<div style="display:flex;justify-content:center;gap:1px;margin-top:1px;">'+dots+'</div>';
+}
 html+='<div class="'+cls+'" data-date="'+dateStr+'" onclick="showDayDetail(\''+dateStr+'\')"><div class="cal-num">'+d+'</div>'+moodDot+eventDot+medDot+'</div>'}
 html+='</div>';
 html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4ade80"></span>Good</span><span><span class="leg-dot" style="background:#fbbf24"></span>Tough</span><span><span class="leg-dot" style="background:#f87171"></span>Hard</span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.injection+'<small>Inj</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.scan+'<small>Scan</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.retrieval+'<small>Ret</small></span></div>';

@@ -5170,10 +5170,16 @@ function loadCycleToCalendar() {
 
         // _calEvents -- used by buildCalendar for icons
         if (typeof _calEvents !== 'undefined') {
+          var evtType = 'medication';
+          if (med.name.match(/scan|ultrasound/i)) evtType = 'scan';
+          else if (med.name.match(/retrieval|OPU/i)) evtType = 'retrieval';
+          else if (med.name.match(/transfer|ET/i)) evtType = 'transfer';
+          else if (med.name.match(/trigger/i)) evtType = 'injection';
+          else if (med.name.match(/blood test|review|appointment/i)) evtType = 'appointment';
           _calEvents.push({
             date: ds,
-            type: 'medication',
-            label: med.name + ' ' + med.doses[dk],
+            type: evtType,
+            label: med.name + (med.doses[dk] && med.doses[dk] !== '1' ? ' ' + med.doses[dk] : ''),
             notes: 'From treatment plan',
             source: 'dashboard_cycle'
           });

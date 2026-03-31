@@ -1821,33 +1821,7 @@ function loadSavedMeds(pid) {
     table.appendChild(thead);
     var tbody = document.createElement('tbody');
     table.appendChild(tbody);
-    // Key procedure dates row
-  var datesDiv = document.createElement('div');
-  datesDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;margin-left:22px;';
-  var dateTypes = [
-    {key:'scan', label:'Scan'},
-    {key:'retrieval', label:'OPU / Retrieval'},
-    {key:'transfer', label:'Transfer / ET'},
-    {key:'trigger', label:'Trigger'},
-    {key:'pregnancy_test', label:'Preg. Test'}
-  ];
-  var savedKeyDates = (savedMeds && savedMeds._key_dates) || {};
-  dateTypes.forEach(function(dt) {
-    var wrap = document.createElement('label');
-    wrap.style.cssText = 'display:flex;flex-direction:column;font-size:10px;color:#888;font-weight:500;gap:2px;';
-    wrap.textContent = dt.label;
-    var inp = document.createElement('input');
-    inp.type = 'date';
-    inp.value = savedKeyDates[dt.key] || '';
-    inp.className = 'key-date-input';
-    inp.dataset.dateKey = dt.key;
-    inp.autocomplete = 'off';
-    inp.style.cssText = 'padding:2px 4px;border:1px solid #ddd;border-radius:4px;font-size:10px;width:110px;margin-top:2px;';
-    wrap.appendChild(inp);
-    datesDiv.appendChild(wrap);
-  });
-  containerEl.appendChild(datesDiv);
-
+  
   containerEl.appendChild(table);
     if (savedMeds && typeof savedMeds === 'object') {
       Object.entries(savedMeds).forEach(function(entry) {
@@ -1910,9 +1884,21 @@ function loadSavedMeds(pid) {
     'Folic acid':    { bg: 'rgba(211,209,199,0.06)', text: '#5F5E5A' },
     'Metformin':     { bg: 'rgba(211,209,199,0.06)', text: '#5F5E5A' },
   };
+  'Ultrasound scan':    { bg: 'rgba(55,138,221,0.10)',  text: '#185FA5' },
+  'Blood test':         { bg: 'rgba(55,138,221,0.08)',  text: '#0C447C' },
+  'OPU (egg retrieval)':{ bg: 'rgba(239,159,39,0.12)',  text: '#854F0B' },
+  'Embryo transfer':    { bg: 'rgba(29,158,117,0.12)',  text: '#0F6E56' },
+  'Trigger injection':  { bg: 'rgba(232,89,60,0.10)',   text: '#993C1D' },
+  'Hysteroscopy':       { bg: 'rgba(133,183,235,0.10)', text: '#185FA5' },
+  'D&C':                { bg: 'rgba(133,183,235,0.08)', text: '#0C447C' },
+  'Saline infusion':    { bg: 'rgba(181,212,244,0.10)', text: '#185FA5' },
+  'Trial transfer':     { bg: 'rgba(29,158,117,0.08)',  text: '#085041' },
+  'Semen analysis':     { bg: 'rgba(136,135,128,0.10)', text: '#444441' },
+  'Review appointment': { bg: 'rgba(136,135,128,0.08)', text: '#5F5E5A' },
+};
   var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
   function getMedColor(n) { return MED_COLORS[n] || MED_DEFAULT; }
-  var MED_OPTIONS = '<option value="">Select med...</option><optgroup label="Gonadotropins"><option>Gonal-F</option><option>Puregon</option><option>Menopur</option><option>Bemfola</option><option>Elonva</option><option>Fostimon</option><option>Pergoveris</option></optgroup><optgroup label="Antagonist"><option>Orgalutran</option><option>Cetrotide</option><option>Fyremadel</option></optgroup><optgroup label="Agonist"><option>Lucrin</option><option>Synarel</option><option>Decapeptyl</option></optgroup><optgroup label="Trigger"><option>Ovidrel</option><option>Pregnyl</option></optgroup><optgroup label="Suppression"><option>Provera</option><option>Norethisterone</option><option>OCP</option></optgroup><optgroup label="Luteal"><option>Crinone</option><option>Utrogestan</option><option>Progesterone</option><option>Lubion</option></optgroup><optgroup label="Other"><option>Prednisolone</option><option>Clexane</option><option>Aspirin</option><option>Letrozole</option><option>Estradiol</option><option>Folic acid</option><option>Metformin</option></optgroup><option value="custom">Other (type name)...</option>';
+  var MED_OPTIONS = '<option value="">Select med...</option><optgroup label="Gonadotropins"><option>Gonal-F</option><option>Puregon</option><option>Menopur</option><option>Bemfola</option><option>Elonva</option><option>Fostimon</option><option>Pergoveris</option></optgroup><optgroup label="Antagonist"><option>Orgalutran</option><option>Cetrotide</option><option>Fyremadel</option></optgroup><optgroup label="Agonist"><option>Lucrin</option><option>Synarel</option><option>Decapeptyl</option></optgroup><optgroup label="Trigger"><option>Ovidrel</option><option>Pregnyl</option></optgroup><optgroup label="Suppression"><option>Provera</option><option>Norethisterone</option><option>OCP</option></optgroup><optgroup label="Luteal"><option>Crinone</option><option>Utrogestan</option><option>Progesterone</option><option>Lubion</option></optgroup><optgroup label="Other"><option>Prednisolone</option><option>Clexane</option><option>Aspirin</option><option>Letrozole</option><option>Estradiol</option><option>Folic acid</option><option>Metformin</option></optgroup></optgroup><optgroup label="Procedures"><option>Ultrasound scan</option><option>Blood test</option><option>OPU (egg retrieval)</option><option>Embryo transfer</option><option>Trigger injection</option><option>Hysteroscopy</option><option>D&amp;C</option><option>Saline infusion</option><option>Trial transfer</option><option>Semen analysis</option><option>Review appointment</option></optgroup><option value="custom">Other (type name)...</option>';
 
   function insertMedRow(tbody, name, doses) {
     var tr = document.createElement('tr');
@@ -2044,15 +2030,6 @@ function loadSavedMeds(pid) {
         }
         meds['med_' + i] = { name: name, doses: doses };
       });
-      // Collect key procedure dates
-      var keyDates = {};
-      var container = tbody.closest('[id^="medgrid-container-"]') || tbody.parentElement;
-      if (container) {
-        container.querySelectorAll('.key-date-input').forEach(function(inp) {
-          if (inp.value) keyDates[inp.dataset.dateKey] = inp.value;
-        });
-      }
-      if (Object.keys(keyDates).length > 0) meds._key_dates = keyDates;
       var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
       var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
       fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {

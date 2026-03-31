@@ -3216,6 +3216,8 @@ function logout(){
     localStorage.removeItem('melodai_welcomed');
     localStorage.removeItem('melodai_journey_type');
     localStorage.removeItem('melodai_frequent_flyer');
+    localStorage.removeItem('melodai_cycle_events');
+    _calEvents=[];window.cycleMedsByDate={};
     state._authHandled=false;state._returning=false;state.patientId=null;
     location.reload();
   };
@@ -3797,7 +3799,8 @@ function _calIcon(type,sz){return _calSvg(sz||14,_calPaths[type]||_calPaths.othe
 var evtIcons={};Object.keys(_calPaths).forEach(function(k){evtIcons[k]=_calIcon(k,14)});
 function buildCalendar(){var container=document.getElementById('calendarContainer');if(!container)return;var now=new Date();if(!_calYear){_calYear=now.getFullYear();_calMonth=now.getMonth()}var year=_calYear,month=_calMonth;var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];var firstDay=new Date(year,month,1).getDay();var daysInMonth=new Date(year,month+1,0).getDate();var today=now.getDate();var isCurrentMonth=(year===now.getFullYear()&&month===now.getMonth());
 // Load events from localStorage
-try{_calEvents=JSON.parse(localStorage.getItem('melodai_cycle_events')||'[]')}catch(e){_calEvents=[]}
+var _evtKey=state.patientId?'melodai_cycle_events_'+state.patientId:'melodai_cycle_events';
+try{_calEvents=JSON.parse(localStorage.getItem(_evtKey)||'[]')}catch(e){_calEvents=[]}
 var html='<div class="cal-header"><button class="cal-nav" onclick="calNav(-1)">&lt;</button><h3>'+monthNames[month]+' '+year+'</h3><button class="cal-nav" onclick="calNav(1)">&gt;</button></div>';
 html+='<div class="cal-grid">';
 ['S','M','T','W','T','F','S'].forEach(function(d){html+='<div class="cal-day-header">'+d+'</div>'});
@@ -3831,7 +3834,7 @@ html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4a
 html+='<div id="dayDetailPanel" style="display:none"></div>';
 container.innerHTML=html;
 // Also try loading events from API
-if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events').then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.events&&d.events.length){_calEvents=d.events;localStorage.setItem('melodai_cycle_events',JSON.stringify(_calEvents));buildCalendar()}if(d&&d.calendar_updates&&d.calendar_updates.length){showCalendarToast(d.calendar_updates.length);d.calendar_updates.forEach(function(u){var evt=_calEvents.find(function(e){return e.id===u.event_id});if(evt)evt._updated=true});fetch(API_BASE+'/patient/'+state.patientId+'/calendar-updates/acknowledge',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(function(){})}}).catch(function(){})}}
+if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events').then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.events&&d.events.length){_calEvents=d.events;var _apiKey=state.patientId?'melodai_cycle_events_'+state.patientId:'melodai_cycle_events';localStorage.setItem(_apiKey,JSON.stringify(_calEvents));buildCalendar()}if(d&&d.calendar_updates&&d.calendar_updates.length){showCalendarToast(d.calendar_updates.length);d.calendar_updates.forEach(function(u){var evt=_calEvents.find(function(e){return e.id===u.event_id});if(evt)evt._updated=true});fetch(API_BASE+'/patient/'+state.patientId+'/calendar-updates/acknowledge',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(function(){})}}).catch(function(){})}}
 function calNav(dir){_calMonth+=dir;if(_calMonth<0){_calMonth=11;_calYear--}if(_calMonth>11){_calMonth=0;_calYear++}buildCalendar()}
 function showDayDetail(dateStr){var panel=document.getElementById('dayDetailPanel');if(!panel)return;
 var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
@@ -3861,7 +3864,7 @@ document.body.insertAdjacentHTML('beforeend',html)}
 function selectEvtType(type){document.getElementById('evtType').value=type;document.querySelectorAll('#addEventSheet [data-type]').forEach(function(b){b.style.borderColor=b.dataset.type===type?'#2D8E8E':'#eee';b.style.background=b.dataset.type===type?'rgba(45,142,142,.06)':'white'})}
 function closeAddEvent(){var s=document.getElementById('addEventSheet');if(s)s.remove();var b=document.getElementById('addEventBg');if(b)b.remove()}
 function saveNewEvent(){var evt={id:'evt_'+Date.now(),date:document.getElementById('evtDate').value,type:document.getElementById('evtType').value,label:document.getElementById('evtLabel').value.trim()||document.getElementById('evtType').value,notes:document.getElementById('evtNotes').value.trim(),time:document.getElementById('evtTime').value,source:'patient',created_at:new Date().toISOString()};
-_calEvents.push(evt);localStorage.setItem('melodai_cycle_events',JSON.stringify(_calEvents));
+_calEvents.push(evt);var _saveKey=state.patientId?'melodai_cycle_events_'+state.patientId:'melodai_cycle_events';localStorage.setItem(_saveKey,JSON.stringify(_calEvents));
 if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(evt)}).catch(function(){})}
 closeAddEvent();buildCalendar();showDayDetail(evt.date)}
 // Music toggle

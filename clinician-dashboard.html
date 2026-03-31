@@ -739,7 +739,7 @@ function renderPatients() {
       '</div>' +
       '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span>' +
       '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + (p.patient_name||p.name||'') + '\')" style="font-size:12px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 4px;" title="Delete patient">&times;</button>' +
-      '<button onclick="event.stopPropagation();window.loadAndBuildMedGrid(\'' + p.patient_id + '\')" style="font-size:16px;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:0 6px;color:#0d7377;">+</button>' +
+      '<button onclick="event.stopPropagation();window.toggleMedGrid(\'' + p.patient_id + '\')" style="font-size:16px;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:0 6px;color:#0d7377;">+</button>' +
       '</div>' +
       '<div id="medgrid-container-' + p.patient_id + '" style="padding:4px 12px 8px;"></div></div>';
   }).join('');
@@ -2048,10 +2048,10 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
   window.insertMedRow = insertMedRow;
   window.doSaveMeds = doSaveMeds;
 
+  // Auto-load: called by MutationObserver — only shows grid if data exists
   window.loadAndBuildMedGrid = function(pid) {
     var container = document.getElementById('medgrid-container-' + pid);
     if (!container) return;
-    // Show localStorage data instantly
     var cached = null;
     try {
       var raw = localStorage.getItem('medgrid_' + pid);
@@ -2061,6 +2061,34 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       buildMedGridForPatient(pid, container, cached);
     }
     // Also fetch from Firebase to stay in sync
+    var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
+    var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
+    if (!baseUrl || !key) return;
+    fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
+      headers: { 'X-API-Key': key }
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      var meds = (data && data.medications_simple) ? data.medications_simple : null;
+      if (meds && Object.keys(meds).length > 0) {
+        try { localStorage.setItem('medgrid_' + pid, JSON.stringify(meds)); } catch(e) {}
+        buildMedGridForPatient(pid, container, meds);
+      }
+    }).catch(function() {});
+  };
+
+  // Toggle: called by + button — always opens (empty grid if no data), or closes
+  window.toggleMedGrid = function(pid) {
+    var container = document.getElementById('medgrid-container-' + pid);
+    if (!container) return;
+    if (container.children.length > 0) {
+      container.innerHTML = '';
+      return;
+    }
+    var cached = null;
+    try {
+      var raw = localStorage.getItem('medgrid_' + pid);
+      if (raw) cached = JSON.parse(raw);
+    } catch(ce) {}
+    buildMedGridForPatient(pid, container, cached);
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
     if (!baseUrl || !key) return;

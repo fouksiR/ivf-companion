@@ -5141,14 +5141,12 @@ setInterval(updateSky,600000);
 <script>
 // === CYCLE DATA ON PATIENT CALENDAR ===
 function loadCycleToCalendar() {
-  var _pid = localStorage.getItem('melodai_patient_id');
-  console.log('CAL_SYNC: pid=' + _pid + ' API_BASE=' + (typeof API_BASE !== 'undefined' ? API_BASE : 'NONE'));
+
   var pid = localStorage.getItem('melodai_patient_id');
   if (!pid || !API_BASE) return;
   fetch(API_BASE + '/patient/' + pid + '/cycle-meds').then(function(r) {
     return r.ok ? r.json() : null;
   }).then(function(cycle) {
-    console.log('CAL_SYNC: got cycle', JSON.stringify(cycle).substring(0,200));
     if (!cycle || !cycle.medications_simple) return;
     window.patientCycleMeds = cycle.medications_simple;
     var startDate = cycle.start_date || cycle.updated_at.substring(0,10);
@@ -5165,8 +5163,7 @@ function loadCycleToCalendar() {
         window.cycleMedsByDate[ds].push(med.name + ' ' + med.doses[dk]);
       });
     });
-    console.log('CAL_SYNC: medsByDate keys', Object.keys(window.cycleMedsByDate || {}));
-    if (typeof buildCalendar === 'function') { console.log('CAL_SYNC: rebuilding calendar'); buildCalendar(); }
+    if (typeof buildCalendar === 'function') { buildCalendar(); }
   }).catch(function(e) { console.log('Cycle load error:', e); });
 }
 if (document.readyState === 'loading') {

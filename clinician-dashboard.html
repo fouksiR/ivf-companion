@@ -1924,9 +1924,7 @@ function loadSavedMeds(pid) {
       });
       var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
       var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
-      var saveUrl = baseUrl + '/clinician/patient/' + pid + '/cycle';
-    console.log('SAVE URL:', saveUrl, 'MEDS:', JSON.stringify(meds));
-    fetch(saveUrl, {
+      fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
         method: 'POST',
         headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
         body: JSON.stringify({ medications_simple: meds, start_date: new Date().toISOString().substring(0,10), updated_at: new Date().toISOString() })
@@ -1948,6 +1946,7 @@ function loadSavedMeds(pid) {
   window.loadAndBuildMedGrid = function(pid) {
     var container = document.getElementById('medgrid-container-' + pid);
     if (!container) return;
+    // Show localStorage data instantly
     var cached = null;
     try {
       var raw = localStorage.getItem('medgrid_' + pid);
@@ -1955,27 +1954,23 @@ function loadSavedMeds(pid) {
     } catch(ce) {}
     if (cached && Object.keys(cached).length > 0) {
       buildMedGridForPatient(pid, container, cached);
-      return;
     }
+    // Also fetch from Firebase to stay in sync
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
+    if (!baseUrl || !key) return;
     fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
       headers: { 'X-API-Key': key }
     }).then(function(r) { return r.json(); }).then(function(data) {
       var meds = (data && data.medications_simple) ? data.medications_simple : null;
-      if (meds) {
+      if (meds && Object.keys(meds).length > 0) {
         try { localStorage.setItem('medgrid_' + pid, JSON.stringify(meds)); } catch(e) {}
+        buildMedGridForPatient(pid, container, meds);
       }
-      buildMedGridForPatient(pid, container, meds);
-    }).catch(function() {
-      buildMedGridForPatient(pid, container, null);
-    });
+    }).catch(function() {});
   };
 
   function injectMedGrids() {
-    var dbg = 'MedGrid: containers=' + document.querySelectorAll('[id^="medgrid-container-"]').length + ' API_KEY=' + (typeof API_KEY !== "undefined" && API_KEY ? "SET" : "EMPTY");
-    document.title = dbg;
-    console.log(dbg);
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
     document.querySelectorAll('[id^="medgrid-container-"]').forEach(function(el) {
@@ -2011,7 +2006,6 @@ function loadSavedMeds(pid) {
 
 (function retryMedGrids() {
   var k = typeof API_KEY !== 'undefined' ? API_KEY : '';
-  document.title = 'MG: key=' + (k ? 'SET' : 'EMPTY') + ' containers=' + document.querySelectorAll('[id^="medgrid-container-"]').length;
   if (k === '') { setTimeout(retryMedGrids, 2000); return; }
   if (typeof injectMedGrids === 'function') injectMedGrids();
 })();

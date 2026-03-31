@@ -3811,7 +3811,8 @@ if(state.checkins){var ci=state.checkins.find(function(c){return (c.date||'').su
 var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
 if(dayEvts.length>0){eventDot='<div class="cal-event">'+dayEvts.slice(0,2).map(function(e){return evtIcons[e.type]||'·'}).join('')+(dayEvts.length>2?'+':'')+'</div>'}
 var medDot='';
-html+='<div class="'+cls+'" data-date="'+dateStr+'" onclick="showDayDetail(\''+dateStr+'\')"><div class="cal-num">'+d+'</div>'+moodDot+eventDot+'</div>'}
+if(window.cycleMedsByDate&&window.cycleMedsByDate[dateStr]){medDot='<div style="font-size:7px;color:#0d7377;line-height:1;">'+String.fromCharCode(128138)+'</div>'}
+html+='<div class="'+cls+'" data-date="'+dateStr+'" onclick="showDayDetail(\''+dateStr+'\')"><div class="cal-num">'+d+'</div>'+moodDot+eventDot+medDot+'</div>'}
 html+='</div>';
 html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4ade80"></span>Good</span><span><span class="leg-dot" style="background:#fbbf24"></span>Tough</span><span><span class="leg-dot" style="background:#f87171"></span>Hard</span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.injection+'<small>Inj</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.scan+'<small>Scan</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.retrieval+'<small>Ret</small></span></div>';
 html+='<div id="dayDetailPanel" style="display:none"></div>';
@@ -5140,6 +5141,7 @@ setInterval(updateSky,600000);
 <script>
 // === CYCLE DATA ON PATIENT CALENDAR ===
 function loadCycleToCalendar() {
+
   var pid = localStorage.getItem('melodai_patient_id');
   if (!pid || !API_BASE) return;
   fetch(API_BASE + '/patient/' + pid + '/cycle-meds').then(function(r) {
@@ -5150,65 +5152,18 @@ function loadCycleToCalendar() {
     var startDate = cycle.start_date || cycle.updated_at.substring(0,10);
     window.cycleMedsByDate = {};
     var start = new Date(startDate);
-
-    // Remove previously injected cycle med events to avoid duplicates on reload
-    if (typeof _calEvents !== 'undefined') {
-      _calEvents = _calEvents.filter(function(e) { return e.source !== 'dashboard_cycle'; });
-    }
-
     Object.values(cycle.medications_simple).forEach(function(med) {
-      if (!med.doses || !med.name) return;
+      if (!med.doses) return;
       Object.keys(med.doses).forEach(function(dk) {
         var dayNum = parseInt(dk.replace('d','')) - 1;
         var d = new Date(start);
         d.setDate(d.getDate() + dayNum);
         var ds = d.toISOString().substring(0,10);
-
-        // cycleMedsByDate -- used by day detail panel
         if (!window.cycleMedsByDate[ds]) window.cycleMedsByDate[ds] = [];
         window.cycleMedsByDate[ds].push(med.name + ' ' + med.doses[dk]);
-
-        // _calEvents -- used by buildCalendar for icons
-        if (typeof _calEvents !== 'undefined') {
-          var evtType = 'medication';
-          if (med.name.match(/scan|ultrasound/i)) evtType = 'scan';
-          else if (med.name.match(/retrieval|OPU/i)) evtType = 'retrieval';
-          else if (med.name.match(/transfer|ET/i)) evtType = 'transfer';
-          else if (med.name.match(/trigger/i)) evtType = 'injection';
-          else if (med.name.match(/blood test|review|appointment/i)) evtType = 'appointment';
-          _calEvents.push({
-            date: ds,
-            type: evtType,
-            label: med.name + (med.doses[dk] && med.doses[dk] !== '1' ? ' ' + med.doses[dk] : ''),
-            notes: 'From treatment plan',
-            source: 'dashboard_cycle'
-          });
-        }
       });
     });
-
-    // Add key procedure dates as calendar events
-    var keyDates = cycle.medications_simple && cycle.medications_simple._key_dates;
-    if (keyDates && typeof _calEvents !== 'undefined') {
-      var dateTypeMap = {
-        scan: {type:'scan', label:'Ultrasound scan'},
-        retrieval: {type:'retrieval', label:'Egg retrieval (OPU)'},
-        transfer: {type:'transfer', label:'Embryo transfer (ET)'},
-        trigger: {type:'injection', label:'Trigger injection'},
-        pregnancy_test: {type:'appointment', label:'Pregnancy test'}
-      };
-      Object.keys(keyDates).forEach(function(k) {
-        if (keyDates[k] && dateTypeMap[k]) {
-          _calEvents.push({
-            date: keyDates[k],
-            type: dateTypeMap[k].type,
-            label: dateTypeMap[k].label,
-            source: 'dashboard_cycle'
-          });
-        }
-      });
-    }
-    if (typeof buildCalendar === 'function') buildCalendar();
+    if (typeof buildCalendar === 'function') { buildCalendar(); }
   }).catch(function(e) { console.log('Cycle load error:', e); });
 }
 if (document.readyState === 'loading') {

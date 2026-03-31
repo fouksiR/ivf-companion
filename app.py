@@ -5168,6 +5168,26 @@ async def debug_firebase(patient_id: str):
     return result
 
 
+
+
+@app.delete("/debug/cleanup-patients/{keep_id}")
+async def cleanup_patients(keep_id: str):
+    """Temporary — delete all patients except the specified ID."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            return {"error": "no firebase"}
+        all_patients = _fb_ref.child("patients").get() or {}
+        deleted = []
+        for pid in list(all_patients.keys()):
+            if pid != keep_id:
+                _fb_ref.child("patients").child(pid).delete()
+                deleted.append(pid)
+        return {"kept": keep_id, "deleted_count": len(deleted), "deleted": deleted}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)

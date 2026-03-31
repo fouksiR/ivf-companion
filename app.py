@@ -5188,6 +5188,28 @@ async def cleanup_patients(keep_id: str):
         return {"error": str(e)}
 
 
+
+
+@app.delete("/clinician/patient/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def delete_patient(patient_id: str):
+    """Delete a patient from Firebase DB and Auth."""
+    try:
+        from firebase_db import _fb_ref
+        if _fb_ref:
+            _fb_ref.child("patients").child(patient_id).delete()
+            _fb_ref.child("conversations").child(patient_id).delete()
+            _fb_ref.child("checkins").child(patient_id).delete()
+        # Also delete from Firebase Auth
+        try:
+            import firebase_admin.auth as fb_auth
+            fb_auth.delete_user(patient_id)
+        except Exception:
+            pass
+        return {"status": "deleted", "patient_id": patient_id}
+    except Exception as e:
+        return {"error": str(e)}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)

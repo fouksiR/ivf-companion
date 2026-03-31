@@ -738,6 +738,7 @@ function renderPatients() {
         '<div class="pc-active' + lastActiveClass + '">' + (p.email ? escHtml(p.email) + ' · ' : '') + lastActive + '</div>' +
       '</div>' +
       '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span>' +
+      '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + (p.patient_name||p.name||'') + '\')" style="font-size:12px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 4px;" title="Delete patient">&times;</button>' +
       '<button onclick="event.stopPropagation();window.loadAndBuildMedGrid(\'' + p.patient_id + '\')" style="font-size:16px;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:0 6px;color:#0d7377;">+</button>' +
       '</div>' +
       '<div id="medgrid-container-' + p.patient_id + '" style="padding:4px 12px 8px;"></div></div>';
@@ -2113,6 +2114,22 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
   if (k === '') { setTimeout(retryMedGrids, 2000); return; }
   if (typeof injectMedGrids === 'function') injectMedGrids();
 })();
+
+
+function deletePatient(pid, name) {
+  if (!confirm('Delete patient ' + name + '? This cannot be undone.')) return;
+  if (!confirm('Are you SURE? All data for ' + name + ' will be permanently removed.')) return;
+  fetch(API_BASE + '/clinician/patient/' + pid, {
+    method: 'DELETE',
+    headers: { 'X-API-Key': API_KEY }
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.status === 'deleted') {
+      var el = document.getElementById('medgrid-container-' + pid);
+      if (el && el.parentElement) el.parentElement.remove();
+      alert(name + ' deleted.');
+    }
+  }).catch(function(e) { alert('Delete failed: ' + e); });
+}
 
 </script>
 </body>

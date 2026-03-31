@@ -158,3 +158,23 @@ The full working flow:
 | API key | `API_KEY` | `apiKey` |
 | Calendar rebuild | `buildCalendar()` | `renderCalendar()` |
 | Firebase ref | `_fb_ref.child()` | `firebase_db.reference()` |
+
+### Med Grid — Procedures in Same Dropdown (March 31, 2026)
+
+Procedures (Ultrasound scan, Blood test, OPU, ET, Hysteroscopy, D&C, etc.) are in the SAME dropdown as medications, under a "Procedures" optgroup. They use the same persistence pipeline — no separate code path.
+
+**How procedures work in the grid:** Select "OPU (egg retrieval)" from dropdown, type "OPU" in the day cell where it happens. For medications, type the dose number. The patient calendar detects text values (non-numeric) and maps them to procedure types.
+
+**Patient calendar rendering (mobile-friendly):**
+- Medication days: light teal cell background + count number
+- OPU: amber background + "OPU" label
+- ET: green background + "ET" label  
+- Scan: blue background + "Scan" label
+- Pregnancy test: purple background + "Test" label
+- Trigger: coral background + "Trig" label
+- Uses colored cell backgrounds, NOT dots or SVG icons (invisible on mobile)
+
+**Pattern:** The `cycleMedsByDate` object drives BOTH the cell background color AND the day detail panel. The `_calEvents` array is also populated for the event system. Text values (non-numeric dose cells) are treated as procedure names, numeric values as medication doses.
+
+### MED_COLORS Object Structure
+Procedure colors were added inside the same `MED_COLORS` object as medications. **Do NOT put a `};` between medication colors and procedure colors** — they're all entries in one object. The closing `};` comes after the last procedure entry, followed by `var MED_DEFAULT = ...`.

@@ -1821,9 +1821,38 @@ function loadSavedMeds(pid) {
     table.appendChild(thead);
     var tbody = document.createElement('tbody');
     table.appendChild(tbody);
-    containerEl.appendChild(table);
+    // Key procedure dates row
+  var datesDiv = document.createElement('div');
+  datesDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;margin-left:22px;';
+  var dateTypes = [
+    {key:'scan', label:'Scan'},
+    {key:'retrieval', label:'OPU / Retrieval'},
+    {key:'transfer', label:'Transfer / ET'},
+    {key:'trigger', label:'Trigger'},
+    {key:'pregnancy_test', label:'Preg. Test'}
+  ];
+  var savedKeyDates = (savedMeds && savedMeds._key_dates) || {};
+  dateTypes.forEach(function(dt) {
+    var wrap = document.createElement('label');
+    wrap.style.cssText = 'display:flex;flex-direction:column;font-size:10px;color:#888;font-weight:500;gap:2px;';
+    wrap.textContent = dt.label;
+    var inp = document.createElement('input');
+    inp.type = 'date';
+    inp.value = savedKeyDates[dt.key] || '';
+    inp.className = 'key-date-input';
+    inp.dataset.dateKey = dt.key;
+    inp.autocomplete = 'off';
+    inp.style.cssText = 'padding:2px 4px;border:1px solid #ddd;border-radius:4px;font-size:10px;width:110px;margin-top:2px;';
+    wrap.appendChild(inp);
+    datesDiv.appendChild(wrap);
+  });
+  containerEl.appendChild(datesDiv);
+
+  containerEl.appendChild(table);
     if (savedMeds && typeof savedMeds === 'object') {
-      Object.values(savedMeds).forEach(function(m) {
+      Object.entries(savedMeds).forEach(function(entry) {
+        if (entry[0] === '_key_dates') return;
+        var m = entry[1];
         insertMedRow(tbody, m.name || '', m.doses || {});
       });
     }
@@ -2015,6 +2044,15 @@ function loadSavedMeds(pid) {
         }
         meds['med_' + i] = { name: name, doses: doses };
       });
+      // Collect key procedure dates
+      var keyDates = {};
+      var container = tbody.closest('[id^="medgrid-container-"]') || tbody.parentElement;
+      if (container) {
+        container.querySelectorAll('.key-date-input').forEach(function(inp) {
+          if (inp.value) keyDates[inp.dataset.dateKey] = inp.value;
+        });
+      }
+      if (Object.keys(keyDates).length > 0) meds._key_dates = keyDates;
       var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
       var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
       fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {

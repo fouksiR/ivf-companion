@@ -126,3 +126,35 @@ melod_ai/
 - **Actions:** POST send-message, flag-topic, schedule-nudge, resolve-concern
 - **Digest:** GET /clinician/digest — morning summary via Haiku
 - **Dashboard polling:** Every 8 seconds for patients + alerts
+
+---
+
+## CRITICAL BUG FIX LOG (March 31, 2026)
+
+### `save_patient` was wiping cycle data
+`firebase_db.py` line 83 used `.set(data)` which REPLACES the entire patient node. Every time the patient app loaded (`/onboard`), it saved `{name, email, stage}` WITHOUT the `cycle` key — **deleting all cycle medications**.
+
+**Fix:** Changed to `.update(data)` which MERGES keys, preserving siblings like `cycle/`.
+
+**Rule:** NEVER use `.set()` on a parent node if child nodes (like `cycle/`, `conversations/`, `checkins/`) contain data you want to keep. Always use `.update()` for partial writes.
+
+### Firebase multi-instance behavior
+Cloud Run can have multiple instances. POST may hit instance A, GET may hit instance B. If Firebase init fails on one instance, that instance returns `{}` for everything while still returning `{"status":"updated"}` for writes (because writes go to the first-matched endpoint which may use a different code path).
+
+**Rule:** Always verify writes by reading back from the SAME request context. The debug endpoint at `/debug/firebase-check/{patient_id}` is useful for this.
+
+### Dashboard Save → Patient Calendar pipeline
+The full working flow:
+1. Dashboard: dropdown select med → type doses → click Save
+2. `doSaveMeds` reads select/input values → POST to `/clinician/patient/{id}/cycle` → also saves to localStorage
+3. Firebase stores under `melod_ai/patients/{id}/cycle/medications_simple/`
+4. Patient app: `loadCycleToCalendar()` → GET `/patient/{id}/cycle-meds` → maps d1/d2/d3 to dates using `start_date` → stores in `window.cycleMedsByDate` → `buildCalendar()` renders 💊 icons
+5. Tapping a calendar day shows medication names + doses
+
+### Variables that MUST match
+| Dashboard JS | Correct name | WRONG name (causes silent failure) |
+|---|---|---|
+| API base URL | `API_BASE` | `API_URL` |
+| API key | `API_KEY` | `apiKey` |
+| Calendar rebuild | `buildCalendar()` | `renderCalendar()` |
+| Firebase ref | `_fb_ref.child()` | `firebase_db.reference()` |

@@ -2123,7 +2123,7 @@ function deletePatient(pid, name) {
     method: 'DELETE',
     headers: { 'X-API-Key': API_KEY }
   }).then(function(r) { return r.json(); }).then(function(d) {
-    if (d.status === 'permanently_deleted' || d.status === 'deleted') {
+    if (d.status === 'permanently_deleted' || d.status === 'permanently_deleted' || d.status === 'deleted') {
       var el = document.getElementById('medgrid-container-' + pid);
       if (el && el.parentElement) el.parentElement.remove();
       alert(name + ' deleted.');

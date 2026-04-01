@@ -37,6 +37,65 @@ logger = logging.getLogger("melod-ai.signals")
 
 signal_router = APIRouter(tags=["signals"])
 
+# ── Firebase baseline helpers (lazy import to avoid circular deps) ────────────
+
+def _firebase_db():
+    """Lazy-import firebase_db to avoid circular import at module load time."""
+    try:
+        import firebase_db as _fb
+        return _fb.db
+    except Exception:
+        return None
+
+
+def _load_baseline_from_firebase(pid: str):
+    """
+    Lazy-load a patient's signal baseline from Firebase into the in-memory store.
+    Called once per patient per Cloud Run instance lifetime (cold-start recovery).
+    Silently no-ops if Firebase is unavailable.
+    """
+    db = _firebase_db()
+    if not db:
+        return
+    try:
+        data = db.load_signal_baseline(pid)
+        if not data:
+            return
+        # Hydrate the in-memory store from Firebase
+        patient_signal_store[pid] = {
+            "signal_history": data.get("signal_history", []),
+            "check_in_history": data.get("check_in_history", []),
+            "session_count": data.get("session_count", 0),
+            "baseline_established": data.get("baseline_established", False),
+            "escalation_level": data.get("escalation_level", "GREEN"),
+            "human_escalation_requested": data.get("human_escalation_requested", False),
+            "human_escalation_at": data.get("human_escalation_at"),
+            "current_assessment": data.get("current_assessment"),
+            "last_passive_data": {},
+            "last_updated": datetime.utcnow(),
+            "_hydrated_from_firebase": True,  # Debug marker
+        }
+        logger.info(f"[baselines] Hydrated {pid} from Firebase — sessions={data.get('session_count',0)}, baseline_established={data.get('baseline_established',False)}")
+    except Exception as e:
+        logger.warning(f"[baselines] load_baseline_from_firebase error for {pid}: {e}")
+
+
+def _save_baseline_to_firebase(pid: str):
+    """
+    Persist current in-memory baseline for a patient to Firebase.
+    Fire-and-forget — failure is logged but does not raise.
+    """
+    db = _firebase_db()
+    if not db:
+        return
+    store = patient_signal_store.get(pid)
+    if not store:
+        return
+    try:
+        db.save_signal_baseline(pid, store)
+    except Exception as e:
+        logger.warning(f"[baselines] save_baseline_to_firebase error for {pid}: {e}")
+
 # ── In-memory stores (replace with PostgreSQL later) ────────────────────────
 
 patient_signal_store: Dict[str, Dict] = {}
@@ -403,7 +462,12 @@ async def receive_passive_signals(payload: PassiveSignalPayload):
     t0 = time.time()
     pid = payload.patient_id
     
-    # Initialize store if new patient
+    # Initialize store if new patient on this instance (cold start or new patient)
+    if pid not in patient_signal_store:
+        # Try to restore from Firebase first (cold-start recovery)
+        _load_baseline_from_firebase(pid)
+
+    # If still not in store after Firebase attempt, create fresh
     if pid not in patient_signal_store:
         patient_signal_store[pid] = {
             "signal_history": [],
@@ -416,22 +480,25 @@ async def receive_passive_signals(payload: PassiveSignalPayload):
             "session_count": 0,
             "last_updated": datetime.utcnow(),
         }
-    
+
     store = patient_signal_store[pid]
     passive_dict = payload.model_dump(exclude={"patient_id", "session_id", "timestamp"}, exclude_none=True)
-    
+
     # Store raw data
     store["last_passive_data"] = passive_dict
     store["signal_history"].append(passive_dict)
     store["signal_history"] = store["signal_history"][-50:]  # Keep last 50
     store["session_count"] += 1
     store["last_updated"] = datetime.utcnow()
-    
+
     # Run analysis
     assessment = analyze_passive_signals(pid, passive_dict, store)
     store["current_assessment"] = assessment
     store["escalation_level"] = assessment["escalation_level"]
-    
+
+    # Persist baseline to Firebase on every flush cycle (fire-and-forget)
+    _save_baseline_to_firebase(pid)
+
     # If RED, push to alert queue
     if assessment["escalation_level"] == "RED":
         alert_queue.insert(0, {
@@ -459,6 +526,10 @@ async def submit_checkin(payload: CheckInPayload):
     pid = payload.patient_id
     
     if pid not in patient_signal_store:
+        # Try Firebase restore on cold start
+        _load_baseline_from_firebase(pid)
+
+    if pid not in patient_signal_store:
         patient_signal_store[pid] = {
             "signal_history": [],
             "check_in_history": [],
@@ -470,21 +541,24 @@ async def submit_checkin(payload: CheckInPayload):
             "session_count": 0,
             "last_updated": datetime.utcnow(),
         }
-    
+
     store = patient_signal_store[pid]
     checkin = payload.model_dump(exclude={"patient_id", "timestamp"}, exclude_none=True)
     checkin["submitted_at"] = datetime.utcnow().isoformat()
-    
+
     store["check_in_history"].append(checkin)
     store["check_in_history"] = store["check_in_history"][-30:]  # Keep last 30
     store["last_updated"] = datetime.utcnow()
-    
+
     # Re-run assessment with updated check-in data
     passive = store.get("last_passive_data", {})
     assessment = analyze_passive_signals(pid, passive, store)
     store["current_assessment"] = assessment
     store["escalation_level"] = assessment["escalation_level"]
-    
+
+    # Persist updated baseline (includes new check-in)
+    _save_baseline_to_firebase(pid)
+
     # Alert on RED
     if assessment["escalation_level"] == "RED":
         alert_queue.insert(0, {
@@ -496,7 +570,7 @@ async def submit_checkin(payload: CheckInPayload):
             "timestamp": datetime.utcnow().isoformat(),
             "acknowledged": False,
         })
-    
+
     return {
         "status": "ok",
         "escalation_level": assessment["escalation_level"],

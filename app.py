@@ -5168,6 +5168,53 @@ async def debug_firebase(patient_id: str):
     return result
 
 
+@app.get("/debug/baselines/{patient_id}")
+async def debug_baselines(patient_id: str):
+    """
+    Debug: compare in-memory signal baseline vs Firebase for a patient.
+    Confirms persistence is working after a flush cycle.
+    """
+    result = {}
+    try:
+        from signal_integration import patient_signal_store
+        mem = patient_signal_store.get(patient_id)
+        if mem:
+            result["in_memory"] = {
+                "session_count": mem.get("session_count"),
+                "baseline_established": mem.get("baseline_established"),
+                "escalation_level": mem.get("escalation_level"),
+                "signal_history_len": len(mem.get("signal_history", [])),
+                "check_in_history_len": len(mem.get("check_in_history", [])),
+                "last_updated": mem.get("last_updated").isoformat() if hasattr(mem.get("last_updated"), "isoformat") else str(mem.get("last_updated")),
+                "hydrated_from_firebase": mem.get("_hydrated_from_firebase", False),
+            }
+        else:
+            result["in_memory"] = None
+
+        from firebase_db import firebase_db as fb
+        fb_data = fb.load_signal_baseline(patient_id)
+        if fb_data:
+            result["firebase"] = {
+                "session_count": fb_data.get("session_count"),
+                "baseline_established": fb_data.get("baseline_established"),
+                "escalation_level": fb_data.get("escalation_level"),
+                "signal_history_len": len(fb_data.get("signal_history", [])),
+                "check_in_history_len": len(fb_data.get("check_in_history", [])),
+                "last_updated": fb_data.get("last_updated"),
+            }
+        else:
+            result["firebase"] = None
+
+        if result.get("in_memory") and result.get("firebase"):
+            result["match"] = (
+                result["in_memory"]["session_count"] == result["firebase"]["session_count"]
+                and result["in_memory"]["baseline_established"] == result["firebase"]["baseline_established"]
+            )
+    except Exception as e:
+        result["error"] = str(e)
+    return result
+
+
 
 
 @app.delete("/debug/cleanup-patients/{keep_id}")

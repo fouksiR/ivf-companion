@@ -316,6 +316,46 @@ class FirebaseDB:
             logger.warning(f"Firebase load_cycle_events error: {e}")
             return []
 
+    # ── Signal Baselines ─────────────────────────────────
+
+    def save_signal_baseline(self, patient_id: str, store: dict):
+        """
+        Persist per-patient signal baseline to Firebase.
+        Only saves calibration-relevant fields (not the full store).
+        Called on every flush cycle — last-write-wins semantics are acceptable
+        because baselines change slowly and exact ordering doesn't matter.
+        NOTE: when PostgreSQL migration happens, replace this with a proper upsert.
+        """
+        if not _enabled: return
+        try:
+            payload = {
+                "signal_history": store.get("signal_history", []),
+                "check_in_history": store.get("check_in_history", []),
+                "session_count": store.get("session_count", 0),
+                "baseline_established": store.get("baseline_established", False),
+                "escalation_level": store.get("escalation_level", "GREEN"),
+                "human_escalation_requested": store.get("human_escalation_requested", False),
+                "human_escalation_at": store.get("human_escalation_at"),
+                "current_assessment": store.get("current_assessment"),
+                "last_updated": datetime.now().isoformat(),
+            }
+            # update() merges — never overwrites sibling keys
+            _fb_ref.child("signal_baselines").child(patient_id).update(payload)
+        except Exception as e:
+            logger.warning(f"Firebase save_signal_baseline error: {e}")
+
+    def load_signal_baseline(self, patient_id: str) -> dict | None:
+        """
+        Load persisted signal baseline for a patient.
+        Returns None if not found (new patient or Firebase down).
+        """
+        if not _enabled: return None
+        try:
+            return _fb_ref.child("signal_baselines").child(patient_id).get()
+        except Exception as e:
+            logger.warning(f"Firebase load_signal_baseline error: {e}")
+            return None
+
     # ── Passive Signals ─────────────────────────────────
 
     def append_passive_signals(self, patient_id: str, signals: list):

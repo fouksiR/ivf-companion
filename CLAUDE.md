@@ -178,3 +178,49 @@ Procedures (Ultrasound scan, Blood test, OPU, ET, Hysteroscopy, D&C, etc.) are i
 
 ### MED_COLORS Object Structure
 Procedure colors were added inside the same `MED_COLORS` object as medications. **Do NOT put a `};` between medication colors and procedure colors** — they're all entries in one object. The closing `};` comes after the last procedure entry, followed by `var MED_DEFAULT = ...`.
+
+---
+
+## Session Log — April 1, 2026
+
+### Bugs Fixed
+
+**1. `loadExistingPatient is not defined`**
+Auth functions (`loadExistingPatient`, `submitAuth`) were trapped inside the Egg Companion IIFE (lines 2511-3325), invisible to the auth IIFE at line 4002. Fix: added `window.loadExistingPatient = loadExistingPatient` at line 3198 to expose it globally.
+
+**2. `appendChild null` (typewriterWelcome)**
+Welcome screen element doesn't exist when returning user auto-logs in. Fix: added `if(!el)return;` guard at top of `typewriterWelcome()`.
+
+**3. Calendar date offset (off-by-one)**
+`new Date('2026-04-01')` parses as UTC midnight. In Melbourne (UTC+10), `toISOString()` can shift dates backward. Fix: replaced UTC date math with local date construction:
+```javascript
+// OLD (broken in non-UTC timezones):
+var d = new Date(start);
+d.setDate(d.getDate() + dayNum);
+var ds = d.toISOString().substring(0,10);
+
+// NEW (works everywhere):
+var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + dayNum);
+var ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+```
+**Rule:** NEVER use `toISOString()` for display dates — always use local `getFullYear()/getMonth()/getDate()`.
+
+**4. Chart.js canvas reuse error**
+`trendChart` was re-initialized without destroying the old instance. Fix: added `if(trendChart){try{trendChart.destroy();}catch(e){}}` before `new Chart()`.
+
+**5. Calendar data bleeding between patients**
+`_calEvents` stored under shared localStorage key `melodai_cycle_events`. Fix: changed to per-patient key `cal_{patient_id}`. Old shared key is auto-deleted.
+
+**6. Patient delete button on dashboard**
+Added `×` button per patient card with double-confirm dialog. Endpoint `DELETE /clinician/patient/{id}` removes all data from 10 Firebase paths + Firebase Auth account.
+
+### Known Issues (not yet fixed)
+- `/daily-insight/{id}` returns 404 — endpoint not implemented, cosmetic console noise
+- `/manifest.json` returns 404 — PWA manifest missing, cosmetic
+- `loadExistingPatient` error still appears once on first load (race condition with Firebase Auth init) — harmless, app recovers
+
+### Pattern: Timezone-Safe Date Handling
+When converting between day numbers (D1, D2...) and calendar dates:
+- Parse start_date with `split('-')` + `new Date(year, month-1, day)` — NOT `new Date(dateString)`
+- Format with `getFullYear()/getMonth()/getDate()` — NOT `toISOString()`
+- This avoids UTC offset issues in any timezone

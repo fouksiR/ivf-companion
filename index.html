@@ -5183,9 +5183,9 @@ function loadCycleToCalendar() {
   }).catch(function(e) { console.log('Cycle load error:', e); });
 }
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() { setTimeout(loadCycleToCalendar, 2000); });
+  document.addEventListener('DOMContentLoaded', function() { try{loadCycleToCalendar();}catch(e){} });
 } else {
-  setTimeout(loadCycleToCalendar, 2000);
+  try{loadCycleToCalendar();}catch(e){}
 }
 </script>
 

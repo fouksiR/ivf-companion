@@ -3195,6 +3195,7 @@ function loadExistingPatient(uid,email){
     }
   }
 }
+window.loadExistingPatient=loadExistingPatient;
 
 function resetPassword(){
   var email=document.getElementById('authEmail').value.trim();
@@ -3253,6 +3254,7 @@ window.dismissWelcome=dismissWelcome;
 function typewriterWelcome(){
   var el=document.getElementById('welcomeText');
   var cta=document.getElementById('welcomeCta');
+  if(!el)return; // Element not in DOM (returning user auto-login)
   var text=WELCOME_TEXT;
   var i=0;
   var cursor=document.createElement('span');
@@ -5167,14 +5169,13 @@ function loadCycleToCalendar() {
     window.patientCycleMeds = cycle.medications_simple;
     var startDate = cycle.start_date || cycle.updated_at.substring(0,10);
     window.cycleMedsByDate = {};
-    var start = new Date(startDate);
+    var sp = startDate.split('-'); var start = new Date(parseInt(sp[0]), parseInt(sp[1])-1, parseInt(sp[2]));
     Object.values(cycle.medications_simple).forEach(function(med) {
       if (!med.doses) return;
       Object.keys(med.doses).forEach(function(dk) {
         var dayNum = parseInt(dk.replace('d','')) - 1;
-        var d = new Date(start);
-        d.setDate(d.getDate() + dayNum);
-        var ds = d.toISOString().substring(0,10);
+        var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + dayNum);
+        var ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         if (!window.cycleMedsByDate[ds]) window.cycleMedsByDate[ds] = [];
         window.cycleMedsByDate[ds].push(med.name + ' ' + med.doses[dk]);
       });

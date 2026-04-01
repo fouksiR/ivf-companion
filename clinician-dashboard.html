@@ -613,7 +613,7 @@ function startPolling() {
   API_KEY = document.getElementById('apiKey').value.trim();
   document.getElementById('settingsDropdown').style.display = 'none';
   if (pollTimer) clearInterval(pollTimer);
-  poll(); setTimeout(injectMedGrids, 1500);
+  poll(); setTimeout(function() { if (window.injectMedGrids) window.injectMedGrids(); }, 1500);
   pollTimer = setInterval(poll, 300000);
   // Load digest on first connect
   if (!digestLoaded) loadDigest();
@@ -2034,6 +2034,8 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
         headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
         body: JSON.stringify({ medications_simple: meds, start_date: new Date().toISOString().substring(0,10), updated_at: new Date().toISOString() })
       }).then(function(r) {
+        console.log('SAVE:', pid, r.status, r.ok);
+        r.clone().text().then(function(t){console.log('SAVE_BODY:', t);});
         if (r.ok && statusEl) {
           statusEl.style.display = 'inline';
           setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
@@ -2047,6 +2049,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
   window.buildMedGridForPatient = buildMedGridForPatient;
   window.insertMedRow = insertMedRow;
   window.doSaveMeds = doSaveMeds;
+  window.injectMedGrids = injectMedGrids;
 
   // Auto-load: called by MutationObserver — only shows grid if data exists
   window.loadAndBuildMedGrid = function(pid) {
@@ -2077,9 +2080,12 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
 
   // Toggle: called by + button — always opens (empty grid if no data), or closes
   window.toggleMedGrid = function(pid) {
+    console.log('[MedGrid] toggleMedGrid called for pid:', pid);
     var container = document.getElementById('medgrid-container-' + pid);
-    if (!container) return;
+    console.log('[MedGrid] container found:', !!container, 'children:', container ? container.children.length : 'N/A');
+    if (!container) { console.warn('[MedGrid] No container for', pid); return; }
     if (container.children.length > 0) {
+      console.log('[MedGrid] Collapsing grid for', pid);
       container.innerHTML = '';
       return;
     }
@@ -2135,6 +2141,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
     });
   });
   observer.observe(document.body, { childList: true, subtree: true });
+  console.log('[MedGrid] IIFE completed. toggleMedGrid defined:', typeof window.toggleMedGrid);
 })();
 
 (function retryMedGrids() {

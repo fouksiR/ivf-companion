@@ -224,3 +224,4 @@ When converting between day numbers (D1, D2...) and calendar dates:
 - Parse start_date with `split('-')` + `new Date(year, month-1, day)` — NOT `new Date(dateString)`
 - Format with `getFullYear()/getMonth()/getDate()` — NOT `toISOString()`
 - This avoids UTC offset issues in any timezone
+# force rebuild 1775165182

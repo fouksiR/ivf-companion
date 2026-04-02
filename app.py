@@ -5014,6 +5014,24 @@ async def update_patient_cycle(patient_id: str, request: Request):
                 else:
                     existing[key] = data[key]
             existing['updated_at'] = utc_iso()
+            # Auto-correct start_date if it was saved with UTC (off-by-one in AEST)
+            try:
+                from datetime import datetime, timedelta, timezone
+                sd = existing.get('start_date', '')
+                ua = existing.get('updated_at', '')
+                if sd and ua:
+                    aest = timezone(timedelta(hours=10))
+                    ua_dt = datetime.fromisoformat(ua.replace('Z', '+00:00'))
+                    aest_date = ua_dt.astimezone(aest).strftime('%Y-%m-%d')
+                    if sd != aest_date:
+                        # Check if it's exactly the UTC/AEST off-by-one pattern
+                        sd_date = datetime.strptime(sd, '%Y-%m-%d').date()
+                        aest_d = ua_dt.astimezone(aest).date()
+                        if abs((aest_d - sd_date).days) == 1:
+                            existing['start_date'] = aest_date
+                            logger.info(f"Auto-corrected start_date {sd} -> {aest_date} for {patient_id}")
+            except Exception as ce:
+                logger.warning(f"start_date correction skipped: {ce}")
             ref.set(existing)
             return {"status": "updated"}
     except Exception as e:

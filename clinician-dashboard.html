@@ -2042,7 +2042,20 @@ function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1)
   'Review appointment': { bg: 'rgba(136,135,128,0.08)', text: '#5F5E5A' },
 };
 var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
+  var PROCEDURE_NAMES = ['Ultrasound scan','Blood test','OPU (egg retrieval)','Embryo transfer','Trigger injection','Hysteroscopy','D&C','Saline infusion','Trial transfer','Semen analysis','Review appointment'];
+  function isProcedure(name) { return PROCEDURE_NAMES.indexOf(name) >= 0; }
   function getMedColor(n) { return MED_COLORS[n] || MED_DEFAULT; }
+  function makeProcToggle(inp, color) {
+    inp.readOnly = true;
+    inp.style.cursor = 'pointer';
+    inp.style.textAlign = 'center';
+    if (inp.value && inp.value !== '0') { inp.value = '✓'; inp.style.color = color; inp.style.fontWeight = '700'; }
+    else { inp.value = ''; }
+    inp.addEventListener('click', function() {
+      if (this.value) { this.value = ''; this.style.color = 'inherit'; }
+      else { this.value = '✓'; this.style.color = color; this.style.fontWeight = '700'; }
+    });
+  }
   var MED_OPTIONS = '<option value="">Select med...</option><optgroup label="Gonadotropins"><option>Gonal-F</option><option>Puregon</option><option>Menopur</option><option>Bemfola</option><option>Elonva</option><option>Fostimon</option><option>Pergoveris</option></optgroup><optgroup label="Antagonist"><option>Orgalutran</option><option>Cetrotide</option><option>Fyremadel</option></optgroup><optgroup label="Agonist"><option>Lucrin</option><option>Synarel</option><option>Decapeptyl</option></optgroup><optgroup label="Trigger"><option>Ovidrel</option><option>Pregnyl</option></optgroup><optgroup label="Suppression"><option>Provera</option><option>Norethisterone</option><option>OCP</option></optgroup><optgroup label="Luteal"><option>Crinone</option><option>Utrogestan</option><option>Progesterone</option><option>Lubion</option></optgroup><optgroup label="Other"><option>Prednisolone</option><option>Clexane</option><option>Aspirin</option><option>Letrozole</option><option>Estradiol</option><option>Folic acid</option><option>Metformin</option></optgroup></optgroup><optgroup label="Procedures"><option>Ultrasound scan</option><option>Blood test</option><option>OPU (egg retrieval)</option><option>Embryo transfer</option><option>Trigger injection</option><option>Hysteroscopy</option><option>D&amp;C</option><option>Saline infusion</option><option>Trial transfer</option><option>Semen analysis</option><option>Review appointment</option></optgroup><option value="custom">Other (type name)...</option>';
 
   function insertMedRow(tbody, name, doses) {
@@ -2079,6 +2092,12 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
           tr.style.background = nc.bg;
           sel.style.color = nc.text;
           updateDoseColors(tr, nc.text);
+          // Convert dose cells to toggles for procedures
+          if (isProcedure(sel.value)) {
+            tr.querySelectorAll('td:not(:first-child):not(:last-child) input').forEach(function(i) {
+              if (!i.readOnly) makeProcToggle(i, nc.text);
+            });
+          }
         }
       });
       return sel;
@@ -2145,6 +2164,14 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
     delBtn.addEventListener('click', function() { tr.remove(); });
     tdDel.appendChild(delBtn);
     tr.appendChild(tdDel);
+
+    // Convert to toggles if this is a procedure row (after delete td so :last-child is correct)
+    if (isProcedure(name)) {
+      tr.querySelectorAll('td:not(:first-child):not(:last-child) input').forEach(function(i) {
+        makeProcToggle(i, c.text);
+      });
+    }
+
     tbody.appendChild(tr);
   }
 
@@ -2166,14 +2193,18 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       // Also save to localStorage for instant persistence
       var meds = {};
       rows.forEach(function(row, i) {
-        var inputs = row.querySelectorAll('input');
         var nameEl = row.querySelector('select') || row.querySelector('td:first-child input'); var name = nameEl ? nameEl.value.trim() : '';
         if (!name) return;
+        // Get dose inputs from dose cells only (skip name td and delete td)
+        var doseTds = row.querySelectorAll('td:not(:first-child):not(:last-child)');
         var doses = {};
-        for (var d = 1; d < inputs.length; d++) {
-          var val = inputs[d] ? inputs[d].value.trim() : '';
-          if (val) doses['d' + d] = val;
-        }
+        var isProc = isProcedure(name);
+        doseTds.forEach(function(td, dIdx) {
+          var inp = td.querySelector('input');
+          var val = inp ? inp.value.trim() : '';
+          if (val && val !== '✓') doses['d' + (dIdx + 1)] = isProc ? '1' : val;
+          else if (val === '✓') doses['d' + (dIdx + 1)] = '1';
+        });
         meds['med_' + i] = { name: name, doses: doses };
       });
       var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';

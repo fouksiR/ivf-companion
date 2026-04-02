@@ -5182,7 +5182,9 @@ function loadCycleToCalendar() {
         var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + dayNum);
         var ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         if (!window.cycleMedsByDate[ds]) window.cycleMedsByDate[ds] = [];
-        window.cycleMedsByDate[ds].push(med.name + ' ' + med.doses[dk]);
+        var doseVal = med.doses[dk];
+        var isNumericDose = !isNaN(parseFloat(doseVal)) && doseVal !== '1' && doseVal !== '✓';
+        window.cycleMedsByDate[ds].push(isNumericDose ? med.name + ' ' + doseVal : med.name);
       });
     });
     if (typeof buildCalendar === 'function') { buildCalendar(); }

@@ -3821,10 +3821,15 @@ var mc=window.cycleMedsByDate[dateStr];
 var hasMed=false,hasProc=false,procColor='',procLabel='';
 mc.forEach(function(m){
 if(m.match(/OPU|retrieval/i)){hasProc=true;procColor='rgba(239,159,39,0.25)';procLabel='OPU';}
-else if(m.match(/ET|transfer/i)){hasProc=true;procColor='rgba(29,158,117,0.25)';procLabel='ET';}
+else if(m.match(/ET|transfer/i)&&!m.match(/trial/i)){hasProc=true;procColor='rgba(29,158,117,0.25)';procLabel='ET';}
+else if(m.match(/D&C|curettage/i)){hasProc=true;procColor='rgba(239,159,39,0.20)';procLabel='D&C';}
+else if(m.match(/hysteroscopy/i)){hasProc=true;procColor='rgba(133,183,235,0.25)';procLabel='Hyst';}
 else if(m.match(/scan|ultra/i)){hasProc=true;procColor='rgba(55,138,221,0.2)';procLabel='Scan';}
+else if(m.match(/blood\s*test/i)){hasProc=true;procColor='rgba(219,112,147,0.2)';procLabel='Blood';}
 else if(m.match(/test|beta|hCG/i)){hasProc=true;procColor='rgba(127,119,221,0.2)';procLabel='Test';}
 else if(m.match(/trigger/i)){hasProc=true;procColor='rgba(232,89,60,0.2)';procLabel='Trig';}
+else if(m.match(/semen|sperm/i)){hasProc=true;procColor='rgba(136,135,128,0.2)';procLabel='SA';}
+else if(m.match(/review|appointment/i)){hasProc=true;procColor='rgba(136,135,128,0.15)';procLabel='Appt';}
 else{hasMed=true;}
 });
 if(hasProc){medBg=procColor;medDot='<div style="font-size:8px;font-weight:600;color:rgba(0,0,0,0.5);line-height:1;margin-top:1px;">'+procLabel+'</div>';}

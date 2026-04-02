@@ -457,6 +457,9 @@
             .header { padding: 0 16px; }
             .filter-pill { font-size: 11px; padding: 4px 10px; }
         }
+        /* Med grid today highlight */
+        .med-grid-today { background-color: rgba(0,150,136,0.08) !important; }
+        .med-grid-today-header { font-weight: 700 !important; color: #009688 !important; border-top: 3px solid #009688 !important; }
         /* Phenotype risk badges */
         .risk-badge { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600; font-family:Montserrat,sans-serif; }
         .risk-badge.green { background:#e8f5e9; color:#2e7d32; }
@@ -1737,7 +1740,7 @@ function wireSSEvents(){
       _expanded[pid]=true;
       authFetch(API_BASE+'/clinician/patient/'+pid+'/cycle/medication',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({name:parts[0],unit:parts[1],dose:parseFloat(parts[2])||0,category:parts[3]||'other',start_date:new Date().toISOString().substring(0,10)})
+        body:JSON.stringify({name:parts[0],unit:parts[1],dose:parseFloat(parts[2])||0,category:parts[3]||'other',start_date:localDateStr(new Date())})
       }).then(function(){reloadSS()});
     });
   });
@@ -1782,7 +1785,7 @@ function wireStartCycle(pid) {
         btn.addEventListener('click', function() {
             authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
                 method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({type:btn.dataset.type, status:'active', cycle_number:1, start_date:new Date().toISOString().substring(0,10), key_dates:{stim_start:new Date().toISOString().substring(0,10)}, medications:{}})
+                body: JSON.stringify({type:btn.dataset.type, status:'active', cycle_number:1, start_date:localDateStr(new Date()), key_dates:{stim_start:localDateStr(new Date())}, medications:{}})
             }).then(function() { loadMedGrid(pid); });
         });
     });
@@ -1837,7 +1840,7 @@ function wireMedEvents(pid) {
             if(!sel.value)return;var p=sel.value.split('|');
             authFetch(API_BASE+'/clinician/patient/'+sel.dataset.pid+'/cycle/medication',{
                 method:'POST',headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({name:p[0],unit:p[1],dose:parseFloat(p[2])||0,category:p[3]||'other',start_date:new Date().toISOString().substring(0,10)})
+                body:JSON.stringify({name:p[0],unit:p[1],dose:parseFloat(p[2])||0,category:p[3]||'other',start_date:localDateStr(new Date())})
             }).then(function(){loadMedGrid(sel.dataset.pid)});
         });
     });
@@ -1934,6 +1937,10 @@ function loadSavedMeds(pid) {
 }
 </script>
 
+<script>
+// Global helper — timezone-safe local YYYY-MM-DD (never use toISOString for dates!)
+function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+</script>
 <script>(function() {
   var MED_DAYS = 14;
 
@@ -1950,7 +1957,10 @@ function loadSavedMeds(pid) {
     for (var d = 1; d <= MED_DAYS; d++) {
       var th = document.createElement('th');
       th.style.cssText = 'background:#f8f9fb;border:1px solid #e0e0e0;padding:3px 2px;font-weight:500;color:#999;font-size:9px;text-align:center;min-width:36px;';
-      var dt = new Date(); dt.setDate(dt.getDate() + d - 1); th.innerHTML = 'D' + d + '<br><span style="font-size:8px;color:#aaa;">' + (dt.getMonth()+1) + '/' + dt.getDate() + '</span>';
+      var dt = new Date(); dt.setDate(dt.getDate() + d - 1);
+      if (d === 1) th.className = 'med-grid-today-header';
+      th.innerHTML = 'D' + d + '<br><span style="font-size:8px;color:' + (d === 1 ? '#009688' : '#aaa') + ';">' + (dt.getMonth()+1) + '/' + dt.getDate() + '</span>';
+      th.setAttribute('data-col', d);
       hr.appendChild(th);
     }
     var thDel = document.createElement('th');
@@ -2092,6 +2102,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
     for (var d = 1; d <= MED_DAYS; d++) {
       var td = document.createElement('td');
       td.style.cssText = 'border:1px solid #eee;padding:0;';
+      if (d === 1) td.className = 'med-grid-today';
       var dinp = document.createElement('input');
       dinp.type = 'text';
       dinp.value = (doses && doses['d' + d]) || '';
@@ -2170,7 +2181,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
         method: 'POST',
         headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ medications_simple: meds, start_date: new Date().toISOString().substring(0,10), updated_at: new Date().toISOString() })
+        body: JSON.stringify({ medications_simple: meds, start_date: localDateStr(new Date()), updated_at: new Date().toISOString() })
       }).then(function(r) {
         console.log('SAVE:', pid, r.status, r.ok);
         r.clone().text().then(function(t){console.log('SAVE_BODY:', t);});

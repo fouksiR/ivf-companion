@@ -5104,11 +5104,111 @@ async def serve_dashboard():
 
 
 
-# (Duplicate cycle endpoints removed — lines 5102-5152 used firebase_db.reference()
-#  which would create path melod_ai/melod_ai/... The canonical endpoints at lines
-#  4990-5080 use firebase_db._fb_ref.child() → correct path melod_ai/patients/{pid}/cycle)
+# (Duplicate cycle endpoints removed — used firebase_db.reference() which would
+#  double-prefix paths. Canonical endpoints use firebase_db._fb_ref.child().)
 
 
+# ── Admin diagnostic endpoints (TEMPORARY — remove after debugging) ────
+
+@app.get("/admin/firebase-dump/{patient_id}")
+async def firebase_dump(patient_id: str):
+    """Dump ALL possible Firebase locations where cycle data might exist."""
+    import firebase_admin.db as fb_db_mod
+    results = {}
+    paths = {
+        "melod_ai/patients/{pid}/cycle": None,
+        "melod_ai/melod_ai/patients/{pid}/cycle": None,
+        "patients/{pid}/cycle": None,
+        "melod_ai/cycle_events/{pid}": None,
+        "cycle_events/{pid}": None,
+        "melod_ai/patients/{pid}": "KEYS_ONLY",
+    }
+    for path_template, mode in paths.items():
+        path = path_template.replace("{pid}", patient_id)
+        try:
+            ref = fb_db_mod.reference(path)
+            data = ref.get()
+            if mode == "KEYS_ONLY" and isinstance(data, dict):
+                results[path] = {"exists": True, "keys": list(data.keys()), "has_cycle": "cycle" in data}
+            else:
+                results[path] = {"exists": data is not None, "data": data}
+        except Exception as e:
+            results[path] = {"error": str(e)}
+    # Also check in-memory caches
+    results["in_memory"] = {
+        "cycle_events_db": cycle_events_db.get(patient_id, "NOT_FOUND"),
+    }
+    results["note"] = "Dashboard also caches in browser localStorage key 'medgrid_{pid}'. Clear manually in browser DevTools."
+    return results
+
+@app.post("/admin/nuke-cycle/{patient_id}")
+async def nuke_cycle(patient_id: str):
+    """Nuclear cleanup: delete cycle data from ALL possible Firebase paths."""
+    import firebase_admin.db as fb_db_mod
+    deleted = []
+    paths_to_nuke = [
+        f"melod_ai/patients/{patient_id}/cycle",
+        f"melod_ai/melod_ai/patients/{patient_id}/cycle",
+        f"patients/{patient_id}/cycle",
+        f"melod_ai/cycle_events/{patient_id}",
+        f"cycle_events/{patient_id}",
+    ]
+    for path in paths_to_nuke:
+        try:
+            ref = fb_db_mod.reference(path)
+            data = ref.get()
+            if data is not None:
+                ref.delete()
+                deleted.append({"path": path, "had_data": True})
+            else:
+                deleted.append({"path": path, "had_data": False})
+        except Exception as e:
+            deleted.append({"path": path, "error": str(e)})
+    # Clear in-memory caches
+    if patient_id in cycle_events_db:
+        del cycle_events_db[patient_id]
+        deleted.append({"path": "in_memory:cycle_events_db", "had_data": True})
+    return {"deleted": deleted, "note": "Also clear browser localStorage key 'medgrid_{pid}' in the clinician's browser DevTools."}
+
+@app.post("/admin/nuke-all-cycles")
+async def nuke_all_cycles():
+    """Nuclear cleanup: delete ALL cycle data for ALL patients from ALL paths."""
+    import firebase_admin.db as fb_db_mod
+    results = []
+    patient_ids = set()
+    try:
+        patients = fb_db_mod.reference("melod_ai/patients").get()
+        if patients and isinstance(patients, dict):
+            patient_ids.update(patients.keys())
+    except Exception:
+        pass
+    try:
+        patients2 = fb_db_mod.reference("patients").get()
+        if patients2 and isinstance(patients2, dict):
+            patient_ids.update(patients2.keys())
+    except Exception:
+        pass
+    for pid in patient_ids:
+        for path in [f"melod_ai/patients/{pid}/cycle", f"melod_ai/melod_ai/patients/{pid}/cycle", f"patients/{pid}/cycle"]:
+            try:
+                ref = fb_db_mod.reference(path)
+                data = ref.get()
+                if data is not None:
+                    ref.delete()
+                    results.append({"patient": pid, "path": path, "deleted": True})
+            except Exception as e:
+                results.append({"patient": pid, "path": path, "error": str(e)})
+    for evt_path in ["melod_ai/cycle_events", "cycle_events"]:
+        try:
+            ref = fb_db_mod.reference(evt_path)
+            if ref.get():
+                ref.delete()
+                results.append({"path": evt_path, "deleted": True})
+        except Exception:
+            pass
+    cycle_events_db.clear()
+    results.append({"path": "in_memory:cycle_events_db", "cleared": True})
+    return {"results": results, "patients_found": list(patient_ids), "note": "Clear browser localStorage on all clinician browsers too."}
 
 
 @app.get("/patient/{patient_id}/cycle-meds")

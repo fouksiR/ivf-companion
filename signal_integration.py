@@ -96,6 +96,22 @@ def _save_baseline_to_firebase(pid: str):
     except Exception as e:
         logger.warning(f"[baselines] save_baseline_to_firebase error for {pid}: {e}")
 
+
+def _save_phenotype_score_to_firebase(pid: str, score: Dict):
+    """
+    Persist a phenotype score card to Firebase.
+    Writes to both /latest (update) and /history/{ts} (set).
+    Fire-and-forget.
+    """
+    db = _firebase_db()
+    if not db:
+        return
+    try:
+        db.save_phenotype_score(pid, score)
+    except Exception as e:
+        logger.warning(f"[phenotype] save_phenotype_score error for {pid}: {e}")
+
+
 # ── In-memory stores (replace with PostgreSQL later) ────────────────────────
 
 patient_signal_store: Dict[str, Dict] = {}
@@ -411,6 +427,249 @@ def _population_baseline() -> Dict:
     }
 
 
+# ── Phenotype scoring layer ─────────────────────────────────────────────────
+
+# Dropout risk weights — starting hypothesis, easy to tune.
+# Must sum to 1.0.
+DROPOUT_WEIGHTS = {
+    "social_withdrawal":       0.25,
+    "hopelessness":            0.20,
+    "engagement_decline":      0.20,
+    "anxiety_escalation":      0.15,
+    "psychomotor_retardation": 0.10,
+    "psychomotor_agitation":   0.05,
+    "sleep_disturbance":       0.03,
+    "rumination":              0.02,
+}
+
+# Severity → 0-1 mapping for constructs detected via level string
+_LEVEL_TO_SCORE = {"GREEN": 0.1, "low": 0.2, "moderate": 0.5, "AMBER": 0.5, "high": 0.8, "RED": 0.9}
+
+
+def _z_to_score(z: float, cap: float = 4.0) -> float:
+    """Map a positive z-score to 0.0-1.0 (clamped)."""
+    return min(max(z / cap, 0.0), 1.0)
+
+
+def compute_phenotype_score(patient_id: str) -> Dict:
+    """
+    Synthesize all 7 construct detectors + engagement metrics into a single
+    structured score card per patient.
+
+    Returns the score card dict and also persists it to Firebase
+    at melod_ai/phenotype_scores/{patient_id}/latest and /history/{ts}.
+    """
+    store = patient_signal_store.get(patient_id)
+    now_iso = datetime.utcnow().isoformat()
+
+    # ── Empty-store guard ────────────────────────────────────────────────────
+    if not store:
+        score = {
+            "patient_id": patient_id,
+            "computed_at": now_iso,
+            "overall_risk": "GREEN",
+            "dropout_risk": 0.0,
+            "constructs": {k: 0.0 for k in DROPOUT_WEIGHTS if k != "engagement_decline"},
+            "engagement": {
+                "trend": "stable",
+                "sessions_last_7d": 0,
+                "avg_session_depth": 0.0,
+                "circadian_regularity": 0.0,
+            },
+            "deltas": {"dropout_risk_change": 0.0, "biggest_mover": None, "biggest_mover_delta": 0.0},
+            "flags": ["no_data"],
+        }
+        return score
+
+    assessment = store.get("current_assessment") or {}
+    history = store.get("signal_history", [])
+    check_ins = store.get("check_in_history", [])
+    session_count = store.get("session_count", 0)
+
+    # ── 1. Per-construct scores (0.0-1.0) ────────────────────────────────────
+    constructs_raw = assessment.get("constructs", {})
+    c_scores: Dict[str, float] = {}
+
+    def _score_construct(name: str) -> float:
+        entry = constructs_raw.get(name)
+        if not entry or not entry.get("active"):
+            return 0.0
+        # z-score path
+        z = entry.get("z_score")
+        if z is not None:
+            return _z_to_score(float(z))
+        # trend magnitude path (anxiety/hope)
+        t = entry.get("trend")
+        if t is not None:
+            return _z_to_score(abs(float(t)), cap=10.0)
+        # late_night count path
+        cnt = entry.get("count_7d")
+        if cnt is not None:
+            return min(cnt / 5.0, 1.0)
+        # severity string path (community flags)
+        sev = entry.get("severity", "")
+        return _LEVEL_TO_SCORE.get(sev, 0.5)
+
+    for name in ["psychomotor_retardation", "psychomotor_agitation", "sleep_disturbance",
+                 "social_withdrawal", "rumination", "anxiety_escalation", "hopelessness"]:
+        c_scores[name] = _score_construct(name)
+
+    # ── 2. Engagement metrics ────────────────────────────────────────────────
+    now = datetime.utcnow()
+
+    # sessions_last_7d: count signal_history entries with circadian data in last 7 days
+    recent_sessions = [
+        h for h in history
+        if h.get("circadian") and
+        abs((now - datetime.fromisoformat(h["circadian"].get("timestamp", now_iso))).days) <= 7
+    ] if history else []
+    sessions_last_7d = len(recent_sessions)
+
+    # sessions_prev_7d: same for days 8-14
+    prev_sessions = [
+        h for h in history
+        if h.get("circadian") and
+        7 < abs((now - datetime.fromisoformat(h["circadian"].get("timestamp", now_iso))).days) <= 14
+    ] if history else []
+    sessions_prev_7d = len(prev_sessions)
+
+    # Fallback: approximate from session_count when timestamp data is thin
+    if sessions_last_7d == 0 and session_count > 0:
+        sessions_last_7d = min(session_count, 7)
+
+    # Engagement trend
+    if sessions_prev_7d > 0:
+        delta_pct = (sessions_last_7d - sessions_prev_7d) / sessions_prev_7d
+        eng_trend = "rising" if delta_pct > 0.20 else ("declining" if delta_pct < -0.20 else "stable")
+        eng_decline_score = max(-delta_pct, 0.0)  # 0 if rising/stable, >0 if declining
+    else:
+        eng_trend = "stable"
+        eng_decline_score = 0.0
+
+    # avg_session_depth: proxy — ratio of sessions with typing data to total
+    sessions_with_typing = sum(1 for h in history if h.get("typing")) if history else 0
+    avg_session_depth = sessions_with_typing / max(len(history), 1)
+
+    # circadian_regularity: std-dev of session hours (lower std = more regular)
+    session_hours = [h["circadian"]["hour"] for h in history if h.get("circadian", {}).get("hour") is not None]
+    if len(session_hours) >= 3:
+        mean_h = sum(session_hours) / len(session_hours)
+        std_h = (sum((x - mean_h) ** 2 for x in session_hours) / len(session_hours)) ** 0.5
+        circ_regularity = max(0.0, 1.0 - std_h / 12.0)  # 12h std = 0.0 regularity
+    else:
+        circ_regularity = 0.5  # unknown → neutral
+
+    engagement = {
+        "trend": eng_trend,
+        "sessions_last_7d": sessions_last_7d,
+        "avg_session_depth": round(avg_session_depth, 2),
+        "circadian_regularity": round(circ_regularity, 2),
+    }
+
+    # ── 3. Composite dropout risk ────────────────────────────────────────────
+    weighted_sum = 0.0
+    for construct, weight in DROPOUT_WEIGHTS.items():
+        if construct == "engagement_decline":
+            weighted_sum += weight * min(eng_decline_score, 1.0)
+        else:
+            weighted_sum += weight * c_scores.get(construct, 0.0)
+    dropout_risk = round(min(weighted_sum, 1.0), 3)
+
+    # overall_risk mirrors existing escalation or is derived from dropout_risk
+    existing_level = store.get("escalation_level", "GREEN")
+    if existing_level == "RED" or dropout_risk >= 0.7:
+        overall_risk = "RED"
+    elif existing_level == "AMBER" or dropout_risk >= 0.35:
+        overall_risk = "AMBER"
+    else:
+        overall_risk = "GREEN"
+
+    # ── 4. Deltas vs previous score card ────────────────────────────────────
+    prev_score = store.get("_last_phenotype_score")
+    if prev_score:
+        prev_dropout = prev_score.get("dropout_risk", 0.0)
+        prev_constructs = prev_score.get("constructs", {})
+        dropout_risk_change = round(dropout_risk - prev_dropout, 3)
+        # biggest mover
+        moves = {
+            name: abs(c_scores.get(name, 0.0) - prev_constructs.get(name, 0.0))
+            for name in c_scores
+        }
+        biggest_mover = max(moves, key=moves.get) if moves else None
+        biggest_mover_delta = round(moves.get(biggest_mover, 0.0), 3) if biggest_mover else 0.0
+    else:
+        dropout_risk_change = 0.0
+        biggest_mover = None
+        biggest_mover_delta = 0.0
+
+    deltas = {
+        "dropout_risk_change": dropout_risk_change,
+        "biggest_mover": biggest_mover,
+        "biggest_mover_delta": biggest_mover_delta,
+    }
+
+    # ── 5. Clinical flags (max 5, prioritized) ───────────────────────────────
+    flags = []
+
+    # Engagement silence
+    last_ci = check_ins[-1] if check_ins else None
+    if last_ci:
+        try:
+            days_since = (now - datetime.fromisoformat(last_ci.get("submitted_at", now_iso))).days
+            if days_since >= 3:
+                flags.append(f"No check-in for {days_since}d (was active)")
+        except Exception:
+            pass
+
+    if eng_trend == "declining":
+        flags.append(f"Engagement declining — {sessions_last_7d} sessions this week vs {sessions_prev_7d} last week")
+
+    # Construct threshold crossings
+    construct_flag_order = [
+        ("hopelessness", 0.6, "Hopelessness signal elevated"),
+        ("anxiety_escalation", 0.6, "Anxiety escalation detected"),
+        ("social_withdrawal", 0.6, "Social withdrawal pattern"),
+        ("psychomotor_retardation", 0.5, "Typing speed slowed significantly"),
+        ("psychomotor_agitation", 0.5, "Increased correction/deletion behaviour"),
+        ("sleep_disturbance", 0.5, "Repeated late-night sessions"),
+        ("rumination", 0.5, "Extended message composition pattern"),
+    ]
+    for name, threshold, msg in construct_flag_order:
+        if c_scores.get(name, 0.0) >= threshold:
+            entry = constructs_raw.get(name, {})
+            detail = entry.get("signal", "")
+            flags.append(f"{msg}" + (f" ({detail})" if detail else ""))
+
+    # Absolute check-in floor
+    if last_ci:
+        if last_ci.get("mood", 5) <= 2 and last_ci.get("hope", 5) <= 2:
+            flags.insert(0, "Acute low mood+hope on last check-in — review urgently")
+        elif last_ci.get("anxiety", 5) >= 9:
+            flags.insert(0, "Extreme anxiety on last check-in")
+
+    flags = flags[:5]  # Cap
+
+    # ── 6. Assemble score card ───────────────────────────────────────────────
+    score = {
+        "patient_id": patient_id,
+        "computed_at": now_iso,
+        "overall_risk": overall_risk,
+        "dropout_risk": dropout_risk,
+        "constructs": {k: round(v, 3) for k, v in c_scores.items()},
+        "engagement": engagement,
+        "deltas": deltas,
+        "flags": flags,
+    }
+
+    # Cache on store for next delta computation
+    store["_last_phenotype_score"] = score
+
+    # Persist to Firebase (fire-and-forget)
+    _save_phenotype_score_to_firebase(patient_id, score)
+
+    return score
+
+
 # ── Chat context injection ──────────────────────────────────────────────────
 
 def get_signal_context_for_patient(patient_id: str) -> str:
@@ -496,8 +755,12 @@ async def receive_passive_signals(payload: PassiveSignalPayload):
     store["current_assessment"] = assessment
     store["escalation_level"] = assessment["escalation_level"]
 
-    # Persist baseline to Firebase on every flush cycle (fire-and-forget)
+    # Persist baseline + compute phenotype score on every flush cycle
     _save_baseline_to_firebase(pid)
+    try:
+        compute_phenotype_score(pid)
+    except Exception as _e:
+        logger.warning(f"[phenotype] compute error for {pid}: {_e}")
 
     # If RED, push to alert queue
     if assessment["escalation_level"] == "RED":
@@ -556,8 +819,12 @@ async def submit_checkin(payload: CheckInPayload):
     store["current_assessment"] = assessment
     store["escalation_level"] = assessment["escalation_level"]
 
-    # Persist updated baseline (includes new check-in)
+    # Persist updated baseline + recompute phenotype score
     _save_baseline_to_firebase(pid)
+    try:
+        compute_phenotype_score(pid)
+    except Exception as _e:
+        logger.warning(f"[phenotype] compute error on checkin for {pid}: {_e}")
 
     # Alert on RED
     if assessment["escalation_level"] == "RED":

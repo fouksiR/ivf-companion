@@ -356,6 +356,61 @@ class FirebaseDB:
             logger.warning(f"Firebase load_signal_baseline error: {e}")
             return None
 
+    # ── Phenotype Scores ──────────────────────────────────
+
+    def save_phenotype_score(self, patient_id: str, score: dict):
+        """
+        Persist a phenotype score card.
+        - Overwrites /latest with update() (preserves sibling keys)
+        - Appends to /history/{ts} with set() — each entry is a new record
+        """
+        if not _enabled: return
+        try:
+            ts_key = score.get("computed_at", datetime.now().isoformat()).replace(":", "-").replace(".", "_")
+            base = _fb_ref.child("phenotype_scores").child(patient_id)
+            base.child("latest").update(score)
+            base.child("history").child(ts_key).set(score)
+        except Exception as e:
+            logger.warning(f"Firebase save_phenotype_score error: {e}")
+
+    def load_phenotype_score(self, patient_id: str) -> dict | None:
+        """Load the latest phenotype score card for a patient."""
+        if not _enabled: return None
+        try:
+            return _fb_ref.child("phenotype_scores").child(patient_id).child("latest").get()
+        except Exception as e:
+            logger.warning(f"Firebase load_phenotype_score error: {e}")
+            return None
+
+    def load_phenotype_history(self, patient_id: str, limit: int = 30) -> list:
+        """Load the last N phenotype score cards for a patient (oldest first)."""
+        if not _enabled: return []
+        try:
+            result = _fb_ref.child("phenotype_scores").child(patient_id).child("history").get()
+            if not result:
+                return []
+            entries = [v for _, v in sorted(result.items())]
+            return entries[-limit:]
+        except Exception as e:
+            logger.warning(f"Firebase load_phenotype_history error: {e}")
+            return []
+
+    def load_all_phenotype_scores(self) -> dict:
+        """Load the latest score card for ALL patients. Returns {pid: score_card}."""
+        if not _enabled: return {}
+        try:
+            result = _fb_ref.child("phenotype_scores").get()
+            if not result:
+                return {}
+            return {
+                pid: data.get("latest") or {}
+                for pid, data in result.items()
+                if isinstance(data, dict)
+            }
+        except Exception as e:
+            logger.warning(f"Firebase load_all_phenotype_scores error: {e}")
+            return {}
+
     # ── Passive Signals ─────────────────────────────────
 
     def append_passive_signals(self, patient_id: str, signals: list):

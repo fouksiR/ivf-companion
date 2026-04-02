@@ -5216,6 +5216,82 @@ async def debug_baselines(patient_id: str):
 
 
 
+# ── Phenotype score endpoints ────────────────────────────────────────────────
+
+@app.get("/api/phenotype/all", dependencies=[Depends(verify_clinician_api_key)])
+async def get_all_phenotype_scores():
+    """
+    Return latest phenotype score card for ALL patients, sorted by dropout_risk desc.
+    Primary feed for the clinician dashboard patient list.
+    """
+    try:
+        # First try in-memory (fast, most current)
+        from signal_integration import patient_signal_store, compute_phenotype_score
+        scores = []
+        for pid in list(patient_signal_store.keys()):
+            try:
+                score = compute_phenotype_score(pid)
+                # Enrich with patient name from patients_db
+                pdata = patients_db.get(pid, {})
+                score["patient_name"] = pdata.get("name")
+                score["treatment_stage"] = pdata.get("treatment_stage")
+                scores.append(score)
+            except Exception as e:
+                logger.warning(f"compute_phenotype_score error for {pid}: {e}")
+
+        # Also pull from Firebase for any patients not in this instance's memory
+        fb_scores = firebase_db.load_all_phenotype_scores()
+        in_memory_pids = {s["patient_id"] for s in scores}
+        for pid, fb_score in fb_scores.items():
+            if pid not in in_memory_pids and fb_score:
+                pdata = patients_db.get(pid, {})
+                fb_score["patient_name"] = pdata.get("name")
+                fb_score["treatment_stage"] = pdata.get("treatment_stage")
+                scores.append(fb_score)
+
+        scores.sort(key=lambda s: s.get("dropout_risk", 0.0), reverse=True)
+        return {"scores": scores, "total": len(scores)}
+    except Exception as e:
+        logger.error(f"get_all_phenotype_scores error: {e}")
+        return {"scores": [], "total": 0, "error": str(e)}
+
+
+@app.get("/api/phenotype/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def get_phenotype_score(patient_id: str):
+    """
+    Return the latest phenotype score card for one patient.
+    Tries in-memory first (fresh compute), falls back to Firebase.
+    """
+    try:
+        from signal_integration import patient_signal_store, compute_phenotype_score
+        if patient_id in patient_signal_store:
+            score = compute_phenotype_score(patient_id)
+            score["source"] = "live"
+            return score
+        # Patient not in this instance — try Firebase
+        fb_score = firebase_db.load_phenotype_score(patient_id)
+        if fb_score:
+            fb_score["source"] = "firebase_cache"
+            return fb_score
+        return {"error": "No phenotype data for this patient yet", "patient_id": patient_id}
+    except Exception as e:
+        logger.error(f"get_phenotype_score error for {patient_id}: {e}")
+        return {"error": str(e), "patient_id": patient_id}
+
+
+@app.get("/api/phenotype/{patient_id}/history", dependencies=[Depends(verify_clinician_api_key)])
+async def get_phenotype_history(patient_id: str, limit: int = 30):
+    """
+    Return the last N phenotype score cards for a patient (for trend charts).
+    """
+    try:
+        history = firebase_db.load_phenotype_history(patient_id, limit=limit)
+        return {"patient_id": patient_id, "history": history, "count": len(history)}
+    except Exception as e:
+        logger.error(f"get_phenotype_history error for {patient_id}: {e}")
+        return {"patient_id": patient_id, "history": [], "count": 0, "error": str(e)}
+
+
 @app.delete("/debug/cleanup-patients/{keep_id}")
 async def cleanup_patients(keep_id: str):
     """Temporary — delete all patients except the specified ID."""

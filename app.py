@@ -5014,6 +5014,11 @@ async def update_patient_cycle(patient_id: str, request: Request):
                 else:
                     existing[key] = data[key]
             existing['updated_at'] = utc_iso()
+            # If medications_simple is empty, delete stale data
+            ms = existing.get('medications_simple', None)
+            if ms is not None and (ms == {} or all(not v.get('name') for v in ms.values() if isinstance(v, dict))):
+                existing.pop('medications_simple', None)
+                logger.info(f"Cleared empty medications_simple for {patient_id}")
             # Auto-correct start_date if it was saved with UTC (off-by-one in AEST)
             try:
                 from datetime import datetime, timedelta, timezone
@@ -5099,57 +5104,9 @@ async def serve_dashboard():
 
 
 
-@app.get("/clinician/patient/{patient_id}/cycle")
-async def get_patient_cycle(patient_id: str, request: Request):
-    api_key = request.headers.get("X-API-Key", "")
-    if api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    try:
-        ref = firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle")
-        data = ref.get()
-        return data or {}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.post("/clinician/patient/{patient_id}/cycle")
-async def update_patient_cycle(patient_id: str, request: Request):
-    api_key = request.headers.get("X-API-Key", "")
-    if api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    try:
-        data = await request.json()
-        ref = firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle")
-        existing = ref.get() or {}
-        existing.update(data)
-        ref.set(existing)
-        return {"status": "updated"}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.post("/clinician/patient/{patient_id}/cycle/medication")
-async def add_cycle_med(patient_id: str, request: Request):
-    api_key = request.headers.get("X-API-Key", "")
-    if api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    try:
-        data = await request.json()
-        from datetime import datetime
-        med_id = data.get("name", "med").lower().replace(" ", "_") + "_" + str(int(datetime.utcnow().timestamp()) % 100000)
-        firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle/medications/{med_id}").set(data)
-        return {"status": "added", "id": med_id}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.delete("/clinician/patient/{patient_id}/cycle/medication/{med_id}")
-async def delete_cycle_med(patient_id: str, med_id: str, request: Request):
-    api_key = request.headers.get("X-API-Key", "")
-    if api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    try:
-        firebase_db.reference(f"melod_ai/patients/{patient_id}/cycle/medications/{med_id}").delete()
-        return {"status": "deleted"}
-    except Exception as e:
-        return {"error": str(e)}
+# (Duplicate cycle endpoints removed — lines 5102-5152 used firebase_db.reference()
+#  which would create path melod_ai/melod_ai/... The canonical endpoints at lines
+#  4990-5080 use firebase_db._fb_ref.child() → correct path melod_ai/patients/{pid}/cycle)
 
 
 

@@ -5172,6 +5172,7 @@ function loadCycleToCalendar() {
   }).then(function(cycle) {
     console.log('[Calendar] Cycle data received:', JSON.stringify(cycle));
     if (!cycle || !cycle.medications_simple) { console.log('[Calendar] No medications_simple found'); return; }
+    console.log('[Cycle] Loaded ' + Object.keys(cycle.medications_simple).length + ' items from API');
     window.patientCycleMeds = cycle.medications_simple;
     var startDate = cycle.start_date || cycle.updated_at.substring(0,10);
     window.cycleMedsByDate = {};

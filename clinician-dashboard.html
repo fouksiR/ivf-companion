@@ -2220,9 +2220,8 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
           statusEl.style.display = 'inline';
           setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
         }
+        console.log('[Cycle] Saved to melod_ai/patients/' + pid + '/cycle');
       }).catch(function(e) { console.error('Med save failed:', e); });
-      // ALSO save to localStorage so refresh always works
-      try { localStorage.setItem('medgrid_' + pid, JSON.stringify(meds)); } catch(le) {}
     } catch(e) { console.error('doSaveMeds error:', e); }
   }
 
@@ -2235,15 +2234,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
   window.loadAndBuildMedGrid = function(pid) {
     var container = document.getElementById('medgrid-container-' + pid);
     if (!container) return;
-    var cached = null;
-    try {
-      var raw = localStorage.getItem('medgrid_' + pid);
-      if (raw) cached = JSON.parse(raw);
-    } catch(ce) {}
-    if (cached && Object.keys(cached).length > 0) {
-      buildMedGridForPatient(pid, container, cached);
-    }
-    // Also fetch from Firebase to stay in sync
+    // Fetch from API only — no localStorage cache
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
     if (!baseUrl || !key) return;
@@ -2252,7 +2243,6 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
     }).then(function(r) { return r.json(); }).then(function(data) {
       var meds = (data && data.medications_simple) ? data.medications_simple : null;
       if (meds && Object.keys(meds).length > 0) {
-        try { localStorage.setItem('medgrid_' + pid, JSON.stringify(meds)); } catch(e) {}
         buildMedGridForPatient(pid, container, meds);
       }
     }).catch(function() {});
@@ -2269,12 +2259,8 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       container.innerHTML = '';
       return;
     }
-    var cached = null;
-    try {
-      var raw = localStorage.getItem('medgrid_' + pid);
-      if (raw) cached = JSON.parse(raw);
-    } catch(ce) {}
-    buildMedGridForPatient(pid, container, cached);
+    // Show empty grid immediately, then populate from API
+    buildMedGridForPatient(pid, container, null);
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
     if (!baseUrl || !key) return;
@@ -2283,7 +2269,6 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
     }).then(function(r) { return r.json(); }).then(function(data) {
       var meds = (data && data.medications_simple) ? data.medications_simple : null;
       if (meds && Object.keys(meds).length > 0) {
-        try { localStorage.setItem('medgrid_' + pid, JSON.stringify(meds)); } catch(e) {}
         buildMedGridForPatient(pid, container, meds);
       }
     }).catch(function() {});

@@ -5210,6 +5210,49 @@ async def nuke_all_cycles():
     results.append({"path": "in_memory:cycle_events_db", "cleared": True})
     return {"results": results, "patients_found": list(patient_ids), "note": "Clear browser localStorage on all clinician browsers too."}
 
+@app.post("/admin/wipe-all")
+async def wipe_all():
+    """Nuclear: delete EVERY cycle-related path for ALL patients across all possible locations."""
+    import firebase_admin.db as fb_db_mod
+    wiped = []
+    # Wipe all known stale paths
+    for root_path in [
+        "melod_ai/melod_ai",  # Double-prefix bug artifacts
+        "cycle_events",       # Root-level cycle events
+    ]:
+        try:
+            ref = fb_db_mod.reference(root_path)
+            if ref.get() is not None:
+                ref.delete()
+                wiped.append(root_path)
+        except Exception:
+            pass
+    # Wipe root-level patients (non-prefixed duplicate)
+    try:
+        ref = fb_db_mod.reference("patients")
+        if ref.get() is not None:
+            ref.delete()
+            wiped.append("patients")
+    except Exception:
+        pass
+    # Wipe cycle data from canonical path for each patient
+    try:
+        patients = fb_db_mod.reference("melod_ai/patients").get()
+        if patients and isinstance(patients, dict):
+            for pid in patients:
+                try:
+                    ref = fb_db_mod.reference(f"melod_ai/patients/{pid}/cycle")
+                    if ref.get() is not None:
+                        ref.delete()
+                        wiped.append(f"melod_ai/patients/{pid}/cycle")
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    # Clear in-memory
+    cycle_events_db.clear()
+    return {"wiped": True, "paths_deleted": wiped}
+
 
 @app.get("/patient/{patient_id}/cycle-meds")
 async def get_patient_cycle_meds(patient_id: str):

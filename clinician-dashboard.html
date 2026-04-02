@@ -457,6 +457,28 @@
             .header { padding: 0 16px; }
             .filter-pill { font-size: 11px; padding: 4px 10px; }
         }
+        /* Phenotype risk badges */
+        .risk-badge { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600; font-family:Montserrat,sans-serif; }
+        .risk-badge.green { background:#e8f5e9; color:#2e7d32; }
+        .risk-badge.amber { background:#fff3e0; color:#e65100; }
+        .risk-badge.red { background:#ffebee; color:#c62828; animation:pulse-red 1.5s infinite; }
+        .risk-badge.grey { background:#f5f5f5; color:#999; }
+        @keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:0.6} }
+        /* Phenotype detail panel */
+        .pheno-panel { margin-top:16px; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+        .pheno-header { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:#f8fafa; cursor:pointer; user-select:none; }
+        .pheno-header:hover { background:#eef4f4; }
+        .pheno-body { padding:16px; display:none; }
+        .pheno-body.open { display:block; }
+        .pheno-risk-bar { height:8px; border-radius:4px; background:#e0e0e0; overflow:hidden; margin-top:4px; }
+        .pheno-risk-fill { height:100%; border-radius:4px; transition:width .3s; }
+        .pheno-heatmap { display:flex; gap:4px; margin-top:12px; }
+        .pheno-hm-cell { flex:1; text-align:center; border-radius:6px; padding:6px 2px; font-size:10px; font-weight:600; cursor:default; position:relative; }
+        .pheno-hm-cell .hm-tip { display:none; position:absolute; bottom:100%; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:4px 8px; border-radius:4px; font-size:11px; white-space:nowrap; z-index:10; margin-bottom:4px; }
+        .pheno-hm-cell:hover .hm-tip { display:block; }
+        .pheno-flag { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:16px; font-size:11px; font-weight:600; margin:4px 4px 0 0; }
+        .pheno-flag.flag-red { background:#ffebee; color:#c62828; }
+        .pheno-flag.flag-amber { background:#fff3e0; color:#e65100; }
     </style>
 </head>
 <body>
@@ -533,8 +555,9 @@
     <!-- Search and sort -->
     <div class="search-sort-bar">
       <input class="search-bar" id="patientSearch" placeholder="Search patients..." oninput="filterPatients()">
-      <select class="sort-select" id="patientSort" onchange="sortPatients()">
+      <select class="sort-select" id="patientSort" onchange="sortPatients()" autocomplete="off">
         <option value="escalation">By Risk Level</option>
+        <option value="dropout_risk">By Dropout Risk</option>
         <option value="last_active">By Last Active</option>
         <option value="name">Alphabetical</option>
       </select>
@@ -588,6 +611,7 @@ var pollTimer = null;
 var currentPatientId = null;
 var currentModalTab = 'briefing';
 var digestLoaded = false;
+var phenotypeScores = {}; // keyed by patient_id
 
 // ROLE MANAGEMENT
 function setRole(role) {
@@ -644,6 +668,16 @@ async function poll() {
       renderAlerts();
       checkHumanEscalations();
     }
+    // Fetch phenotype scores (non-blocking — don't break poll if this fails)
+    try {
+      var phRes = await authFetch(API_BASE + '/api/phenotype/all');
+      if (phRes.ok) {
+        var phData = await phRes.json();
+        phenotypeScores = {};
+        (phData.scores || phData || []).forEach(function(s) { if (s && s.patient_id) phenotypeScores[s.patient_id] = s; });
+        renderPatients(); // re-render with badges
+      }
+    } catch (pe) { console.warn('Phenotype fetch failed:', pe); }
     document.getElementById('pollInfo').textContent = 'Last: ' + new Date().toLocaleTimeString();
   } catch (e) {
     document.getElementById('statusDot').className = 'status-dot';
@@ -681,6 +715,101 @@ function toggleDigest() {
     body.style.display = 'none';
     toggle.textContent = '▼';
   }
+}
+
+// PHENOTYPE HELPERS
+function phenoBadgeHtml(pid) {
+  try {
+    var sc = phenotypeScores[pid];
+    if (!sc) return '<span class="risk-badge grey">No data</span>';
+    var risk = (sc.overall_risk || 'GREEN').toUpperCase();
+    var cls = risk === 'RED' ? 'red' : risk === 'AMBER' ? 'amber' : 'green';
+    var label = risk === 'RED' ? 'At risk' : risk === 'AMBER' ? 'Monitor' : 'Low risk';
+    return '<span class="risk-badge ' + cls + '">\u25CF ' + label + '</span>';
+  } catch (e) { return ''; }
+}
+
+function phenoHeatmapColor(val) {
+  // 0.0 = #f0f4f0 (neutral), 0.5 = #ffb74d (amber), 1.0 = #e53935 (red)
+  val = Math.max(0, Math.min(1, val || 0));
+  if (val < 0.05) return '#f0f4f0'; // near-zero = neutral, not misleading green
+  if (val <= 0.5) {
+    var t = val / 0.5;
+    var r = Math.round(240 + (255-240)*t), g = Math.round(244 + (183-244)*t), b = Math.round(240 + (77-240)*t);
+    return 'rgb('+r+','+g+','+b+')';
+  } else {
+    var t2 = (val - 0.5) / 0.5;
+    var r2 = Math.round(255 + (229-255)*t2), g2 = Math.round(183 + (57-183)*t2), b2 = Math.round(77 + (53-77)*t2);
+    return 'rgb('+r2+','+g2+','+b2+')';
+  }
+}
+
+function renderPhenoPanel(pid) {
+  try {
+    var sc = phenotypeScores[pid];
+    if (!sc) return '<div class="pheno-panel"><div class="pheno-header" onclick="this.nextElementSibling.classList.toggle(\'open\')"><span style="font-size:13px;font-weight:700;color:#0d7377">Phenotype Profile</span><span style="font-size:12px;color:#999">No data</span></div><div class="pheno-body"></div></div>';
+
+    var risk = (sc.overall_risk || 'GREEN').toUpperCase();
+    var dr = sc.dropout_risk || 0;
+    var drPct = Math.round(dr * 100);
+    var barColor = dr < 0.3 ? '#4caf50' : dr < 0.6 ? '#ff9800' : '#e53935';
+
+    // Engagement
+    var eng = sc.engagement || {};
+    var trendArrow = eng.trend === 'rising' ? '\u2197' : eng.trend === 'declining' ? '\u2198' : '\u2192';
+    var sessions = eng.sessions_last_7d != null ? eng.sessions_last_7d : '?';
+
+    // Constructs heatmap
+    var consts = sc.constructs || {};
+    var constLabels = {psychomotor_retardation:'Psych-R',psychomotor_agitation:'Psych-A',sleep_disturbance:'Sleep',social_withdrawal:'Social',rumination:'Rumin',anxiety_escalation:'Anxiety',hopelessness:'Hope'};
+    var constFull = {psychomotor_retardation:'Psychomotor Retardation',psychomotor_agitation:'Psychomotor Agitation',sleep_disturbance:'Sleep Disturbance',social_withdrawal:'Social Withdrawal',rumination:'Rumination',anxiety_escalation:'Anxiety Escalation',hopelessness:'Hopelessness'};
+    var hmHtml = '';
+    Object.keys(constLabels).forEach(function(k) {
+      var v = consts[k] || 0;
+      var bg = phenoHeatmapColor(v);
+      var txtCol = v > 0.6 ? '#fff' : '#333';
+      hmHtml += '<div class="pheno-hm-cell" style="background:'+bg+';color:'+txtCol+'"><div class="hm-tip">'+constFull[k]+': '+v.toFixed(2)+'</div>'+constLabels[k]+'</div>';
+    });
+
+    // Flags
+    var flagsHtml = '';
+    if (sc.flags && sc.flags.length) {
+      sc.flags.forEach(function(f) {
+        var fcls = f.toLowerCase().indexOf('red') >= 0 ? 'flag-red' : 'flag-amber';
+        flagsHtml += '<span class="pheno-flag '+fcls+'">\u26A0\uFE0F '+escHtml(f)+'</span>';
+      });
+    }
+
+    // Deltas
+    var deltaHtml = '';
+    if (sc.deltas && sc.deltas.biggest_mover) {
+      var dd = sc.deltas.biggest_mover_delta || 0;
+      var arrow = dd > 0 ? '\u2191' : '\u2193';
+      var dSign = dd > 0 ? '+' : '';
+      deltaHtml = '<div style="margin-top:8px;font-size:12px;color:#555">' + arrow + ' ' + escHtml(sc.deltas.biggest_mover.replace(/_/g,' ')) + ' (' + dSign + dd.toFixed(2) + ')</div>';
+    }
+
+    var badgeCls = risk === 'RED' ? 'red' : risk === 'AMBER' ? 'amber' : 'green';
+    var badgeLabel = risk === 'RED' ? 'At risk' : risk === 'AMBER' ? 'Monitor' : 'Low risk';
+
+    return '<div class="pheno-panel">' +
+      '<div class="pheno-header" onclick="this.nextElementSibling.classList.toggle(\'open\')">' +
+        '<span style="font-size:13px;font-weight:700;color:#0d7377">Phenotype Profile</span>' +
+        '<span style="font-size:12px;color:#999">\u25BC</span>' +
+      '</div>' +
+      '<div class="pheno-body open">' +
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
+          '<span class="risk-badge '+badgeCls+'">\u25CF '+badgeLabel+'</span>' +
+          '<span style="font-size:13px;font-weight:600;color:#333">Dropout risk: '+drPct+'%</span>' +
+          '<span style="font-size:13px;color:#666" title="Engagement trend">'+trendArrow+' '+sessions+' sessions/7d</span>' +
+        '</div>' +
+        '<div class="pheno-risk-bar"><div class="pheno-risk-fill" style="width:'+drPct+'%;background:'+barColor+'"></div></div>' +
+        '<div style="margin-top:12px;font-size:11px;font-weight:700;color:#6a8a8e;text-transform:uppercase;letter-spacing:.5px">Construct Scores</div>' +
+        '<div class="pheno-heatmap">'+hmHtml+'</div>' +
+        (flagsHtml ? '<div style="margin-top:10px">'+flagsHtml+'</div>' : '') +
+        deltaHtml +
+      '</div></div>';
+  } catch (e) { return ''; }
 }
 
 // PATIENT LIST
@@ -734,7 +863,7 @@ function renderPatients() {
       '<div class="patient-card" style="display:flex;align-items:center;gap:8px;">' +
       '<div class="risk-dot ' + dotClass + '"></div>' +
       '<div style="flex:1;min-width:0" onclick="openDetail(\'' + p.patient_id + '\')">' +
-        '<div class="pc-name">' + escHtml(p.patient_name || p.patient_id) + '</div>' +
+        '<div class="pc-name">' + escHtml(p.patient_name || p.patient_id) + ' ' + phenoBadgeHtml(p.patient_id) + '</div>' +
         '<div class="pc-active' + lastActiveClass + '">' + (p.email ? escHtml(p.email) + ' · ' : '') + lastActive + '</div>' +
       '</div>' +
       '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span>' +
@@ -755,6 +884,12 @@ function sortPatientList(list) {
       var ea = escOrder[(a.escalation_level || a.risk_level || 'GREEN').toUpperCase()] || 2;
       var eb = escOrder[(b.escalation_level || b.risk_level || 'GREEN').toUpperCase()] || 2;
       return ea - eb;
+    });
+  } else if (sort === 'dropout_risk') {
+    copy.sort(function(a, b) {
+      var sa = phenotypeScores[a.patient_id], sb = phenotypeScores[b.patient_id];
+      var da = sa ? (sa.dropout_risk || 0) : -1, db = sb ? (sb.dropout_risk || 0) : -1;
+      return db - da; // descending
     });
   } else if (sort === 'last_active') {
     copy.sort(function(a, b) { return (a.last_active || '') < (b.last_active || '') ? -1 : 1; });
@@ -997,6 +1132,9 @@ function renderBriefing(b) {
   html += '<div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">' +
     '<span style="font-size:11px;color:#bbb">Generated '+cTime+'</span>' +
     '<button onclick="refreshBriefing(\''+escHtml(b.patient_id||currentPatientId)+'\')" style="font-size:12px;color:#0d7377;background:none;border:1px solid #0d7377;border-radius:6px;padding:4px 12px;cursor:pointer;font-weight:500">\u21BB Refresh</button></div>';
+
+  // Phenotype profile panel
+  html += renderPhenoPanel(b.patient_id || currentPatientId);
 
   html += '</div>';
   return html;

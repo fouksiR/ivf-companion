@@ -5191,8 +5191,7 @@ async def debug_baselines(patient_id: str):
         else:
             result["in_memory"] = None
 
-        from firebase_db import firebase_db as fb
-        fb_data = fb.load_signal_baseline(patient_id)
+        fb_data = firebase_db.load_signal_baseline(patient_id)
         if fb_data:
             result["firebase"] = {
                 "session_count": fb_data.get("session_count"),

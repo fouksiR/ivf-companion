@@ -5410,6 +5410,118 @@ async def get_phenotype_history(patient_id: str, limit: int = 30):
         return {"patient_id": patient_id, "history": [], "count": 0, "error": str(e)}
 
 
+# ── Agent Endpoints ───────────────────────────────────────────────────
+
+def _get_all_phenotype_scores_dict() -> Dict:
+    """Return phenotype scores keyed by patient_id for agent consumption."""
+    from signal_integration import compute_phenotype_score, patient_signal_store
+    scores = {}
+    for pid in list(patient_signal_store.keys()):
+        try:
+            score = compute_phenotype_score(pid)
+            if score:
+                scores[pid] = score
+        except Exception:
+            pass
+    # Also load from Firebase
+    try:
+        fb_scores = firebase_db.load_all_phenotype_scores()
+        for pid, sc in fb_scores.items():
+            if pid not in scores and sc:
+                scores[pid] = sc
+    except Exception:
+        pass
+    return scores
+
+def _get_agents():
+    """Create agent instances with current dependencies."""
+    from agents import ClinicianAgent, PatientAgent
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    scores_fn = _get_all_phenotype_scores_dict
+    checkins_fn = get_recent_checkins
+    return ClinicianAgent(fb_ref, scores_fn, checkins_fn), PatientAgent(fb_ref, scores_fn, checkins_fn)
+
+
+@app.post("/agent/clinician/run", dependencies=[Depends(verify_clinician_api_key)])
+async def agent_clinician_run():
+    """Trigger clinician agent: generate briefings, assess escalation, build digest."""
+    clinician, _ = _get_agents()
+    results = clinician.run_all()
+    return results
+
+@app.post("/agent/patient/run/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def agent_patient_run(patient_id: str):
+    """Trigger patient agent: compute egg state, check reach-out, generate greeting."""
+    _, patient = _get_agents()
+    results = patient.run(patient_id)
+    return results
+
+@app.get("/agent/briefing/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def agent_get_briefing(patient_id: str):
+    """Get latest clinician briefing for a patient."""
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    if fb_ref:
+        data = fb_ref.child(f"briefings/{patient_id}/latest").get()
+        if data:
+            return data
+    return {"text": "No briefing available yet.", "generated_at": None}
+
+@app.get("/agent/digest", dependencies=[Depends(verify_clinician_api_key)])
+async def agent_get_digest():
+    """Get latest daily digest."""
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    if fb_ref:
+        data = fb_ref.child("daily_digest/latest").get()
+        if data:
+            return data
+    return {"text": "No digest available yet.", "generated_at": None}
+
+@app.get("/agent/egg-state/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def agent_get_egg_state(patient_id: str):
+    """Get current egg companion state for a patient."""
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    if fb_ref:
+        data = fb_ref.child(f"egg_state/{patient_id}").get()
+        if data:
+            return data
+    return {"mood": "warm", "energy": 0.6, "warmth": 0.7, "proactive": False, "suggested_activity": None, "greeting_tone": "cheerful"}
+
+@app.get("/agent/pending-actions", dependencies=[Depends(verify_clinician_api_key)])
+async def agent_get_pending_actions():
+    """Get all pending approval actions."""
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    if fb_ref:
+        data = fb_ref.child("pending_actions").get()
+        if data and isinstance(data, dict):
+            actions = [{"id": k, **v} for k, v in data.items() if isinstance(v, dict) and v.get("status") == "pending_approval"]
+            return {"actions": actions, "count": len(actions)}
+    return {"actions": [], "count": 0}
+
+@app.post("/agent/approve-action/{action_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def agent_approve_action(action_id: str):
+    """Approve a pending action."""
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    if fb_ref:
+        ref = fb_ref.child(f"pending_actions/{action_id}")
+        action = ref.get()
+        if action:
+            ref.update({"status": "approved", "approved_at": utc_iso()})
+            return {"status": "approved", "action": action}
+    return {"error": "Action not found"}
+
+@app.post("/agent/reject-action/{action_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def agent_reject_action(action_id: str):
+    """Reject a pending action."""
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    if fb_ref:
+        ref = fb_ref.child(f"pending_actions/{action_id}")
+        action = ref.get()
+        if action:
+            ref.update({"status": "rejected", "rejected_at": utc_iso()})
+            return {"status": "rejected"}
+    return {"error": "Action not found"}
+
+
 @app.delete("/debug/cleanup-patients/{keep_id}")
 async def cleanup_patients(keep_id: str):
     """Temporary — delete all patients except the specified ID."""

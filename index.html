@@ -1496,7 +1496,7 @@ else{state.cycle=document.getElementById('ob-cycle')?parseInt(document.getElemen
 state.clinic=document.getElementById('ob-clinic')?document.getElementById('ob-clinic').value.trim():'';
 var fallback=function(){state.patientId=state.patientId||('demo-'+Math.random().toString(36).slice(2,8));showApp();addMsg('ai','Hi '+state.name+". I\u2019m Melod\u00b7AI \u2014 here to walk alongside you through this journey.\n\nYou\u2019re at the "+getStageName(state.stage)+' stage, cycle '+state.cycle+". Whether you want to talk about what you\u2019re feeling, ask questions about what\u2019s happening, or just vent \u2014 I\u2019m here.\n\nHow are you doing today?",null,{showOneWord:true})};
 if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(function(){ctrl.abort()},8000);const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null,patient_id:state.patientId||null,email:localStorage.getItem('melodai_email')||null}),signal:ctrl.signal});clearTimeout(timer);const d=await r.json();if(!state.patientId)state.patientId=d.patient_id;localStorage.setItem('melodai_patient_id',state.patientId);localStorage.setItem('melodai_name',state.name);localStorage.setItem('melodai_stage',state.stage);localStorage.setItem('melodai_cycle',String(state.cycle));localStorage.setItem('melodai_treatment',state.treatment);showApp();if(d.message)addMsg('ai',d.message,null,{showOneWord:true});return}catch(e){console.warn('API unavailable:',e)}}fallback()}
-function showApp(){try{var sw=document.getElementById('screen-welcome');if(sw)sw.classList.remove('active');document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();checkClinicianMessages();if(typeof loadCycleToCalendar==='function'){try{loadCycleToCalendar();}catch(e){}};
+function showApp(){try{var sw=document.getElementById('screen-welcome');if(sw)sw.classList.remove('active');document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();checkClinicianMessages();if(typeof loadCycleToCalendar==='function'){try{loadCycleToCalendar();}catch(e){}};if(typeof loadEggState==='function'){try{loadEggState();}catch(e){}};
 document.getElementById('chat-input').addEventListener('input',resetStillHere);
 collector=new PassiveCollector({patientId:state.patientId,apiBase:API_BASE,debug:true,flushInterval:60000});collector.record('session_start',null,{stage:state.stage,cycle:state.cycle,treatment:state.treatment})}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
 /* ═══ REFLECTIONS ═══════════════════════════════════════════════════ */
@@ -5198,6 +5198,39 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', function() { try{loadCycleToCalendar();}catch(e){} });
 } else {
   try{loadCycleToCalendar();}catch(e){}
+}
+
+// === EGG STATE FROM AGENT ===
+function loadEggState() {
+  var pid = localStorage.getItem('melodai_patient_id');
+  if (!pid || !API_BASE) return;
+  // Trigger patient agent run (non-blocking)
+  fetch(API_BASE + '/agent/patient/run/' + pid, {
+    method: 'POST',
+    headers: { 'X-API-Key': 'melod-clinician-2026' }
+  }).catch(function() {});
+  // Fetch current egg state
+  fetch(API_BASE + '/agent/egg-state/' + pid, {
+    headers: { 'X-API-Key': 'melod-clinician-2026' }
+  }).then(function(r) {
+    return r.ok ? r.json() : null;
+  }).then(function(eggState) {
+    if (!eggState) return;
+    console.log('[EggState] Loaded:', JSON.stringify(eggState));
+    window.eggState = eggState;
+    // Apply mood to egg companion if eggCompanion exists
+    if (window.eggCompanion && typeof window.eggCompanion.setMood === 'function') {
+      window.eggCompanion.setMood(eggState.mood || 'warm');
+    }
+    // Show proactive prompt if needed
+    if (eggState.proactive && eggState.suggested_activity) {
+      var activities = { breathing: 'Try a quick breathing exercise?', journaling: 'Feel like journaling today?', chat: 'Want to talk about how you\'re feeling?' };
+      var prompt = activities[eggState.suggested_activity] || null;
+      if (prompt && typeof addMsg === 'function') {
+        setTimeout(function() { addMsg('ai', prompt, null, {showOneWord: false}); }, 3000);
+      }
+    }
+  }).catch(function(e) { console.log('[EggState] Load error:', e); });
 }
 </script>
 

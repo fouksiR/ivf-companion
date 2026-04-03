@@ -5412,7 +5412,7 @@ async def get_phenotype_history(patient_id: str, limit: int = 30):
 
 # ── Agent Endpoints ───────────────────────────────────────────────────
 
-def _get_all_phenotype_scores_dict() -> Dict:
+def _get_all_phenotype_scores_dict() -> dict:
     """Return phenotype scores keyed by patient_id for agent consumption."""
     from signal_integration import compute_phenotype_score, patient_signal_store
     scores = {}

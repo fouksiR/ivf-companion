@@ -3820,8 +3820,8 @@ if(window.cycleMedsByDate&&window.cycleMedsByDate[dateStr]){
 var mc=window.cycleMedsByDate[dateStr];
 var hasMed=false,hasProc=false,procColor='',procLabel='';
 mc.forEach(function(m){
-if(m.match(/OPU|retrieval/i)){hasProc=true;procColor='rgba(239,159,39,0.25)';procLabel='OPU';}
-else if(m.match(/ET|transfer/i)&&!m.match(/trial/i)){hasProc=true;procColor='rgba(29,158,117,0.25)';procLabel='ET';}
+if(m.match(/\bOPU\b|egg retrieval/i)){hasProc=true;procColor='rgba(239,159,39,0.25)';procLabel='OPU';}
+else if(m.match(/\bEmbryo transfer\b|\bET\b/i)&&!m.match(/trial/i)){hasProc=true;procColor='rgba(29,158,117,0.25)';procLabel='ET';}
 else if(m.match(/D&C|curettage/i)){hasProc=true;procColor='rgba(239,159,39,0.20)';procLabel='D&C';}
 else if(m.match(/hysteroscopy/i)){hasProc=true;procColor='rgba(133,183,235,0.25)';procLabel='Hyst';}
 else if(m.match(/scan|ultra/i)){hasProc=true;procColor='rgba(55,138,221,0.2)';procLabel='Scan';}

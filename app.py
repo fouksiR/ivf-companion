@@ -3027,19 +3027,19 @@ async def clinician_dashboard():
     Note: both /clinician/dashboard and /clinician/patients resolve here.
     """
     overview = []
-    # Merge in-memory patients with Firebase patients (cold start resilience)
-    all_patients = dict(patients_db)
+    # Firebase is the single source of truth for the patient registry
+    all_patients = {}
     try:
         fb_ref = getattr(firebase_db, '_fb_ref', None)
         if fb_ref:
             fb_patients = fb_ref.child("patients").get()
             if fb_patients and isinstance(fb_patients, dict):
                 for pid, pdata in fb_patients.items():
-                    if pid not in all_patients and isinstance(pdata, dict):
+                    if isinstance(pdata, dict):
                         all_patients[pid] = pdata
-                        patients_db[pid] = pdata
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Firebase patient load failed, falling back to in-memory: {e}")
+        all_patients = dict(patients_db)
     for pid, patient in all_patients.items():
       try:
         recent_checkins = get_recent_checkins(pid, last_n=3)

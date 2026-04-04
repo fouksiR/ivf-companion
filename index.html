@@ -605,6 +605,47 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .cal-legend{display:flex;gap:12px;flex-wrap:wrap;padding:8px 0;font-size:9px;color:var(--text-soft)}
 .cal-legend span{display:flex;align-items:center;gap:3px}
 .cal-legend .leg-dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+/* ── Daily Calendar View ── */
+.cal-view-toggle{display:flex;background:#E2E8F0;border-radius:8px;padding:2px;margin-bottom:12px}
+.cal-view-btn{flex:1;padding:6px 0;text-align:center;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;border:none;border-radius:6px;cursor:pointer;color:#64748B;background:none;transition:all .2s}
+.cal-view-btn.active{background:#fff;color:#0D9488;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.cal-week-strip{display:flex;align-items:center;gap:0;margin-bottom:14px;user-select:none}
+.cal-week-nav{background:none;border:none;font-size:16px;cursor:pointer;color:#0D9488;padding:4px 6px;flex-shrink:0}
+.cal-week-days{display:flex;flex:1;justify-content:space-around}
+.cal-week-day{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 8px;border-radius:10px;transition:background .15s}
+.cal-week-day:hover{background:rgba(13,148,136,.06)}
+.cal-week-day.selected{background:rgba(13,148,136,.1)}
+.cal-week-day-name{font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px}
+.cal-week-day-num{font-size:15px;font-weight:600;color:#1E293B;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.cal-week-day.is-today .cal-week-day-num{background:#0D9488;color:#fff}
+.cal-week-dot{width:5px;height:5px;border-radius:50%;background:#0D9488}
+.cal-week-dot.empty{background:transparent}
+.cal-day-section{margin-bottom:10px}
+.cal-day-card{background:#F0FDFA;border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.cal-day-card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;cursor:pointer}
+.cal-day-card-hdr h4{margin:0;font-family:'Playfair Display',Georgia,serif;font-size:15px;color:#1E293B}
+.cal-day-card-hdr .cal-day-count{font-size:11px;color:#64748B;font-family:'DM Sans',sans-serif}
+.cal-day-card-hdr .cal-chevron{font-size:14px;color:#64748B;transition:transform .2s}
+.cal-day-card.collapsed .cal-day-body{display:none}
+.cal-day-card.collapsed .cal-chevron{transform:rotate(-90deg)}
+.cal-day-done-banner{background:#ECFDF5;border-radius:8px;padding:6px 10px;font-size:12px;color:#059669;font-weight:600;margin-bottom:8px;text-align:center}
+.cal-med-card{background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.04)}
+.cal-med-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cal-med-info{flex:1;min-width:0}
+.cal-med-name{font-size:13px;font-weight:600;color:#1E293B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-med-dose{font-size:11px;color:#64748B;margin-top:1px}
+.cal-med-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.cal-med-badge.upcoming{color:#0D9488;border:1px solid #0D9488;background:rgba(13,148,136,.06)}
+.cal-med-badge.due-soon{color:#92400E;background:#FEF3C7;border:1px solid #F59E0B}
+.cal-med-badge.taken{color:#065F46;background:#D1FAE5;border:1px solid #10B981}
+.cal-med-badge.missed{color:#991B1B;background:#FEE2E2;border:1px solid #EF4444}
+.cal-mark-done{background:none;border:1.5px solid #0D9488;color:#0D9488;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .2s;font-family:'DM Sans',sans-serif}
+.cal-mark-done:hover{background:rgba(13,148,136,.08)}
+.cal-mark-done.done{background:#10B981;border-color:#10B981;color:#fff;cursor:default}
+.cal-proc-card{background:#EFF6FF;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;border:1px solid rgba(59,130,246,.08)}
+.cal-proc-icon{width:28px;height:28px;border-radius:50%;background:rgba(59,130,246,.1);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.cal-proc-name{font-size:13px;font-weight:600;color:#1E293B}
+.cal-proc-detail{font-size:11px;color:#64748B;margin-top:1px}
 /* ── Community Circle ── */
 .community-tabs{display:flex;gap:0;margin-bottom:16px}
 .community-tab{flex:1;padding:10px;text-align:center;font-family:'DM Sans','Montserrat',sans-serif;font-size:13px;font-weight:500;color:var(--text-soft);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer}
@@ -3797,7 +3838,7 @@ function loadStageGroups() {
 
 function timeAgoShort(ts){try{var d=(Date.now()-new Date(ts))/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m';if(d<86400)return Math.floor(d/3600)+'h';return Math.floor(d/86400)+'d'}catch(e){return ''}}
 // Calendar
-var _calYear,_calMonth,_calEvents=[];
+var _calYear,_calMonth,_calEvents=[],_calViewMode='daily',_calWeekStart=null,_calMedTaken={};
 var _calSvg=function(sz,d){return '<svg xmlns="http://www.w3.org/2000/svg" width="'+sz+'" height="'+sz+'" viewBox="0 0 20 20" fill="none" stroke="#2D8E8E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>'};
 var _calPaths={injection:'<rect x="8.5" y="1.5" width="3" height="10" rx="1.5"/><line x1="10" y1="11.5" x2="10" y2="18"/><line x1="8" y1="18" x2="12" y2="18"/><line x1="6.5" y1="4" x2="8.5" y2="4"/><line x1="6.5" y1="6.5" x2="8.5" y2="6.5"/>',scan:'<circle cx="8.5" cy="8.5" r="5"/><line x1="12" y1="12" x2="17" y2="17"/>',retrieval:'<ellipse cx="10" cy="11" rx="5.5" ry="6.5"/><ellipse cx="10" cy="11" rx="2" ry="2.5" opacity=".4"/>',transfer:'<circle cx="13" cy="10" r="4.5"/><line x1="2" y1="10" x2="8" y2="10"/><polyline points="5.5 7.5 8 10 5.5 12.5"/>',iui:'<circle cx="10" cy="10" r="7"/>',medication:'<rect x="5" y="4" width="10" height="12" rx="2"/><line x1="5" y1="9" x2="15" y2="9"/><line x1="8" y1="4" x2="8" y2="2"/><line x1="12" y1="4" x2="12" y2="2"/>',result:'<rect x="4" y="2" width="12" height="16" rx="1.5"/><polyline points="8 10 9.5 12 13 8"/>',tww_start:'<path d="M6 2h8M6 18h8M6 2l1.5 6.5c0 .8 1.1 1.5 2.5 1.5s2.5-.7 2.5-1.5L14 2M6 18l1.5-6.5c0-.8 1.1-1.5 2.5-1.5s2.5.7 2.5 1.5L14 18"/>',appointment:'<rect x="3" y="4" width="14" height="13" rx="1.5"/><line x1="3" y1="8" x2="17" y2="8"/><line x1="7" y1="2" x2="7" y2="5"/><line x1="13" y1="2" x2="13" y2="5"/>',other:'<circle cx="10" cy="10" r="2"/>'};
 function _calIcon(type,sz){return _calSvg(sz||14,_calPaths[type]||_calPaths.other)}
@@ -3806,7 +3847,12 @@ function buildCalendar(){var container=document.getElementById('calendarContaine
 // Load events from localStorage
 var _evtKey=state.patientId?'melodai_cycle_events_'+state.patientId:'melodai_cycle_events';
 try{_calEvents=JSON.parse(localStorage.getItem(_evtKey)||'[]')}catch(e){_calEvents=[]}
-var html='<div class="cal-header"><button class="cal-nav" onclick="calNav(-1)">&lt;</button><h3>'+monthNames[month]+' '+year+'</h3><button class="cal-nav" onclick="calNav(1)">&gt;</button></div>';
+// Load taken state
+try{_calMedTaken=JSON.parse(localStorage.getItem('melodai_med_taken_'+(state.patientId||''))||'{}')}catch(e){_calMedTaken={}}
+// View toggle
+var html='<div class="cal-view-toggle"><button class="cal-view-btn'+(_calViewMode==='daily'?' active':'')+'" onclick="switchCalView(\'daily\')">Daily</button><button class="cal-view-btn'+(_calViewMode==='month'?' active':'')+'" onclick="switchCalView(\'month\')">Month</button></div>';
+if(_calViewMode==='daily'){html+=_buildDailyViewHtml(now,year,month,daysInMonth,isCurrentMonth,today,monthNames);container.innerHTML=html;_loadCalEventsFromApi();return}
+html+='<div class="cal-header"><button class="cal-nav" onclick="calNav(-1)">&lt;</button><h3>'+monthNames[month]+' '+year+'</h3><button class="cal-nav" onclick="calNav(1)">&gt;</button></div>';
 html+='<div class="cal-grid">';
 ['S','M','T','W','T','F','S'].forEach(function(d){html+='<div class="cal-day-header">'+d+'</div>'});
 for(var i=0;i<firstDay;i++)html+='<div class="cal-cell"></div>';
@@ -3843,9 +3889,140 @@ html+='</div>';
 html+='<div class="cal-legend"><span><span class="leg-dot" style="background:#4ade80"></span>Good</span><span><span class="leg-dot" style="background:#fbbf24"></span>Tough</span><span><span class="leg-dot" style="background:#f87171"></span>Hard</span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.injection+'<small>Inj</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.scan+'<small>Scan</small></span><span style="display:inline-flex;align-items:center;gap:2px">'+evtIcons.retrieval+'<small>Ret</small></span></div>';
 html+='<div id="dayDetailPanel" style="display:none"></div>';
 container.innerHTML=html;
-// Also try loading events from API
-if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events').then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.events&&d.events.length){_calEvents=d.events;var _apiKey=state.patientId?'melodai_cycle_events_'+state.patientId:'melodai_cycle_events';localStorage.setItem(_apiKey,JSON.stringify(_calEvents));buildCalendar()}if(d&&d.calendar_updates&&d.calendar_updates.length){showCalendarToast(d.calendar_updates.length);d.calendar_updates.forEach(function(u){var evt=_calEvents.find(function(e){return e.id===u.event_id});if(evt)evt._updated=true});fetch(API_BASE+'/patient/'+state.patientId+'/calendar-updates/acknowledge',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(function(){})}}).catch(function(){})}}
+_loadCalEventsFromApi()}
+function _loadCalEventsFromApi(){if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/cycle-events').then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.events&&d.events.length){_calEvents=d.events;var _apiKey=state.patientId?'melodai_cycle_events_'+state.patientId:'melodai_cycle_events';localStorage.setItem(_apiKey,JSON.stringify(_calEvents))}if(d&&d.calendar_updates&&d.calendar_updates.length){showCalendarToast(d.calendar_updates.length);d.calendar_updates.forEach(function(u){var evt=_calEvents.find(function(e){return e.id===u.event_id});if(evt)evt._updated=true});fetch(API_BASE+'/patient/'+state.patientId+'/calendar-updates/acknowledge',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(function(){})}}).catch(function(){})}}
+function switchCalView(mode){_calViewMode=mode;buildCalendar()}
 function calNav(dir){_calMonth+=dir;if(_calMonth<0){_calMonth=11;_calYear--}if(_calMonth>11){_calMonth=0;_calYear++}buildCalendar()}
+function calWeekNav(dir){if(!_calWeekStart)_calWeekStart=new Date();_calWeekStart=new Date(_calWeekStart.getFullYear(),_calWeekStart.getMonth(),_calWeekStart.getDate()+dir*7);_calYear=_calWeekStart.getFullYear();_calMonth=_calWeekStart.getMonth();buildCalendar()}
+function _fmtDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function _classifyMedEntry(str){
+var procs=[
+{pat:/\bOPU\b|egg retrieval/i,type:'OPU',color:'#F59E0B'},
+{pat:/\bEmbryo transfer\b|\bET\b/i,type:'ET',color:'#10B981'},
+{pat:/\bD&C\b|curettage/i,type:'D&C',color:'#F59E0B'},
+{pat:/hysteroscopy/i,type:'Hyst',color:'#6366F1'},
+{pat:/scan|ultra/i,type:'Scan',color:'#3B82F6'},
+{pat:/blood\s*test/i,type:'Blood',color:'#EC4899'},
+{pat:/test|beta|hCG/i,type:'Test',color:'#8B5CF6'},
+{pat:/trigger/i,type:'Trigger',color:'#EF4444'},
+{pat:/semen|sperm/i,type:'SA',color:'#6B7280'},
+{pat:/review|appointment/i,type:'Appt',color:'#6B7280'}
+];
+for(var i=0;i<procs.length;i++){if(procs[i].pat.test(str))return{isProcedure:true,name:procs[i].type,color:procs[i].color}}
+return{isProcedure:false,name:str,color:'#0D9488'}
+}
+function _getMedBadge(dateStr){
+var now=new Date();var todayStr=_fmtDateStr(now);
+var takenKey=dateStr;
+if(_calMedTaken[takenKey])return{cls:'taken',label:'Done ✓'};
+if(dateStr<todayStr)return{cls:'missed',label:'Missed'};
+if(dateStr===todayStr)return{cls:'due-soon',label:'Due today'};
+return{cls:'upcoming',label:'Upcoming'}
+}
+function markMedDone(dateStr,medIdx){
+_calMedTaken[dateStr]=true;
+try{localStorage.setItem('melodai_med_taken_'+(state.patientId||''),JSON.stringify(_calMedTaken))}catch(e){}
+// Save to Firebase
+if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/med-taken',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:dateStr,taken:true,timestamp:new Date().toISOString()})}).catch(function(){})}
+buildCalendar()
+}
+function toggleDayCollapse(dateStr){
+var card=document.getElementById('daily-card-'+dateStr);
+if(card){card.classList.toggle('collapsed')}
+}
+function _buildDailyViewHtml(now,year,month,daysInMonth,isCurrentMonth,todayNum,monthNames){
+var dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var dayNamesFull=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var todayDate=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+var todayStr=_fmtDateStr(todayDate);
+// Week strip — calc start of week (Monday)
+if(!_calWeekStart){var ws=new Date(todayDate);var dow=ws.getDay();var diff=dow===0?6:dow-1;ws.setDate(ws.getDate()-diff);_calWeekStart=ws}
+var weekDays=[];for(var i=0;i<7;i++){var wd=new Date(_calWeekStart.getFullYear(),_calWeekStart.getMonth(),_calWeekStart.getDate()+i);weekDays.push(wd)}
+// Week header month label
+var wkMonth=weekDays[3].getMonth();var wkYear=weekDays[3].getFullYear();
+var h='<div style="font-family:\'Playfair Display\',Georgia,serif;font-size:16px;color:#1E293B;text-align:center;margin-bottom:8px">'+monthNames[wkMonth]+' '+wkYear+'</div>';
+// Week strip
+h+='<div class="cal-week-strip">';
+h+='<button class="cal-week-nav" onclick="calWeekNav(-1)">&lsaquo;</button>';
+h+='<div class="cal-week-days">';
+for(var i=0;i<7;i++){
+var wd=weekDays[i];var wds=_fmtDateStr(wd);
+var isToday=wds===todayStr;
+var hasMeds=window.cycleMedsByDate&&window.cycleMedsByDate[wds]&&window.cycleMedsByDate[wds].length>0;
+h+='<div class="cal-week-day'+(isToday?' is-today':'')+'" onclick="selectDailyDate(\''+wds+'\')">';
+h+='<div class="cal-week-day-name">'+dayNames[wd.getDay()]+'</div>';
+h+='<div class="cal-week-day-num">'+wd.getDate()+'</div>';
+h+='<div class="cal-week-dot'+(hasMeds?'':' empty')+'"></div>';
+h+='</div>'}
+h+='</div>';
+h+='<button class="cal-week-nav" onclick="calWeekNav(1)">&rsaquo;</button>';
+h+='</div>';
+// Daily cards for the visible week
+h+='<div class="cal-day-section">';
+for(var i=0;i<7;i++){
+var wd=weekDays[i];var wds=_fmtDateStr(wd);
+var isToday=wds===todayStr;
+var meds=window.cycleMedsByDate&&window.cycleMedsByDate[wds]?window.cycleMedsByDate[wds]:[];
+var dayEvts=_calEvents.filter(function(e){return e.date===wds});
+if(meds.length===0&&dayEvts.length===0&&!isToday)continue;
+// Classify each med entry
+var medItems=[];var procItems=[];
+meds.forEach(function(m,idx){
+var c=_classifyMedEntry(m);
+if(c.isProcedure)procItems.push({name:c.name,color:c.color,raw:m});
+else medItems.push({name:c.name,color:c.color,idx:idx,raw:m})});
+var totalMeds=medItems.length;
+var dayLabel=isToday?'Today, '+dayNamesFull[wd.getDay()]:dayNamesFull[wd.getDay()];
+dayLabel+=' '+wd.getDate()+' '+monthNames[wd.getMonth()];
+var countLabel=totalMeds>0?totalMeds+' medication'+(totalMeds>1?'s':'')+' scheduled':'No medications';
+if(procItems.length>0)countLabel+=', '+procItems.length+' procedure'+(procItems.length>1?'s':'');
+var allDone=totalMeds>0&&_calMedTaken[wds];
+var collapsed=!isToday;
+h+='<div class="cal-day-card'+(collapsed?' collapsed':'')+'" id="daily-card-'+wds+'">';
+h+='<div class="cal-day-card-hdr" onclick="toggleDayCollapse(\''+wds+'\')">';
+h+='<div><h4>'+dayLabel+'</h4><div class="cal-day-count">'+countLabel+'</div></div>';
+h+='<span class="cal-chevron">&#x25BE;</span></div>';
+h+='<div class="cal-day-body">';
+if(allDone){h+='<div class="cal-day-done-banner">All medications taken ✓</div>'}
+// Medication cards
+medItems.forEach(function(med){
+var badge=_getMedBadge(wds);
+var parts=med.name.match(/^(.+?)\s+([\d.]+\s*\w*)\s*$/);
+var medName=parts?parts[1]:med.name;
+var dose=parts?parts[2]:'';
+var isDone=_calMedTaken[wds];
+h+='<div class="cal-med-card">';
+h+='<div class="cal-med-dot" style="background:'+med.color+'"></div>';
+h+='<div class="cal-med-info"><div class="cal-med-name">'+escHtml(medName)+'</div>'+(dose?'<div class="cal-med-dose">'+escHtml(dose)+'</div>':'')+'</div>';
+h+='<span class="cal-med-badge '+badge.cls+'">'+badge.label+'</span>';
+if(!isDone&&badge.cls!=='upcoming'){h+='<button class="cal-mark-done" onclick="event.stopPropagation();markMedDone(\''+wds+'\','+med.idx+')">Mark done</button>'}
+else if(isDone){h+='<button class="cal-mark-done done">Done ✓</button>'}
+h+='</div>'});
+// Procedure cards
+procItems.forEach(function(proc){
+h+='<div class="cal-proc-card">';
+h+='<div class="cal-proc-icon">📅</div>';
+h+='<div><div class="cal-proc-name">'+escHtml(proc.name)+'</div><div class="cal-proc-detail">'+escHtml(proc.raw)+'</div></div>';
+h+='</div>'});
+// Events
+dayEvts.forEach(function(e){
+var icon=evtIcons[e.type]||'·';
+h+='<div class="cal-med-card" style="border-left:3px solid #2D8E8E">';
+h+='<div style="font-size:16px">'+icon+'</div>';
+h+='<div class="cal-med-info"><div class="cal-med-name">'+escHtml(e.label||e.type)+'</div>'+(e.time?'<div class="cal-med-dose">'+e.time+'</div>':'')+'</div>';
+h+='</div>'});
+if(meds.length===0&&dayEvts.length===0&&isToday){h+='<div style="text-align:center;padding:12px;font-size:13px;color:#64748B">No medications or events today</div>'}
+h+='</div></div>'} // end cal-day-body, cal-day-card
+h+='</div>'; // end cal-day-section
+return h}
+function selectDailyDate(dateStr){
+var sp=dateStr.split('-');
+_calWeekStart=new Date(parseInt(sp[0]),parseInt(sp[1])-1,parseInt(sp[2]));
+var dow=_calWeekStart.getDay();var diff=dow===0?6:dow-1;
+_calWeekStart.setDate(_calWeekStart.getDate()-diff);
+buildCalendar();
+// Scroll to the card
+setTimeout(function(){var el=document.getElementById('daily-card-'+dateStr);if(el){el.classList.remove('collapsed');el.scrollIntoView({behavior:'smooth',block:'center'})}},100)}
 function showDayDetail(dateStr){var panel=document.getElementById('dayDetailPanel');if(!panel)return;
 var dayEvts=_calEvents.filter(function(e){return e.date===dateStr});
 var ci=state.checkins?state.checkins.find(function(c){return(c.date||'').substring(0,10)===dateStr}):null;

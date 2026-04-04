@@ -18,6 +18,7 @@ from signal_integration import (
     analyze_passive_signals,
 )
 from firebase_db import db as firebase_db
+from nice_ng257_evidence import match_nice_evidence
 import os
 import json
 import uuid
@@ -2544,9 +2545,10 @@ async def chat(req: ChatRequest):
     if triage_category == 2:  # Education question
         rag_context = retrieve_education(req.message, patient.get("treatment_stage", "consultation"))
 
+    nice_evidence = match_nice_evidence(req.message)
     system_prompt = COMPANION_SYSTEM.format(
         patient_context=build_patient_context(req.patient_id),
-        education_context=build_education_context(req.patient_id) + rag_context,
+        education_context=build_education_context(req.patient_id) + rag_context + ("\n\n" + nice_evidence if nice_evidence else ""),
     )
 
     # Add one-word check-in context so AI responds warmly

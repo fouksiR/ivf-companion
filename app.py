@@ -1087,21 +1087,62 @@ ANZARD_CHARTS = {
 
 
 def match_anzard_charts(message: str, response_text: str, max_charts: int = 2) -> list[dict]:
-    """Match patient message + AI response against ANZARD chart triggers."""
-    combined = (message + " " + response_text).lower()
+    """Match patient message against ANZARD chart triggers.
+
+    Uses message ONLY (not response text) to avoid false positives from
+    Claude's own language triggering charts on unrelated topics.
+    Applies exclusion filters so clinical-procedure/add-on questions
+    don't trigger age_outcomes or other charts spuriously.
+    """
+    msg = message.lower()
+
+    # ── Global exclusion: these topics should NEVER trigger ANY chart ──
+    _NO_CHART_PATTERNS = [
+        "pgt", "pgta", "pgs", "genetic testing", "embryo testing",
+        "icsi", "intracytoplasmic",
+        "scratch", "endometrial scratch",
+        "era test", "emma", "alice", "receptivity",
+        "immune", "intralipid", "ivig", "nk cell", "natural killer",
+        "steroid", "prednisolone",
+        "supplement", "coq10", "antioxidant", "vitamin",
+        "dna fragmentation", "sperm dna",
+        "orgalutran", "gonal", "menopur", "cetrotide", "synarel",
+        "progesterone", "pessary", "crinone", "lubion",
+        "hysteroscopy",
+        "counsell", "therapist", "psycholog",
+    ]
+    if any(p in msg for p in _NO_CHART_PATTERNS):
+        return []
+
     scored = []
     for key, chart in ANZARD_CHARTS.items():
         hits = 0
         has_phrase_match = False
         for tag in chart["tags"]:
-            if tag in combined:
+            if tag in msg:
                 hits += 2
                 has_phrase_match = True
             else:
                 tag_words = tag.split()
-                partial = sum(1 for w in tag_words if len(w) >= 4 and w in combined)
+                partial = sum(1 for w in tag_words if len(w) >= 4 and w in msg)
                 if partial > 0:
                     hits += partial
+
+        # ── Per-chart tightening ──
+        # age_outcomes: require BOTH an age indicator AND a chances/success indicator
+        if key == "age_outcomes" and hits > 0:
+            has_age = any(w in msg for w in [
+                "age", "older", "younger", "35", "36", "37", "38", "39",
+                "40", "41", "42", "over 3", "over 4", "too old",
+            ])
+            has_chances = any(w in msg for w in [
+                "chance", "success", "rate", "likely", "odds", "birth rate",
+                "how likely", "what are my", "does age", "affect",
+                "work for me", "realistic",
+            ])
+            if not (has_age and has_chances):
+                continue
+
         if hits >= 2 and has_phrase_match:
             scored.append((hits, key, chart))
     scored.sort(key=lambda x: -x[0])

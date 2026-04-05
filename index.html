@@ -3869,7 +3869,7 @@ if(window.cycleMedsByDate&&window.cycleMedsByDate[dateStr]){
 var mc=window.cycleMedsByDate[dateStr];
 var hasMed=false,hasProc=false,procColor='',procLabel='';
 mc.forEach(function(m){
-if(m.match(/\bOPU\b|egg retrieval/i)){hasProc=true;procColor='rgba(239,159,39,0.25)';procLabel='OPU';}
+if(m.match(/\bOPU\b|egg retrieval|egg collection/i)){hasProc=true;procColor='rgba(239,159,39,0.25)';procLabel='OPU';}
 else if(m.match(/\bEmbryo transfer\b|\bET\b/i)&&!m.match(/trial/i)){hasProc=true;procColor='rgba(29,158,117,0.25)';procLabel='ET';}
 else if(m.match(/D&C|curettage/i)){hasProc=true;procColor='rgba(239,159,39,0.20)';procLabel='D&C';}
 else if(m.match(/hysteroscopy/i)){hasProc=true;procColor='rgba(133,183,235,0.25)';procLabel='Hyst';}
@@ -3897,8 +3897,8 @@ function calWeekNav(dir){if(!_calWeekStart)_calWeekStart=new Date();_calWeekStar
 function _fmtDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function _classifyMedEntry(str){
 var procs=[
-{pat:/\bOPU\b|egg retrieval/i,type:'OPU',color:'#F59E0B'},
-{pat:/\bEmbryo transfer\b|\bET\b/i,type:'ET',color:'#10B981'},
+{pat:/\bOPU\b|egg retrieval|egg collection/i,type:'OPU',color:'#F59E0B'},
+{pat:/\bEmbryo transfer\b|\bET\b/i,type:'ET',color:'#10B981',exclude:/trial/i},
 {pat:/\bD&C\b|curettage/i,type:'D&C',color:'#F59E0B'},
 {pat:/hysteroscopy/i,type:'Hyst',color:'#6366F1'},
 {pat:/scan|ultra/i,type:'Scan',color:'#3B82F6'},
@@ -3908,7 +3908,7 @@ var procs=[
 {pat:/semen|sperm/i,type:'SA',color:'#6B7280'},
 {pat:/review|appointment/i,type:'Appt',color:'#6B7280'}
 ];
-for(var i=0;i<procs.length;i++){if(procs[i].pat.test(str))return{isProcedure:true,name:procs[i].type,color:procs[i].color}}
+for(var i=0;i<procs.length;i++){if(procs[i].pat.test(str)&&!(procs[i].exclude&&procs[i].exclude.test(str)))return{isProcedure:true,name:procs[i].type,color:procs[i].color}}
 return{isProcedure:false,name:str,color:'#0D9488'}
 }
 function _getMedBadge(dateStr){

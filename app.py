@@ -5049,6 +5049,7 @@ async def update_patient_cycle(patient_id: str, request: Request):
     Firebase read returns stale/empty data (multi-instance Cloud Run).
     """
     data = await request.json()
+    logger.info(f"Cycle update request for {patient_id}: incoming_keys={list(data.keys())}")
     try:
         if firebase_db and firebase_db._fb_ref:
             ref = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle")
@@ -5094,8 +5095,10 @@ async def update_patient_cycle(patient_id: str, request: Request):
                 logger.warning(f"start_date correction skipped: {ce}")
 
             # .update() merges top-level keys without wiping siblings
+            med_count = len(update_payload.get('medications_simple', {})) if 'medications_simple' in update_payload else 'n/a'
+            logger.info(f"Cycle writing for {patient_id}: keys={list(update_payload.keys())}, med_count={med_count}")
             ref.update(update_payload)
-            logger.info(f"Cycle updated for {patient_id}: keys={list(update_payload.keys())}")
+            logger.info(f"Cycle updated for {patient_id}: OK")
             return {"status": "updated"}
     except Exception as e:
         logger.error(f"Cycle update error for {patient_id}: {e}")

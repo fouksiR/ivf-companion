@@ -5068,18 +5068,13 @@ async def update_patient_cycle(patient_id: str, request: Request):
                     update_payload[key] = data[key]
             update_payload['updated_at'] = utc_iso()
 
-            # If medications_simple is being set to empty, remove it
+            # Only clear medications_simple if caller explicitly sent it as empty {}
+            # Never clear if it contains any entries (even without doses yet)
             ms = update_payload.get('medications_simple', None)
-            if ms is not None and (ms == {} or all(
-                not v.get('name') for v in ms.values() if isinstance(v, dict)
-            )):
+            if ms is not None and ms == {}:
+                # Empty dict sent — don't write it, don't delete existing
                 update_payload.pop('medications_simple', None)
-                # Also delete from Firebase
-                try:
-                    ref.child('medications_simple').delete()
-                except Exception:
-                    pass
-                logger.info(f"Cleared empty medications_simple for {patient_id}")
+                logger.info(f"Skipped empty medications_simple for {patient_id}")
 
             # Auto-correct start_date if it was saved with UTC (off-by-one in AEST)
             try:

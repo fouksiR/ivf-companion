@@ -1951,6 +1951,7 @@ function saveMedGrid(pid) { try {
     }
     meds['med_' + i] = { name: name, doses: doses };
   });
+  if (Object.keys(meds).length === 0) { console.log('[MedGrid] No named meds — skip save'); return; }
   authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ medications_simple: meds })

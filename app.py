@@ -5043,46 +5043,67 @@ async def get_patient_cycle(patient_id: str):
 
 @app.post("/clinician/patient/{patient_id}/cycle", dependencies=[Depends(verify_clinician_api_key)])
 async def update_patient_cycle(patient_id: str, request: Request):
-    """Update patient cycle data."""
+    """Update patient cycle data.
+
+    Uses .update() instead of .set() to avoid wiping sibling data if
+    Firebase read returns stale/empty data (multi-instance Cloud Run).
+    """
     data = await request.json()
     try:
         if firebase_db and firebase_db._fb_ref:
             ref = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle")
-            existing = ref.get() or {}
+
+            # Build the update payload — only keys the caller sent
+            update_payload = {}
             for key in data:
                 if key == 'key_dates' and isinstance(data[key], dict):
-                    kd = existing.get('key_dates', {})
+                    # key_dates needs merge with existing — read just this child
+                    try:
+                        kd = ref.child('key_dates').get() or {}
+                    except Exception:
+                        kd = {}
                     kd.update(data[key])
-                    existing['key_dates'] = kd
+                    update_payload['key_dates'] = kd
                 else:
-                    existing[key] = data[key]
-            existing['updated_at'] = utc_iso()
-            # If medications_simple is empty, delete stale data
-            ms = existing.get('medications_simple', None)
-            if ms is not None and (ms == {} or all(not v.get('name') for v in ms.values() if isinstance(v, dict))):
-                existing.pop('medications_simple', None)
+                    update_payload[key] = data[key]
+            update_payload['updated_at'] = utc_iso()
+
+            # If medications_simple is being set to empty, remove it
+            ms = update_payload.get('medications_simple', None)
+            if ms is not None and (ms == {} or all(
+                not v.get('name') for v in ms.values() if isinstance(v, dict)
+            )):
+                update_payload.pop('medications_simple', None)
+                # Also delete from Firebase
+                try:
+                    ref.child('medications_simple').delete()
+                except Exception:
+                    pass
                 logger.info(f"Cleared empty medications_simple for {patient_id}")
+
             # Auto-correct start_date if it was saved with UTC (off-by-one in AEST)
             try:
-                from datetime import datetime, timedelta, timezone
-                sd = existing.get('start_date', '')
-                ua = existing.get('updated_at', '')
+                sd = update_payload.get('start_date', '')
+                ua = update_payload.get('updated_at', '')
                 if sd and ua:
                     aest = timezone(timedelta(hours=10))
                     ua_dt = datetime.fromisoformat(ua.replace('Z', '+00:00'))
                     aest_date = ua_dt.astimezone(aest).strftime('%Y-%m-%d')
                     if sd != aest_date:
-                        # Check if it's exactly the UTC/AEST off-by-one pattern
                         sd_date = datetime.strptime(sd, '%Y-%m-%d').date()
                         aest_d = ua_dt.astimezone(aest).date()
                         if abs((aest_d - sd_date).days) == 1:
-                            existing['start_date'] = aest_date
+                            update_payload['start_date'] = aest_date
                             logger.info(f"Auto-corrected start_date {sd} -> {aest_date} for {patient_id}")
             except Exception as ce:
                 logger.warning(f"start_date correction skipped: {ce}")
-            ref.set(existing)
+
+            # .update() merges top-level keys without wiping siblings
+            ref.update(update_payload)
+            logger.info(f"Cycle updated for {patient_id}: keys={list(update_payload.keys())}")
             return {"status": "updated"}
     except Exception as e:
+        logger.error(f"Cycle update error for {patient_id}: {e}")
         return {"error": str(e)}
     return {"status": "no_firebase"}
 

@@ -3885,7 +3885,7 @@ try{_calEvents=JSON.parse(localStorage.getItem(_evtKey)||'[]')}catch(e){_calEven
 try{_calMedTaken=JSON.parse(localStorage.getItem('melodai_med_taken_'+(state.patientId||''))||'{}')}catch(e){_calMedTaken={}}
 // View toggle
 var html='<div class="cal-view-toggle"><button class="cal-view-btn'+(_calViewMode==='daily'?' active':'')+'" onclick="switchCalView(\'daily\')">Daily</button><button class="cal-view-btn'+(_calViewMode==='month'?' active':'')+'" onclick="switchCalView(\'month\')">Month</button></div>';
-if(_calViewMode==='daily'){html+=_buildDailyViewHtml(now,year,month,daysInMonth,isCurrentMonth,today,monthNames);container.innerHTML=html;_loadCalEventsFromApi();return}
+if(_calViewMode==='daily'){html+=_buildDailyViewHtml(now,year,month,daysInMonth,isCurrentMonth,today,monthNames);container.innerHTML=html;setTimeout(function(){var tc=document.querySelector('.cal-day-card[data-date="'+_fmtDateStr(new Date())+'"]');if(tc)tc.scrollIntoView({behavior:'smooth',block:'start'})},100);_loadCalEventsFromApi();return}
 html+='<div class="cal-header"><button class="cal-nav" onclick="calNav(-1)">&lt;</button><h3>'+monthNames[month]+' '+year+'</h3><button class="cal-nav" onclick="calNav(1)">&gt;</button></div>';
 html+='<div class="cal-grid">';
 ['S','M','T','W','T','F','S'].forEach(function(d){html+='<div class="cal-day-header">'+d+'</div>'});
@@ -4012,7 +4012,7 @@ var countLabel=totalMeds>0?totalMeds+' medication'+(totalMeds>1?'s':'')+' schedu
 if(procItems.length>0)countLabel+=', '+procItems.length+' procedure'+(procItems.length>1?'s':'');
 var allDone=totalMeds>0&&_calMedTaken[wds];
 var collapsed=!isToday;
-h+='<div class="cal-day-card'+(collapsed?' collapsed':'')+'" id="daily-card-'+wds+'">';
+h+='<div class="cal-day-card'+(collapsed?' collapsed':'')+'" id="daily-card-'+wds+'" data-date="'+wds+'">';
 h+='<div class="cal-day-card-hdr" onclick="toggleDayCollapse(\''+wds+'\')">';
 h+='<div><h4>'+dayLabel+'</h4><div class="cal-day-count">'+countLabel+'</div></div>';
 h+='<span class="cal-chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></div>';

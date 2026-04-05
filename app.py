@@ -5143,6 +5143,138 @@ async def serve_dashboard():
     return FileResponse("clinician-dashboard.html")
 
 
+@app.get("/firebase-messaging-sw.js")
+async def serve_fcm_sw():
+    """Serve FCM service worker from root path (required by browser SW scope rules)."""
+    return FileResponse("firebase-messaging-sw.js", media_type="application/javascript")
+
+
+@app.post("/api/send-med-reminders")
+async def send_med_reminders():
+    """Send push notifications for today's unfinished medications."""
+    try:
+        import firebase_admin
+        from firebase_admin import messaging as fcm_messaging
+        try:
+            from zoneinfo import ZoneInfo
+        except ImportError:
+            from backports.zoneinfo import ZoneInfo
+
+        melb = ZoneInfo("Australia/Melbourne")
+        now = datetime.now(melb)
+        today_str = now.strftime("%Y-%m-%d")
+        sent = 0
+        errors = 0
+
+        if not firebase_db or not firebase_db._fb_ref:
+            return {"sent": 0, "errors": 0, "date": today_str, "note": "Firebase not available"}
+
+        patients_ref = firebase_db._fb_ref.child("patients")
+        patients = patients_ref.get() or {}
+
+        for pid, pdata in patients.items():
+            if not isinstance(pdata, dict):
+                continue
+            token = pdata.get("fcm_token")
+            if not token:
+                continue
+
+            # Check cycle medications for today
+            cycle_meds = pdata.get("cycle", {}).get("medications_simple", {})
+            med_names = []
+            for med_key, med_data in cycle_meds.items():
+                if not isinstance(med_data, dict):
+                    continue
+                med_name = med_data.get("name", med_key)
+                # Check if any day column maps to today
+                start_date = pdata.get("cycle", {}).get("start_date")
+                if not start_date:
+                    continue
+                for dk, dv in med_data.items():
+                    if not dk.startswith("d"):
+                        continue
+                    try:
+                        day_num = int(dk[1:])
+                    except (ValueError, IndexError):
+                        continue
+                    sp = start_date.split("-")
+                    d = datetime.now()
+                    try:
+                        d = datetime(int(sp[0]), int(sp[1]) - 1 + 1, int(sp[2]))
+                        from datetime import timedelta as _td
+                        d = d + _td(days=day_num - 1)
+                        ds = d.strftime("%Y-%m-%d")
+                    except Exception:
+                        continue
+                    if ds == today_str and dv:
+                        med_names.append(med_name)
+                        break
+
+            if not med_names:
+                continue
+
+            try:
+                body = ", ".join(med_names[:3])
+                if len(med_names) > 3:
+                    body += f" +{len(med_names) - 3} more"
+                msg = fcm_messaging.Message(
+                    notification=fcm_messaging.Notification(
+                        title="\U0001f48a Medication Reminder",
+                        body=f"Time to take {body}",
+                    ),
+                    token=token,
+                )
+                fcm_messaging.send(msg)
+                sent += 1
+            except Exception as e:
+                logger.warning(f"FCM send error for {pid}: {e}")
+                errors += 1
+
+        return {"sent": sent, "errors": errors, "date": today_str}
+    except Exception as e:
+        logger.error(f"send-med-reminders error: {e}")
+        return {"sent": 0, "errors": 1, "error": str(e)}
+
+
+@app.post("/api/send-companion-nudge")
+async def send_companion_nudge():
+    """Send a gentle check-in nudge to all patients with FCM tokens."""
+    try:
+        import firebase_admin
+        from firebase_admin import messaging as fcm_messaging
+
+        if not firebase_db or not firebase_db._fb_ref:
+            return {"sent": 0, "note": "Firebase not available"}
+
+        patients_ref = firebase_db._fb_ref.child("patients")
+        patients = patients_ref.get() or {}
+        sent = 0
+
+        for pid, pdata in patients.items():
+            if not isinstance(pdata, dict):
+                continue
+            token = pdata.get("fcm_token")
+            if not token:
+                continue
+            try:
+                msg = fcm_messaging.Message(
+                    notification=fcm_messaging.Notification(
+                        title="\U0001f95a Hey there!",
+                        body="Just checking in \u2014 how are you feeling today?",
+                    ),
+                    token=token,
+                )
+                fcm_messaging.send(msg)
+                sent += 1
+            except Exception:
+                pass
+
+        return {"sent": sent}
+    except Exception as e:
+        logger.error(f"send-companion-nudge error: {e}")
+        return {"sent": 0, "error": str(e)}
+
+
 # ── Run ───────────────────────────────────────────────────────────────
 
 

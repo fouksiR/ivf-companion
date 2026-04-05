@@ -14,6 +14,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 <script>
 var fbAuth=null;
 try{
@@ -651,6 +652,12 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .cal-proc-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
 .cal-proc-name{font-size:15px;font-weight:600;color:#1E293B}
 .cal-proc-detail{font-size:13px;color:#64748B;margin-top:2px}
+/* ── FCM Toast Notifications ── */
+.fcm-toast{position:fixed;top:-80px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;padding:14px 20px;box-shadow:0 8px 32px rgba(0,0,0,.12);transition:top .4s cubic-bezier(.34,1.56,.64,1);max-width:360px;width:90%;cursor:pointer}
+.fcm-toast.show{top:16px}
+.fcm-toast-icon{font-size:28px}
+.fcm-toast-title{font-size:14px;font-weight:700;color:#1E293B}
+.fcm-toast-body{font-size:12px;color:#64748B;margin-top:2px}
 /* ── Community Circle ── */
 .community-tabs{display:flex;gap:0;margin-bottom:16px}
 .community-tab{flex:1;padding:10px;text-align:center;font-family:'DM Sans','Montserrat',sans-serif;font-size:13px;font-weight:500;color:var(--text-soft);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer}
@@ -1544,7 +1551,29 @@ var fallback=function(){state.patientId=state.patientId||('demo-'+Math.random().
 if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(function(){ctrl.abort()},8000);const r=await fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:state.name,treatment_stage:state.stage,cycle_number:state.cycle,treatment_type:state.treatment,partner_name:state.partnerName||null,clinic_name:state.clinic||null,patient_id:state.patientId||null,email:localStorage.getItem('melodai_email')||null}),signal:ctrl.signal});clearTimeout(timer);const d=await r.json();if(!state.patientId)state.patientId=d.patient_id;localStorage.setItem('melodai_patient_id',state.patientId);localStorage.setItem('melodai_name',state.name);localStorage.setItem('melodai_stage',state.stage);localStorage.setItem('melodai_cycle',String(state.cycle));localStorage.setItem('melodai_treatment',state.treatment);showApp();if(d.message)addMsg('ai',d.message,null,{showOneWord:true});return}catch(e){console.warn('API unavailable:',e)}}fallback()}
 function showApp(){try{var sw=document.getElementById('screen-welcome');if(sw)sw.classList.remove('active');document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();checkClinicianMessages();if(typeof loadCycleToCalendar==='function'){try{loadCycleToCalendar();}catch(e){}};if(typeof loadEggState==='function'){try{loadEggState();}catch(e){}};
 document.getElementById('chat-input').addEventListener('input',resetStillHere);
+if(typeof initFCM==='function'){try{initFCM(state.patientId)}catch(e){}}
 collector=new PassiveCollector({patientId:state.patientId,apiBase:API_BASE,debug:true,flushInterval:60000});collector.record('session_start',null,{stage:state.stage,cycle:state.cycle,treatment:state.treatment})}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
+/* ═══ FCM PUSH NOTIFICATIONS ═══════════════════════════════════════ */
+function initFCM(patientId){
+if(!('Notification' in window)||!('serviceWorker' in navigator))return;
+Notification.requestPermission().then(function(perm){
+if(perm!=='granted')return;
+navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(reg){
+var msg=firebase.messaging();
+msg.getToken({vapidKey:'BIZp5usRneW96raNCuj5-M1D1wN9e_ECKEK-kciXRcEFCgLYVProDT_H9o6_0xRblEdLsAacuQUAKwQ5Fu7InXs',serviceWorkerRegistration:reg}).then(function(token){
+if(token){firebase.database().ref('melod_ai/patients/'+patientId+'/fcm_token').set(token);console.log('[FCM] Token saved for',patientId)}
+}).catch(function(e){console.warn('[FCM] Token error:',e)});
+msg.onMessage(function(payload){
+showMedToast(payload.notification.title,payload.notification.body)});
+}).catch(function(e){console.warn('[FCM] SW registration error:',e)})
+}).catch(function(e){console.warn('[FCM] Permission error:',e)})}
+function showMedToast(title,body){
+var t=document.createElement('div');t.className='fcm-toast';
+t.innerHTML='<div class="fcm-toast-icon">\uD83D\uDC8A</div><div><div class="fcm-toast-title">'+(title||'Reminder')+'</div><div class="fcm-toast-body">'+(body||'')+'</div></div>';
+document.body.appendChild(t);
+setTimeout(function(){t.classList.add('show')},50);
+setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},400)},5000);
+t.onclick=function(){t.remove()}}
 /* ═══ REFLECTIONS ═══════════════════════════════════════════════════ */
 async function fetchReflection(){
   if(!state.patientId||!API_BASE)return;

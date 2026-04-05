@@ -1810,7 +1810,7 @@ function loadMedGrid(patientId) {
     fetch(API_BASE + '/clinician/patient/' + patientId + '/cycle', {
         headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' }
     }).then(function(r) { return r.json(); }).then(function(cycle) {
-        if (!cycle || !cycle.type || cycle.error) {
+        if (!cycle || cycle.error || (!cycle.type && !cycle.medications_simple)) {
             container.innerHTML = renderStartCycleUI(patientId);
             wireStartCycle(patientId);
         } else {
@@ -1845,7 +1845,7 @@ function renderMedTable(pid, cycle) {
     var start = new Date(cycle.start_date || new Date());
     var today = new Date();
     var days = Math.max(Math.ceil((today - start) / 86400000) + 3, 10);
-    var meds = cycle.medications ? Object.entries(cycle.medications) : [];
+    var meds = cycle.medications ? Object.entries(cycle.medications) : (cycle.medications_simple ? Object.entries(cycle.medications_simple) : []);
     var kd = cycle.key_dates || {};
     var cc = {gonadotropin:'#3b82f6',antagonist:'#8b5cf6',agonist:'#6366f1',trigger:'#ef4444',suppression:'#f59e0b',progesterone:'#ec4899',other:'#6b7280'};
     var cycleDay = Math.floor((today - start) / 86400000) + 1;
@@ -2263,7 +2263,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
         method: 'POST',
         headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ medications_simple: meds, start_date: localDateStr(new Date()), updated_at: new Date().toISOString() })
+        body: JSON.stringify({ medications_simple: meds, updated_at: new Date().toISOString() })
       }).then(function(r) {
         console.log('SAVE:', pid, r.status, r.ok);
         r.clone().text().then(function(t){console.log('SAVE_BODY:', t);});
@@ -2284,19 +2284,24 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
   // Auto-load: called by MutationObserver — only shows grid if data exists
   window.loadAndBuildMedGrid = function(pid) {
     var container = document.getElementById('medgrid-container-' + pid);
-    if (!container) return;
-    // Fetch from API only — no localStorage cache
+    if (!container) { console.log('[MedGrid] loadAndBuild: no container for', pid); return; }
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
-    if (!baseUrl || !key) return;
+    if (!baseUrl || !key) { console.log('[MedGrid] loadAndBuild: no API_BASE/KEY yet for', pid); return; }
+    console.log('[MedGrid] loadAndBuild: fetching cycle for', pid);
     fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
       headers: { 'X-API-Key': key }
     }).then(function(r) { return r.json(); }).then(function(data) {
+      console.log('[MedGrid] loadAndBuild: got data for', pid, 'keys:', data ? Object.keys(data) : 'null');
       var meds = (data && data.medications_simple) ? data.medications_simple : null;
+      console.log('[MedGrid] loadAndBuild: medications_simple count:', meds ? Object.keys(meds).length : 0);
       if (meds && Object.keys(meds).length > 0) {
         buildMedGridForPatient(pid, container, meds);
+        console.log('[MedGrid] loadAndBuild: grid built for', pid);
+      } else {
+        console.log('[MedGrid] loadAndBuild: no meds to show for', pid);
       }
-    }).catch(function() {});
+    }).catch(function(e) { console.error('[MedGrid] loadAndBuild error:', pid, e); });
   };
 
   // Toggle: called by + button — always opens (empty grid if no data), or closes

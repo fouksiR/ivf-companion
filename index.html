@@ -200,37 +200,56 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .send-btn:active{transform:scale(.93)}
 .send-btn svg{width:18px;height:18px}
 
-#panel-checkin{padding:20px 16px;gap:12px;align-items:center;background:transparent}
-.checkin-hero{text-align:center;padding:4px 0}
-.checkin-hero h2{font-size:24px;color:var(--text)}
-.checkin-hero p{font-size:12px;color:var(--text-soft);margin-top:2px}
-.current-stage-card{width:100%;max-width:420px;background:var(--accent-light);border-radius:var(--radius-sm);padding:14px 18px;display:flex;align-items:center;gap:12px;border:1px solid rgba(45,142,142,.12)}
-.current-stage-card .cs-text h3{font-family:'Montserrat',sans-serif;font-size:13px;font-weight:600;color:var(--accent)}
-.current-stage-card .cs-text p{font-size:11px;color:var(--text-mid);margin-top:1px}
-.current-stage-card .cs-change{margin-left:auto;font-size:11px;font-weight:600;color:var(--accent);background:var(--white);padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid rgba(45,142,142,.2);font-family:'Montserrat',sans-serif}
-.dim-card{width:100%;max-width:420px;background:var(--white);border-radius:var(--radius);padding:16px 18px;border:1px solid var(--border-light);transition:border-color .2s}
-.dim-card:hover{border-color:var(--border)}
-.dim-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.dim-header .dim-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.dim-header .dim-icon svg{width:14px;height:14px}
-.dim-icon-mood{background:var(--warm-light);color:var(--warm)}
-.dim-icon-anxiety{background:var(--red-light);color:var(--red)}
-.dim-icon-loneliness{background:#F3EEFA;color:#8B6BA8}
-.dim-icon-uncertainty{background:var(--accent-light);color:var(--accent)}
-.dim-icon-hope{background:var(--amber-light);color:var(--amber)}
-.dim-header .dim-title{font-size:13px;font-weight:600;color:var(--text)}
-.dim-header .dim-val{margin-left:auto;font-size:18px;font-weight:700;color:var(--text);font-family:'Cormorant Garamond',serif;min-width:24px;text-align:right}
-.dim-prompt{font-size:12px;color:var(--text-soft);margin-bottom:10px;line-height:1.4}
-.dim-slider-wrap input[type="range"]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;outline:none;cursor:pointer;background:var(--border)}
-.dim-slider-wrap input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--white);border:2px solid var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.12);cursor:pointer;transition:transform .12s}
-.dim-slider-wrap input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.15)}
-.dim-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);margin-top:4px;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
-.note-area{width:100%;max-width:420px}
-.note-area textarea{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:'Montserrat',sans-serif;font-size:13px;color:var(--text);background:var(--white);outline:none;resize:none;height:56px;transition:border-color .2s}
-.note-area textarea:focus{border-color:var(--accent)}
+/* ── Check-in: Calming Interactive Experience ── */
+#panel-checkin{padding:12px 16px 100px;gap:16px;align-items:center;background:linear-gradient(180deg,#faf9f7 0%,#f0f7f7 50%,#f5f0f8 100%);scroll-snap-type:y proximity;overflow-y:auto}
+.checkin-hero{text-align:center;padding:12px 0 4px}
+.checkin-hero h2{font-size:14px;color:var(--text-soft);font-weight:500;font-family:var(--sans);letter-spacing:.3px}
+.checkin-hero p{display:none}
+.checkin-hero .ci-bubble{display:inline-block;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border-radius:20px;padding:12px 22px;font-size:15px;color:var(--text);font-family:var(--serif);line-height:1.5;box-shadow:0 2px 12px rgba(0,0,0,.04);margin-top:6px;max-width:320px}
+.current-stage-card{width:100%;max-width:440px;background:rgba(255,255,255,.6);backdrop-filter:blur(8px);border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:10px;border:1px solid rgba(45,142,142,.08);flex-shrink:0;box-sizing:border-box}
+.current-stage-card .cs-text h3{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--accent)}
+.current-stage-card .cs-text p{font-size:10px;color:var(--text-mid);margin-top:1px}
+.current-stage-card .cs-change{margin-left:auto;font-size:10px;font-weight:600;color:var(--accent);background:var(--white);padding:4px 12px;border-radius:20px;cursor:pointer;border:1px solid rgba(45,142,142,.15);font-family:var(--sans)}
+.dim-card{width:100%;max-width:440px;border-radius:20px;padding:24px 22px 20px;border:none;position:relative;overflow:visible;scroll-snap-align:start;transition:transform .3s ease,box-shadow .3s ease;flex-shrink:0;box-sizing:border-box}
+.dim-card:active{transform:scale(.99)}
+.dim-header{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.dim-header .dim-icon{display:none}
+.dim-header .dim-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;opacity:.6}
+.dim-header .dim-val{display:none}
+.dim-prompt{font-size:18px;font-family:var(--serif);color:var(--text);margin-bottom:4px;line-height:1.4;font-weight:500}
+.dim-visual{height:48px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:36px;transition:all .4s ease;will-change:transform,opacity}
+.dim-slider-wrap{padding:0 4px}
+.dim-slider-wrap input[type="range"]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;transition:background .3s ease}
+.dim-slider-wrap input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--white);border:2.5px solid currentColor;box-shadow:0 2px 10px rgba(0,0,0,.15);cursor:pointer;transition:transform .15s cubic-bezier(.34,1.56,.64,1),box-shadow .15s}
+.dim-slider-wrap input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.12)}
+.dim-slider-wrap input[type="range"]:active::-webkit-slider-thumb{transform:scale(1.18);box-shadow:0 3px 14px rgba(0,0,0,.2)}
+.dim-slider-wrap input[type="range"]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:var(--white);border:2.5px solid currentColor;box-shadow:0 2px 10px rgba(0,0,0,.15);cursor:pointer}
+.dim-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-mid);margin-top:6px;font-weight:500;opacity:.7}
+.dim-card-mood{background:linear-gradient(135deg,#FDE8D8 0%,#F5E1EE 100%);color:#7C5A3C}
+.dim-card-mood .dim-title{color:#9B7055}
+.dim-card-mood input[type="range"]{background:linear-gradient(90deg,#CBD5E1,#FBBF24);color:#D4886B}
+.dim-card-anxiety{background:linear-gradient(135deg,#D1FAE5 0%,#FEF3C7 100%);color:#3B6B5B}
+.dim-card-anxiety .dim-title{color:#5A8E7E}
+.dim-card-anxiety input[type="range"]{background:linear-gradient(90deg,#5EEAD4,#FBBF24);color:#2D8E8E}
+.dim-card-lonely{background:linear-gradient(135deg,#FCE7F3 0%,#E2E8F0 100%);color:#6B4C6A}
+.dim-card-lonely .dim-title{color:#8B6BA8}
+.dim-card-lonely input[type="range"]{background:linear-gradient(90deg,#FDA4AF,#94A3B8);color:#C06090}
+.dim-card-uncertain{background:linear-gradient(135deg,#D9F99D 0%,#DDD6FE 100%);color:#4A5540}
+.dim-card-uncertain .dim-title{color:#6B7E5A}
+.dim-card-uncertain input[type="range"]{background:linear-gradient(90deg,#86EFAC,#C4B5FD);color:#6B8E5A}
+.dim-card-hope{background:linear-gradient(135deg,#FEE2E2 0%,#FEF9C3 100%);color:#7A5A3A}
+.dim-card-hope .dim-title{color:#B8864A}
+.dim-card-hope input[type="range"]{background:linear-gradient(90deg,#FCA5A5,#FDE047);color:#D4886B}
+.note-area{width:100%;max-width:440px;flex-shrink:0;box-sizing:border-box}
+.note-area textarea{width:100%;padding:14px 18px;border:none;border-radius:16px;font-family:var(--sans);font-size:13px;color:var(--text);background:rgba(255,255,255,.7);backdrop-filter:blur(8px);outline:none;resize:none;height:56px;transition:box-shadow .2s;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.note-area textarea:focus{box-shadow:0 2px 12px rgba(45,142,142,.12)}
 .note-area textarea::placeholder{color:var(--text-faint)}
-.checkin-btn-area{width:100%;max-width:420px}
-.ai-response{width:100%;max-width:420px;background:var(--white);border-radius:var(--radius);padding:18px;border:1px solid var(--border-light);border-left:3px solid var(--accent);display:none;animation:msgIn .35s ease}
+.checkin-btn-area{width:100%;max-width:440px;flex-shrink:0;box-sizing:border-box}
+#btn-checkin{width:100%;padding:16px 48px;border-radius:24px;background:linear-gradient(135deg,#0D9488,#14B8A6);color:white;font-size:15px;font-weight:600;border:none;cursor:pointer;font-family:var(--sans);box-shadow:0 4px 16px rgba(13,148,136,.25);transition:transform .15s,box-shadow .15s;letter-spacing:.3px}
+#btn-checkin:active{transform:scale(.97);box-shadow:0 2px 8px rgba(13,148,136,.15)}
+#btn-checkin:disabled{opacity:.6;transform:none}
+#btn-checkin.saved{background:linear-gradient(135deg,#22c55e,#16a34a)}
+.ai-response{width:100%;max-width:440px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);border-radius:20px;padding:20px;border:none;border-left:3px solid var(--accent);display:none;animation:msgIn .35s ease;box-shadow:0 2px 12px rgba(0,0,0,.04)}
 .ai-response .ar-label{font-size:10px;font-weight:600;color:var(--accent);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
 .ai-response .ar-text{font-size:14px;line-height:1.65;color:var(--text)}
 
@@ -839,17 +858,17 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   </div>
   <div class="app-nav"><button class="nav-item active" onclick="switchTab('chat')"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</button><button class="nav-item" onclick="switchTab('checkin')"><svg viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>Check-in</button><button class="nav-item" onclick="switchTab('circle')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Circle</button><button class="nav-item" onclick="switchTab('journey')"><svg viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h1M2 12h1m16.66 7.66l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Insights</button></div>
   <div class="tab-panel active" id="panel-chat"><div class="chat-area" id="chat-area"></div><div class="typing-dots" id="typing"><span></span><span></span><span></span></div><div class="chat-composer"><textarea id="chat-input" rows="1" placeholder="Ask about your treatment, medications, or share how you're feeling..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea><button class="send-btn" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div></div>
-  <div class="tab-panel" id="panel-checkin">
-    <div class="checkin-hero"><h2>Daily Check-in</h2><p>How are you feeling today?</p></div>
+<div class="tab-panel" id="panel-checkin">
+    <div class="checkin-hero"><h2>Daily Check-in</h2><p>How are you feeling today?</p><div class="ci-bubble" id="ci-bubble">Take a moment to check in with yourself &#x1F49B;</div></div>
     <div class="current-stage-card"><div class="cs-text"><h3 id="ci-stage-name">Loading</h3><p id="ci-stage-cycle">Cycle 1</p></div><button class="cs-change" onclick="openStageModal()">Change</button></div>
-    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-mood"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg></div><div class="dim-title">Mood</div><div class="dim-val" id="v-mood">5</div></div><p class="dim-prompt">How's your overall mood right now?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-mood').textContent=this.value;if(collector)collector.onSliderChange('mood',+this.value)"></div><div class="dim-labels"><span>Very low</span><span>Great</span></div></div>
-    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-anxiety"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="dim-title">Anxiety</div><div class="dim-val" id="v-anxiety">5</div></div><p class="dim-prompt">How anxious or on-edge are you feeling?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-anxiety').textContent=this.value;if(collector)collector.onSliderChange('anxiety',+this.value)"></div><div class="dim-labels"><span>Calm</span><span>Very anxious</span></div></div>
-    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-loneliness"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="dim-title">Loneliness</div><div class="dim-val" id="v-lonely">5</div></div><p class="dim-prompt">How connected or isolated do you feel?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-lonely').textContent=this.value;if(collector)collector.onSliderChange('loneliness',+this.value)"></div><div class="dim-labels"><span>Connected</span><span>Very alone</span></div></div>
-    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-uncertainty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="dim-title">Uncertainty</div><div class="dim-val" id="v-uncertain">5</div></div><p class="dim-prompt">How uncertain do things feel right now?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-uncertain').textContent=this.value;if(collector)collector.onSliderChange('uncertainty',+this.value)"></div><div class="dim-labels"><span>Settled</span><span>Very uncertain</span></div></div>
-    <div class="dim-card"><div class="dim-header"><div class="dim-icon dim-icon-hope"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="dim-title">Hope</div><div class="dim-val" id="v-hope">5</div></div><p class="dim-prompt">How hopeful are you feeling about things?</p><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-hope').textContent=this.value;if(collector)collector.onSliderChange('hope',+this.value)"></div><div class="dim-labels"><span>Hopeless</span><span>Very hopeful</span></div></div>
+    <div class="dim-card dim-card-mood"><div class="dim-header"><div class="dim-icon dim-icon-mood"></div><div class="dim-title">Mood</div><div class="dim-val" id="v-mood">5</div></div><p class="dim-prompt">How's your heart feeling?</p><div class="dim-visual" id="vis-mood">&#x1F324;&#xFE0F;</div><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-mood').textContent=this.value;updateVisual('mood',+this.value);if(collector)collector.onSliderChange('mood',+this.value)"></div><div class="dim-labels"><span>Heavy &#x1F327;&#xFE0F;</span><span>Bright &#x2600;&#xFE0F;</span></div></div>
+    <div class="dim-card dim-card-anxiety"><div class="dim-header"><div class="dim-icon dim-icon-anxiety"></div><div class="dim-title">Calm</div><div class="dim-val" id="v-anxiety">5</div></div><p class="dim-prompt">How calm or restless do you feel?</p><div class="dim-visual" id="vis-anxiety">&#x1F30A;</div><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-anxiety').textContent=this.value;updateVisual('anxiety',+this.value);if(collector)collector.onSliderChange('anxiety',+this.value)"></div><div class="dim-labels"><span>Still water &#x1F30A;</span><span>Choppy seas &#x26F5;</span></div></div>
+    <div class="dim-card dim-card-lonely"><div class="dim-header"><div class="dim-icon dim-icon-loneliness"></div><div class="dim-title">Connection</div><div class="dim-val" id="v-lonely">5</div></div><p class="dim-prompt">How connected do you feel?</p><div class="dim-visual" id="vis-lonely">&#x1F91D;</div><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-lonely').textContent=this.value;updateVisual('lonely',+this.value);if(collector)collector.onSliderChange('loneliness',+this.value)"></div><div class="dim-labels"><span>Held &#x1F917;</span><span>Distant &#x1F319;</span></div></div>
+    <div class="dim-card dim-card-uncertain"><div class="dim-header"><div class="dim-icon dim-icon-uncertainty"></div><div class="dim-title">Clarity</div><div class="dim-val" id="v-uncertain">5</div></div><p class="dim-prompt">How settled or unsettled do things feel?</p><div class="dim-visual" id="vis-uncertain">&#x1F9ED;</div><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-uncertain').textContent=this.value;updateVisual('uncertain',+this.value);if(collector)collector.onSliderChange('uncertainty',+this.value)"></div><div class="dim-labels"><span>Clear path &#x1F9ED;</span><span>Fog ahead &#x1F32B;&#xFE0F;</span></div></div>
+    <div class="dim-card dim-card-hope"><div class="dim-header"><div class="dim-icon dim-icon-hope"></div><div class="dim-title">Hope</div><div class="dim-val" id="v-hope">5</div></div><p class="dim-prompt">How hopeful are you feeling?</p><div class="dim-visual" id="vis-hope">&#x1F305;</div><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-hope').textContent=this.value;updateVisual('hope',+this.value);if(collector)collector.onSliderChange('hope',+this.value)"></div><div class="dim-labels"><span>Dusk &#x1F307;</span><span>Dawn &#x1F304;</span></div></div>
     <div class="note-area"><textarea id="ci-note" placeholder="Anything on your mind? (optional)"></textarea></div>
-    <div class="checkin-btn-area"><button class="btn btn-primary" id="btn-checkin" onclick="submitCheckin()">Submit check-in</button></div>
-    <div class="ai-response" id="ci-response"><div class="ar-label">Melod·AI</div><div class="ar-text" id="ci-response-text"></div></div>
+    <div class="checkin-btn-area"><button id="btn-checkin" onclick="submitCheckin()">Save check-in &#x1F4AB;</button></div>
+    <div class="ai-response" id="ci-response"><div class="ar-label">Melod&#xB7;AI</div><div class="ar-text" id="ci-response-text"></div></div>
   </div>
   <div class="tab-panel" id="panel-circle" style="padding:16px">
     <div class="community-tabs"><button class="community-tab active" onclick="switchCommunityTab('buddies')">Buddies</button><button class="community-tab" onclick="switchCommunityTab('world')">World</button></div>
@@ -2144,9 +2163,36 @@ function acceptEggSupport(actionText){
   setTimeout(function(){sendAutoMsg(actionText)},300);
 }
 function showCalendarToast(count){var toast=document.createElement('div');toast.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#2D8E8E;color:white;padding:10px 20px;border-radius:50px;font-size:13px;font-family:var(--sans);z-index:300;box-shadow:0 4px 12px rgba(0,0,0,.15);animation:fadeIn .3s;';toast.textContent='\ud83d\udcc5 Your team updated '+count+' event'+(count>1?'s':'');document.body.appendChild(toast);setTimeout(function(){toast.style.opacity='0';toast.style.transition='opacity .3s';setTimeout(function(){toast.remove()},300)},4000)}
+// ── Check-in Visual Metaphors ──
+var _ciVisuals = {
+  mood: ['\uD83C\uDF27\uFE0F','\uD83C\uDF27\uFE0F','\uD83C\uDF26\uFE0F','\u26C5','\u26C5','\uD83C\uDF24\uFE0F','\uD83C\uDF24\uFE0F','\u2600\uFE0F','\u2600\uFE0F','\uD83C\uDF1E','\uD83C\uDF1E'],
+  anxiety: ['\uD83C\uDFD6\uFE0F','\uD83C\uDFD6\uFE0F','\uD83C\uDFD6\uFE0F','\u2693','\u2693','\uD83C\uDF0A','\uD83C\uDF0A','\u26F5','\u26F5','\u26F5','\u26A1'],
+  lonely: ['\uD83E\uDD17','\uD83E\uDD17','\uD83E\uDD1D','\uD83E\uDD1D','\uD83D\uDC65','\uD83D\uDC65','\uD83D\uDC64','\uD83D\uDC64','\uD83C\uDF19','\uD83C\uDF19','\uD83C\uDF11'],
+  uncertain: ['\uD83E\uDDED','\uD83E\uDDED','\uD83D\uDEE4\uFE0F','\uD83D\uDEE4\uFE0F','\uD83D\uDEE4\uFE0F','\u2753','\u2753','\uD83C\uDF2B\uFE0F','\uD83C\uDF2B\uFE0F','\uD83C\uDF2B\uFE0F','\uD83C\uDF2B\uFE0F'],
+  hope: ['\uD83C\uDF11','\uD83C\uDF07','\uD83C\uDF07','\uD83C\uDF06','\uD83C\uDF06','\uD83C\uDF05','\uD83C\uDF05','\uD83C\uDF04','\uD83C\uDF04','\u2728','\u2728']
+};
+function updateVisual(dim, val) {
+  var el = document.getElementById('vis-' + dim);
+  if (!el) return;
+  var emojis = _ciVisuals[dim];
+  if (emojis) { el.textContent = emojis[Math.min(val, 10)]; el.style.transform = 'scale(' + (0.9 + val * 0.02) + ')'; }
+}
+var _ciBubbles = [
+  'Take a moment to check in with yourself \uD83D\uDC9B',
+  'There\u2019s no wrong way to feel \uD83C\uDF3F',
+  'Your feelings matter \u2014 all of them \u2728',
+  'A quiet moment, just for you \uD83E\uDDD8\u200D\u2640\uFE0F',
+  'Be gentle with yourself today \uD83C\uDF38',
+  'Every feeling is information, not a verdict \uD83C\uDF19'
+];
+(function initCheckinBubble() {
+  var el = document.getElementById('ci-bubble');
+  if (el) { var idx = new Date().getDate() % _ciBubbles.length; el.innerHTML = _ciBubbles[idx]; }
+})();
+
 async function submitCheckin(){var b=document.getElementById('btn-checkin');b.disabled=true;b.textContent='Submitting...';var c={mood:+document.getElementById('v-mood').textContent,anxiety:+document.getElementById('v-anxiety').textContent,loneliness:+document.getElementById('v-lonely').textContent,uncertainty:+document.getElementById('v-uncertain').textContent,hope:+document.getElementById('v-hope').textContent,note:document.getElementById('ci-note').value.trim()};
 if(collector)collector.onCheckinComplete(c);
-state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message;if(d.capability_hint){setTimeout(function(){addSystemMsg(d.capability_hint)},1000)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){eggProactiveSupport(d.support_widgets[0])},1500)}}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Submit check-in';updateChart();
+state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message;if(d.capability_hint){setTimeout(function(){addSystemMsg(d.capability_hint)},1000)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){eggProactiveSupport(d.support_widgets[0])},1500)}}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Save check-in \uD83D\uDCAB';b.classList.add('saved');b.textContent='Saved \u2713';setTimeout(function(){b.classList.remove('saved');b.textContent='Save check-in \uD83D\uDCAB'},2000);updateChart();
 // Post-checkin community share prompt (only if mood < 5)
 if(c.mood<5&&!localStorage.getItem('melodai_share_dismissed')){setTimeout(function(){var prompt=document.createElement('div');prompt.style.cssText='margin:12px 0;padding:14px 16px;background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border-radius:14px;border:1px solid rgba(45,142,142,0.12);';prompt.innerHTML='<div style="font-size:13px;color:#3a7070;line-height:1.5;margin-bottom:10px">Sometimes it helps to know you\'re not alone. Want to share how you\'re feeling with the community? It\'s completely anonymous.</div><div style="display:flex;gap:8px"><button onclick="switchTab(\'circle\');setTimeout(function(){openPostModal()},300);this.closest(\'div\').parentElement.remove()" style="background:#2D8E8E;color:white;border:none;padding:8px 16px;border-radius:50px;font-size:12px;font-family:var(--sans);cursor:pointer">Share</button><button onclick="localStorage.setItem(\'melodai_share_dismissed\',\'1\');this.closest(\'div\').parentElement.remove()" style="background:none;border:1px solid rgba(45,142,142,0.15);color:#6a9e9e;padding:8px 16px;border-radius:50px;font-size:12px;font-family:var(--sans);cursor:pointer">Not now</button></div>';rp.parentElement.appendChild(prompt)},1500)}}
 function getStageName(id){var s=STAGES.find(function(s){return s.id===id});return s?s.name:id}

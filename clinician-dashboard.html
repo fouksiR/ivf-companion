@@ -2024,6 +2024,7 @@ function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1)
     containerEl.appendChild(table);
     if (savedMeds && typeof savedMeds === 'object') {
       Object.values(savedMeds).forEach(function(m) {
+        console.log('[MedGrid] Inserting row:', m.name, 'doses:', JSON.stringify(m.doses || {}));
         insertMedRow(tbody, m.name || '', m.doses || {});
       });
     }

@@ -8,7 +8,8 @@ firebase.initializeApp({
   databaseURL: "https://fertility-gp-portal-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "fertility-gp-portal",
   storageBucket: "fertility-gp-portal.appspot.com",
-  messagingSenderId: "532857641879"
+  messagingSenderId: "532857641879",
+  appId: "1:532857641879:web:226d22b6b33987ce7e82d2"
 });
 
 var messaging = firebase.messaging();

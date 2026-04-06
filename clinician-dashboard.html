@@ -1937,23 +1937,28 @@ function OLD_addMedRow(pid) { try {
 
 function saveMedGrid(pid) { try {
   if (window._medGridLoading) return;
+  if (window._medGridSaving) return;
   if (!pid || pid.startsWith('container-')) return;
   var grid = document.getElementById('medgrid-container-' + pid);
   if (!grid) return;
   var rows = grid.querySelectorAll('tbody tr');
   var meds = {};
   rows.forEach(function(row, i) {
-    var inputs = row.querySelectorAll('input');
-    var nameEl = row.querySelector('select') || row.querySelector('td:first-child input'); var name = nameEl ? nameEl.value.trim() : '';
+    var nameEl = row.querySelector('select') || row.querySelector('td:first-child input');
+    var name = nameEl ? nameEl.value.trim() : '';
     if (!name) return;
+    // Use td-based traversal (skip name td and delete td) — same approach as doSaveMeds
+    var doseTds = row.querySelectorAll('td:not(:first-child):not(:last-child)');
     var doses = {};
-    for (var d = 1; d < inputs.length; d++) {
-      var val = inputs[d].value.trim();
-      if (val) doses['d' + d] = val;
-    }
+    doseTds.forEach(function(td, dIdx) {
+      var inp = td.querySelector('input');
+      var val = inp ? inp.value.trim() : '';
+      if (val) doses['d' + (dIdx + 1)] = val;
+    });
     meds['med_' + i] = { name: name, doses: doses };
   });
   if (Object.keys(meds).length === 0) { console.log('[MedGrid] No named meds — skip save'); return; }
+  console.log('[MedGrid] saveMedGrid payload for', pid, JSON.stringify(meds));
   authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ medications_simple: meds })
@@ -2246,6 +2251,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
 
   function doSaveMeds(pid, tbody, statusEl) {
     try {
+      window._medGridSaving = true;
       var rows = tbody.querySelectorAll('tr');
       // Also save to localStorage for instant persistence
       var meds = {};
@@ -2264,6 +2270,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
         });
         meds['med_' + i] = { name: name, doses: doses };
       });
+      console.log('[MedGrid] doSaveMeds payload for', pid, JSON.stringify(meds));
       var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
       var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
       fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
@@ -2278,8 +2285,10 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
           setTimeout(function() { statusEl.style.display = 'none'; }, 2000);
         }
         console.log('[Cycle] Saved to melod_ai/patients/' + pid + '/cycle');
-      }).catch(function(e) { console.error('Med save failed:', e); });
-    } catch(e) { console.error('doSaveMeds error:', e); }
+      }).catch(function(e) { console.error('Med save failed:', e); }).finally(function() {
+        setTimeout(function() { window._medGridSaving = false; }, 500);
+      });
+    } catch(e) { window._medGridSaving = false; console.error('doSaveMeds error:', e); }
   }
 
   window.buildMedGridForPatient = buildMedGridForPatient;

@@ -1936,7 +1936,9 @@ function OLD_addMedRow(pid) { try {
 }
 
 function saveMedGrid(pid) { try {
-  var grid = document.getElementById('medgrid-' + pid);
+  if (window._medGridLoading) return;
+  if (!pid || pid.startsWith('container-')) return;
+  var grid = document.getElementById('medgrid-container-' + pid);
   if (!grid) return;
   var rows = grid.querySelectorAll('tbody tr');
   var meds = {};
@@ -1959,10 +1961,13 @@ function saveMedGrid(pid) { try {
 }
 
 // Auto-save on blur (when user tabs/clicks away from a cell)
+// GUARD: skip during grid loading to prevent overwriting real data with empty grids
 document.addEventListener('focusout', function(e) {
-  var grid = e.target.closest('[id^="medgrid-"]');
+  if (window._medGridLoading) return;
+  var grid = e.target.closest('[id^="medgrid-container-"]');
   if (!grid) return;
-  var pid = grid.id.replace('medgrid-', '');
+  var pid = grid.id.replace('medgrid-container-', '');
+  if (!pid || pid.startsWith('container-')) return;
   saveMedGrid(pid);
 });
 
@@ -1974,7 +1979,7 @@ function loadSavedMeds(pid) {
     var meds = cycle.medications_simple;
     Object.values(meds).forEach(function(m) {
       addMedRow(pid);
-      var grid = document.getElementById('medgrid-' + pid);
+      var grid = document.getElementById('medgrid-container-' + pid);
       if (!grid) return;
       var lastRow = grid.querySelector('tbody tr:last-child');
       var inputs = lastRow.querySelectorAll('input');
@@ -2282,13 +2287,19 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
   window.doSaveMeds = doSaveMeds;
   window.injectMedGrids = injectMedGrids;
 
+  // Track which patient grids have already been built to prevent duplicates
+  var _builtGrids = {};
+
   // Auto-load: called by MutationObserver — only shows grid if data exists
   window.loadAndBuildMedGrid = function(pid) {
+    if (_builtGrids[pid]) { console.log('[MedGrid] loadAndBuild: already built for', pid); return; }
     var container = document.getElementById('medgrid-container-' + pid);
     if (!container) { console.log('[MedGrid] loadAndBuild: no container for', pid); return; }
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
     if (!baseUrl || !key) { console.log('[MedGrid] loadAndBuild: no API_BASE/KEY yet for', pid); return; }
+    _builtGrids[pid] = true;
+    window._medGridLoading = true;
     console.log('[MedGrid] loadAndBuild: fetching cycle for', pid);
     fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
       headers: { 'X-API-Key': key }
@@ -2302,7 +2313,10 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       } else {
         console.log('[MedGrid] loadAndBuild: no meds to show for', pid);
       }
-    }).catch(function(e) { console.error('[MedGrid] loadAndBuild error:', pid, e); });
+    }).catch(function(e) { console.error('[MedGrid] loadAndBuild error:', pid, e); }).finally(function() {
+      // Clear loading flag after a short delay to let any focusout events settle
+      setTimeout(function() { window._medGridLoading = false; }, 300);
+    });
   };
 
   // Toggle: called by + button — always opens (empty grid if no data), or closes
@@ -2314,13 +2328,15 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
     if (container.children.length > 0) {
       console.log('[MedGrid] Collapsing grid for', pid);
       container.innerHTML = '';
+      _builtGrids[pid] = false;
       return;
     }
     // Show empty grid immediately, then populate from API
+    window._medGridLoading = true;
     buildMedGridForPatient(pid, container, null);
     var baseUrl = typeof API_BASE !== 'undefined' ? API_BASE : '';
     var key = typeof API_KEY !== 'undefined' ? API_KEY : '';
-    if (!baseUrl || !key) return;
+    if (!baseUrl || !key) { window._medGridLoading = false; return; }
     fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
       headers: { 'X-API-Key': key }
     }).then(function(r) { return r.json(); }).then(function(data) {
@@ -2328,7 +2344,10 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       if (meds && Object.keys(meds).length > 0) {
         buildMedGridForPatient(pid, container, meds);
       }
-    }).catch(function() {});
+    }).catch(function() {}).finally(function() {
+      _builtGrids[pid] = true;
+      setTimeout(function() { window._medGridLoading = false; }, 300);
+    });
   };
 
   function injectMedGrids() {

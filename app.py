@@ -5048,6 +5048,10 @@ async def update_patient_cycle(patient_id: str, request: Request):
     Uses .update() instead of .set() to avoid wiping sibling data if
     Firebase read returns stale/empty data (multi-instance Cloud Run).
     """
+    # Reject bogus patient IDs created by the container- prefix bug
+    if patient_id.startswith("container-"):
+        logger.warning(f"Rejected container-prefixed patient_id: {patient_id}")
+        return {"status": "rejected", "reason": "invalid patient_id"}
     data = await request.json()
     logger.info(f"Cycle update request for {patient_id}: incoming_keys={list(data.keys())}")
     try:
@@ -5076,6 +5080,23 @@ async def update_patient_cycle(patient_id: str, request: Request):
                 # Empty dict sent — don't write it, don't delete existing
                 update_payload.pop('medications_simple', None)
                 logger.info(f"Skipped empty medications_simple for {patient_id}")
+            elif ms is not None and isinstance(ms, dict) and len(ms) > 0:
+                # Check if incoming meds have ALL empty doses — likely a focusout race
+                # If existing data has doses and incoming doesn't, merge to preserve doses
+                try:
+                    existing = ref.child('medications_simple').get() or {}
+                    if existing and isinstance(existing, dict):
+                        incoming_has_any_doses = any(
+                            bool(m.get('doses', {})) for m in ms.values() if isinstance(m, dict)
+                        )
+                        existing_has_doses = any(
+                            bool(m.get('doses', {})) for m in existing.values() if isinstance(m, dict)
+                        )
+                        if not incoming_has_any_doses and existing_has_doses:
+                            logger.warning(f"Blocked dose-stripping save for {patient_id}: incoming has 0 doses, existing has doses")
+                            update_payload.pop('medications_simple', None)
+                except Exception as me:
+                    logger.warning(f"medications_simple merge check failed: {me}")
 
             # Auto-correct start_date if it was saved with UTC (off-by-one in AEST)
             try:

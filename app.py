@@ -3507,8 +3507,8 @@ async def clinician_phenotype_history(patient_id: str, days: int = 30):
     cutoff = (datetime.now() - timedelta(days=days)).isoformat()
     recent = [s for s in history if s.get("timestamp", "") >= cutoff]
 
-    # Also include in-memory check-in data for completeness
-    checkins = checkins_db.get(patient_id, [])
+    # Load check-ins from Firebase (in-memory may be stale across Cloud Run instances)
+    checkins = firebase_db.load_checkins(patient_id) if firebase_db else checkins_db.get(patient_id, [])
     recent_checkins = [c for c in checkins if c.get("date", "") >= cutoff]
 
     return {

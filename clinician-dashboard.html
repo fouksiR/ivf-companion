@@ -646,13 +646,11 @@
       <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
     <!-- Modal Tabs -->
-<div id="cycle-grid-area" style="padding:12px 16px;border-bottom:1px solid #e8eaed;"></div>
     <div class="modal-tabs">
       <button class="tab-btn active" onclick="switchModalTab('briefing')">Briefing</button>
       <button class="tab-btn" onclick="switchModalTab('phenotype')">Trends</button>
       <button class="tab-btn" onclick="switchModalTab('conversations')">Conversations</button>
       <button class="tab-btn" onclick="switchModalTab('actions')">Actions</button>
-      <button class="tab-btn" onclick="switchModalTab('cycle')">Cycle</button>
     </div>
     <div id="modalBody"></div>
   </div>
@@ -1115,9 +1113,6 @@ async function loadModalTab(patientId, tab) {
     } catch (e) { body.innerHTML = '<div style="padding:40px;color:var(--red)">Failed to load conversations</div>'; }
   } else if (tab === 'actions') {
     body.innerHTML = renderActionsTab(patientId);
-  } else if (tab === 'cycle') {
-    body.innerHTML = '<div style="padding:20px;text-align:center;color:#888">Loading cycle data...</div>';
-    loadCycleTab(patientId);
   }
 }
 

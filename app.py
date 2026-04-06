@@ -4321,6 +4321,110 @@ async def add_cycle_event(patient_id: str, request: Request):
         pass
     return {"status": "ok", "event": event}
 
+
+# ── Medication Adherence Tracking ────────────────────────────────────
+
+@app.post("/patient/{patient_id}/med-taken")
+async def mark_med_taken(patient_id: str, request: Request):
+    """Patient marks a medication as taken. Writes to Firebase med_adherence."""
+    body = await request.json()
+    date_str = body.get("date", "")
+    med_name = body.get("med_name", "all")
+    timestamp = body.get("timestamp", utc_iso())
+    if not date_str:
+        raise HTTPException(status_code=400, detail="date required")
+    entry = {"taken": True, "timestamp": timestamp, "med_name": med_name}
+    # Write to Firebase: melod_ai/patients/{pid}/med_adherence/{date}/{safe_key}
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            safe_key = med_name.replace("/", "_").replace(".", "_").replace(" ", "_")[:40]
+            firebase_db._fb_ref.child("patients").child(patient_id).child("med_adherence").child(date_str).child(safe_key).update(entry)
+    except Exception as e:
+        logger.warning(f"med-taken Firebase write error: {e}")
+    return {"status": "ok"}
+
+
+@app.get("/clinician/patient/{patient_id}/adherence", dependencies=[Depends(verify_clinician_api_key)])
+async def get_adherence(patient_id: str, days: int = 14):
+    """Return medication adherence data: scheduled vs taken for each day."""
+    # 1. Get scheduled medications
+    meds_simple = {}
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            cycle = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").get()
+            if cycle and isinstance(cycle, dict):
+                meds_simple = cycle.get("medications_simple", {})
+    except Exception as e:
+        logger.warning(f"adherence: cycle read error: {e}")
+
+    # 2. Get adherence records
+    adherence_raw = {}
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            adherence_raw = firebase_db._fb_ref.child("patients").child(patient_id).child("med_adherence").get() or {}
+    except Exception as e:
+        logger.warning(f"adherence: adherence read error: {e}")
+
+    # 3. Build day-by-day report. Dashboard grid: D1=today, D2=tomorrow, etc.
+    from datetime import date as _date
+    today = _date.today()
+    day_reports = []
+    total_scheduled = 0
+    total_taken = 0
+
+    for day_offset in range(days):
+        d = today + timedelta(days=day_offset)
+        date_str = d.isoformat()
+        day_key = f"d{day_offset + 1}"
+        day_adherence = adherence_raw.get(date_str, {}) if isinstance(adherence_raw, dict) else {}
+
+        day_meds = []
+        for med_key, med_data in (meds_simple.items() if isinstance(meds_simple, dict) else []):
+            if not isinstance(med_data, dict):
+                continue
+            name = med_data.get("name", "")
+            doses = med_data.get("doses", {})
+            dose_val = doses.get(day_key, "")
+            if not dose_val:
+                continue
+            # This med is scheduled on this day
+            safe_key = name.replace("/", "_").replace(".", "_").replace(" ", "_")[:40]
+            # Also check display-string key (e.g. "Gonal-f_300")
+            display_str = f"{name} {dose_val}" if dose_val not in ("1", "\u2713") else name
+            safe_display = display_str.replace("/", "_").replace(".", "_").replace(" ", "_")[:40]
+            taken_entry = day_adherence.get(safe_key) or day_adherence.get(safe_display) or day_adherence.get(name.replace(" ", "_")[:40])
+            is_taken = bool(taken_entry and taken_entry.get("taken"))
+            taken_at = taken_entry.get("timestamp", "") if is_taken else ""
+
+            is_procedure = dose_val in ("1", "\u2713")
+            day_meds.append({
+                "name": display_str if not is_procedure else name,
+                "scheduled": True,
+                "taken": is_taken,
+                "taken_at": taken_at,
+                "is_procedure": is_procedure,
+            })
+            if not is_procedure:
+                total_scheduled += 1
+                if is_taken:
+                    total_taken += 1
+
+        if day_meds:
+            day_reports.append({"date": date_str, "day": day_key.upper(), "meds": day_meds})
+
+    adherence_pct = round((total_taken / total_scheduled * 100), 1) if total_scheduled > 0 else 0.0
+
+    return {
+        "patient_id": patient_id,
+        "days": day_reports,
+        "summary": {
+            "total_scheduled": total_scheduled,
+            "total_taken": total_taken,
+            "adherence_pct": adherence_pct,
+        },
+    }
+
+
 @app.put("/clinician/patient/{patient_id}/cycle-events/{event_id}", dependencies=[Depends(verify_clinician_api_key)])
 async def update_cycle_event(patient_id: str, event_id: str, request: Request):
     """Clinician modifies a cycle event date."""

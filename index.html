@@ -217,7 +217,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .dim-header .dim-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;opacity:.6}
 .dim-header .dim-val{display:none}
 .dim-prompt{font-size:18px;font-family:var(--serif);color:var(--text);margin-bottom:4px;line-height:1.4;font-weight:500}
-.dim-visual{height:48px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:36px;transition:all .4s ease;will-change:transform,opacity}
+.dim-visual{display:none}
 .dim-slider-wrap{padding:0 4px}
 .dim-slider-wrap input[type="range"]{-webkit-appearance:none;width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;transition:background .3s ease}
 .dim-slider-wrap input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--white);border:2.5px solid currentColor;box-shadow:0 2px 10px rgba(0,0,0,.15);cursor:pointer;transition:transform .15s cubic-bezier(.34,1.56,.64,1),box-shadow .15s}
@@ -3991,19 +3991,29 @@ var procs=[
 for(var i=0;i<procs.length;i++){if(procs[i].pat.test(str)&&!(procs[i].exclude&&procs[i].exclude.test(str)))return{isProcedure:true,name:procs[i].type,color:procs[i].color}}
 return{isProcedure:false,name:str,color:'#0D9488'}
 }
-function _getMedBadge(dateStr){
+function _getMedBadge(dateStr,medName){
 var now=new Date();var todayStr=_fmtDateStr(now);
-var takenKey=dateStr;
-if(_calMedTaken[takenKey])return{cls:'taken',label:'Done ✓'};
+var taken=_calMedTaken[dateStr];
+// Per-med check: taken can be {medName:true,...} or true (legacy)
+var isDone=taken===true||(taken&&typeof taken==='object'&&(taken._allDone||(medName&&taken[medName])));
+if(isDone)return{cls:'taken',label:'Done \u2713'};
 if(dateStr<todayStr)return{cls:'missed',label:'Missed'};
 if(dateStr===todayStr)return{cls:'due-soon',label:'Due today'};
 return{cls:'upcoming',label:'Upcoming'}
 }
 function markMedDone(dateStr,medIdx){
-_calMedTaken[dateStr]=true;
+// Track per-med adherence: _calMedTaken[date] = { medName: true, ... } or true (legacy)
+var meds=window.cycleMedsByDate&&window.cycleMedsByDate[dateStr]?window.cycleMedsByDate[dateStr]:[];
+var medItems=[];meds.forEach(function(m){var c=_classifyMedEntry(m);if(!c.isProcedure)medItems.push(m)});
+var medName=medItems[medIdx]||'unknown';
+if(typeof _calMedTaken[dateStr]!=='object')_calMedTaken[dateStr]={};
+_calMedTaken[dateStr][medName]=true;
+// Check if all meds for this date are done
+var allDone=medItems.length>0&&medItems.every(function(m){return _calMedTaken[dateStr]&&_calMedTaken[dateStr][m]});
+if(allDone)_calMedTaken[dateStr]._allDone=true;
 try{localStorage.setItem('melodai_med_taken_'+(state.patientId||''),JSON.stringify(_calMedTaken))}catch(e){}
-// Save to Firebase
-if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/med-taken',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:dateStr,taken:true,timestamp:new Date().toISOString()})}).catch(function(){})}
+// Save to Firebase via API
+if(API_BASE&&state.patientId){fetch(API_BASE+'/patient/'+state.patientId+'/med-taken',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:dateStr,med_name:medName,taken:true,timestamp:new Date().toISOString()})}).catch(function(){})}
 buildCalendar()
 }
 function toggleDayCollapse(dateStr){
@@ -4056,7 +4066,7 @@ var dayLabel=isToday?'<span class="cal-today-prefix">Today,</span> '+dayNamesFul
 dayLabel+=' '+wd.getDate()+' '+monthNames[wd.getMonth()];
 var countLabel=totalMeds>0?totalMeds+' medication'+(totalMeds>1?'s':'')+' scheduled':'No medications';
 if(procItems.length>0)countLabel+=', '+procItems.length+' procedure'+(procItems.length>1?'s':'');
-var allDone=totalMeds>0&&_calMedTaken[wds];
+var _taken=_calMedTaken[wds];var allDone=totalMeds>0&&(_taken===true||(_taken&&typeof _taken==='object'&&_taken._allDone));
 var collapsed=!isToday;
 h+='<div class="cal-day-card'+(collapsed?' collapsed':'')+'" id="daily-card-'+wds+'" data-date="'+wds+'">';
 h+='<div class="cal-day-card-hdr" onclick="toggleDayCollapse(\''+wds+'\')">';
@@ -4066,17 +4076,17 @@ h+='<div class="cal-day-body">';
 if(allDone){h+='<div class="cal-day-done-banner">All medications taken ✓</div>'}
 // Medication cards
 medItems.forEach(function(med){
-var badge=_getMedBadge(wds);
+var badge=_getMedBadge(wds,med.raw);
 var parts=med.name.match(/^(.+?)\s+([\d.]+\s*\w*)\s*$/);
 var medName=parts?parts[1]:med.name;
 var dose=parts?parts[2]:'';
-var isDone=_calMedTaken[wds];
+var _tk=_calMedTaken[wds];var isDone=_tk===true||(_tk&&typeof _tk==='object'&&(_tk._allDone||_tk[med.raw]));
 h+='<div class="cal-med-card" style="border-left-color:'+med.color+'">';
 h+='<div class="cal-med-dot" style="background:'+med.color+'">'+escHtml(med.name.charAt(0).toUpperCase())+'</div>';
 h+='<div class="cal-med-info"><div class="cal-med-name">'+escHtml(medName)+'</div>'+(dose?'<div class="cal-med-dose">'+escHtml(dose)+'</div>':'')+'</div>';
 h+='<span class="cal-med-badge '+badge.cls+'">'+badge.label+'</span>';
 if(!isDone&&badge.cls!=='upcoming'){h+='<button class="cal-mark-done" onclick="event.stopPropagation();markMedDone(\''+wds+'\','+med.idx+')">Mark done</button>'}
-else if(isDone){h+='<button class="cal-mark-done done">Done ✓</button>'}
+else if(isDone){h+='<button class="cal-mark-done done">Done \u2713</button>'}
 h+='</div>'});
 // Procedure cards
 procItems.forEach(function(proc){

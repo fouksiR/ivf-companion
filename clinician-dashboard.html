@@ -518,6 +518,29 @@
           font-weight: 500; z-index: 3000; opacity: 0; transition: opacity 0.3s;
           box-shadow: 0 4px 12px rgba(0,0,0,0.15); pointer-events: none; }
         .med-toast.show { opacity: 1; }
+
+        /* Adherence card */
+        .adh-card { background:#fff; border-radius:12px; border:1px solid #e8eaed; padding:16px; margin:0 20px 16px; }
+        .adh-header { display:flex; align-items:center; gap:14px; margin-bottom:12px; }
+        .adh-ring { position:relative; width:64px; height:64px; flex-shrink:0; }
+        .adh-ring svg { transform:rotate(-90deg); }
+        .adh-ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+          font-size:15px; font-weight:700; font-family:Montserrat,sans-serif; }
+        .adh-summary { font-size:12px; color:#6b7280; line-height:1.5; }
+        .adh-summary strong { color:#1e293b; font-weight:600; }
+        .adh-day { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f5f9;
+          font-size:12px; cursor:pointer; }
+        .adh-day:last-child { border-bottom:none; }
+        .adh-day-date { width:72px; font-weight:600; color:#475569; flex-shrink:0; }
+        .adh-day-meds { display:flex; flex-wrap:wrap; gap:4px; flex:1; }
+        .adh-pill { padding:2px 8px; border-radius:6px; font-size:10px; font-weight:600; }
+        .adh-pill.taken { background:#d1fae5; color:#065f46; }
+        .adh-pill.missed { background:#fee2e2; color:#991b1b; }
+        .adh-pill.upcoming { background:#f1f5f9; color:#64748b; }
+        .adh-pill.proc { background:#fef3c7; color:#92400e; }
+        .adh-detail { display:none; padding:4px 0 4px 80px; font-size:11px; color:#888; }
+        .adh-day.expanded .adh-detail { display:block; }
+
         /* Phenotype risk badges */
         .risk-badge { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600; font-family:Montserrat,sans-serif; }
         .risk-badge.green { background:#e8f5e9; color:#2e7d32; }
@@ -1095,6 +1118,8 @@ async function loadModalTab(patientId, tab) {
       if (!r.ok) throw new Error('Failed');
       var b = await r.json();
       console.log("[BRIEFING] Data received:", JSON.stringify(b).substring(0,200)); body.innerHTML = renderBriefing(b); console.log("[BRIEFING] Rendered HTML length:", body.innerHTML.length);
+      // Load adherence card into briefing
+      loadAdherenceCard(patientId);
     } catch (e) { body.innerHTML = '<div style="padding:40px;color:var(--red)">Failed to load briefing</div>'; }
   } else if (tab === 'phenotype') {
     body.innerHTML = '<div id="phenoCharts" style="padding:20px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
@@ -1494,6 +1519,7 @@ function closeModal(e) {
   if (e && e.target !== document.getElementById('modalOverlay')) return;
   document.getElementById('modalOverlay').classList.remove('active');
   currentPatientId = null;
+  if (typeof _adhInterval !== 'undefined' && _adhInterval) { clearInterval(_adhInterval); _adhInterval = null; }
 }
 
 // UTILITIES
@@ -1555,6 +1581,102 @@ var COMMON_MEDS=[
 {n:'Prednisolone',c:'other',u:'mg'},{n:'Aspirin',c:'other',u:'mg'}
 ];
 var CAT_COL={gonadotropin:'#0d7377',antagonist:'#7c5cbf',trigger:'#e8953a',support:'#d4548a',oral:'#2da87a',other:'#6b7280'};
+// ── Medication Adherence Card ────────────────────────────────────
+var _adhInterval = null;
+
+async function loadAdherenceCard(pid) {
+  // Clear previous auto-refresh
+  if (_adhInterval) { clearInterval(_adhInterval); _adhInterval = null; }
+  try {
+    var r = await authFetch(API_BASE + '/clinician/patient/' + pid + '/adherence?days=14');
+    if (!r.ok) return;
+    var data = await r.json();
+    renderAdherenceCard(data);
+    // Auto-refresh every 60s while modal is open
+    _adhInterval = setInterval(async function() {
+      if (!document.getElementById('modalOverlay') || !document.getElementById('modalOverlay').classList.contains('active')) {
+        clearInterval(_adhInterval); _adhInterval = null; return;
+      }
+      if (currentModalTab !== 'briefing') return;
+      try {
+        var r2 = await authFetch(API_BASE + '/clinician/patient/' + pid + '/adherence?days=14');
+        if (r2.ok) { var d2 = await r2.json(); renderAdherenceCard(d2); }
+      } catch(e) {}
+    }, 60000);
+  } catch(e) { console.log('Adherence load error:', e); }
+}
+
+function renderAdherenceCard(data) {
+  var existing = document.getElementById('adh-card-container');
+  if (existing) existing.remove();
+
+  var s = data.summary;
+  if (s.total_scheduled === 0) return; // No meds scheduled
+
+  var pct = s.adherence_pct;
+  var color = pct >= 90 ? '#10B981' : pct >= 70 ? '#F59E0B' : '#EF4444';
+  var colorBg = pct >= 90 ? '#D1FAE5' : pct >= 70 ? '#FEF3C7' : '#FEE2E2';
+  var label = pct >= 90 ? 'Excellent' : pct >= 70 ? 'Fair' : 'Low';
+
+  // SVG ring
+  var radius = 26; var circ = 2 * Math.PI * radius; var offset = circ * (1 - pct / 100);
+  var ring = '<svg width="64" height="64" viewBox="0 0 64 64">' +
+    '<circle cx="32" cy="32" r="' + radius + '" fill="none" stroke="#f1f5f9" stroke-width="6"/>' +
+    '<circle cx="32" cy="32" r="' + radius + '" fill="none" stroke="' + color + '" stroke-width="6" ' +
+    'stroke-dasharray="' + circ + '" stroke-dashoffset="' + offset + '" stroke-linecap="round" ' +
+    'style="transition:stroke-dashoffset 0.6s ease"/></svg>';
+
+  var html = '<div id="adh-card-container" class="adh-card">';
+  html += '<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:10px">\uD83D\uDC8A Medication Adherence</div>';
+  html += '<div class="adh-header">';
+  html += '<div class="adh-ring">' + ring + '<div class="adh-ring-label" style="color:' + color + '">' + Math.round(pct) + '%</div></div>';
+  html += '<div class="adh-summary"><strong>' + label + '</strong> adherence<br>' +
+    s.total_taken + ' of ' + s.total_scheduled + ' medications taken<br>' +
+    '<span style="color:' + color + '">' + (s.total_scheduled - s.total_taken) + ' missed or upcoming</span></div>';
+  html += '</div>';
+
+  // Day-by-day rows (show up to 7 days)
+  var today = new Date(); var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+  var days = data.days.slice(0, 7);
+  days.forEach(function(day) {
+    var isToday = day.date === todayStr;
+    var isPast = day.date < todayStr;
+    var dateLabel = isToday ? 'Today' : day.day;
+    html += '<div class="adh-day" onclick="this.classList.toggle(\'expanded\')">';
+    html += '<div class="adh-day-date">' + dateLabel + ' <span style="font-weight:400;color:#94a3b8">' + day.date.substring(5) + '</span></div>';
+    html += '<div class="adh-day-meds">';
+    day.meds.forEach(function(m) {
+      var cls = m.is_procedure ? 'proc' : m.taken ? 'taken' : (isPast ? 'missed' : 'upcoming');
+      var icon = m.is_procedure ? '\uD83D\uDCC5' : m.taken ? '\u2705' : (isPast ? '\u274C' : '\u23F3');
+      html += '<span class="adh-pill ' + cls + '">' + icon + ' ' + _escHtml(m.name) + '</span>';
+    });
+    html += '</div>';
+    // Detail row
+    html += '<div class="adh-detail">';
+    day.meds.forEach(function(m) {
+      if (m.taken && m.taken_at) {
+        var t = m.taken_at.substring(11, 16);
+        html += '<div>\u2705 ' + _escHtml(m.name) + ' taken at ' + t + '</div>';
+      } else if (!m.taken && isPast && !m.is_procedure) {
+        html += '<div style="color:#ef4444">\u274C ' + _escHtml(m.name) + ' — missed</div>';
+      }
+    });
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+
+  // Insert after briefing content
+  var modalBody = document.getElementById('modalBody');
+  if (modalBody) {
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    modalBody.appendChild(div.firstElementChild);
+  }
+}
+
+function _escHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
 var _cyclePid='';
 
 async function loadCycleTab(pid){

@@ -818,29 +818,10 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     </div>
     <div class="btn-row" style="margin-top:12px">
       <button class="btn btn-secondary btn-back" onclick="goStep(2)">Back</button>
-      <button class="btn btn-primary" id="btn-journey" disabled onclick="goStep(4)">Continue</button>
+      <button class="btn btn-primary" id="btn-journey" disabled onclick="completeOnboarding()">Continue</button>
     </div>
   </div>
-  <!-- Step 4: Horizontal timeline -->
-  <div class="onboard-card" id="step4">
-    <h2 style="font-family:var(--serif);font-size:20px;color:#1a3a3a">Where are you now?</h2>
-    <p class="card-desc">Tap the stage you're at right now.</p>
-    <div id="timelineScroll" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:20px 0;position:relative">
-      <div id="timelineTrack" style="display:flex;align-items:center;min-width:max-content;padding:0 20px;position:relative"></div>
-    </div>
-    <div class="btn-row" style="margin-top:12px">
-      <button class="btn btn-secondary btn-back" onclick="goStep(3)">Back</button>
-      <button class="btn btn-primary" id="btn-timeline" disabled onclick="goStep(5)">I'm here</button>
-    </div>
-  </div>
-  <!-- Step 5: Emotional wave preview -->
-  <div class="onboard-card" id="step5">
-    <div style="text-align:right"><span style="font-size:11px;color:#6a9e9e;cursor:pointer" onclick="completeOnboarding()">Skip >></span></div>
-    <h2 style="font-family:var(--serif);font-size:20px;color:#1a3a3a">Your emotional landscape</h2>
-    <p class="card-desc">Here's what many people experience through this journey.</p>
-    <div id="emotionalWaveSvg" style="margin:12px 0"></div>
-    <button class="btn btn-primary" style="width:100%" onclick="completeOnboarding()">Continue to app</button>
-  </div>
+  <!-- Steps 4-5 removed: streamlined to 3-step onboarding -->
 </div></div>
 
 
@@ -1249,6 +1230,9 @@ var _selectedJourney=null;
 var _selectedTimelineStage=null;
 var _ffType=null;
 
+var JOURNEY_STAGE_MAP = {
+  'ivf': 'stimulation', 'iui': 'stimulation', 'egg_freeze': 'stimulation', 'frequent': 'between_cycles'
+};
 function selectJourney(type,el){
   document.querySelectorAll('.journey-card').forEach(function(c){c.classList.remove('selected')});
   el.classList.add('selected');
@@ -1258,10 +1242,12 @@ function selectJourney(type,el){
     fp.style.display='block';
     _selectedJourney=null; // Wait for sub-selection
     document.getElementById('btn-journey').disabled=true;
+    state.stage='between_cycles';
   }else{
     fp.style.display='none';
     _selectedJourney=type;
     state.treatment=type==='egg_freeze'?'egg_freezing':type;
+    state.stage=JOURNEY_STAGE_MAP[type]||'stimulation';
   }
 }
 function setFFType(type,btn){
@@ -1553,8 +1539,6 @@ setTimeout(function(){ov.style.display='none'},600);
 if(window._softSpotDone)window._softSpotDone()}
 function goStep(n){
 if(n===2){state.name=document.getElementById('ob-name').value.trim();state.partnerName=document.getElementById('ob-partner').value.trim()}
-if(n===4){buildJourneyTimeline()}
-if(n===5){buildEmotionalWave()}
 document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));
 document.getElementById('step'+n).classList.add('active');
 for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}
@@ -1571,7 +1555,18 @@ if(API_BASE){try{const ctrl=new AbortController();const timer=setTimeout(functio
 function showApp(){try{var sw=document.getElementById('screen-welcome');if(sw)sw.classList.remove('active');document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active');updateStageUI();buildTimeline();buildEducation();initChart();fetchNudge();fetchReflection();initStillHere();checkClinicianMessages();if(typeof loadCycleToCalendar==='function'){try{loadCycleToCalendar();}catch(e){}};if(typeof loadEggState==='function'){try{loadEggState();}catch(e){}};
 document.getElementById('chat-input').addEventListener('input',resetStillHere);
 if(typeof initFCM==='function'){try{initFCM(state.patientId)}catch(e){}}
-collector=new PassiveCollector({patientId:state.patientId,apiBase:API_BASE,debug:true,flushInterval:60000});collector.record('session_start',null,{stage:state.stage,cycle:state.cycle,treatment:state.treatment})}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
+collector=new PassiveCollector({patientId:state.patientId,apiBase:API_BASE,debug:true,flushInterval:60000});collector.record('session_start',null,{stage:state.stage,cycle:state.cycle,treatment:state.treatment});
+// First-load welcome bubble (only once)
+if(!localStorage.getItem('melodai_onboarding_complete')){
+  localStorage.setItem('melodai_onboarding_complete','true');
+  if(state.patientId&&typeof firebase!=='undefined'){try{firebase.database().ref('melod_ai/patients/'+state.patientId+'/onboarding_complete').set(true)}catch(e){}}
+  setTimeout(function(){
+    var wb=document.createElement('div');
+    wb.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);max-width:340px;width:calc(100% - 32px);background:#fff;border-radius:20px;padding:20px 22px;box-shadow:0 8px 32px rgba(0,0,0,0.12);z-index:999;text-align:center;animation:fadeSlideUp .4s ease';
+    wb.innerHTML='<div style="font-size:28px;margin-bottom:8px">\uD83E\uDD5A</div><div style="font-family:var(--serif);font-size:16px;color:#1a3a3a;line-height:1.5">Welcome '+(state.name||'')+'! I\u2019ll be with you through every step \u2014 the injections, the waits, the hopes. Tap me anytime. \uD83D\uDC9B</div><button onclick="this.parentElement.remove()" style="margin-top:14px;padding:8px 28px;background:linear-gradient(135deg,#0D9488,#14B8A6);color:#fff;border:none;border-radius:24px;font-size:14px;font-weight:600;cursor:pointer">Got it!</button>';
+    document.body.appendChild(wb);
+  },800);
+}}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
 /* ═══ FCM PUSH NOTIFICATIONS ═══════════════════════════════════════ */
 function initFCM(patientId){
 if(!('Notification' in window)||!('serviceWorker' in navigator))return;

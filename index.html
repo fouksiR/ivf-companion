@@ -5388,9 +5388,11 @@ function loadCycleToCalendar() {
     if (!cycle || !cycle.medications_simple) { console.log('[Calendar] No medications_simple found'); return; }
     console.log('[Cycle] Loaded ' + Object.keys(cycle.medications_simple).length + ' items from API');
     window.patientCycleMeds = cycle.medications_simple;
-    var startDate = cycle.start_date || cycle.updated_at.substring(0,10);
     window.cycleMedsByDate = {};
-    var sp = startDate.split('-'); var start = new Date(parseInt(sp[0]), parseInt(sp[1])-1, parseInt(sp[2]));
+    // Dashboard grid uses D1 = today, so patient calendar must match
+    var today = new Date();
+    var start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    console.log('[Calendar] Using D1 = today:', start.toISOString().substring(0,10));
     Object.values(cycle.medications_simple).forEach(function(med) {
       if (!med.doses) return;
       Object.keys(med.doses).forEach(function(dk) {

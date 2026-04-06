@@ -460,6 +460,64 @@
         /* Med grid today highlight */
         .med-grid-today { background-color: rgba(0,150,136,0.08) !important; }
         .med-grid-today-header { font-weight: 700 !important; color: #009688 !important; border-top: 3px solid #009688 !important; }
+
+        /* Drag-to-fill */
+        .drag-source { outline: 2px solid #0D9488 !important; background: #F0FDFA !important; }
+        .drag-fill-preview { background: #E0F5F0 !important; border: 1px dashed #0D9488 !important; }
+        .med-grid-dragging { cursor: crosshair !important; user-select: none; }
+        .med-grid-dragging input { cursor: crosshair !important; pointer-events: none; }
+
+        /* Smart med picker dropdown */
+        .med-picker-wrap { position: relative; width: 100%; }
+        .med-picker-input { width: 100%; border: none; padding: 4px 6px; font-size: 12px; outline: none;
+          font-weight: 500; font-family: inherit; background: transparent; box-sizing: border-box; }
+        .med-picker-dd { position: absolute; top: 100%; left: -1px; right: -1px; z-index: 1000;
+          max-height: 320px; overflow-y: auto; background: #fff; border-radius: 0 0 10px 10px;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.12); border: 1px solid #e0e0e0; border-top: none; display: none; }
+        .med-picker-dd.open { display: block; }
+        .med-picker-cat { padding: 5px 10px; font-size: 9px; font-weight: 700; color: #888;
+          text-transform: uppercase; letter-spacing: 0.6px; background: #f8f9fb; position: sticky; top: 0; z-index: 1; }
+        .med-picker-item { padding: 6px 10px; font-size: 12px; cursor: pointer; display: flex;
+          align-items: center; gap: 8px; transition: background 0.1s; }
+        .med-picker-item:hover, .med-picker-item.highlighted { background: #f0fdfa; }
+        .med-picker-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .med-picker-generic { font-size: 10px; color: #999; margin-left: auto; }
+        .med-picker-dose-hint { font-size: 10px; color: #0d7377; font-weight: 600; }
+
+        /* Context menu */
+        .med-ctx-menu { position: fixed; z-index: 2000; background: #fff; border-radius: 8px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.12); border: 1px solid #e8e8e8; min-width: 160px;
+          padding: 4px 0; font-family: inherit; }
+        .med-ctx-item { padding: 7px 14px; font-size: 12px; cursor: pointer; display: flex;
+          align-items: center; gap: 8px; color: #333; }
+        .med-ctx-item:hover { background: #f0fdfa; color: #0d7377; }
+        .med-ctx-sep { height: 1px; background: #eee; margin: 3px 0; }
+        .med-ctx-icon { font-size: 14px; width: 18px; text-align: center; }
+        .med-ctx-shortcut { margin-left: auto; font-size: 10px; color: #aaa; }
+
+        /* Protocol loader */
+        .protocol-btn { padding: 3px 10px; border: 1px solid #d4d4d4; border-radius: 6px;
+          background: #fff; font-size: 11px; color: #555; cursor: pointer; font-weight: 500;
+          display: inline-flex; align-items: center; gap: 4px; }
+        .protocol-btn:hover { border-color: #0d7377; color: #0d7377; }
+        .protocol-dd { position: absolute; top: 100%; right: 0; z-index: 1000; min-width: 240px;
+          background: #fff; border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+          border: 1px solid #e0e0e0; padding: 6px 0; display: none; }
+        .protocol-dd.open { display: block; }
+        .protocol-item { padding: 8px 14px; cursor: pointer; transition: background 0.1s; }
+        .protocol-item:hover { background: #f0fdfa; }
+        .protocol-item-name { font-size: 12px; font-weight: 600; color: #333; }
+        .protocol-item-desc { font-size: 10px; color: #888; margin-top: 1px; }
+
+        /* Med dose unit suffix */
+        .dose-unit { font-size: 8px; color: #aaa; font-weight: 400; pointer-events: none; }
+
+        /* Toast notification */
+        .med-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+          background: #0d7377; color: #fff; padding: 8px 18px; border-radius: 8px; font-size: 12px;
+          font-weight: 500; z-index: 3000; opacity: 0; transition: opacity 0.3s;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15); pointer-events: none; }
+        .med-toast.show { opacity: 1; }
         /* Phenotype risk badges */
         .risk-badge { display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border-radius:12px; font-size:12px; font-weight:600; font-family:Montserrat,sans-serif; }
         .risk-badge.green { background:#e8f5e9; color:#2e7d32; }
@@ -1944,7 +2002,7 @@ function saveMedGrid(pid) { try {
   var rows = grid.querySelectorAll('tbody tr');
   var meds = {};
   rows.forEach(function(row, i) {
-    var nameEl = row.querySelector('select') || row.querySelector('td:first-child input');
+    var nameEl = row.querySelector('select') || row.querySelector('td:first-child .med-picker-input') || row.querySelector('td:first-child input');
     var name = nameEl ? nameEl.value.trim() : '';
     if (!name) return;
     // Use td-based traversal (skip name td and delete td) — same approach as doSaveMeds
@@ -2005,6 +2063,100 @@ function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1)
 <script>(function() {
   var MED_DAYS = 14;
 
+  // ── IVF Medication Database ──
+  var IVF_MEDICATIONS = [
+    { name: 'Gonal-f', generic: 'Follitropin alfa', category: 'Gonadotropin', defaultDose: '300', unit: 'IU', color: '#8B5CF6' },
+    { name: 'Puregon', generic: 'Follitropin beta', category: 'Gonadotropin', defaultDose: '300', unit: 'IU', color: '#8B5CF6' },
+    { name: 'Menopur', generic: 'Menotropin', category: 'Gonadotropin', defaultDose: '150', unit: 'IU', color: '#8B5CF6' },
+    { name: 'Elonva', generic: 'Corifollitropin alfa', category: 'Gonadotropin', defaultDose: '150', unit: 'mcg', color: '#8B5CF6' },
+    { name: 'Pergoveris', generic: 'Follitropin alfa/Lutropin alfa', category: 'Gonadotropin', defaultDose: '300/150', unit: 'IU', color: '#8B5CF6' },
+    { name: 'Bemfola', generic: 'Follitropin alfa', category: 'Gonadotropin', defaultDose: '300', unit: 'IU', color: '#8B5CF6' },
+    { name: 'Orgalutran', generic: 'Ganirelix', category: 'Antagonist', defaultDose: '0.25', unit: 'mg', color: '#F59E0B' },
+    { name: 'Cetrotide', generic: 'Cetrorelix', category: 'Antagonist', defaultDose: '0.25', unit: 'mg', color: '#F59E0B' },
+    { name: 'Fyremadel', generic: 'Ganirelix', category: 'Antagonist', defaultDose: '0.25', unit: 'mg', color: '#F59E0B' },
+    { name: 'Lucrin', generic: 'Leuprorelin', category: 'Agonist', defaultDose: '1', unit: 'mg', color: '#EC4899' },
+    { name: 'Synarel', generic: 'Nafarelin', category: 'Agonist', defaultDose: '400', unit: 'mcg', color: '#EC4899' },
+    { name: 'Zoladex', generic: 'Goserelin', category: 'Agonist', defaultDose: '3.6', unit: 'mg', color: '#EC4899' },
+    { name: 'Decapeptyl', generic: 'Triptorelin', category: 'Agonist', defaultDose: '0.1', unit: 'mg', color: '#EC4899' },
+    { name: 'Ovidrel', generic: 'Choriogonadotropin alfa', category: 'Trigger', defaultDose: '250', unit: 'mcg', color: '#EF4444' },
+    { name: 'Pregnyl', generic: 'hCG', category: 'Trigger', defaultDose: '5000', unit: 'IU', color: '#EF4444' },
+    { name: 'Crinone', generic: 'Progesterone gel', category: 'Progesterone', defaultDose: '8%', unit: 'gel', color: '#10B981' },
+    { name: 'Utrogestan', generic: 'Progesterone', category: 'Progesterone', defaultDose: '200', unit: 'mg', color: '#10B981' },
+    { name: 'Endometrin', generic: 'Progesterone', category: 'Progesterone', defaultDose: '100', unit: 'mg', color: '#10B981' },
+    { name: 'Lubion', generic: 'Progesterone', category: 'Progesterone', defaultDose: '25', unit: 'mg', color: '#10B981' },
+    { name: 'Cyclogest', generic: 'Progesterone', category: 'Progesterone', defaultDose: '400', unit: 'mg', color: '#10B981' },
+    { name: 'Progynova', generic: 'Estradiol valerate', category: 'Estrogen', defaultDose: '2', unit: 'mg', color: '#3B82F6' },
+    { name: 'Estrofem', generic: 'Estradiol', category: 'Estrogen', defaultDose: '2', unit: 'mg', color: '#3B82F6' },
+    { name: 'Climara', generic: 'Estradiol patch', category: 'Estrogen', defaultDose: '100', unit: 'mcg', color: '#3B82F6' },
+    { name: 'Prednisolone', generic: 'Prednisolone', category: 'Adjunct', defaultDose: '5', unit: 'mg', color: '#6B7280' },
+    { name: 'Aspirin', generic: 'Aspirin', category: 'Adjunct', defaultDose: '100', unit: 'mg', color: '#6B7280' },
+    { name: 'Clexane', generic: 'Enoxaparin', category: 'Adjunct', defaultDose: '40', unit: 'mg', color: '#6B7280' },
+    { name: 'Doxycycline', generic: 'Doxycycline', category: 'Adjunct', defaultDose: '100', unit: 'mg', color: '#6B7280' },
+    { name: 'Metformin', generic: 'Metformin', category: 'Adjunct', defaultDose: '500', unit: 'mg', color: '#6B7280' },
+    { name: 'Cabergoline', generic: 'Cabergoline', category: 'Adjunct', defaultDose: '0.5', unit: 'mg', color: '#6B7280' },
+    { name: 'Letrozole', generic: 'Letrozole', category: 'Adjunct', defaultDose: '2.5', unit: 'mg', color: '#6B7280' },
+    { name: 'Clomid', generic: 'Clomiphene', category: 'Adjunct', defaultDose: '50', unit: 'mg', color: '#6B7280' },
+    { name: 'OPU (egg retrieval)', generic: '', category: 'Procedure', defaultDose: '\u2713', unit: '', color: '#F59E0B' },
+    { name: 'Embryo Transfer', generic: '', category: 'Procedure', defaultDose: '\u2713', unit: '', color: '#10B981' },
+    { name: 'Blood Test', generic: '', category: 'Procedure', defaultDose: '\u2713', unit: '', color: '#EC4899' },
+    { name: 'Ultrasound Scan', generic: '', category: 'Procedure', defaultDose: '\u2713', unit: '', color: '#3B82F6' },
+    { name: 'Trial ET', generic: '', category: 'Procedure', defaultDose: '\u2713', unit: '', color: '#6B7280' },
+    { name: 'Hysteroscopy', generic: '', category: 'Procedure', defaultDose: '\u2713', unit: '', color: '#6B7280' },
+    { name: 'Pregnancy Test', generic: '', category: 'Procedure', defaultDose: '\u2713', unit: '', color: '#10B981' }
+  ];
+
+  // Lookup helper
+  function findMedInfo(name) {
+    if (!name) return null;
+    var lower = name.toLowerCase();
+    for (var i = 0; i < IVF_MEDICATIONS.length; i++) {
+      if (IVF_MEDICATIONS[i].name.toLowerCase() === lower) return IVF_MEDICATIONS[i];
+    }
+    return null;
+  }
+
+  // ── IVF Protocol Templates ──
+  var IVF_PROTOCOLS = [
+    { name: 'Antagonist Standard', desc: 'Gonal-f + Orgalutran from D5', meds: [
+      { name: 'Gonal-f', doses: {d1:'300',d2:'300',d3:'300',d4:'300',d5:'300',d6:'300',d7:'300',d8:'300',d9:'300',d10:'300'} },
+      { name: 'Orgalutran', doses: {d5:'0.25',d6:'0.25',d7:'0.25',d8:'0.25',d9:'0.25',d10:'0.25'} },
+      { name: 'Ovidrel', doses: {d11:'250'} },
+      { name: 'OPU (egg retrieval)', doses: {d13:'\u2713'} }
+    ]},
+    { name: 'Antagonist + Menopur', desc: 'Gonal-f + Menopur + Cetrotide from D5', meds: [
+      { name: 'Gonal-f', doses: {d1:'225',d2:'225',d3:'225',d4:'225',d5:'225',d6:'225',d7:'225',d8:'225',d9:'225',d10:'225'} },
+      { name: 'Menopur', doses: {d1:'150',d2:'150',d3:'150',d4:'150',d5:'150',d6:'150',d7:'150',d8:'150',d9:'150',d10:'150'} },
+      { name: 'Cetrotide', doses: {d5:'0.25',d6:'0.25',d7:'0.25',d8:'0.25',d9:'0.25',d10:'0.25'} },
+      { name: 'Ovidrel', doses: {d11:'250'} },
+      { name: 'OPU (egg retrieval)', doses: {d13:'\u2713'} }
+    ]},
+    { name: 'Long Down-Reg', desc: 'Lucrin then Gonal-f', meds: [
+      { name: 'Lucrin', doses: {d1:'0.5',d2:'0.5',d3:'0.5',d4:'0.5',d5:'0.5',d6:'0.5',d7:'0.5',d8:'0.5',d9:'0.5',d10:'0.5',d11:'0.5',d12:'0.5',d13:'0.5',d14:'0.5'} },
+      { name: 'Gonal-f', doses: {d1:'225',d2:'225',d3:'225',d4:'225',d5:'225',d6:'225',d7:'225',d8:'225',d9:'225',d10:'225'} }
+    ]},
+    { name: 'FET Prep (Programmed)', desc: 'Progynova + Crinone + ET', meds: [
+      { name: 'Progynova', doses: {d1:'2',d2:'2',d3:'2',d4:'4',d5:'4',d6:'4',d7:'6',d8:'6',d9:'6',d10:'6',d11:'6',d12:'6',d13:'6',d14:'6'} },
+      { name: 'Crinone', doses: {d10:'8%',d11:'8%',d12:'8%',d13:'8%',d14:'8%'} },
+      { name: 'Embryo Transfer', doses: {d14:'\u2713'} }
+    ]},
+    { name: 'Clomid + IUI', desc: 'Clomid D2-6, trigger, IUI', meds: [
+      { name: 'Clomid', doses: {d2:'100',d3:'100',d4:'100',d5:'100',d6:'100'} },
+      { name: 'Ovidrel', doses: {d12:'250'} },
+      { name: 'Ultrasound Scan', doses: {d10:'\u2713',d12:'\u2713'} }
+    ]}
+  ];
+
+  // ── Drag-to-fill state ──
+  var _dragFill = null;
+  var _shiftClickAnchor = null; // for shift+click range fill
+
+  // Category color map for left border
+  var CAT_BORDER_COLORS = {
+    'Gonadotropin': '#8B5CF6', 'Antagonist': '#F59E0B', 'Agonist': '#EC4899',
+    'Trigger': '#EF4444', 'Progesterone': '#10B981', 'Estrogen': '#3B82F6',
+    'Adjunct': '#6B7280', 'Procedure': '#F59E0B'
+  };
+
   function buildMedGridForPatient(pid, containerEl, savedMeds) {
     containerEl.innerHTML = '';
     var table = document.createElement('table');
@@ -2039,16 +2191,47 @@ function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1)
       });
     }
     var btnDiv = document.createElement('div');
-    btnDiv.style.cssText = 'margin-top:4px;display:flex;align-items:center;gap:6px;margin-left:22px;';
+    btnDiv.style.cssText = 'margin-top:4px;display:flex;align-items:center;gap:6px;margin-left:22px;flex-wrap:wrap;';
     var addBtn = document.createElement('button');
     addBtn.textContent = '+ Add medication';
     addBtn.style.cssText = 'padding:3px 10px;border:1px dashed #b8d8d8;border-radius:5px;background:white;font-size:11px;color:#0d7377;cursor:pointer;font-weight:500;';
     addBtn.addEventListener('click', function() {
       insertMedRow(tbody, '', {});
       var last = tbody.lastElementChild;
-      if (last) { var fi = last.querySelector('input'); if (fi) fi.focus(); }
+      if (last) { var fi = last.querySelector('.med-picker-input'); if (fi) fi.focus(); }
     });
     btnDiv.appendChild(addBtn);
+
+    // Protocol loader button
+    var protoWrap = document.createElement('div');
+    protoWrap.style.cssText = 'position:relative;';
+    var protoBtn = document.createElement('button');
+    protoBtn.className = 'protocol-btn';
+    protoBtn.innerHTML = '\uD83D\uDCCB Load Protocol';
+    var protoDd = document.createElement('div');
+    protoDd.className = 'protocol-dd';
+    IVF_PROTOCOLS.forEach(function(proto) {
+      var item = document.createElement('div');
+      item.className = 'protocol-item';
+      item.innerHTML = '<div class="protocol-item-name">' + proto.name + '</div><div class="protocol-item-desc">' + proto.desc + '</div>';
+      item.addEventListener('click', function() {
+        protoDd.classList.remove('open');
+        if (!confirm('Load "' + proto.name + '" protocol? This will replace current medications.')) return;
+        // Clear grid
+        while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+        // Populate with protocol meds
+        proto.meds.forEach(function(m) { insertMedRow(tbody, m.name, m.doses); });
+        showMedToast('Loaded ' + proto.name + ' \u2014 ' + proto.meds.length + ' items. Adjust as needed.');
+      });
+      protoDd.appendChild(item);
+    });
+    protoBtn.addEventListener('click', function(e) {
+      e.stopPropagation(); protoDd.classList.toggle('open');
+      setTimeout(function() { document.addEventListener('click', function close() { protoDd.classList.remove('open'); document.removeEventListener('click', close); }); }, 10);
+    });
+    protoWrap.appendChild(protoBtn); protoWrap.appendChild(protoDd);
+    btnDiv.appendChild(protoWrap);
+
     var saveBtn = document.createElement('button');
     saveBtn.textContent = 'Save';
     saveBtn.style.cssText = 'padding:3px 12px;border:none;border-radius:5px;background:#0d7377;color:white;font-size:11px;font-weight:600;cursor:pointer;';
@@ -2059,6 +2242,12 @@ function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1)
     saveBtn.addEventListener('click', function() { doSaveMeds(pid, tbody, statusEl); });
     btnDiv.appendChild(saveBtn);
     btnDiv.appendChild(statusEl);
+
+    // Keyboard hints
+    var hints = document.createElement('div');
+    hints.style.cssText = 'width:100%;font-size:9px;color:#aaa;margin-top:4px;';
+    hints.textContent = 'Alt+Drag: fill across \u2022 Shift+Click: fill range \u2022 Ctrl+R: fill right \u2022 Ctrl+D: copy from above \u2022 Right-click: more options';
+    btnDiv.appendChild(hints);
     containerEl.appendChild(btnDiv);
   }
 
@@ -2119,71 +2308,186 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       else { this.value = '✓'; this.style.color = color; this.style.fontWeight = '700'; }
     });
   }
-  var MED_OPTIONS = '<option value="">Select med...</option><optgroup label="Gonadotropins"><option>Gonal-F</option><option>Puregon</option><option>Menopur</option><option>Bemfola</option><option>Elonva</option><option>Fostimon</option><option>Pergoveris</option></optgroup><optgroup label="Antagonist"><option>Orgalutran</option><option>Cetrotide</option><option>Fyremadel</option></optgroup><optgroup label="Agonist"><option>Lucrin</option><option>Synarel</option><option>Decapeptyl</option></optgroup><optgroup label="Trigger"><option>Ovidrel</option><option>Pregnyl</option></optgroup><optgroup label="Suppression"><option>Provera</option><option>Norethisterone</option><option>OCP</option></optgroup><optgroup label="Luteal"><option>Crinone</option><option>Utrogestan</option><option>Progesterone</option><option>Lubion</option></optgroup><optgroup label="Other"><option>Prednisolone</option><option>Clexane</option><option>Aspirin</option><option>Letrozole</option><option>Estradiol</option><option>Folic acid</option><option>Metformin</option></optgroup></optgroup><optgroup label="Procedures"><option>Ultrasound scan</option><option>Blood test</option><option>OPU (egg retrieval)</option><option>Embryo transfer</option><option>Trigger injection</option><option>Hysteroscopy</option><option>D&amp;C</option><option>Saline infusion</option><option>Trial transfer</option><option>Semen analysis</option><option>Review appointment</option></optgroup><option value="custom">Other (type name)...</option>';
+  // ── Toast helper ──
+  function showMedToast(msg) {
+    var t = document.getElementById('med-toast');
+    if (!t) { t = document.createElement('div'); t.id = 'med-toast'; t.className = 'med-toast'; document.body.appendChild(t); }
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function() { t.classList.remove('show'); }, 2500);
+  }
 
+  // ── Smart Medication Picker ──
+  function createMedPicker(tdName, tr, currentName) {
+    var wrap = document.createElement('div');
+    wrap.className = 'med-picker-wrap';
+    var inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'med-picker-input';
+    inp.placeholder = 'Search medication...';
+    inp.autocomplete = 'off';
+    inp.setAttribute('data-form-type', 'other');
+    inp.setAttribute('data-lpignore', 'true');
+    if (currentName) { inp.value = currentName; inp.style.color = getMedColor(currentName).text; inp.style.fontWeight = '500'; }
+    var dd = document.createElement('div');
+    dd.className = 'med-picker-dd';
+    wrap.appendChild(inp); wrap.appendChild(dd);
+
+    var _hlIdx = -1;
+    function buildList(filter) {
+      dd.innerHTML = ''; _hlIdx = -1;
+      var cats = {}; var items = [];
+      IVF_MEDICATIONS.forEach(function(m) {
+        if (filter) {
+          var f = filter.toLowerCase();
+          if (m.name.toLowerCase().indexOf(f) < 0 && m.generic.toLowerCase().indexOf(f) < 0 && m.category.toLowerCase().indexOf(f) < 0) return;
+        }
+        if (!cats[m.category]) cats[m.category] = [];
+        cats[m.category].push(m);
+      });
+      var order = ['Gonadotropin','Antagonist','Agonist','Trigger','Progesterone','Estrogen','Adjunct','Procedure'];
+      order.forEach(function(cat) {
+        if (!cats[cat] || cats[cat].length === 0) return;
+        var hdr = document.createElement('div'); hdr.className = 'med-picker-cat'; hdr.textContent = cat;
+        dd.appendChild(hdr);
+        cats[cat].forEach(function(m) {
+          var item = document.createElement('div'); item.className = 'med-picker-item';
+          item.setAttribute('data-med-name', m.name);
+          var dot = document.createElement('span'); dot.className = 'med-picker-dot'; dot.style.background = m.color;
+          var nameSpan = document.createElement('span'); nameSpan.textContent = m.name;
+          item.appendChild(dot); item.appendChild(nameSpan);
+          if (m.generic) { var g = document.createElement('span'); g.className = 'med-picker-generic'; g.textContent = m.generic; item.appendChild(g); }
+          if (m.defaultDose && m.defaultDose !== '\u2713') { var dh = document.createElement('span'); dh.className = 'med-picker-dose-hint'; dh.textContent = m.defaultDose + (m.unit ? ' ' + m.unit : ''); item.appendChild(dh); }
+          item.addEventListener('mousedown', function(e) { e.preventDefault(); selectMed(m); });
+          dd.appendChild(item); items.push(item);
+        });
+      });
+      return items;
+    }
+
+    function selectMed(m) {
+      inp.value = m.name;
+      var c = getMedColor(m.name);
+      inp.style.color = c.text; inp.style.fontWeight = '500';
+      tr.style.background = c.bg;
+      // Category left border
+      var medInfo = findMedInfo(m.name);
+      if (medInfo) tr.style.borderLeft = '3px solid ' + (CAT_BORDER_COLORS[medInfo.category] || '#ccc');
+      updateDoseColors(tr, c.text);
+      dd.classList.remove('open');
+      // Auto-fill empty dose cells with default dose
+      if (isProcedure(m.name)) {
+        tr.querySelectorAll('td:not(:first-child):not(:last-child) input').forEach(function(i) {
+          if (!i.readOnly) makeProcToggle(i, c.text);
+        });
+      } else if (m.defaultDose && m.defaultDose !== '\u2713') {
+        var filled = 0;
+        tr.querySelectorAll('td:not(:first-child):not(:last-child) input').forEach(function(i) {
+          if (!i.value) { i.value = m.defaultDose; i.style.color = c.text; i.style.fontWeight = '600'; filled++; }
+        });
+        if (filled > 0) showMedToast(m.name + ' ' + m.defaultDose + (m.unit ? ' ' + m.unit : '') + ' \u2014 filled D1-D' + MED_DAYS + '. Adjust as needed.');
+      }
+    }
+
+    inp.addEventListener('focus', function() {
+      var items = buildList(inp.value && inp.value !== currentName ? inp.value : '');
+      if (items.length > 0 || !inp.value) dd.classList.add('open');
+    });
+    inp.addEventListener('input', function() {
+      var items = buildList(inp.value);
+      dd.classList.add('open');
+    });
+    inp.addEventListener('blur', function() {
+      setTimeout(function() { dd.classList.remove('open'); }, 150);
+    });
+    inp.addEventListener('keydown', function(e) {
+      var items = dd.querySelectorAll('.med-picker-item');
+      if (e.key === 'ArrowDown') { e.preventDefault(); _hlIdx = Math.min(_hlIdx + 1, items.length - 1); highlightItem(items); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); _hlIdx = Math.max(_hlIdx - 1, 0); highlightItem(items); }
+      else if (e.key === 'Enter' && _hlIdx >= 0 && items[_hlIdx]) {
+        e.preventDefault();
+        var medName = items[_hlIdx].getAttribute('data-med-name');
+        var m = findMedInfo(medName);
+        if (m) selectMed(m);
+      }
+      else if (e.key === 'Escape') { dd.classList.remove('open'); inp.blur(); }
+    });
+    function highlightItem(items) {
+      items.forEach(function(it, i) { it.classList.toggle('highlighted', i === _hlIdx); });
+      if (items[_hlIdx]) items[_hlIdx].scrollIntoView({ block: 'nearest' });
+    }
+    return wrap;
+  }
+
+  // ── Context Menu ──
+  function showContextMenu(e, inp, tr) {
+    e.preventDefault();
+    closeContextMenu();
+    var menu = document.createElement('div');
+    menu.className = 'med-ctx-menu'; menu.id = 'med-ctx-active';
+    var colIdx = getDoseColIndex(inp);
+    var items = [
+      { icon: '\u2192', label: 'Fill right', shortcut: 'Ctrl+R', action: function() { fillRight(tr, colIdx, inp.value); } },
+      { icon: '\u2B1C', label: 'Fill all', shortcut: '', action: function() { fillAll(tr, inp.value); } },
+      { sep: true },
+      { icon: '\u2716', label: 'Clear right', shortcut: '', action: function() { fillRight(tr, colIdx, ''); } },
+      { icon: '\u274C', label: 'Clear row', shortcut: '', action: function() { fillAll(tr, ''); } }
+    ];
+    items.forEach(function(it) {
+      if (it.sep) { var s = document.createElement('div'); s.className = 'med-ctx-sep'; menu.appendChild(s); return; }
+      var el = document.createElement('div'); el.className = 'med-ctx-item';
+      el.innerHTML = '<span class="med-ctx-icon">' + it.icon + '</span>' + it.label + (it.shortcut ? '<span class="med-ctx-shortcut">' + it.shortcut + '</span>' : '');
+      el.addEventListener('mousedown', function(ev) { ev.preventDefault(); it.action(); closeContextMenu(); });
+      menu.appendChild(el);
+    });
+    menu.style.left = e.clientX + 'px'; menu.style.top = e.clientY + 'px';
+    document.body.appendChild(menu);
+    // Adjust if off-screen
+    var r = menu.getBoundingClientRect();
+    if (r.right > window.innerWidth) menu.style.left = (window.innerWidth - r.width - 8) + 'px';
+    if (r.bottom > window.innerHeight) menu.style.top = (window.innerHeight - r.height - 8) + 'px';
+    setTimeout(function() { document.addEventListener('mousedown', closeContextMenu, { once: true }); }, 10);
+  }
+  function closeContextMenu() { var m = document.getElementById('med-ctx-active'); if (m) m.remove(); }
+
+  function getDoseColIndex(inp) {
+    var td = inp.closest('td');
+    var tr = inp.closest('tr');
+    var tds = tr.querySelectorAll('td:not(:first-child):not(:last-child)');
+    for (var i = 0; i < tds.length; i++) { if (tds[i] === td) return i; }
+    return -1;
+  }
+  function fillRight(tr, fromCol, value) {
+    var tds = tr.querySelectorAll('td:not(:first-child):not(:last-child)');
+    var c = getMedColor(getRowMedName(tr));
+    for (var i = fromCol; i < tds.length; i++) {
+      var inp = tds[i].querySelector('input');
+      if (inp && !inp.readOnly) { inp.value = value; inp.style.color = value ? c.text : 'inherit'; inp.style.fontWeight = value ? '600' : '400'; }
+    }
+  }
+  function fillAll(tr, value) { fillRight(tr, 0, value); }
+
+  // ── insertMedRow (enhanced) ──
   function insertMedRow(tbody, name, doses) {
     var tr = document.createElement('tr');
     tr.className = 'med-row';
     var c = getMedColor(name);
     tr.style.background = c.bg;
+    // Category left border
+    var medInfo = findMedInfo(name);
+    if (medInfo) tr.style.borderLeft = '3px solid ' + (CAT_BORDER_COLORS[medInfo.category] || '#ccc');
+    else if (isProcedure(name)) tr.style.borderLeft = '3px solid #F59E0B';
 
+    // Name cell with smart picker
     var tdName = document.createElement('td');
-    tdName.style.cssText = 'border:1px solid #e8e8e8;padding:0 4px;white-space:nowrap;';
-
-    function applyDropdown(currentName) {
-      var sel = document.createElement('select');
-      sel.innerHTML = MED_OPTIONS;
-      if (currentName) sel.value = currentName;
-      sel.autocomplete = 'off';
-      var sc = currentName ? getMedColor(currentName) : MED_DEFAULT;
-      sel.style.cssText = 'border:none;background:transparent;font-size:12px;font-weight:500;outline:none;cursor:pointer;font-family:inherit;color:' + sc.text + ';padding:4px 0;width:100%;';
-      sel.addEventListener('change', function() {
-        if (sel.value === 'custom') {
-          var inp2 = document.createElement('input');
-          inp2.type = 'text';
-          inp2.placeholder = 'Type med name...';
-          inp2.autocomplete = 'off';
-          inp2.setAttribute('data-form-type', 'other');
-          inp2.setAttribute('data-lpignore', 'true');
-          inp2.style.cssText = 'width:100%;border:none;padding:4px 6px;font-size:12px;outline:none;font-weight:500;font-family:inherit;background:transparent;color:' + MED_DEFAULT.text + ';';
-          tdName.replaceChild(inp2, sel);
-          tr.style.background = MED_DEFAULT.bg;
-          updateDoseColors(tr, MED_DEFAULT.text);
-          inp2.focus();
-        } else if (sel.value) {
-          var nc = getMedColor(sel.value);
-          tr.style.background = nc.bg;
-          sel.style.color = nc.text;
-          updateDoseColors(tr, nc.text);
-          // Convert dose cells to toggles for procedures
-          if (isProcedure(sel.value)) {
-            tr.querySelectorAll('td:not(:first-child):not(:last-child) input').forEach(function(i) {
-              if (!i.readOnly) makeProcToggle(i, nc.text);
-            });
-          }
-        }
-      });
-      return sel;
-    }
-
-    if (name && !MED_COLORS[name]) {
-      // Custom name — text input
-      var customInp = document.createElement('input');
-      customInp.type = 'text';
-      customInp.value = name;
-      customInp.autocomplete = 'off';
-      customInp.setAttribute('data-form-type', 'other');
-      customInp.setAttribute('data-lpignore', 'true');
-      customInp.style.cssText = 'width:100%;border:none;padding:4px 6px;font-size:12px;outline:none;font-weight:500;font-family:inherit;background:transparent;color:' + c.text + ';';
-      tdName.appendChild(customInp);
-    } else {
-      tdName.appendChild(applyDropdown(name));
-    }
+    tdName.style.cssText = 'border:1px solid #e8e8e8;padding:0 4px;white-space:nowrap;position:relative;';
+    tdName.appendChild(createMedPicker(tdName, tr, name));
     tr.appendChild(tdName);
 
+    // Dose cells with drag-to-fill + context menu + keyboard shortcuts
     for (var d = 1; d <= MED_DAYS; d++) {
       var td = document.createElement('td');
-      td.style.cssText = 'border:1px solid #eee;padding:0;';
+      td.style.cssText = 'border:1px solid #eee;padding:0;position:relative;';
+      td.setAttribute('data-col', d);
       if (d === 1) td.className = 'med-grid-today';
       var dinp = document.createElement('input');
       dinp.type = 'text';
@@ -2191,36 +2495,98 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       dinp.autocomplete = 'off';
       dinp.setAttribute('data-form-type', 'other');
       dinp.setAttribute('data-lpignore', 'true');
+      dinp.setAttribute('data-col', d);
       var doseColor = (doses && doses['d' + d]) ? c.text : 'inherit';
       dinp.style.cssText = 'width:100%;border:none;padding:4px 2px;font-size:11px;text-align:center;outline:none;font-family:inherit;background:transparent;box-sizing:border-box;font-weight:600;color:' + doseColor + ';';
+
+      // Focus / blur
       dinp.addEventListener('focus', function() { this.style.background = 'rgba(13,115,119,0.08)'; });
       dinp.addEventListener('blur', function() {
         this.style.background = 'transparent';
-        if (this.value) {
-          var nc2 = getMedColor(getRowMedName(this.closest('tr')));
-          this.style.color = nc2.text;
-        }
+        if (this.value) { var nc2 = getMedColor(getRowMedName(this.closest('tr'))); this.style.color = nc2.text; }
       });
+
+      // Keyboard: Enter=down, Tab=right, Ctrl+D=dup above, Ctrl+R=fill right
       dinp.addEventListener('keydown', function(e) {
+        var myTr = this.closest('tr');
+        var myCol = getDoseColIndex(this);
         if (e.key === 'Enter') {
           e.preventDefault();
-          var nextRow = this.closest('tr').nextElementSibling;
-          if (nextRow) {
-            var idx = Array.from(this.closest('tr').querySelectorAll('input')).indexOf(this);
-            var ni = nextRow.querySelectorAll('input');
-            if (ni[idx]) ni[idx].focus();
+          var nextRow = myTr.nextElementSibling;
+          if (nextRow) { var ni = nextRow.querySelectorAll('td:not(:first-child):not(:last-child) input'); if (ni[myCol]) ni[myCol].focus(); }
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+          e.preventDefault();
+          var prevRow = myTr.previousElementSibling;
+          if (prevRow) {
+            var pi = prevRow.querySelectorAll('td:not(:first-child):not(:last-child) input');
+            if (pi[myCol] && pi[myCol].value) { this.value = pi[myCol].value; var c2 = getMedColor(getRowMedName(myTr)); this.style.color = c2.text; }
           }
         }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+          e.preventDefault(); fillRight(myTr, myCol, this.value);
+        }
       });
+
+      // Drag-to-fill: mousedown on filled cell starts drag
+      dinp.addEventListener('mousedown', function(e) {
+        if (e.button !== 0) return;
+        // Shift+click range fill
+        if (e.shiftKey && _shiftClickAnchor && _shiftClickAnchor.tr === this.closest('tr')) {
+          e.preventDefault();
+          var fromCol = _shiftClickAnchor.col;
+          var toCol = getDoseColIndex(this);
+          var val = _shiftClickAnchor.value;
+          var lo = Math.min(fromCol, toCol), hi = Math.max(fromCol, toCol);
+          var tds2 = this.closest('tr').querySelectorAll('td:not(:first-child):not(:last-child)');
+          var c3 = getMedColor(getRowMedName(this.closest('tr')));
+          for (var i = lo; i <= hi; i++) {
+            var inp2 = tds2[i].querySelector('input');
+            if (inp2 && !inp2.readOnly) { inp2.value = val; inp2.style.color = val ? c3.text : 'inherit'; inp2.style.fontWeight = val ? '600' : '400'; }
+          }
+          _shiftClickAnchor = null;
+          showMedToast('Filled D' + (lo+1) + '-D' + (hi+1) + ' with ' + val);
+          return;
+        }
+        // Set shift-click anchor
+        if (this.value) _shiftClickAnchor = { tr: this.closest('tr'), col: getDoseColIndex(this), value: this.value };
+        // Start drag if cell has value and Alt is held
+        if (this.value && e.altKey) {
+          e.preventDefault();
+          var myTr2 = this.closest('tr');
+          _dragFill = { value: this.value, startCol: getDoseColIndex(this), tr: myTr2, color: getMedColor(getRowMedName(myTr2)).text };
+          this.closest('td').classList.add('drag-source');
+          myTr2.closest('table').classList.add('med-grid-dragging');
+        }
+      });
+
+      // Drag-to-fill: mouseenter while dragging
+      dinp.addEventListener('mouseenter', function() {
+        if (!_dragFill || this.closest('tr') !== _dragFill.tr) return;
+        var col = getDoseColIndex(this);
+        if (col <= _dragFill.startCol) return;
+        // Fill from start to current
+        var tds3 = _dragFill.tr.querySelectorAll('td:not(:first-child):not(:last-child)');
+        for (var i = _dragFill.startCol + 1; i < tds3.length; i++) {
+          var inp3 = tds3[i].querySelector('input');
+          if (!inp3 || inp3.readOnly) continue;
+          if (i <= col) { inp3.value = _dragFill.value; inp3.style.color = _dragFill.color; inp3.style.fontWeight = '600'; tds3[i].classList.add('drag-fill-preview'); }
+          else { if (tds3[i].classList.contains('drag-fill-preview')) { inp3.value = ''; inp3.style.color = 'inherit'; tds3[i].classList.remove('drag-fill-preview'); } }
+        }
+      });
+
+      // Context menu (right-click)
+      dinp.addEventListener('contextmenu', function(e) { showContextMenu(e, this, this.closest('tr')); });
+
       td.appendChild(dinp);
       tr.appendChild(td);
     }
 
+    // Delete button
     var tdDel = document.createElement('td');
     tdDel.style.cssText = 'border:none;text-align:center;width:20px;';
     var delBtn = document.createElement('button');
-    delBtn.innerHTML = '\u00D7';
-    delBtn.title = 'Remove';
+    delBtn.innerHTML = '\u00D7'; delBtn.title = 'Remove';
     delBtn.style.cssText = 'cursor:pointer;color:#ddd;font-size:14px;border:none;background:none;padding:0 4px;';
     delBtn.addEventListener('mouseenter', function() { this.style.color = '#e74c3c'; });
     delBtn.addEventListener('mouseleave', function() { this.style.color = '#ddd'; });
@@ -2228,15 +2594,32 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
     tdDel.appendChild(delBtn);
     tr.appendChild(tdDel);
 
-    // Convert to toggles if this is a procedure row (after delete td so :last-child is correct)
+    // Convert to toggles if procedure row
     if (isProcedure(name)) {
-      tr.querySelectorAll('td:not(:first-child):not(:last-child) input').forEach(function(i) {
-        makeProcToggle(i, c.text);
-      });
+      tr.querySelectorAll('td:not(:first-child):not(:last-child) input').forEach(function(i) { makeProcToggle(i, c.text); });
     }
 
     tbody.appendChild(tr);
   }
+
+  // Global mouseup: end drag-to-fill
+  document.addEventListener('mouseup', function() {
+    if (!_dragFill) return;
+    var tds = _dragFill.tr.querySelectorAll('td');
+    tds.forEach(function(td) { td.classList.remove('drag-source'); td.classList.remove('drag-fill-preview'); });
+    _dragFill.tr.closest('table').classList.remove('med-grid-dragging');
+    _dragFill = null;
+  });
+
+  // Touch support for drag-to-fill
+  document.addEventListener('touchend', function() {
+    if (_dragFill) {
+      var tds = _dragFill.tr.querySelectorAll('td');
+      tds.forEach(function(td) { td.classList.remove('drag-source'); td.classList.remove('drag-fill-preview'); });
+      _dragFill.tr.closest('table').classList.remove('med-grid-dragging');
+      _dragFill = null;
+    }
+  });
 
   function updateDoseColors(tr, color) {
     tr.querySelectorAll('td:not(:first-child) input').forEach(function(i) { if (i.value) i.style.color = color; });
@@ -2245,8 +2628,8 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
   function getRowMedName(tr) {
     var sel = tr.querySelector('select');
     if (sel && sel.value && sel.value !== 'custom') return sel.value;
-    var inp = tr.querySelector('td:first-child input');
-    return inp ? inp.value : '';
+    var inp = tr.querySelector('td:first-child input, td:first-child .med-picker-input');
+    return inp ? inp.value.trim() : '';
   }
 
 
@@ -2257,7 +2640,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       // Also save to localStorage for instant persistence
       var meds = {};
       rows.forEach(function(row, i) {
-        var nameEl = row.querySelector('select') || row.querySelector('td:first-child input'); var name = nameEl ? nameEl.value.trim() : '';
+        var nameEl = row.querySelector('select') || row.querySelector('td:first-child .med-picker-input') || row.querySelector('td:first-child input'); var name = nameEl ? nameEl.value.trim() : '';
         if (!name) return;
         // Get dose inputs from dose cells only (skip name td and delete td)
         var doseTds = row.querySelectorAll('td:not(:first-child):not(:last-child)');

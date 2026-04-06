@@ -5036,6 +5036,11 @@ async def get_patient_cycle(patient_id: str):
     try:
         if firebase_db and firebase_db._fb_ref:
             cycle = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").get()
+            # Log what Firebase actually returned — especially dose data
+            ms = (cycle or {}).get('medications_simple', {})
+            if ms and isinstance(ms, dict):
+                dose_detail = {k: {'name': v.get('name','?'), 'has_doses': bool(v.get('doses')), 'dose_keys': list(v.get('doses', {}).keys())} for k,v in ms.items() if isinstance(v, dict)}
+                logger.info(f"Cycle GET for {patient_id}: meds={dose_detail}")
             return cycle or {}
     except Exception as e:
         return {"error": str(e)}

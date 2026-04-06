@@ -2315,7 +2315,9 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       headers: { 'X-API-Key': key }
     }).then(function(r) { return r.json(); }).then(function(data) {
       console.log('[MedGrid] loadAndBuild: got data for', pid, 'keys:', data ? Object.keys(data) : 'null');
+      console.log('[MedGrid] RAW medications_simple:', JSON.stringify(data ? data.medications_simple : null));
       var meds = (data && data.medications_simple) ? data.medications_simple : null;
+      if (meds) { Object.entries(meds).forEach(function(e) { console.log('[MedGrid] med entry:', e[0], 'name:', e[1].name, 'doses:', JSON.stringify(e[1].doses), 'type:', typeof e[1].doses); }); }
       console.log('[MedGrid] loadAndBuild: medications_simple count:', meds ? Object.keys(meds).length : 0);
       if (meds && Object.keys(meds).length > 0) {
         buildMedGridForPatient(pid, container, meds);
@@ -2350,6 +2352,7 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
     fetch(baseUrl + '/clinician/patient/' + pid + '/cycle', {
       headers: { 'X-API-Key': key }
     }).then(function(r) { return r.json(); }).then(function(data) {
+      console.log('[MedGrid] toggleMedGrid RAW response:', JSON.stringify(data ? data.medications_simple : null));
       var meds = (data && data.medications_simple) ? data.medications_simple : null;
       if (meds && Object.keys(meds).length > 0) {
         buildMedGridForPatient(pid, container, meds);

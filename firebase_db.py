@@ -77,10 +77,18 @@ class FirebaseDB:
     # ── Patients ────────────────────────────────────────
 
     def save_patient(self, patient_id: str, data: dict):
-        """Save/update a patient record."""
+        """Save/update a patient record.
+
+        CRITICAL: Strip 'cycle' from the write payload. The cycle node is
+        managed by its own endpoints (POST /clinician/patient/{id}/cycle)
+        which write directly to Firebase. The in-memory patients_db copy
+        of cycle is stale after startup — writing it back would overwrite
+        any medication changes made via the dashboard.
+        """
         if not _enabled: return
         try:
-            _fb_ref.child('patients').child(patient_id).update(data)
+            safe_data = {k: v for k, v in data.items() if k != 'cycle'}
+            _fb_ref.child('patients').child(patient_id).update(safe_data)
         except Exception as e:
             logger.warning(f"Firebase save_patient error: {e}")
 
@@ -461,6 +469,9 @@ class FirebaseDB:
             patients = self.load_all_patients()
             count = 0
             for pid, pdata in patients.items():
+                # Strip 'cycle' from in-memory cache — cycle data is managed
+                # directly in Firebase by its own endpoints, never via patients_db
+                pdata.pop('cycle', None)
                 patients_db[pid] = pdata
                 conversations_db[pid] = self.load_conversations(pid)
                 checkins_db[pid] = self.load_checkins(pid)

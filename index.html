@@ -888,6 +888,8 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     <div class="insights-tabs"><button class="insights-tab active" onclick="switchInsightsTab('summary')">Summary</button><button class="insights-tab" onclick="switchInsightsTab('weekly')">Weekly</button><button class="insights-tab" onclick="switchInsightsTab('daily')">Daily</button><button class="insights-tab" onclick="switchInsightsTab('chats')">Chats</button></div>
     <div class="insights-panel active" id="insight-summary">
     <div class="goal-banner"><h4>Your Focus</h4><p id="goalText">Stay present, one day at a time</p></div>
+    <!-- Stage Progress Timeline -->
+    <div id="stageTimelineContainer" style="padding:0 16px;margin-bottom:16px"></div>
     <div class="memory-jar"><h3>Memory Jar</h3><div class="jar-stats"><div class="jar-stat"><span class="jar-num" id="jarJournals">0</span><span>Journals</span></div><div class="jar-stat"><span class="jar-num" id="jarChats">0</span><span>Chats</span></div><div class="jar-stat"><span class="jar-num" id="jarCheckins">0</span><span>Check-ins</span></div></div></div>
     <!-- Emotional Propensity Wave -->
     <div style="padding:0 16px;margin-bottom:16px">
@@ -2192,9 +2194,81 @@ state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt=
 if(c.mood<5&&!localStorage.getItem('melodai_share_dismissed')){setTimeout(function(){var prompt=document.createElement('div');prompt.style.cssText='margin:12px 0;padding:14px 16px;background:linear-gradient(135deg,#f0fdfa,#e8f5f0);border-radius:14px;border:1px solid rgba(45,142,142,0.12);';prompt.innerHTML='<div style="font-size:13px;color:#3a7070;line-height:1.5;margin-bottom:10px">Sometimes it helps to know you\'re not alone. Want to share how you\'re feeling with the community? It\'s completely anonymous.</div><div style="display:flex;gap:8px"><button onclick="switchTab(\'circle\');setTimeout(function(){openPostModal()},300);this.closest(\'div\').parentElement.remove()" style="background:#2D8E8E;color:white;border:none;padding:8px 16px;border-radius:50px;font-size:12px;font-family:var(--sans);cursor:pointer">Share</button><button onclick="localStorage.setItem(\'melodai_share_dismissed\',\'1\');this.closest(\'div\').parentElement.remove()" style="background:none;border:1px solid rgba(45,142,142,0.15);color:#6a9e9e;padding:8px 16px;border-radius:50px;font-size:12px;font-family:var(--sans);cursor:pointer">Not now</button></div>';rp.parentElement.appendChild(prompt)},1500)}}
 function getStageName(id){var s=STAGES.find(function(s){return s.id===id});return s?s.name:id}
 function updateStageUI(){document.getElementById('header-stage').textContent=getStageName(state.stage);document.getElementById('ci-stage-name').textContent=getStageName(state.stage);document.getElementById('ci-stage-cycle').textContent='Cycle '+state.cycle+' \u00b7 '+state.treatment.toUpperCase()}
-function openStageModal(){if(collector)collector.onStageModalOpen();var c=document.getElementById('modal-stages');c.innerHTML='';STAGES.forEach(function(s){var b=document.createElement('button');b.className='modal-stage-btn'+(s.id===state.stage?' current':'');b.innerHTML='<span class="stage-icon">'+(stageIcon(s.id)||'')+'</span>'+s.name;b.onclick=function(){var oldStage=state.stage;state.stage=s.id;if(collector)collector.onStageChange(oldStage,s.id);updateStageUI();buildTimeline();buildEducation();closeStageModal();addSystemMsg('Stage updated to '+s.name)};c.appendChild(b)});document.getElementById('stage-modal').classList.add('open')}
+function openStageModal(){if(collector)collector.onStageModalOpen();var c=document.getElementById('modal-stages');c.innerHTML='';
+// Build grouped stage list
+var curIdx=-1;STAGES.forEach(function(s,i){if(s.id===state.stage)curIdx=i});
+STAGE_GROUPS.forEach(function(grp){
+  var hdr=document.createElement('div');
+  hdr.style.cssText='padding:8px 4px 4px;font-size:10px;font-weight:700;color:#6a9e9e;text-transform:uppercase;letter-spacing:.8px;position:sticky;top:0;background:#fff;z-index:1';
+  hdr.textContent=grp.label;
+  if(grp.sub){var sub=document.createElement('span');sub.style.cssText='font-weight:400;color:#aaa;text-transform:none;letter-spacing:0;margin-left:6px;font-size:9px';sub.textContent=grp.sub;hdr.appendChild(sub)}
+  c.appendChild(hdr);
+  grp.ids.forEach(function(sid){
+    var s=STAGES.find(function(x){return x.id===sid});if(!s)return;
+    var sIdx=STAGES.indexOf(s);
+    var isPast=sIdx<curIdx;var isCurrent=s.id===state.stage;
+    var b=document.createElement('button');
+    b.className='modal-stage-btn'+(isCurrent?' current':'');
+    if(isPast)b.style.opacity='0.6';
+    var dot='<span style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:'+(isCurrent?'#0D9488':isPast?'#94A3B8':'#e0e0e0')+'"></span>';
+    b.innerHTML=dot+s.name+(isCurrent?' <span style="margin-left:auto;font-size:9px;color:#0D9488;font-weight:600">CURRENT</span>':'');
+    b.onclick=function(){var oldStage=state.stage;state.stage=s.id;
+      if(collector)collector.onStageChange(oldStage,s.id);
+      localStorage.setItem('melodai_stage',s.id);
+      // Persist to Firebase
+      if(state.patientId&&typeof firebase!=='undefined'){try{firebase.database().ref('melod_ai/patients/'+state.patientId).update({treatment_stage:s.id})}catch(e){}}
+      // Persist via API
+      if(state.patientId&&API_BASE){fetch(API_BASE+'/onboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({patient_id:state.patientId,name:state.name,treatment_stage:s.id,cycle_number:state.cycle,treatment_type:state.treatment})}).catch(function(){})}
+      updateStageUI();buildTimeline();buildEducation();if(typeof buildStageTimeline==='function')buildStageTimeline();closeStageModal();addSystemMsg('Stage updated to '+s.name)};
+    c.appendChild(b)});
+});
+// Scroll to current stage
+document.getElementById('stage-modal').classList.add('open');
+setTimeout(function(){var cur=c.querySelector('.current');if(cur)cur.scrollIntoView({block:'center',behavior:'smooth'})},100)}
 function closeStageModal(){document.getElementById('stage-modal').classList.remove('open')}
-function buildTimeline(){buildLandscape()}
+function buildTimeline(){buildLandscape();if(typeof buildStageTimeline==='function')buildStageTimeline()}
+
+function buildStageTimeline(){
+  var ct=document.getElementById('stageTimelineContainer');if(!ct)return;
+  // Pick stages relevant to the patient's journey type
+  var jt=state.treatment||'ivf';
+  var jStages=JOURNEY_STAGES[jt]||JOURNEY_STAGES.ivf;
+  var curIdx=-1;
+  jStages.forEach(function(js,i){if(js.id===state.stage)curIdx=i});
+  // If current stage not in journey stages, find nearest
+  if(curIdx<0){
+    var allIdx=STAGES.findIndex(function(s){return s.id===state.stage});
+    jStages.forEach(function(js,i){
+      var jsIdx=STAGES.findIndex(function(s){return s.id===js.id});
+      if(jsIdx<=allIdx)curIdx=i;
+    });
+  }
+
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  h+='<h3 style="font-family:var(--serif);font-size:15px;margin:0;color:#1a3a3a">Your Journey</h3>';
+  h+='<button onclick="openStageModal()" style="font-size:10px;color:#0D9488;background:none;border:1px solid rgba(13,115,119,.2);border-radius:50px;padding:3px 10px;cursor:pointer;font-weight:500">Change stage</button>';
+  h+='</div>';
+
+  h+='<div style="position:relative;padding-left:18px">';
+  jStages.forEach(function(js,i){
+    var isPast=i<curIdx;var isCur=i===curIdx;var isFuture=i>curIdx;
+    var dotColor=isPast?'#94A3B8':isCur?'#0D9488':'#ddd';
+    var lineColor=isPast?'#94A3B8':'#eee';
+    // Vertical line (except last)
+    if(i<jStages.length-1){
+      h+='<div style="position:absolute;left:22px;top:'+(i*52+18)+'px;width:2px;height:42px;background:'+lineColor+'"></div>';
+    }
+    // Dot
+    h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;cursor:pointer;opacity:'+(isFuture?'0.5':'1')+'" onclick="openStageModal()">';
+    h+='<div style="width:'+(isCur?'14':'10')+'px;height:'+(isCur?'14':'10')+'px;border-radius:50%;background:'+dotColor+';flex-shrink:0;position:relative;z-index:1;'+(isCur?'box-shadow:0 0 0 4px rgba(13,115,119,.15)':'')+'"></div>';
+    h+='<div style="flex:1;padding:8px 12px;border-radius:12px;background:'+(isCur?'rgba(13,115,119,.06)':'transparent')+';border:'+(isCur?'1px solid rgba(13,115,119,.15)':'1px solid transparent')+'">';
+    h+='<div style="font-size:13px;font-weight:'+(isCur?'600':'500')+';color:'+(isCur?'#0D9488':'#555')+'">'+(isPast?'\u2713 ':'')+js.t+'</div>';
+    h+='<div style="font-size:10px;color:#999;margin-top:1px">'+js.d+'</div>';
+    h+='</div></div>';
+  });
+  h+='</div>';
+  ct.innerHTML=h;
+}
 /* ═══ EMOTIONAL LANDSCAPE ═══════════════════════════════════════════ */
 var LANDSCAPE_ZONES=[
   {id:'meadow',name:'The Quiet Meadow',desc:'A gentle beginning — taking the first steps.',stages:['consultation','investigation','waiting_to_start'],baseColor:'#B5D99C',x:0,w:400},

@@ -5053,7 +5053,14 @@ async def update_patient_cycle(patient_id: str, request: Request):
         logger.warning(f"Rejected container-prefixed patient_id: {patient_id}")
         return {"status": "rejected", "reason": "invalid patient_id"}
     data = await request.json()
-    logger.info(f"Cycle update request for {patient_id}: incoming_keys={list(data.keys())}")
+    # Log incoming payload with dose details for debugging
+    ms_incoming = data.get('medications_simple', {})
+    dose_summary = {k: {
+        'name': v.get('name', '?'),
+        'dose_keys': list(v.get('doses', {}).keys()),
+        'dose_vals': list(v.get('doses', {}).values())
+    } for k, v in ms_incoming.items()} if isinstance(ms_incoming, dict) else 'not-dict'
+    logger.info(f"Cycle update request for {patient_id}: incoming_keys={list(data.keys())}, meds_detail={dose_summary}")
     try:
         if firebase_db and firebase_db._fb_ref:
             ref = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle")
@@ -5117,9 +5124,20 @@ async def update_patient_cycle(patient_id: str, request: Request):
 
             # .update() merges top-level keys without wiping siblings
             med_count = len(update_payload.get('medications_simple', {})) if 'medications_simple' in update_payload else 'n/a'
-            logger.info(f"Cycle writing for {patient_id}: keys={list(update_payload.keys())}, med_count={med_count}")
+            ms_writing = update_payload.get('medications_simple', None)
+            if ms_writing and isinstance(ms_writing, dict):
+                dose_detail = {k: {'name': v.get('name','?'), 'doses': v.get('doses',{})} for k,v in ms_writing.items() if isinstance(v, dict)}
+                logger.info(f"Cycle WRITING for {patient_id}: med_count={med_count}, dose_detail={dose_detail}")
+            else:
+                logger.info(f"Cycle WRITING for {patient_id}: keys={list(update_payload.keys())}, medications_simple={'SKIPPED' if ms_writing is None else 'present'}")
             ref.update(update_payload)
-            logger.info(f"Cycle updated for {patient_id}: OK")
+            # Read-back verification
+            try:
+                readback = ref.child('medications_simple').get()
+                rb_doses = {k: list(v.get('doses', {}).keys()) for k,v in (readback or {}).items() if isinstance(v, dict)}
+                logger.info(f"Cycle READBACK for {patient_id}: {rb_doses}")
+            except Exception as rb_err:
+                logger.warning(f"Cycle readback failed for {patient_id}: {rb_err}")
             return {"status": "updated"}
     except Exception as e:
         logger.error(f"Cycle update error for {patient_id}: {e}")

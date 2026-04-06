@@ -2055,6 +2055,7 @@ function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1)
     var statusEl = document.createElement('span');
     statusEl.style.cssText = 'font-size:10px;color:#22c55e;display:none;';
     statusEl.textContent = '\u2713 Saved';
+    saveBtn.addEventListener('mousedown', function() { window._medGridSaving = true; });
     saveBtn.addEventListener('click', function() { doSaveMeds(pid, tbody, statusEl); });
     btnDiv.appendChild(saveBtn);
     btnDiv.appendChild(statusEl);

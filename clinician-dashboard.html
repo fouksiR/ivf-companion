@@ -877,8 +877,8 @@ function renderPatients() {
       '</div>' +
       '<div id="medgrid-container-' + p.patient_id + '" style="padding:4px 12px 8px;"></div></div>';
   }).join('');
-  // Load saved meds for each patient
-  sorted.forEach(function(p) { if (typeof loadSavedMeds === 'function') loadSavedMeds(p.patient_id); });
+  // Load saved meds into grid containers after DOM is updated
+  setTimeout(function() { if (typeof injectMedGrids === 'function') injectMedGrids(); }, 200);
 }
 function sortPatientList(list) {
   var sort = document.getElementById('patientSort') ? document.getElementById('patientSort').value : 'escalation';
@@ -2354,9 +2354,20 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
   var observer = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
       m.addedNodes.forEach(function(node) {
-        if (node.nodeType === 1 && node.id && node.id.startsWith('medgrid-container-')) {
+        if (node.nodeType !== 1) return;
+        // Check the node itself
+        if (node.id && node.id.startsWith('medgrid-container-')) {
           var pid = node.id.replace('medgrid-container-', '');
           setTimeout(function() { window.loadAndBuildMedGrid(pid); }, 100);
+        }
+        // Check nested children (innerHTML sets add nested nodes)
+        if (node.querySelectorAll) {
+          node.querySelectorAll('[id^="medgrid-container-"]').forEach(function(el) {
+            if (el.children.length === 0) {
+              var pid2 = el.id.replace('medgrid-container-', '');
+              setTimeout(function() { window.loadAndBuildMedGrid(pid2); }, 150);
+            }
+          });
         }
       });
     });

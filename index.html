@@ -1540,12 +1540,25 @@ ov.classList.remove('visible');
 setTimeout(function(){ov.style.display='none'},600);
 if(window._softSpotDone)window._softSpotDone()}
 function goStep(n){
+// Auth guard — onboarding requires authentication
+if(!state.patientId&&localStorage.getItem('melodai_authenticated')!=='true'){
+  console.warn('[Auth] goStep called without auth');
+  document.getElementById('screen-onboard').classList.remove('active');
+  document.getElementById('screen-welcome').classList.add('active');return;
+}
 if(n===2){state.name=document.getElementById('ob-name').value.trim();state.partnerName=document.getElementById('ob-partner').value.trim()}
 document.querySelectorAll('.onboard-card').forEach(c=>c.classList.remove('active'));
 document.getElementById('step'+n).classList.add('active');
 for(let i=1;i<=3;i++){document.getElementById('sd'+i).className='step-dot'+(i<n?' done':i===n?' active':'')}
 }
 async function completeOnboarding(){
+// Auth guard — must be authenticated to complete onboarding
+if(!state.patientId&&localStorage.getItem('melodai_authenticated')!=='true'){
+  console.warn('[Auth] completeOnboarding called without auth — redirecting to welcome');
+  document.getElementById('screen-onboard').classList.remove('active');
+  document.getElementById('screen-welcome').classList.add('active');
+  return;
+}
 // Use journey type if set, fall back to treatment picker
 if(_selectedJourney){state.treatment=_selectedJourney==='egg_freeze'?'egg_freezing':_selectedJourney;localStorage.setItem('melodai_journey_type',_selectedJourney)}
 else{state.treatment=document.getElementById('ob-treatment')?document.getElementById('ob-treatment').value:'ivf'}

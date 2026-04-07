@@ -120,7 +120,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .one-word-pill:active{transform:scale(.97)}
 @keyframes pillFadeIn{to{opacity:1}}
 /* ── Reflection Card ── */
-.reflection-card{background:var(--card-bg);border-radius:18px;padding:20px 22px;border:1px solid var(--card-border);border-left:3px solid var(--accent);box-shadow:0 2px 12px rgba(0,0,0,.04);margin-bottom:4px;opacity:0;animation:reflectionIn 1s ease .3s forwards;max-width:92%;align-self:flex-start;backdrop-filter:blur(8px)}
+.reflection-card{background:rgba(255,255,255,0.92);border-radius:18px;padding:20px 22px;border:1px solid var(--card-border);border-left:3px solid var(--accent);box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:4px;opacity:0;animation:reflectionIn 1s ease .3s forwards;max-width:92%;align-self:flex-start;backdrop-filter:blur(8px)}
 @keyframes reflectionIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .reflection-card .rc-text{font-family:Georgia,'Cormorant Garamond',serif;font-size:15px;line-height:1.7;color:#2a2a2a;margin:0}
 .reflection-card .rc-zone{font-size:11px;color:#999;font-style:italic;margin-top:10px}
@@ -778,7 +778,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
   </div>
   <div class="steps-indicator"><div class="step-dot active" id="sd1"></div><div class="step-dot" id="sd2"></div><div class="step-dot" id="sd3"></div></div>
   <div class="onboard-card active" id="step1"><h2>Welcome</h2><p class="card-desc">Let's get to know each other. What should we call you?</p><div class="field"><label>Your first name</label><input type="text" id="ob-name" placeholder="e.g. Sarah" autofocus></div><div class="field"><label>Partner's name (optional)</label><input type="text" id="ob-partner" placeholder="e.g. James"></div><button class="btn btn-primary" id="btn-step1" disabled onclick="goStep(2)">Continue</button></div>
-  <div class="onboard-card" id="step2"><h2>A bit about you</h2><p class="card-desc">This helps us personalise your experience.</p><div class="onboard-age-picker"><label style="font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.8px">Your age</label><div class="age-display" id="ageDisplay">32</div><input type="range" class="age-slider" id="ageSlider" min="20" max="50" value="32" oninput="document.getElementById('ageDisplay').textContent=this.value"></div><div class="field"><label>Treatment type</label><select id="ob-treatment"><option value="ivf">IVF</option><option value="icsi">ICSI</option><option value="fet">Frozen Embryo Transfer</option><option value="iui">IUI</option><option value="egg_freezing">Egg Freezing</option><option value="other">Other</option></select></div><div class="field"><label>Which cycle is this?</label><select id="ob-cycle"><option value="1">First cycle</option><option value="2">Second cycle</option><option value="3">Third cycle</option><option value="4">Fourth or more</option></select></div><div class="field"><label>Clinic name (optional)</label><input type="text" id="ob-clinic" placeholder="e.g. Melbourne IVF"></div><div class="btn-row"><button class="btn btn-secondary btn-back" onclick="goStep(1)">Back</button><button class="btn btn-primary" onclick="goStep(3)">Continue</button></div></div>
+  <div class="onboard-card" id="step2"><h2>A bit about you</h2><p class="card-desc">This helps us personalise your experience.</p><div class="onboard-age-picker"><label style="font-size:11px;font-weight:600;color:var(--text-soft);text-transform:uppercase;letter-spacing:.8px">Your age</label><div class="age-display" id="ageDisplay">32</div><input type="range" class="age-slider" id="ageSlider" min="20" max="50" value="32" oninput="document.getElementById('ageDisplay').textContent=this.value"></div><div class="field"><label>Which cycle is this?</label><select id="ob-cycle"><option value="1">First cycle</option><option value="2">Second cycle</option><option value="3">Third cycle</option><option value="4">Fourth or more</option></select></div><div class="field"><label>Clinic name (optional)</label><input type="text" id="ob-clinic" placeholder="e.g. Melbourne IVF"></div><div class="btn-row"><button class="btn btn-secondary btn-back" onclick="goStep(1)">Back</button><button class="btn btn-primary" onclick="goStep(3)">Continue</button></div></div>
   <div class="onboard-card" id="step3">
     <h2 style="font-family:var(--serif);font-size:22px;color:#1a3a3a">What's your journey?</h2>
     <p class="card-desc">We'll tailor everything to your specific path.</p>
@@ -948,7 +948,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 </div>
 <!-- Music toggle -->
 <!-- Post creation modal -->
-<div class="post-modal-overlay" id="postModal"><div class="post-modal"><h3>Share with the community</h3><textarea id="postText" placeholder="What's on your mind?"></textarea><div class="post-modal-actions"><label class="post-modal-anon"><input type="checkbox" id="postAnon" checked> Anonymous</label><button class="post-modal-send" onclick="submitPost()">Post</button></div></div></div>
+<div class="post-modal-overlay" id="postModal"><div class="post-modal" style="position:relative"><span onclick="document.getElementById('postModal').style.display='none'" style="position:absolute;top:12px;right:12px;font-size:24px;cursor:pointer;color:#666;line-height:1">&times;</span><h3>Share with the community</h3><textarea id="postText" placeholder="What's on your mind?"></textarea><div class="post-modal-actions"><label class="post-modal-anon"><input type="checkbox" id="postAnon" checked> Anonymous</label><button class="post-modal-send" onclick="submitPost()">Post</button></div></div></div>
 <!-- Tour offer -->
 <div class="tour-overlay" id="tourOverlay" style="display:none"><div class="tour-card"><div class="tour-label">MELOD</div><p class="tour-text">Since you're new here, want a quick tour of the app? I'd love to show you around!</p><div class="tour-btns"><button class="tour-btn tour-btn-later" onclick="dismissTour()">Later</button><button class="tour-btn tour-btn-sure" onclick="startTour()">Sure!</button></div></div></div>
 
@@ -3390,7 +3390,7 @@ function loadExistingPatient(uid,email){
         document.getElementById('screen-welcome').classList.remove('active');
         document.getElementById('screen-app').classList.add('active');
         showApp();
-        addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+        sendWelcomeOnce(state.name, false);
       }else{
         // No profile found — go to onboarding
         state.patientId=uid;
@@ -3407,7 +3407,7 @@ function loadExistingPatient(uid,email){
         document.getElementById('screen-welcome').classList.remove('active');
         document.getElementById('screen-app').classList.add('active');
         showApp();
-        addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+        sendWelcomeOnce(state.name, false);
       }else{
         document.getElementById('screen-welcome').classList.remove('active');
         document.getElementById('screen-onboard').classList.add('active');
@@ -3422,7 +3422,7 @@ function loadExistingPatient(uid,email){
       document.getElementById('screen-welcome').classList.remove('active');
       document.getElementById('screen-app').classList.add('active');
       showApp();
-      addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+      sendWelcomeOnce(state.name, false);
     }else{
       document.getElementById('screen-welcome').classList.remove('active');
       document.getElementById('screen-onboard').classList.add('active');
@@ -3452,6 +3452,7 @@ function logout(){
     localStorage.removeItem('melodai_journey_type');
     localStorage.removeItem('melodai_frequent_flyer');
     localStorage.removeItem('melodai_cycle_events');
+    try { Object.keys(localStorage).filter(function(k){return k.startsWith('welcome_sent_')}).forEach(function(k){localStorage.removeItem(k)}) } catch(e) {}
     _calEvents=[];window.cycleMedsByDate={};
     state._authHandled=false;state._returning=false;state.patientId=null;
     location.reload();
@@ -3466,6 +3467,20 @@ window.toggleAuthMode=toggleAuthMode;
 window.hideAuthForm=hideAuthForm;
 window.forgotPassword=resetPassword;
 
+// ── Welcome message guard — only show once per session ──
+var _welcomeMsgSent = false;
+function sendWelcomeOnce(name, isNew) {
+  if (_welcomeMsgSent) return;
+  _welcomeMsgSent = true;
+  var key = 'welcome_sent_' + (state.patientId || 'anon');
+  if (!isNew && localStorage.getItem(key)) return; // returning user, already sent this session cycle
+  localStorage.setItem(key, '1');
+  if (isNew) {
+    // New user welcome handled by completeOnboarding — skip here
+    return;
+  }
+  addMsg('ai','Welcome back, ' + (name || 'there') + '! How are you doing today?', null, {showOneWord: true});
+}
 function dismissWelcome(){
   try{localStorage.setItem('melodai_welcomed','1')}catch(ex){}
   // Only proceed if authenticated
@@ -3477,7 +3492,7 @@ function dismissWelcome(){
     document.getElementById('screen-welcome').classList.remove('active');
     document.getElementById('screen-app').classList.add('active');
     showApp();
-    addMsg('ai','Welcome back, '+state.name+'! How are you doing today?',null,{showOneWord:true});
+    sendWelcomeOnce(state.name, false);
     return;
   }
   document.getElementById('screen-welcome').classList.remove('active');

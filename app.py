@@ -2865,6 +2865,41 @@ Weave this awareness naturally — don't announce it as a feature, just show you
     )
 
 
+@app.get("/checkin/similar")
+async def checkin_similar(mood: int = 3):
+    """Count how many patients checked in today with similar mood (±1)."""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+        similar = 0
+        # Check in-memory store
+        for pid, sessions in checkins_db.items():
+            for data in sessions:
+                if isinstance(data, dict):
+                    ts = data.get('date', '')
+                    m = data.get('mood', 0)
+                    if today in str(ts) and abs(m - mood) <= 1:
+                        similar += 1
+        # Check Firebase
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                ref = firebase_db._fb_ref.child('checkins')
+                all_ci = ref.get() or {}
+                for pid, sessions in all_ci.items():
+                    if isinstance(sessions, dict):
+                        for sid, data in sessions.items():
+                            if isinstance(data, dict):
+                                ts = data.get('timestamp', data.get('date', ''))
+                                m = data.get('mood', 0)
+                                if today in str(ts) and abs(m - mood) <= 1:
+                                    similar += 1
+        except Exception:
+            pass
+        similar = max(0, similar - 1)  # Don't count current user
+        return {"similar_count": similar}
+    except Exception:
+        return {"similar_count": 0}
+
+
 @app.post("/checkin", response_model=CheckInResponse)
 async def daily_checkin(req: CheckInRequest):
     """Record a daily micro check-in and generate a response."""

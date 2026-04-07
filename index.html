@@ -246,6 +246,16 @@ h1,h2,h3{font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-
 .note-area textarea:focus{border-color:var(--accent)}
 .note-area textarea::placeholder{color:var(--text-faint)}
 .checkin-btn-area{width:100%;max-width:440px;flex-shrink:0;box-sizing:border-box}
+.checkin-card{padding:24px 20px;animation:checkinSlideIn .3s ease-out}
+@keyframes checkinSlideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes checkinSlideOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-40px)}}
+.checkin-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,0.1);transition:all .3s ease}
+.checkin-dot.active{background:#0D9488;width:24px;border-radius:4px}
+.checkin-dot.completed{background:#0D9488}
+.checkin-faces{display:flex;justify-content:center;gap:16px;padding:8px 0}
+.checkin-face{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;border:2px solid transparent;transition:all .2s ease;background:rgba(0,0,0,0.03)}
+.checkin-face:hover{background:rgba(45,142,142,0.08)}
+.checkin-face.selected{border-color:#0D9488;background:rgba(13,148,136,0.12);transform:scale(1.15)}
 #btn-checkin{width:100%;padding:16px 48px;border-radius:24px;background:linear-gradient(135deg,#0D9488,#14B8A6);color:white;font-size:15px;font-weight:600;border:none;cursor:pointer;font-family:var(--sans);box-shadow:0 4px 16px rgba(13,148,136,.25);transition:transform .15s,box-shadow .15s;letter-spacing:.3px}
 #btn-checkin:active{transform:scale(.97);box-shadow:0 2px 8px rgba(13,148,136,.15)}
 #btn-checkin:disabled{opacity:.6;transform:none}
@@ -841,6 +851,55 @@ h1,h2,h3{font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-
   <div class="app-nav"><button class="nav-item active" onclick="switchTab('chat')"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</button><button class="nav-item" onclick="switchTab('checkin')"><svg viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>Check-in</button><button class="nav-item" onclick="switchTab('circle')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Circle</button><button class="nav-item" onclick="switchTab('journey')"><svg viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h1M2 12h1m16.66 7.66l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Insights</button></div>
   <div class="tab-panel active" id="panel-chat"><div class="chat-area" id="chat-area"></div><div class="typing-dots" id="typing"><span></span><span></span><span></span></div><div class="chat-composer"><textarea id="chat-input" rows="1" placeholder="Ask about your treatment, medications, or share how you're feeling..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea><button class="send-btn" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div></div>
 <div class="tab-panel" id="panel-checkin">
+    <!-- Progressive check-in flow -->
+    <div id="progressive-checkin">
+      <div id="checkin-progress" style="display:flex;justify-content:center;gap:8px;padding:16px 0;">
+        <span class="checkin-dot active" data-step="0"></span>
+        <span class="checkin-dot" data-step="1"></span>
+        <span class="checkin-dot" data-step="2"></span>
+        <span class="checkin-dot" data-step="3"></span>
+        <span class="checkin-dot" data-step="4"></span>
+      </div>
+      <div id="checkin-card-container" style="position:relative;overflow:hidden;min-height:300px;">
+        <div class="checkin-card" data-step="0" data-dimension="mood">
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">How's your heart today?</h2>
+          <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">No right answer — just how you feel right now</p>
+          <div class="checkin-faces" data-dimension="mood"></div>
+        </div>
+        <div class="checkin-card" data-step="1" data-dimension="calm" style="display:none;">
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">Feeling calm or restless?</h2>
+          <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">Your body holds a lot right now</p>
+          <div class="checkin-faces" data-dimension="calm"></div>
+        </div>
+        <div class="checkin-card" data-step="2" data-dimension="connection" style="display:none;">
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">How connected do you feel?</h2>
+          <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">To your partner, your people, yourself</p>
+          <div class="checkin-faces" data-dimension="connection"></div>
+        </div>
+        <div class="checkin-card" data-step="3" data-dimension="clarity" style="display:none;">
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">How clear is your thinking?</h2>
+          <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">Foggy days are completely normal</p>
+          <div class="checkin-faces" data-dimension="clarity"></div>
+        </div>
+        <div class="checkin-card" data-step="4" data-dimension="hope" style="display:none;">
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">How hopeful are you feeling?</h2>
+          <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">It's okay if this changes hour to hour</p>
+          <div class="checkin-faces" data-dimension="hope"></div>
+        </div>
+      </div>
+      <div id="checkin-nav" style="display:flex;justify-content:center;gap:16px;padding:24px 16px;">
+        <button id="checkin-back-btn" onclick="checkinBack()" style="display:none;padding:12px 32px;border-radius:8px;border:1px solid rgba(0,0,0,0.12);background:transparent;color:var(--text);font-family:'Inter',sans-serif;font-weight:500;font-size:16px;cursor:pointer;">Back</button>
+        <button id="checkin-next-btn" onclick="checkinNext()" style="padding:12px 48px;border-radius:8px;background:#0D9488;color:#fff;border:none;font-family:'Inter',sans-serif;font-weight:500;font-size:16px;cursor:pointer;opacity:0.4;pointer-events:none;">Next</button>
+      </div>
+      <div id="checkin-complete" style="display:none;text-align:center;padding:40px 20px;">
+        <div style="font-size:48px;margin-bottom:16px;">&#x1F49B;</div>
+        <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;margin-bottom:12px;">Thank you for checking in</h2>
+        <p id="checkin-similar" style="font-family:'Inter',sans-serif;font-weight:300;font-size:16px;opacity:0.8;"></p>
+        <button onclick="closeCheckin()" style="margin-top:24px;padding:12px 32px;border-radius:8px;background:#0D9488;color:#fff;border:none;font-family:'Inter',sans-serif;font-weight:500;cursor:pointer;">Done</button>
+      </div>
+    </div>
+    <!-- Old stacked check-in (hidden, kept for compatibility) -->
+    <div id="old-stacked-checkin" style="display:none;">
     <div class="checkin-hero"><h2>Daily Check-in</h2><p>How are you feeling today?</p><div class="ci-bubble" id="ci-bubble">Take a moment to check in with yourself &#x1F49B;</div></div>
     <div class="current-stage-card"><div class="cs-text"><h3 id="ci-stage-name">Loading</h3><p id="ci-stage-cycle">Cycle 1</p></div><button class="cs-change" onclick="openStageModal()">Change</button></div>
     <div class="dim-card dim-card-mood"><div class="dim-header"><div class="dim-icon dim-icon-mood"></div><div class="dim-title">Mood</div><div class="dim-val" id="v-mood">5</div></div><p class="dim-prompt">How's your heart feeling?</p><div class="dim-visual" id="vis-mood">&#x1F324;&#xFE0F;</div><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-mood').textContent=this.value;updateVisual('mood',+this.value);if(collector)collector.onSliderChange('mood',+this.value)"></div><div class="dim-labels"><span>Heavy &#x1F327;&#xFE0F;</span><span>Bright &#x2600;&#xFE0F;</span></div></div>
@@ -878,6 +937,7 @@ h1,h2,h3{font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-
       </div>
     </div>
     <div class="checkin-btn-area"><button id="btn-checkin" onclick="submitCheckin()">Save check-in &#x1F4AB;</button></div>
+    </div><!-- end old-stacked-checkin -->
     <div class="ai-response" id="ci-response"><div class="ar-label">Melod&#xB7;AI</div><div class="ar-text" id="ci-response-text"></div></div>
   </div>
   <div class="tab-panel" id="panel-circle" style="padding:16px">
@@ -1994,7 +2054,7 @@ var fab=document.getElementById('communityFab');if(fab)fab.style.display=t==='ci
 // Track circle tab time for community phenotyping
 if(prevTab==='circle'&&_communityMetrics._circleTabStart>0){_communityMetrics.time_on_circle_tab_ms+=Date.now()-_communityMetrics._circleTabStart;_communityMetrics._circleTabStart=0}
 if(t==='circle'){_communityMetrics._circleTabStart=Date.now()}
-if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collector.onCheckinStart();if(t==='journey'){buildCalendar();updateJarCounts()}
+if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'){if(collector)collector.onCheckinStart();if(typeof initProgressiveCheckin==='function')initProgressiveCheckin()}if(t==='journey'){buildCalendar();updateJarCounts()}
 // Fire pending egg support when returning to chat
 if(t==='chat'&&_pendingEggSupport){setTimeout(function(){eggProactiveSupport(_pendingEggSupport)},800)}}
 var _oneWordShown=false;
@@ -2234,6 +2294,125 @@ if(collector)collector.onCheckinComplete(c);
 state.checkins.push(Object.assign({},c,{date:new Date().toISOString()}));var rt='';if(API_BASE){try{var r=await fetch(API_BASE+'/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({patient_id:state.patientId},c))});var d=await r.json();rt=d.message;if(d.capability_hint){setTimeout(function(){addSystemMsg(d.capability_hint)},1000)}if(d.support_widgets&&d.support_widgets.length){setTimeout(function(){eggProactiveSupport(d.support_widgets[0])},1500)}}catch(e){}}if(!rt){rt='Thanks for checking in, '+state.name+'. I can see things are sitting around a '+c.mood+" for mood today.\n\nRemember \u2014 every day is different, and there\u2019s no pressure to feel a certain way. I\u2019m here if you want to talk."}var rp=document.getElementById('ci-response');document.getElementById('ci-response-text').textContent=rt;rp.style.display='block';rp.scrollIntoView({behavior:'smooth'});b.disabled=false;b.textContent='Save check-in \uD83D\uDCAB';b.classList.add('saved');b.textContent='Saved \u2713';setTimeout(function(){b.classList.remove('saved');b.textContent='Save check-in \uD83D\uDCAB'},2000);updateChart();
 // Post-checkin community share prompt (only if mood < 5)
 if(c.mood<5&&!localStorage.getItem('melodai_share_dismissed')){setTimeout(function(){var prompt=document.createElement('div');prompt.style.cssText='margin:12px 0;padding:12px 16px;background:#f0fdfa;border-radius:12px;border:1px solid rgba(0,0,0,0.06);';prompt.innerHTML='<div style="font-size:13px;color:#3a7070;line-height:1.5;margin-bottom:10px">Sometimes it helps to know you\'re not alone. Want to share how you\'re feeling with the community? It\'s completely anonymous.</div><div style="display:flex;gap:8px"><button onclick="switchTab(\'circle\');setTimeout(function(){openPostModal()},300);this.closest(\'div\').parentElement.remove()" style="background:#2D8E8E;color:white;border:none;padding:8px 16px;border-radius:50px;font-size:12px;font-family:var(--sans);cursor:pointer">Share</button><button onclick="localStorage.setItem(\'melodai_share_dismissed\',\'1\');this.closest(\'div\').parentElement.remove()" style="background:none;border:1px solid rgba(45,142,142,0.15);color:#6a9e9e;padding:8px 16px;border-radius:50px;font-size:12px;font-family:var(--sans);cursor:pointer">Not now</button></div>';rp.parentElement.appendChild(prompt)},1500)}}
+// ── Progressive Check-in ──
+var CHECKIN_FACES=['😔','😟','😐','🙂','😊'];
+var CHECKIN_FACE_VALUES=[0,2,5,7,10]; // maps to 0-10 scale for backend
+var CHECKIN_DIMS=['mood','calm','connection','clarity','hope'];
+var _ciStep=0,_ciScores={},_ciStepStart=null;
+
+function initProgressiveCheckin(){
+  document.querySelectorAll('.checkin-faces').forEach(function(container){
+    var dim=container.dataset.dimension;
+    container.innerHTML='';
+    CHECKIN_FACES.forEach(function(face,i){
+      var el=document.createElement('div');
+      el.className='checkin-face';
+      el.textContent=face;
+      el.onclick=function(){selectCheckinFace(dim,CHECKIN_FACE_VALUES[i],el)};
+      container.appendChild(el);
+    });
+  });
+  _ciStep=0;_ciScores={};_ciStepStart=Date.now();
+  showCheckinStep(0);
+  // Show progressive, hide old
+  var prog=document.getElementById('progressive-checkin');if(prog)prog.style.display='block';
+  var old=document.getElementById('old-stacked-checkin');if(old)old.style.display='none';
+  // Reset completion state
+  var cc=document.getElementById('checkin-complete');if(cc)cc.style.display='none';
+  var cn=document.getElementById('checkin-card-container');if(cn)cn.style.display='block';
+  var nav=document.getElementById('checkin-nav');if(nav)nav.style.display='flex';
+  var prg=document.getElementById('checkin-progress');if(prg)prg.style.display='flex';
+  document.querySelectorAll('.checkin-face').forEach(function(f){f.classList.remove('selected')});
+}
+
+function selectCheckinFace(dim,value,el){
+  el.parentElement.querySelectorAll('.checkin-face').forEach(function(f){f.classList.remove('selected')});
+  el.classList.add('selected');
+  _ciScores[dim]=value;
+  var btn=document.getElementById('checkin-next-btn');
+  btn.style.opacity='1';btn.style.pointerEvents='auto';
+}
+
+function showCheckinStep(step){
+  if(_ciStepStart&&step>0){
+    var elapsed=Date.now()-_ciStepStart;
+    try{if(window.collector)collector.onSliderChange(CHECKIN_DIMS[step-1],_ciScores[CHECKIN_DIMS[step-1]]||5)}catch(e){}
+  }
+  _ciStepStart=Date.now();
+  document.querySelectorAll('.checkin-card').forEach(function(c){c.style.display='none'});
+  var card=document.querySelector('.checkin-card[data-step="'+step+'"]');
+  if(card){card.style.display='block';card.style.animation='none';card.offsetHeight;card.style.animation='checkinSlideIn .3s ease-out'}
+  document.querySelectorAll('.checkin-dot').forEach(function(dot,i){
+    dot.classList.remove('active');
+    if(i<step)dot.classList.add('completed');
+    if(i===step)dot.classList.add('active');
+  });
+  document.getElementById('checkin-back-btn').style.display=step>0?'inline-block':'none';
+  var nextBtn=document.getElementById('checkin-next-btn');
+  nextBtn.textContent=step===4?'Submit':'Next';
+  var dim=CHECKIN_DIMS[step];
+  if(_ciScores[dim]!==undefined){nextBtn.style.opacity='1';nextBtn.style.pointerEvents='auto'}
+  else{nextBtn.style.opacity='0.4';nextBtn.style.pointerEvents='none'}
+}
+
+function checkinNext(){
+  if(_ciStep<4){_ciStep++;showCheckinStep(_ciStep)}
+  else{submitProgressiveCheckin()}
+}
+function checkinBack(){
+  if(_ciStep>0){_ciStep--;showCheckinStep(_ciStep)}
+}
+
+async function submitProgressiveCheckin(){
+  // Map progressive scores to old DOM elements so wrappers still work
+  var mood=_ciScores.mood||5;
+  var anxiety=10-(_ciScores.calm||5); // invert: calm 10 → anxiety 0
+  var loneliness=10-(_ciScores.connection||5); // invert
+  var uncertainty=10-(_ciScores.clarity||5); // invert
+  var hope=_ciScores.hope||5;
+
+  // Set hidden old elements for wrapper compatibility
+  var vm=document.getElementById('v-mood');if(vm)vm.textContent=mood;
+  var va=document.getElementById('v-anxiety');if(va)va.textContent=anxiety;
+  var vl=document.getElementById('v-lonely');if(vl)vl.textContent=loneliness;
+  var vu=document.getElementById('v-uncertain');if(vu)vu.textContent=uncertainty;
+  var vh=document.getElementById('v-hope');if(vh)vh.textContent=hope;
+
+  // Hide cards+nav, show completion
+  document.getElementById('checkin-card-container').style.display='none';
+  document.getElementById('checkin-nav').style.display='none';
+  document.getElementById('checkin-progress').style.display='none';
+  var complete=document.getElementById('checkin-complete');
+  complete.style.display='block';
+  complete.style.animation='checkinSlideIn .4s ease-out';
+
+  // Fetch similar count
+  try{
+    var resp=await fetch(API_BASE+'/checkin/similar?mood='+mood);
+    if(resp.ok){var data=await resp.json();var count=data.similar_count||0;
+      document.getElementById('checkin-similar').textContent=count>0?
+        count+' other'+(count>1?'s':'')+' felt similar today':
+        "You're the first to check in today — you're setting the pace";}
+    else{document.getElementById('checkin-similar').textContent='Every check-in matters. We see you.';}
+  }catch(e){document.getElementById('checkin-similar').textContent='Every check-in matters. We see you.';}
+
+  // Call the original submitCheckin which handles API call, escalation, wrappers etc.
+  if(typeof window.submitCheckin==='function'){
+    try{await window.submitCheckin()}catch(e){console.error('Check-in submit:',e)}
+  }
+}
+
+function closeCheckin(){
+  // Reset progressive UI for next time
+  var cn=document.getElementById('checkin-card-container');if(cn)cn.style.display='block';
+  var nav=document.getElementById('checkin-nav');if(nav)nav.style.display='flex';
+  var prg=document.getElementById('checkin-progress');if(prg)prg.style.display='flex';
+  var cc=document.getElementById('checkin-complete');if(cc)cc.style.display='none';
+  document.querySelectorAll('.checkin-face').forEach(function(f){f.classList.remove('selected')});
+  // Switch to chat tab
+  switchTab('chat');
+}
+
 function getStageName(id){var s=STAGES.find(function(s){return s.id===id});return s?s.name:id}
 function updateStageUI(){document.getElementById('header-stage').textContent=getStageName(state.stage);document.getElementById('ci-stage-name').textContent=getStageName(state.stage);document.getElementById('ci-stage-cycle').textContent='Cycle '+state.cycle+' \u00b7 '+state.treatment.toUpperCase()}
 function openStageModal(){if(collector)collector.onStageModalOpen();var c=document.getElementById('modal-stages');c.innerHTML='';

@@ -104,47 +104,15 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
 .nav-item.active svg{stroke:var(--accent)}
 .tab-panel{display:none;flex:1;overflow-y:auto;padding-bottom:70px}.tab-panel.active{display:flex;flex-direction:column}
 
-#panel-chat{background:linear-gradient(180deg,#f0f7f7 0%,#e8f4f4 100%);display:flex;flex-direction:column}
-.chat-sub-tabs{display:flex;gap:0;padding:8px 16px 0;flex-shrink:0}
-.chat-sub-tab{flex:1;padding:8px 0;text-align:center;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit}
-.chat-sub-tab.active{color:#0d7377;border-bottom-color:#0d7377}
+#panel-chat{background:transparent}
 .chat-area{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:12px}
-.msg{max-width:80%;animation:msgIn .3s ease}
+.msg{max-width:82%;animation:msgIn .3s ease}
 @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.msg-ai{align-self:flex-start;max-width:82%}
-.msg-ai .msg-bubble{background:#fff;color:var(--text);padding:14px 18px;border-radius:18px 18px 18px 4px;border:1px solid rgba(13,116,119,0.15);font-size:13.5px;line-height:1.55;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
-.msg-ai .msg-sender{font-size:10px;font-weight:700;color:#0d7377;margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px}
-.msg-ai .msg-time{font-size:9px;color:#b0b0b0;margin-top:4px}
-.msg-user{align-self:flex-end;max-width:75%}
-.msg-user .msg-bubble{background:#0D9488;color:#fff;padding:14px 18px;border-radius:18px 18px 4px 18px;font-size:13.5px;line-height:1.55;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
-.msg-user .msg-time{font-size:9px;color:#b0b0b0;margin-top:4px;text-align:right}
-/* Community feed */
-.community-feed{flex:1;overflow-y:auto;padding:12px 16px}
-.community-post{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,0.05);border:1px solid #f0f0f0}
-.community-post-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.community-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
-.community-name{font-size:13px;font-weight:600;color:#333}
-.community-time{font-size:10px;color:#aaa;margin-left:auto}
-.community-body{font-size:13.5px;line-height:1.5;color:#444;margin-bottom:10px}
-.community-actions{display:flex;gap:10px}
-.community-action-btn{padding:4px 14px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid #e0e0e0;background:#fff;color:#666;font-family:inherit;transition:all .15s}
-.community-action-btn.supported{background:#e0f5f0;color:#0d7377;border-color:#0d7377}
-.community-action-btn:hover{background:#f0fdfa;border-color:#0d7377;color:#0d7377}
-.community-replies{margin-top:10px;padding-left:16px;border-left:2px solid #e8f4f4}
-.community-reply{padding:8px 0;font-size:12px}
-.community-reply-name{font-weight:600;color:#555;font-size:11px}
-.community-compose-fab{position:absolute;bottom:16px;right:16px;width:48px;height:48px;border-radius:50%;background:#0d7377;color:#fff;border:none;font-size:24px;font-weight:300;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;z-index:10}
-.community-compose{background:#fff;border-radius:16px;padding:16px;margin:12px 16px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border:1px solid #e8e8e8}
-.community-compose h3{font-size:14px;font-weight:600;color:#333;margin:0 0 10px}
-.community-compose textarea{width:100%;border:1px solid #e0e0e0;border-radius:10px;padding:10px;font-size:13px;font-family:inherit;resize:none;outline:none;box-sizing:border-box}
-.community-compose textarea:focus{border-color:#0d7377}
-.community-cat-pills{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
-.community-cat-pill{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid #e0e0e0;background:#fff;color:#666;font-family:inherit;transition:all .15s}
-.community-cat-pill.selected{background:#0d7377;color:#fff;border-color:#0d7377}
-.community-post-btn{width:100%;padding:10px;border:none;border-radius:10px;background:#0d7377;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px}
-.community-post-btn:disabled{background:#d1d5db;cursor:default}
-.chat-welcome-card{background:#fff;border-radius:16px;padding:24px;text-align:center;margin:auto 8px;box-shadow:0 2px 12px rgba(0,0,0,0.05);border:1px solid rgba(13,116,119,0.1)}
-.chat-welcome-card p{font-size:13.5px;line-height:1.6;color:#555;margin:0}
+.msg-ai{align-self:flex-start}
+.msg-ai .msg-bubble{background:var(--card-bg);color:var(--text);padding:14px 18px;border-radius:18px 18px 18px 4px;border:1px solid var(--card-border);font-size:13.5px;line-height:1.55}
+.msg-ai .msg-sender{font-size:10px;font-weight:600;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.msg-user{align-self:flex-end}
+.msg-user .msg-bubble{background:var(--accent);color:var(--white);padding:14px 18px;border-radius:18px 18px 4px 18px;font-size:13.5px;line-height:1.55}
 .msg-system{align-self:center;max-width:90%}
 .msg-system .msg-bubble{background:var(--accent-light);color:var(--accent);padding:6px 16px;border-radius:var(--radius-xs);font-size:11px;text-align:center;font-weight:500}
 .one-word-pill{display:inline-block;margin-top:10px;padding:8px 20px;background:rgba(45,142,142,.08);border:1px solid rgba(45,142,142,.2);border-radius:20px;font-family:'Montserrat',sans-serif;font-size:12px;font-weight:500;color:#2D8E8E;cursor:pointer;transition:all .3s ease;opacity:0;animation:pillFadeIn .8s ease .5s forwards}
@@ -870,23 +838,7 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     </div>
   </div>
   <div class="app-nav"><button class="nav-item active" onclick="switchTab('chat')"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Chat</button><button class="nav-item" onclick="switchTab('checkin')"><svg viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>Check-in</button><button class="nav-item" onclick="switchTab('circle')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Circle</button><button class="nav-item" onclick="switchTab('journey')"><svg viewBox="0 0 24 24"><path d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h1M2 12h1m16.66 7.66l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Insights</button></div>
-  <div class="tab-panel active" id="panel-chat">
-    <div class="chat-sub-tabs">
-      <button class="chat-sub-tab active" id="chatTabCompanion" onclick="switchChatMode('companion')">My Companion</button>
-      <button class="chat-sub-tab" id="chatTabCommunity" onclick="switchChatMode('community')">Community</button>
-    </div>
-    <!-- Companion chat -->
-    <div id="companionChatWrap" style="flex:1;display:flex;flex-direction:column;min-height:0">
-      <div class="chat-area" id="chat-area"></div>
-      <div class="typing-dots" id="typing"><span></span><span></span><span></span></div>
-      <div class="chat-composer"><textarea id="chat-input" rows="1" placeholder="Share what's on your mind..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea><button class="send-btn" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
-    </div>
-    <!-- Community feed -->
-    <div id="communityChatWrap" style="flex:1;display:none;flex-direction:column;min-height:0;position:relative">
-      <div class="community-feed" id="communityFeed"></div>
-      <button class="community-compose-fab" id="communityFab" onclick="toggleCommunityCompose()">+</button>
-    </div>
-  </div>
+  <div class="tab-panel active" id="panel-chat"><div class="chat-area" id="chat-area"></div><div class="typing-dots" id="typing"><span></span><span></span><span></span></div><div class="chat-composer"><textarea id="chat-input" rows="1" placeholder="Ask about your treatment, medications, or share how you're feeling..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea><button class="send-btn" onclick="sendMsg()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div></div>
 <div class="tab-panel" id="panel-checkin">
     <div class="checkin-hero"><h2>Daily Check-in</h2><p>How are you feeling today?</p><div class="ci-bubble" id="ci-bubble">Take a moment to check in with yourself &#x1F49B;</div></div>
     <div class="current-stage-card"><div class="cs-text"><h3 id="ci-stage-name">Loading</h3><p id="ci-stage-cycle">Cycle 1</p></div><button class="cs-change" onclick="openStageModal()">Change</button></div>
@@ -2045,13 +1997,13 @@ if(collector)collector.onTabSwitch(prevTab,t);if(t==='checkin'&&collector)collec
 // Fire pending egg support when returning to chat
 if(t==='chat'&&_pendingEggSupport){setTimeout(function(){eggProactiveSupport(_pendingEggSupport)},800)}}
 var _oneWordShown=false;
-function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');var _now=new Date();var _ts='<div class="msg-time">'+_now.getHours()+':'+String(_now.getMinutes()).padStart(2,'0')+'</div>';if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>'+_ts;
+function addMsg(role,text,fertoolCards,opts){var a=document.getElementById('chat-area'),d=document.createElement('div');d.className='msg msg-'+(role==='ai'?'ai':'user');if(role==='ai'){var html='<div class="msg-sender">Melod\u00b7AI</div><div class="msg-bubble">'+formatText(text)+'</div>';
 /* Fertool link cards REMOVED — inline charts are rendered separately via fertool_inline_charts */
 // Add one-word check-in pill after first greeting
 if((opts&&opts.showOneWord)||false){if(!_oneWordShown){_oneWordShown=true;html+='<div class="one-word-pill" onclick="triggerOneWord(this)">One word \u2014 how do you feel?</div>'}}
 // Education quick-reply pills
 if(opts&&opts.eduFork){html+='<div class="edu-quick-replies"><button class="edu-quick-pill" onclick="eduQuickReply(this,\'reassure\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Reassure me</button><button class="edu-quick-pill" onclick="eduQuickReply(this,\'explain\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Explain it</button><button class="edu-quick-pill" onclick="eduQuickReply(this,\'practical\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Practical tips</button></div>'}
-d.innerHTML=html}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'+_ts}a.appendChild(d);a.scrollTop=a.scrollHeight}
+d.innerHTML=html}else{d.innerHTML='<div class="msg-bubble">'+escHtml(text)+'</div>'}a.appendChild(d);a.scrollTop=a.scrollHeight}
 function eduQuickReply(el,type){var replies={reassure:'Can you reassure me about this?',explain:'Can you explain the clinical details?',practical:'What should I actually do? Give me practical tips.'};var wrap=el.closest('.edu-quick-replies');if(wrap){var pills=wrap.querySelectorAll('.edu-quick-pill');pills.forEach(function(p){p.style.opacity='0.4';p.style.pointerEvents='none'});el.style.opacity='1';el.style.background='#2D8E8E';el.style.color='white'}var ci=document.getElementById('chat-input');ci.value=replies[type]||'';setTimeout(function(){sendMsg()},100)}
 function triggerOneWord(el){el.style.opacity='0.5';el.style.pointerEvents='none';var ci=document.getElementById('chat-input');ci.placeholder='Just one word is enough...';ci.focus();setTimeout(function(){el.remove()},300)}
 // ── Fertool Inline Charts (AMH normogram + Egg Freeze table) ──
@@ -5628,227 +5580,6 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', function() { try{loadCycleToCalendar();}catch(e){} });
 } else {
   try{loadCycleToCalendar();}catch(e){}
-}
-
-// === CHAT MODE SWITCHING & COMMUNITY FEED ===
-var _chatMode = 'companion';
-function switchChatMode(mode) {
-  _chatMode = mode;
-  document.getElementById('chatTabCompanion').classList.toggle('active', mode === 'companion');
-  document.getElementById('chatTabCommunity').classList.toggle('active', mode === 'community');
-  document.getElementById('companionChatWrap').style.display = mode === 'companion' ? 'flex' : 'none';
-  document.getElementById('communityChatWrap').style.display = mode === 'community' ? 'flex' : 'none';
-  if (mode === 'community') loadCommunityFeed();
-}
-
-// Anonymous name generator
-var _ANON_ADJ = ['Hopeful','Brave','Sunny','Gentle','Strong','Calm','Bright','Warm','Kind','Resilient'];
-var _ANON_NOUN = ['Star','Seed','Bloom','Light','Wave','Heart','Path','Sky','Dawn','Moon'];
-function getAnonName() {
-  var stored = localStorage.getItem('melodai_anon_name');
-  if (stored) return stored;
-  var name = _ANON_ADJ[Math.floor(Math.random() * _ANON_ADJ.length)] + ' ' + _ANON_NOUN[Math.floor(Math.random() * _ANON_NOUN.length)];
-  localStorage.setItem('melodai_anon_name', name);
-  return name;
-}
-function getAvatarColor() {
-  var stored = localStorage.getItem('melodai_avatar_color');
-  if (stored) return stored;
-  var colors = ['#7EC8C8','#C8A8E8','#A8D8C8','#E8C8A8','#A8C8E8','#E8A8C8','#C8E8A8','#D8A8E8','#A8E8D8','#E8D8A8'];
-  var c = colors[Math.floor(Math.random() * colors.length)];
-  localStorage.setItem('melodai_avatar_color', c);
-  return c;
-}
-
-// Crisis keyword filter
-var _CRISIS_WORDS = /\b(suicid|self.harm|kill myself|want to die|end it all|don.t want to live)\b/i;
-
-function timeAgo(ts) {
-  var now = Date.now();
-  var diff = now - new Date(ts).getTime();
-  var mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return mins + 'm ago';
-  var hrs = Math.floor(mins / 60);
-  if (hrs < 24) return hrs + 'h ago';
-  return Math.floor(hrs / 24) + 'd ago';
-}
-
-var _communityComposing = false;
-function toggleCommunityCompose() {
-  _communityComposing = !_communityComposing;
-  var feed = document.getElementById('communityFeed');
-  var existing = document.getElementById('communityComposeCard');
-  if (existing) { existing.remove(); _communityComposing = false; return; }
-  var card = document.createElement('div');
-  card.className = 'community-compose';
-  card.id = 'communityComposeCard';
-  card.innerHTML = '<h3>Share with your community</h3>' +
-    '<textarea id="communityPostText" maxlength="280" rows="3" placeholder="What\'s on your mind?"></textarea>' +
-    '<div style="text-align:right;font-size:10px;color:#aaa"><span id="communityCharCount">0</span>/280</div>' +
-    '<div class="community-cat-pills">' +
-      '<span class="community-cat-pill" onclick="selectCatPill(this,\'anxious\')">Feeling anxious</span>' +
-      '<span class="community-cat-pill" onclick="selectCatPill(this,\'encouragement\')">Need encouragement</span>' +
-      '<span class="community-cat-pill" onclick="selectCatPill(this,\'win\')">Sharing a win</span>' +
-      '<span class="community-cat-pill" onclick="selectCatPill(this,\'question\')">Question</span>' +
-      '<span class="community-cat-pill" onclick="selectCatPill(this,\'venting\')">Just venting</span>' +
-    '</div>' +
-    '<button class="community-post-btn" id="communityPostBtn" onclick="submitCommunityPost()" disabled>Post anonymously</button>' +
-    '<div style="font-size:10px;color:#aaa;text-align:center;margin-top:6px">Posts are anonymous and visible to Virtus IVF patients. A nurse reviews posts for safety.</div>';
-  feed.insertBefore(card, feed.firstChild);
-  var ta = document.getElementById('communityPostText');
-  ta.addEventListener('input', function() {
-    document.getElementById('communityCharCount').textContent = ta.value.length;
-    document.getElementById('communityPostBtn').disabled = ta.value.trim().length === 0;
-  });
-  ta.focus();
-}
-
-var _selectedCategory = '';
-function selectCatPill(el, cat) {
-  document.querySelectorAll('.community-cat-pill').forEach(function(p) { p.classList.remove('selected'); });
-  el.classList.add('selected');
-  _selectedCategory = cat;
-}
-
-function submitCommunityPost() {
-  var text = (document.getElementById('communityPostText') || {}).value || '';
-  if (!text.trim()) return;
-  // Safety filter
-  if (_CRISIS_WORDS.test(text)) {
-    var card = document.getElementById('communityComposeCard');
-    if (card) card.innerHTML = '<div style="padding:16px;text-align:center">' +
-      '<div style="font-size:14px;font-weight:600;color:#991b1b;margin-bottom:8px">We care about you</div>' +
-      '<div style="font-size:13px;color:#555;line-height:1.5;margin-bottom:12px">It sounds like you might be going through a really tough time. Please reach out to someone who can help right now.</div>' +
-      '<div style="font-size:15px;font-weight:700;color:#0d7377;margin-bottom:6px">Lifeline: 13 11 14</div>' +
-      '<div style="font-size:12px;color:#888">Available 24/7. You can also talk to your clinic nurse.</div>' +
-      '<button onclick="document.getElementById(\'communityComposeCard\').remove()" style="margin-top:12px;padding:6px 20px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#666;cursor:pointer;font-size:12px;font-family:inherit">Close</button></div>';
-    return;
-  }
-  var pid = localStorage.getItem('melodai_patient_id') || 'anon';
-  var post = {
-    anonymous_name: getAnonName(),
-    avatar_color: getAvatarColor(),
-    category: _selectedCategory || 'general',
-    content: text.trim().substring(0, 280),
-    created_at: new Date().toISOString(),
-    patient_id: pid,
-    support_count: 0,
-    supporters: {},
-    flagged: false
-  };
-  // Write to Firebase
-  if (typeof firebase !== 'undefined') {
-    try {
-      firebase.database().ref('melod_ai/community/posts').push(post);
-    } catch(e) { console.warn('Community post error:', e); }
-  }
-  var card = document.getElementById('communityComposeCard');
-  if (card) card.remove();
-  _communityComposing = false;
-  setTimeout(loadCommunityFeed, 500);
-}
-
-function loadCommunityFeed() {
-  var feed = document.getElementById('communityFeed');
-  if (!feed) return;
-  if (typeof firebase === 'undefined') {
-    feed.innerHTML = '<div style="padding:40px;text-align:center;color:#999;font-size:13px">Community feed not available offline</div>';
-    return;
-  }
-  try {
-    firebase.database().ref('melod_ai/community/posts').orderByChild('created_at').limitToLast(20).once('value', function(snap) {
-      var posts = [];
-      snap.forEach(function(c) { var p = c.val(); p._key = c.key; posts.push(p); });
-      posts.reverse(); // newest first
-      if (posts.length === 0) {
-        feed.innerHTML = '<div class="chat-welcome-card"><p style="font-weight:600;color:#333;margin-bottom:8px">Welcome to the Community</p><p>This is a safe, anonymous space for Virtus IVF patients. Share your experiences, ask questions, and support each other. Be the first to post.</p></div>';
-        return;
-      }
-      var pid = localStorage.getItem('melodai_patient_id') || '';
-      var html = '';
-      posts.forEach(function(p) {
-        if (p.flagged) return;
-        var initial = (p.anonymous_name || 'A').charAt(0);
-        var supported = p.supporters && p.supporters[pid];
-        html += '<div class="community-post">';
-        html += '<div class="community-post-header">';
-        html += '<div class="community-avatar" style="background:' + (p.avatar_color || '#7EC8C8') + '">' + initial + '</div>';
-        html += '<div><div class="community-name">' + escHtml(p.anonymous_name || 'Anonymous') + '</div></div>';
-        html += '<div class="community-time">' + timeAgo(p.created_at) + '</div>';
-        html += '</div>';
-        html += '<div class="community-body">' + escHtml(p.content || '') + '</div>';
-        html += '<div class="community-actions">';
-        html += '<button class="community-action-btn' + (supported ? ' supported' : '') + '" onclick="supportPost(\'' + p._key + '\',' + (p.support_count || 0) + ')">Support ' + (p.support_count || 0) + '</button>';
-        html += '<button class="community-action-btn" onclick="toggleReplies(\'' + p._key + '\',this)">Reply</button>';
-        html += '</div>';
-        html += '<div class="community-replies" id="replies-' + p._key + '" style="display:none"></div>';
-        html += '</div>';
-      });
-      feed.innerHTML = html;
-    });
-  } catch(e) { feed.innerHTML = '<div style="padding:20px;color:#999;text-align:center">Could not load feed</div>'; }
-}
-
-function supportPost(postKey, count) {
-  var pid = localStorage.getItem('melodai_patient_id') || '';
-  if (!pid || typeof firebase === 'undefined') return;
-  try {
-    var ref = firebase.database().ref('melod_ai/community/posts/' + postKey);
-    ref.child('supporters/' + pid).set(true);
-    ref.child('support_count').set(count + 1);
-    setTimeout(loadCommunityFeed, 300);
-  } catch(e) {}
-}
-
-function toggleReplies(postKey, btn) {
-  var el = document.getElementById('replies-' + postKey);
-  if (!el) return;
-  if (el.style.display !== 'none') { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-  el.innerHTML = '<div style="padding:8px 0;color:#aaa;font-size:11px">Loading...</div>';
-  try {
-    firebase.database().ref('melod_ai/community/posts/' + postKey + '/replies').once('value', function(snap) {
-      var replies = [];
-      snap.forEach(function(c) { replies.push(c.val()); });
-      var html = '';
-      replies.forEach(function(r) {
-        html += '<div class="community-reply"><span class="community-reply-name">' + escHtml(r.anonymous_name || 'Anonymous') + '</span> <span style="color:#aaa;font-size:10px">' + timeAgo(r.created_at) + '</span><div style="margin-top:2px;color:#555">' + escHtml(r.content || '') + '</div></div>';
-      });
-      html += '<div style="margin-top:8px"><textarea id="replyText-' + postKey + '" placeholder="Write a reply..." maxlength="280" rows="2" style="width:100%;border:1px solid #e0e0e0;border-radius:8px;padding:6px;font-size:12px;font-family:inherit;resize:none;outline:none;box-sizing:border-box"></textarea>';
-      html += '<button onclick="submitReply(\'' + postKey + '\')" style="margin-top:4px;padding:5px 14px;border:none;border-radius:6px;background:#0d7377;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Reply</button></div>';
-      el.innerHTML = html;
-    });
-  } catch(e) { el.innerHTML = '<div style="color:#999;font-size:11px">Could not load replies</div>'; }
-}
-
-function submitReply(postKey) {
-  var ta = document.getElementById('replyText-' + postKey);
-  if (!ta || !ta.value.trim()) return;
-  if (_CRISIS_WORDS.test(ta.value)) { ta.value = ''; alert('If you are in crisis, please call Lifeline: 13 11 14'); return; }
-  var reply = {
-    anonymous_name: getAnonName(),
-    avatar_color: getAvatarColor(),
-    content: ta.value.trim().substring(0, 280),
-    created_at: new Date().toISOString(),
-    patient_id: localStorage.getItem('melodai_patient_id') || 'anon'
-  };
-  try {
-    firebase.database().ref('melod_ai/community/posts/' + postKey + '/replies').push(reply);
-    ta.value = '';
-    setTimeout(function() { toggleReplies(postKey); toggleReplies(postKey); }, 300);
-  } catch(e) {}
-}
-
-// Show welcome card on first companion chat load
-function showChatWelcome() {
-  var a = document.getElementById('chat-area');
-  if (!a || a.children.length > 0) return;
-  var w = document.createElement('div');
-  w.className = 'chat-welcome-card';
-  w.id = 'chatWelcomeCard';
-  w.innerHTML = '<p style="font-weight:600;color:#333;margin-bottom:8px">Your private space</p><p>Nothing you say here is shared with anyone \u2014 not even your clinic. I\'m here to listen, help, and support you through every step.</p>';
-  a.appendChild(w);
 }
 
 // === POST-OPU SYMPTOM REPORTING ===

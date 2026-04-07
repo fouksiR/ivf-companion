@@ -3210,12 +3210,11 @@ function saveOpuSchedule(pid) {
     .then(function(r) {
       if (r.ok) {
         showToast('Trigger saved — meds updated, patient notified');
-        // Refresh med grid
-        if (typeof window.loadAndBuildMedGrid === 'function') {
-          var _bg = window._builtGrids || {};
-          _bg[pid] = false;
+        // Refresh med grid — use toggleMedGrid to collapse then re-expand
+        if (typeof window.toggleMedGrid === 'function') {
           window._medGridLoading = false;
-          window.loadAndBuildMedGrid(pid);
+          window.toggleMedGrid(pid); // collapse
+          setTimeout(function() { window.toggleMedGrid(pid); }, 200); // re-expand with fresh data
         }
       }
     })

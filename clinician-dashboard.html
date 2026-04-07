@@ -3192,7 +3192,7 @@ function saveOpuSchedule(pid) {
       var today = new Date();
       var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
 
-      // Calculate trigger day column (D1=today)
+      // Calculate trigger day column (D1=today in the grid)
       var trigParts = trigDate.split('-');
       var trigDt = new Date(parseInt(trigParts[0]), parseInt(trigParts[1])-1, parseInt(trigParts[2]));
       var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -3203,8 +3203,10 @@ function saveOpuSchedule(pid) {
       var opuDt2 = new Date(parseInt(opuParts[0]), parseInt(opuParts[1])-1, parseInt(opuParts[2]));
       var opuDayCol = Math.round((opuDt2 - todayMid) / 86400000) + 1;
 
-      // Stop future stim meds: clear doses for days AFTER trigger day
-      var stimCategories = ['Gonadotropin', 'Antagonist', 'Agonist'];
+      console.log('[Trigger] trigDate=' + trigDate + ' trigDayCol=D' + trigDayCol + ' opuDate=' + opuDate + ' opuDayCol=D' + opuDayCol);
+
+      // Stop future stim meds: clear doses for days STRICTLY AFTER trigger day
+      // trigDayCol=D3 means trigger is on D3, so keep d1..d3, delete d4+
       var stimNames = ['Gonal-f','Puregon','Menopur','Bemfola','Elonva','Pergoveris',
         'Orgalutran','Cetrotide','Fyremadel','Lucrin','Synarel','Decapeptyl','Zoladex'];
       Object.keys(meds).forEach(function(mk) {
@@ -3212,13 +3214,18 @@ function saveOpuSchedule(pid) {
         if (!m || !m.name || !m.doses) return;
         var isStim = stimNames.some(function(sn) { return m.name.toLowerCase().indexOf(sn.toLowerCase()) >= 0; });
         if (!isStim) return;
-        // Keep trigger drug on trigger day only if it's Synarel
+        var kept = []; var removed = [];
         Object.keys(m.doses).forEach(function(dk) {
           var dNum = parseInt(dk.replace('d',''));
+          if (isNaN(dNum)) return; // skip invalid keys
           if (dNum > trigDayCol) {
+            removed.push(dk);
             delete m.doses[dk];
+          } else {
+            kept.push(dk);
           }
         });
+        console.log('[Trigger] ' + m.name + ': kept=' + kept.join(',') + ' removed=' + removed.join(','));
       });
 
       // Add trigger entry

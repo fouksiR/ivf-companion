@@ -2255,7 +2255,7 @@ function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1)
     { name: 'Lucrin', generic: 'Leuprorelin', category: 'Agonist', defaultDose: '1', unit: 'mg', color: '#EC4899' },
     { name: 'Synarel', generic: 'Nafarelin', category: 'Agonist', defaultDose: '400', unit: 'mcg', color: '#EC4899' },
     { name: 'Zoladex', generic: 'Goserelin', category: 'Agonist', defaultDose: '3.6', unit: 'mg', color: '#EC4899' },
-    { name: 'Decapeptyl', generic: 'Triptorelin', category: 'Agonist', defaultDose: '0.1', unit: 'mg', color: '#EC4899' },
+    { name: 'Decapeptyl', generic: 'Triptorelin', category: 'Agonist', defaultDose: '0.2', unit: 'mg', color: '#EC4899' },
     { name: 'Ovidrel', generic: 'Choriogonadotropin alfa', category: 'Trigger', defaultDose: '250', unit: 'mcg', color: '#EF4444' },
     { name: 'Pregnyl', generic: 'hCG', category: 'Trigger', defaultDose: '5000', unit: 'IU', color: '#EF4444' },
     { name: 'Crinone', generic: 'Progesterone gel', category: 'Progesterone', defaultDose: '8%', unit: 'gel', color: '#10B981' },
@@ -2992,7 +2992,7 @@ function renderOpuTab(pid) {
       '<div class="opu-field"><label>Trigger Drug</label>' +
         '<select id="opuDrug" onchange="onOpuDrugChange()">' +
           '<option value="Ovidrel" selected>Ovidrel 250mcg</option>' +
-          '<option value="Decapeptyl">Decapeptyl 0.1mg</option>' +
+          '<option value="Decapeptyl">Decapeptyl 0.2mg</option>' +
           '<option value="Lucrin">Lucrin 1mg</option>' +
           '<option value="Synarel">Synarel 400mcg</option>' +
         '</select></div>' +
@@ -3118,13 +3118,119 @@ function saveOpuSchedule(pid) {
     created_by: selectedRole || 'nurse'
   };
   _opuData[pid] = payload;
-  // Save to Firebase via clinician API
-  authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
+
+  // ── Step A: Load current meds, stop future stims, add trigger+OPU ──
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle')
+    .then(function(r) { return r.json(); })
+    .then(function(cycleData) {
+      var meds = (cycleData && cycleData.medications_simple) ? JSON.parse(JSON.stringify(cycleData.medications_simple)) : {};
+      var today = new Date();
+      var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+
+      // Calculate trigger day column (D1=today)
+      var trigParts = trigDate.split('-');
+      var trigDt = new Date(parseInt(trigParts[0]), parseInt(trigParts[1])-1, parseInt(trigParts[2]));
+      var todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      var trigDayCol = Math.round((trigDt - todayMid) / 86400000) + 1; // D1=today
+
+      // Similarly for OPU
+      var opuParts = opuDate.split('-');
+      var opuDt2 = new Date(parseInt(opuParts[0]), parseInt(opuParts[1])-1, parseInt(opuParts[2]));
+      var opuDayCol = Math.round((opuDt2 - todayMid) / 86400000) + 1;
+
+      // Stop future stim meds: clear doses for days AFTER trigger day
+      var stimCategories = ['Gonadotropin', 'Antagonist', 'Agonist'];
+      var stimNames = ['Gonal-f','Puregon','Menopur','Bemfola','Elonva','Pergoveris',
+        'Orgalutran','Cetrotide','Fyremadel','Lucrin','Synarel','Decapeptyl','Zoladex'];
+      Object.keys(meds).forEach(function(mk) {
+        var m = meds[mk];
+        if (!m || !m.name || !m.doses) return;
+        var isStim = stimNames.some(function(sn) { return m.name.toLowerCase().indexOf(sn.toLowerCase()) >= 0; });
+        if (!isStim) return;
+        // Keep trigger drug on trigger day only if it's Synarel
+        Object.keys(m.doses).forEach(function(dk) {
+          var dNum = parseInt(dk.replace('d',''));
+          if (dNum > trigDayCol) {
+            delete m.doses[dk];
+          }
+        });
+      });
+
+      // Add trigger entry
+      var trigDoseKey = 'd' + trigDayCol;
+      var trigMedKey = null;
+      var nextIdx = 0;
+      Object.keys(meds).forEach(function(k) {
+        var idx = parseInt(k.replace('med_',''));
+        if (idx >= nextIdx) nextIdx = idx + 1;
+        // Check if trigger drug already exists
+        if (meds[k].name && meds[k].name.toLowerCase().indexOf(drug.toLowerCase()) >= 0) trigMedKey = k;
+      });
+      var trigLabel = drug + ' - TRIGGER at ' + trigTime;
+      if (trigMedKey) {
+        // Update existing row
+        meds[trigMedKey].doses = meds[trigMedKey].doses || {};
+        meds[trigMedKey].doses[trigDoseKey] = trigLabel;
+      } else if (trigDayCol >= 1 && trigDayCol <= 14) {
+        var doses = {};
+        doses[trigDoseKey] = trigLabel;
+        meds['med_' + nextIdx] = { name: drug, doses: doses };
+        nextIdx++;
+      }
+
+      // Add OPU entry
+      if (opuDayCol >= 1 && opuDayCol <= 14) {
+        var opuDoseKey = 'd' + opuDayCol;
+        var opuLabel = 'OPU ' + (opuTimeCalc) + ' - ' + doctor;
+        // Check if OPU already exists
+        var opuMedKey = null;
+        Object.keys(meds).forEach(function(k) {
+          if (meds[k].name && meds[k].name.toLowerCase().indexOf('opu') >= 0) opuMedKey = k;
+        });
+        if (opuMedKey) {
+          meds[opuMedKey].doses = meds[opuMedKey].doses || {};
+          meds[opuMedKey].doses[opuDoseKey] = opuLabel;
+        } else {
+          var opuDoses = {};
+          opuDoses[opuDoseKey] = opuLabel;
+          meds['med_' + nextIdx] = { name: 'OPU (egg retrieval)', doses: opuDoses };
+        }
+      }
+
+      // ── Step B: Write everything back ──
+      return authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          opu_schedule: payload,
+          medications_simple: meds,
+          updated_at: new Date().toISOString()
+        })
+      });
+    })
+    .then(function(r) {
+      if (r.ok) {
+        showToast('Trigger saved — meds updated, patient notified');
+        // Refresh med grid
+        if (typeof window.loadAndBuildMedGrid === 'function') {
+          var _bg = window._builtGrids || {};
+          _bg[pid] = false;
+          window._medGridLoading = false;
+          window.loadAndBuildMedGrid(pid);
+        }
+      }
+    })
+    .catch(function(e) { console.error('OPU save error:', e); showToast('Save failed'); });
+
+  // ── Step C: Send nurse note to patient ──
+  var drugDose = drug === 'Ovidrel' ? '250mcg' : (drug === 'Decapeptyl' ? '0.2mg' : (drug === 'Lucrin' ? '1mg' : '400mcg'));
+  var noteBody = 'Your trigger injection (' + drug + ' ' + drugDose + ') is scheduled for ' + trigDate + ' at ' + trigTime + '. ' +
+    'Your egg collection is planned for ' + opuDate + '. ' +
+    'We are confirming the exact theater time — we will notify you once confirmed. ' +
+    'Please continue your medications as shown on your calendar until trigger day.';
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/send-message', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ opu_schedule: payload, updated_at: new Date().toISOString() })
-  }).then(function(r) {
-    if (r.ok) showToast('Trigger & OPU schedule saved');
-  }).catch(function(e) { console.error('OPU save error:', e); });
+    body: JSON.stringify({ message: noteBody, from: 'nurse', type: 'trigger_scheduled' })
+  }).catch(function(e) { console.warn('Nurse note send error:', e); });
 }
 
 function loadOpuSchedule(pid) {
@@ -3167,15 +3273,36 @@ function notifyPatientOpu(pid) {
   var btn = document.getElementById('opuNotifyBtn');
   if (!btn) return;
   btn.textContent = 'Sending...'; btn.disabled = true;
+  var s = _opuData[pid] || {};
+  // Send via backend (updates Firebase + clinician_messages)
   authFetch(API_BASE + '/clinician/notify-opu/' + pid, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(_opuData[pid] || {})
+    body: JSON.stringify(s)
   }).then(function(r) { return r.json(); }).then(function(d) {
     btn.textContent = 'Patient Notified'; btn.className = 'opu-btn opu-btn-disabled'; btn.onclick = null;
     var ts = document.getElementById('opuNotifyTs');
     if (ts) ts.textContent = 'Sent: ' + new Date().toLocaleString();
     if (_opuData[pid]) { _opuData[pid].patient_notified = true; _opuData[pid].notification_sent_at = new Date().toISOString(); }
     showToast('Patient notified successfully');
+
+    // Also send detailed confirmed message via clinician messages
+    var confTime = s.opu_time_confirmed || s.opu_time_calculated || '';
+    var arriveTime = '';
+    if (confTime) {
+      var parts = confTime.split(':');
+      var h = parseInt(parts[0]); var m = parseInt(parts[1] || 0) - 30;
+      if (m < 0) { m += 60; h--; }
+      arriveTime = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    }
+    var confirmMsg = 'Your egg collection is confirmed for ' + (s.opu_date || '') + ' at ' + confTime +
+      ' with ' + (s.doctor || 'your doctor') + '. ' +
+      'Trigger injection tonight at ' + (s.trigger_time || '') + ' (' + (s.trigger_drug || '') + '). ' +
+      'No food or water after midnight.' +
+      (arriveTime ? ' Please arrive at the clinic by ' + arriveTime + '.' : '');
+    authFetch(API_BASE + '/clinician/patient/' + pid + '/send-message', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: confirmMsg, from: 'nurse', type: 'opu_confirmed' })
+    }).catch(function(e) { console.warn('Confirm note error:', e); });
   }).catch(function(e) {
     btn.textContent = 'Notify Patient'; btn.disabled = false;
     showToast('Notification failed — check connection');

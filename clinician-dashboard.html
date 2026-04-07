@@ -2183,13 +2183,17 @@ function saveMedGrid(pid) { try {
     var nameEl = row.querySelector('select') || row.querySelector('td:first-child .med-picker-input') || row.querySelector('td:first-child input');
     var name = nameEl ? nameEl.value.trim() : '';
     if (!name) return;
-    // Use td-based traversal (skip name td and delete td) — same approach as doSaveMeds
+    // Use data-col attribute to get correct dose key (skips past-day columns)
     var doseTds = row.querySelectorAll('td:not(:first-child):not(:last-child)');
     var doses = {};
-    doseTds.forEach(function(td, dIdx) {
+    doseTds.forEach(function(td) {
+      var col = td.getAttribute('data-col');
+      if (!col) return;
+      var colNum = parseInt(col);
+      if (colNum < 1) return; // skip past-day columns
       var inp = td.querySelector('input');
       var val = inp ? inp.value.trim() : '';
-      if (val) doses['d' + (dIdx + 1)] = val;
+      if (val) doses['d' + colNum] = val;
     });
     meds['med_' + i] = { name: name, doses: doses };
   });
@@ -2335,23 +2339,40 @@ function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1)
     'Adjunct': '#6B7280', 'Procedure': '#F59E0B'
   };
 
+  var MED_PAST_DAYS = 7; // show 7 past days before today
+
   function buildMedGridForPatient(pid, containerEl, savedMeds) {
     containerEl.innerHTML = '';
+    // Scrollable wrapper so grid can scroll horizontally with today centered
+    var scrollWrap = document.createElement('div');
+    scrollWrap.style.cssText = 'overflow-x:auto;-webkit-overflow-scrolling:touch;margin-left:22px;margin-top:8px;scrollbar-width:thin;';
+    scrollWrap.className = 'med-grid-scroll';
     var table = document.createElement('table');
-    table.style.cssText = 'border-collapse:collapse;font-size:12px;width:calc(100% - 22px);margin-top:8px;margin-left:22px;';
+    table.style.cssText = 'border-collapse:collapse;font-size:12px;min-width:max-content;';
     var thead = document.createElement('thead');
     var hr = document.createElement('tr');
     var th0 = document.createElement('th');
-    th0.style.cssText = 'background:#f8f9fb;border:1px solid #e0e0e0;padding:4px 6px;font-weight:600;color:#888;font-size:10px;text-align:left;min-width:100px;';
+    th0.style.cssText = 'background:#f8f9fb;border:1px solid #e0e0e0;padding:4px 6px;font-weight:600;color:#888;font-size:10px;text-align:left;min-width:100px;position:sticky;left:0;z-index:2;';
     th0.textContent = 'Medication';
     hr.appendChild(th0);
-    for (var d = 1; d <= MED_DAYS; d++) {
+    // Past days (D-7 to D-1) + today (D1) + future (D2 to D14)
+    var totalCols = MED_PAST_DAYS + MED_DAYS;
+    var todayColIndex = MED_PAST_DAYS; // 0-based index of today's column
+    for (var ci = 0; ci < totalCols; ci++) {
+      var dayOffset = ci - MED_PAST_DAYS; // -7..-1 = past, 0 = today, 1..13 = future
+      var d = dayOffset + 1; // D-6, D-5, ..., D0(today=D1), D2, D3, ...
       var th = document.createElement('th');
-      th.style.cssText = 'background:#f8f9fb;border:1px solid #e0e0e0;padding:3px 2px;font-weight:500;color:#999;font-size:9px;text-align:center;min-width:36px;';
-      var dt = new Date(); dt.setDate(dt.getDate() + d - 1);
-      if (d === 1) th.className = 'med-grid-today-header';
-      th.innerHTML = 'D' + d + '<br><span style="font-size:8px;color:' + (d === 1 ? '#009688' : '#aaa') + ';">' + (dt.getMonth()+1) + '/' + dt.getDate() + '</span>';
+      var isToday = dayOffset === 0;
+      var isPast = dayOffset < 0;
+      var bgColor = isToday ? 'rgba(0,150,136,0.12)' : (isPast ? '#f3f3f3' : '#f8f9fb');
+      var textColor = isToday ? '#009688' : (isPast ? '#bbb' : '#999');
+      th.style.cssText = 'background:' + bgColor + ';border:1px solid #e0e0e0;padding:3px 2px;font-weight:' + (isToday ? '700' : '500') + ';color:' + textColor + ';font-size:9px;text-align:center;min-width:36px;';
+      if (isToday) th.style.borderTop = '3px solid #009688';
+      var dt = new Date(); dt.setDate(dt.getDate() + dayOffset);
+      var label = isToday ? 'Today' : (isPast ? 'D' + dayOffset : 'D' + d);
+      th.innerHTML = label + '<br><span style="font-size:8px;color:' + (isToday ? '#009688' : '#aaa') + ';">' + (dt.getMonth()+1) + '/' + dt.getDate() + '</span>';
       th.setAttribute('data-col', d);
+      th.setAttribute('data-offset', dayOffset);
       hr.appendChild(th);
     }
     var thDel = document.createElement('th');
@@ -2361,7 +2382,16 @@ function localDateStr(d) { return d.getFullYear() + '-' + String(d.getMonth()+1)
     table.appendChild(thead);
     var tbody = document.createElement('tbody');
     table.appendChild(tbody);
-    containerEl.appendChild(table);
+    scrollWrap.appendChild(table);
+    containerEl.appendChild(scrollWrap);
+    // Auto-scroll to center today's column after render
+    setTimeout(function() {
+      var todayTh = hr.children[todayColIndex + 1]; // +1 for Medication th
+      if (todayTh && scrollWrap.scrollWidth > scrollWrap.clientWidth) {
+        var targetLeft = todayTh.offsetLeft - (scrollWrap.clientWidth / 2) + (todayTh.offsetWidth / 2);
+        scrollWrap.scrollLeft = Math.max(0, targetLeft);
+      }
+    }, 50);
     if (savedMeds && typeof savedMeds === 'object') {
       Object.values(savedMeds).forEach(function(m) {
         console.log('[MedGrid] Inserting row:', m.name, 'doses:', JSON.stringify(m.doses || {}));
@@ -2657,16 +2687,22 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
 
     // Name cell with smart picker
     var tdName = document.createElement('td');
-    tdName.style.cssText = 'border:1px solid #e8e8e8;padding:0 4px;white-space:nowrap;position:relative;';
+    tdName.style.cssText = 'border:1px solid #e8e8e8;padding:0 4px;white-space:nowrap;position:sticky;left:0;z-index:1;background:' + c.bg + ';';
     tdName.appendChild(createMedPicker(tdName, tr, name));
     tr.appendChild(tdName);
 
-    // Dose cells with drag-to-fill + context menu + keyboard shortcuts
-    for (var d = 1; d <= MED_DAYS; d++) {
+    // Dose cells: past days (read-only, greyed) + today + future (editable)
+    var totalCols = MED_PAST_DAYS + MED_DAYS;
+    for (var ci = 0; ci < totalCols; ci++) {
+      var dayOffset = ci - MED_PAST_DAYS; // -7..-1=past, 0=today(D1), 1..13=future
+      var d = dayOffset + 1; // dose key: d-6..d0..d1..d14
       var td = document.createElement('td');
-      td.style.cssText = 'border:1px solid #eee;padding:0;position:relative;';
+      var isPast = dayOffset < 0;
+      var isToday = dayOffset === 0;
+      td.style.cssText = 'border:1px solid #eee;padding:0;position:relative;' + (isPast ? 'background:rgba(0,0,0,0.02);' : '');
       td.setAttribute('data-col', d);
-      if (d === 1) td.className = 'med-grid-today';
+      td.setAttribute('data-offset', dayOffset);
+      if (isToday) td.className = 'med-grid-today';
       var dinp = document.createElement('input');
       dinp.type = 'text';
       dinp.value = (doses && doses['d' + d]) || '';
@@ -2675,7 +2711,8 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
       dinp.setAttribute('data-lpignore', 'true');
       dinp.setAttribute('data-col', d);
       var doseColor = (doses && doses['d' + d]) ? c.text : 'inherit';
-      dinp.style.cssText = 'width:100%;border:none;padding:4px 2px;font-size:11px;text-align:center;outline:none;font-family:inherit;background:transparent;box-sizing:border-box;font-weight:600;color:' + doseColor + ';';
+      dinp.style.cssText = 'width:100%;border:none;padding:4px 2px;font-size:11px;text-align:center;outline:none;font-family:inherit;background:transparent;box-sizing:border-box;font-weight:600;color:' + doseColor + ';' + (isPast ? 'color:#bbb;' : '');
+      if (isPast) { dinp.readOnly = true; dinp.style.cursor = 'default'; }
 
       // Focus / blur
       dinp.addEventListener('focus', function() { this.style.background = 'rgba(13,115,119,0.08)'; });
@@ -2824,11 +2861,15 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
         var doseTds = row.querySelectorAll('td:not(:first-child):not(:last-child)');
         var doses = {};
         var isProc = isProcedure(name);
-        doseTds.forEach(function(td, dIdx) {
+        doseTds.forEach(function(td) {
+          var col = td.getAttribute('data-col');
+          if (!col) return;
+          var colNum = parseInt(col);
+          if (colNum < 1) return; // skip past-day columns (D-6..D0)
           var inp = td.querySelector('input');
           var val = inp ? inp.value.trim() : '';
-          if (val && val !== '✓') doses['d' + (dIdx + 1)] = isProc ? '1' : val;
-          else if (val === '✓') doses['d' + (dIdx + 1)] = '1';
+          if (val && val !== '\u2713') doses['d' + colNum] = isProc ? '1' : val;
+          else if (val === '\u2713') doses['d' + colNum] = '1';
         });
         meds['med_' + i] = { name: name, doses: doses };
       });

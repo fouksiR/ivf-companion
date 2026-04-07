@@ -848,6 +848,34 @@ h1,h2,h3{font-family:'Playfair Display','Cormorant Garamond',Georgia,serif;font-
     <div class="dim-card dim-card-uncertain"><div class="dim-header"><div class="dim-icon dim-icon-uncertainty"></div><div class="dim-title">Clarity</div><div class="dim-val" id="v-uncertain">5</div></div><p class="dim-prompt">How settled or unsettled do things feel?</p><div class="dim-visual" id="vis-uncertain">&#x1F9ED;</div><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-uncertain').textContent=this.value;updateVisual('uncertain',+this.value);if(collector)collector.onSliderChange('uncertainty',+this.value)"></div><div class="dim-labels"><span>Clear path &#x1F9ED;</span><span>Fog ahead &#x1F32B;&#xFE0F;</span></div></div>
     <div class="dim-card dim-card-hope"><div class="dim-header"><div class="dim-icon dim-icon-hope"></div><div class="dim-title">Hope</div><div class="dim-val" id="v-hope">5</div></div><p class="dim-prompt">How hopeful are you feeling?</p><div class="dim-visual" id="vis-hope">&#x1F305;</div><div class="dim-slider-wrap"><input type="range" min="0" max="10" value="5" oninput="document.getElementById('v-hope').textContent=this.value;updateVisual('hope',+this.value);if(collector)collector.onSliderChange('hope',+this.value)"></div><div class="dim-labels"><span>Dusk &#x1F307;</span><span>Dawn &#x1F304;</span></div></div>
     <div class="note-area"><textarea id="ci-note" placeholder="Anything on your mind? (optional)"></textarea></div>
+    <!-- Post-OPU symptom section (hidden unless post-OPU) -->
+    <div id="postOpuSymptoms" style="display:none">
+      <div class="dim-card" style="background:linear-gradient(135deg,#fef3c7,#fef9ef);border-left:3px solid #f59e0b">
+        <div class="dim-header"><div class="dim-title" style="color:#92400e">Post Egg Collection</div></div>
+        <p class="dim-prompt" style="color:#78350f">How are you feeling after egg collection?</p>
+        <div class="dim-header" style="margin-top:10px"><div class="dim-title">Pain</div><div class="dim-val" id="v-opu-pain">0</div></div>
+        <div class="dim-slider-wrap"><input type="range" min="0" max="10" value="0" oninput="document.getElementById('v-opu-pain').textContent=this.value;updateOpuSeverity()"></div>
+        <div class="dim-labels"><span>None</span><span>Severe</span></div>
+        <div class="dim-header" style="margin-top:10px"><div class="dim-title">Bloating</div><div class="dim-val" id="v-opu-bloat">0</div></div>
+        <div class="dim-slider-wrap"><input type="range" min="0" max="10" value="0" oninput="document.getElementById('v-opu-bloat').textContent=this.value;updateOpuSeverity()"></div>
+        <div class="dim-labels"><span>None</span><span>Severe</span></div>
+        <div class="dim-header" style="margin-top:10px"><div class="dim-title">Nausea</div><div class="dim-val" id="v-opu-nausea">0</div></div>
+        <div class="dim-slider-wrap"><input type="range" min="0" max="3" value="0" oninput="document.getElementById('v-opu-nausea').textContent=this.value;updateOpuSeverity()"></div>
+        <div class="dim-labels"><span>None</span><span>Severe</span></div>
+        <div style="margin-top:10px;font-size:13px;color:#555">
+          <label style="font-weight:600;color:#78350f">Can you move around normally?</label>
+          <select id="opu-mobility" onchange="updateOpuSeverity()" style="display:block;width:100%;padding:8px;border:1px solid #e0e0e0;border-radius:8px;font-size:13px;margin-top:4px;font-family:inherit">
+            <option value="normal">Yes, easily</option>
+            <option value="reduced">With some difficulty</option>
+            <option value="difficult">Very difficult</option>
+            <option value="cannot move">Cannot move</option>
+          </select>
+        </div>
+        <div style="margin-top:10px"><textarea id="opu-extra-note" placeholder="Anything else you want to tell your nurse?" style="width:100%;padding:8px;border:1px solid #e0e0e0;border-radius:8px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box" rows="2"></textarea></div>
+        <div id="opuSeverityBanner" style="margin-top:10px;padding:10px 14px;border-radius:10px;text-align:center;font-weight:600;font-size:13px;background:#d1fae5;color:#065f46">All looks normal</div>
+        <button id="btn-opu-symptoms" onclick="submitOpuSymptoms()" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:12px;background:#0d7377;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Submit Symptom Report</button>
+      </div>
+    </div>
     <div class="checkin-btn-area"><button id="btn-checkin" onclick="submitCheckin()">Save check-in &#x1F4AB;</button></div>
     <div class="ai-response" id="ci-response"><div class="ar-label">Melod&#xB7;AI</div><div class="ar-text" id="ci-response-text"></div></div>
   </div>
@@ -5552,6 +5580,73 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', function() { try{loadCycleToCalendar();}catch(e){} });
 } else {
   try{loadCycleToCalendar();}catch(e){}
+}
+
+// === POST-OPU SYMPTOM REPORTING ===
+function checkPostOpuStatus() {
+  var pid = localStorage.getItem('melodai_patient_id');
+  if (!pid || !API_BASE) return;
+  fetch(API_BASE + '/patient/' + pid + '/cycle-meds').then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(cycle) {
+      if (!cycle || !cycle.opu_schedule || !cycle.opu_schedule.opu_date) return;
+      var opuDate = cycle.opu_schedule.opu_date;
+      var today = new Date();
+      var todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+      // Show post-OPU symptoms if today is on or after OPU date (up to 14 days after)
+      if (todayStr >= opuDate) {
+        var opuParts = opuDate.split('-');
+        var opuDt = new Date(parseInt(opuParts[0]), parseInt(opuParts[1])-1, parseInt(opuParts[2]));
+        var daysSince = Math.floor((today - opuDt) / 86400000);
+        if (daysSince <= 14) {
+          var el = document.getElementById('postOpuSymptoms');
+          if (el) el.style.display = 'block';
+        }
+      }
+    }).catch(function() {});
+}
+try { checkPostOpuStatus(); } catch(e) {}
+
+function updateOpuSeverity() {
+  var pain = parseInt(document.getElementById('v-opu-pain').textContent) || 0;
+  var nausea = parseInt(document.getElementById('v-opu-nausea').textContent) || 0;
+  var mobility = document.getElementById('opu-mobility').value;
+  var banner = document.getElementById('opuSeverityBanner');
+  if (!banner) return;
+  if (pain >= 7 || nausea >= 3 || mobility === 'cannot move') {
+    banner.style.background = '#fee2e2'; banner.style.color = '#991b1b';
+    banner.textContent = 'Please call the clinic';
+  } else if (pain >= 4 || nausea >= 2 || mobility === 'difficult') {
+    banner.style.background = '#fef3c7'; banner.style.color = '#92400e';
+    banner.textContent = 'We\'ll keep an eye on this';
+  } else {
+    banner.style.background = '#d1fae5'; banner.style.color = '#065f46';
+    banner.textContent = 'All looks normal';
+  }
+}
+
+async function submitOpuSymptoms() {
+  var btn = document.getElementById('btn-opu-symptoms');
+  if (!btn) return;
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  var pid = localStorage.getItem('melodai_patient_id');
+  var data = {
+    pain: parseInt(document.getElementById('v-opu-pain').textContent) || 0,
+    bloating: parseInt(document.getElementById('v-opu-bloat').textContent) || 0,
+    nausea: parseInt(document.getElementById('v-opu-nausea').textContent) || 0,
+    mobility: document.getElementById('opu-mobility').value,
+    notes: (document.getElementById('opu-extra-note') || {}).value || ''
+  };
+  try {
+    var r = await fetch(API_BASE + '/patient/' + pid + '/post-opu-symptoms', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    });
+    var d = await r.json();
+    btn.textContent = 'Submitted'; btn.style.background = '#22c55e';
+    setTimeout(function() { btn.textContent = 'Submit Symptom Report'; btn.style.background = '#0d7377'; btn.disabled = false; }, 3000);
+  } catch(e) {
+    btn.textContent = 'Submit Symptom Report'; btn.disabled = false;
+    console.warn('Symptom submit error:', e);
+  }
 }
 
 // === EGG STATE FROM AGENT ===

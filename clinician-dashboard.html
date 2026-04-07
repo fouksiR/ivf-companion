@@ -560,6 +560,26 @@
         .opu-table tr:hover { background: #f0fdfa; cursor: pointer; }
         .opu-table .time-col { font-weight: 600; color: #065f46; }
 
+        /* Post-OPU / OHSS */
+        .postopu-wrap { padding: 20px; }
+        .postopu-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+        .postopu-card h3 { font-size: 14px; font-weight: 700; color: var(--text-primary); margin: 0 0 14px; }
+        .ohss-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .ohss-table th { background: #f8f9fb; border: 1px solid #e0e0e0; padding: 6px 8px; text-align: left; font-weight: 600; color: #888; font-size: 10px; text-transform: uppercase; }
+        .ohss-table td { border: 1px solid #eee; padding: 4px 6px; }
+        .ohss-table input { width: 100%; border: none; padding: 3px 4px; font-size: 11px; text-align: center; outline: none; font-family: inherit; background: transparent; box-sizing: border-box; }
+        .ohss-table input:focus { background: rgba(13,115,119,0.06); }
+        .ohss-grade { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .ohss-grade.mild { background: #d1fae5; color: #065f46; }
+        .ohss-grade.moderate { background: #fef3c7; color: #92400e; }
+        .ohss-grade.severe { background: #fee2e2; color: #991b1b; }
+        .ohss-grade.critical { background: #7f1d1d; color: #fff; }
+        .ohss-grade.none { background: #f3f4f6; color: #6b7280; }
+        .complication-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .comp-pill { padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; transition: all 0.15s; border: 1px solid transparent; }
+        .comp-pill.off { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+        .comp-pill.on { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
         /* Adherence card */
         .adh-card { background:#fff; border-radius:12px; border:1px solid #e8eaed; padding:16px; margin:0 20px 16px; }
         .adh-header { display:flex; align-items:center; gap:14px; margin-bottom:12px; }
@@ -732,6 +752,7 @@
       <button class="tab-btn" onclick="switchModalTab('conversations')">Conversations</button>
       <button class="tab-btn" onclick="switchModalTab('actions')">Actions</button>
       <button class="tab-btn" onclick="switchModalTab('opu')">Trigger &amp; OPU</button>
+      <button class="tab-btn" onclick="switchModalTab('postopu')">Post-OPU</button>
     </div>
     <div id="modalBody"></div>
   </div>
@@ -1199,6 +1220,9 @@ async function loadModalTab(patientId, tab) {
   } else if (tab === 'opu') {
     body.innerHTML = renderOpuTab(patientId);
     loadOpuSchedule(patientId);
+  } else if (tab === 'postopu') {
+    body.innerHTML = renderPostOpuTab(patientId);
+    loadPostOpuData(patientId);
   }
 }
 
@@ -3421,6 +3445,236 @@ function showToast(msg) {
   setTimeout(function() { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(function() { t.remove(); }, 300); }, 2500);
 }
 // ═══ END TRIGGER & OPU ═══════════════════════════════════════
+
+// ═══ POST-OPU / OHSS MONITORING ═════════════════════════════
+var _postOpuComps = {};
+
+function calcOhssGrade(row) {
+  var pain = parseInt(row.pain) || 0;
+  var nausea = parseInt(row.nausea) || 0;
+  var wg = parseFloat(row.weight_gain) || 0;
+  var mobility = (row.mobility || '').toLowerCase();
+  if (pain >= 7 || wg > 2 || mobility === 'cannot move' || nausea >= 3) return 'severe';
+  if (pain >= 4 || wg >= 1 || nausea >= 2 || mobility === 'difficult') return 'moderate';
+  if (pain >= 1 || wg > 0 || nausea >= 1) return 'mild';
+  return 'none';
+}
+
+function renderPostOpuTab(pid) {
+  var today = new Date();
+  var dates = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(today); d.setDate(d.getDate() - i);
+    dates.push(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'));
+  }
+  dates.reverse();
+
+  var html = '<div class="postopu-wrap">';
+  // OHSS Monitoring Card
+  html += '<div class="postopu-card"><h3>OHSS Monitoring</h3>';
+  html += '<div style="margin-bottom:10px">Current grade: <span class="ohss-grade none" id="ohssCurrentGrade">--</span></div>';
+  html += '<div style="overflow-x:auto"><table class="ohss-table"><thead><tr>';
+  html += '<th>Date</th><th>Weight (kg)</th><th>Girth (cm)</th><th>Pain (0-10)</th><th>Nausea (0-3)</th><th>Mobility</th><th>Fluid In</th><th>Urine Out</th><th>Grade</th>';
+  html += '</tr></thead><tbody id="ohssTableBody">';
+  dates.forEach(function(ds) {
+    var isToday = ds === dates[dates.length - 1];
+    html += '<tr data-date="' + ds + '"' + (isToday ? ' style="background:rgba(13,115,119,0.04)"' : '') + '>';
+    html += '<td style="font-weight:600;font-size:10px;white-space:nowrap">' + ds + (isToday ? ' (today)' : '') + '</td>';
+    html += '<td><input type="number" step="0.1" id="ohss_weight_' + ds + '" onchange="recalcOhss(\'' + pid + '\',\'' + ds + '\')"></td>';
+    html += '<td><input type="number" step="0.1" id="ohss_girth_' + ds + '" onchange="recalcOhss(\'' + pid + '\',\'' + ds + '\')"></td>';
+    html += '<td><input type="number" min="0" max="10" id="ohss_pain_' + ds + '" onchange="recalcOhss(\'' + pid + '\',\'' + ds + '\')"></td>';
+    html += '<td><input type="number" min="0" max="3" id="ohss_nausea_' + ds + '" onchange="recalcOhss(\'' + pid + '\',\'' + ds + '\')"></td>';
+    html += '<td><select id="ohss_mobility_' + ds + '" onchange="recalcOhss(\'' + pid + '\',\'' + ds + '\')" style="font-size:10px;border:none;background:transparent;outline:none"><option value="normal">Normal</option><option value="reduced">Reduced</option><option value="difficult">Difficult</option><option value="cannot move">Cannot move</option></select></td>';
+    html += '<td><input type="text" id="ohss_fluid_' + ds + '" placeholder="ml" style="width:50px"></td>';
+    html += '<td><input type="text" id="ohss_urine_' + ds + '" placeholder="ml" style="width:50px"></td>';
+    html += '<td><span class="ohss-grade none" id="ohss_grade_' + ds + '">--</span></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<button class="opu-btn opu-btn-teal" style="margin-top:12px" onclick="saveOhssData(\'' + pid + '\')">Save OHSS Data</button>';
+  html += '</div>';
+
+  // Complications Card
+  html += '<div class="postopu-card"><h3>Complications</h3>';
+  html += '<div class="complication-pills">';
+  var comps = [
+    {key:'ed_visit', label:'ED Visit'},
+    {key:'excessive_pain', label:'Excessive Pain'},
+    {key:'infection', label:'Infection Suspected'},
+    {key:'torsion', label:'Ovarian Torsion'},
+    {key:'bleeding', label:'Bleeding'},
+    {key:'thromboembolic', label:'Thromboembolic Event'}
+  ];
+  comps.forEach(function(c) {
+    html += '<span class="comp-pill off" id="comp_' + c.key + '" onclick="toggleComplication(\'' + pid + '\',\'' + c.key + '\')">' + c.label + '</span>';
+  });
+  html += '</div>';
+  html += '<div id="compEdDetails" style="display:none;margin-top:10px">';
+  html += '<div class="opu-field"><label>Hospital / ED Name</label><input type="text" id="comp_ed_hospital" placeholder="e.g. Royal Melbourne"></div>';
+  html += '<div class="opu-field"><label>Presenting Complaint</label><input type="text" id="comp_ed_complaint" placeholder="e.g. Severe abdominal pain"></div>';
+  html += '</div>';
+  html += '<div class="opu-field" style="margin-top:10px"><label>Notes</label><textarea id="comp_notes" rows="3" style="width:100%;border:1px solid #e0e0e0;border-radius:8px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box" placeholder="Additional clinical notes..."></textarea></div>';
+  html += '<button class="opu-btn opu-btn-teal" style="margin-top:8px" onclick="saveComplications(\'' + pid + '\')">Save Complications</button>';
+  html += '</div>';
+
+  // Patient self-reports
+  html += '<div class="postopu-card"><h3>Patient Self-Reports</h3>';
+  html += '<div id="patientReportsBody" style="font-size:12px;color:#888">Loading...</div>';
+  html += '</div>';
+
+  html += '</div>';
+  return html;
+}
+
+function recalcOhss(pid, ds) {
+  var pain = document.getElementById('ohss_pain_' + ds) ? document.getElementById('ohss_pain_' + ds).value : '0';
+  var nausea = document.getElementById('ohss_nausea_' + ds) ? document.getElementById('ohss_nausea_' + ds).value : '0';
+  var mobility = document.getElementById('ohss_mobility_' + ds) ? document.getElementById('ohss_mobility_' + ds).value : 'normal';
+  // Calculate weight gain from previous day
+  var dates = []; var tbody = document.getElementById('ohssTableBody');
+  if (tbody) { tbody.querySelectorAll('tr').forEach(function(r) { dates.push(r.getAttribute('data-date')); }); }
+  var idx = dates.indexOf(ds);
+  var prevWeight = 0; var curWeight = parseFloat(document.getElementById('ohss_weight_' + ds) ? document.getElementById('ohss_weight_' + ds).value : 0) || 0;
+  if (idx > 0) {
+    var prevDs = dates[idx - 1];
+    prevWeight = parseFloat(document.getElementById('ohss_weight_' + prevDs) ? document.getElementById('ohss_weight_' + prevDs).value : 0) || 0;
+  }
+  var wg = prevWeight > 0 ? curWeight - prevWeight : 0;
+  var grade = calcOhssGrade({ pain: pain, nausea: nausea, mobility: mobility, weight_gain: wg });
+  var el = document.getElementById('ohss_grade_' + ds);
+  if (el) { el.textContent = grade.charAt(0).toUpperCase() + grade.slice(1); el.className = 'ohss-grade ' + grade; }
+  // Update current grade to latest non-none
+  var latestGrade = 'none';
+  dates.forEach(function(d2) {
+    var g = document.getElementById('ohss_grade_' + d2);
+    if (g && g.textContent !== '--' && g.textContent.toLowerCase() !== 'none') latestGrade = g.textContent.toLowerCase();
+  });
+  var cur = document.getElementById('ohssCurrentGrade');
+  if (cur) { cur.textContent = latestGrade.charAt(0).toUpperCase() + latestGrade.slice(1); cur.className = 'ohss-grade ' + latestGrade; }
+}
+
+function toggleComplication(pid, key) {
+  var el = document.getElementById('comp_' + key);
+  if (!el) return;
+  var isOn = el.classList.contains('on');
+  el.classList.toggle('on', !isOn);
+  el.classList.toggle('off', isOn);
+  if (key === 'ed_visit') {
+    document.getElementById('compEdDetails').style.display = !isOn ? 'block' : 'none';
+  }
+}
+
+function saveOhssData(pid) {
+  var tbody = document.getElementById('ohssTableBody');
+  if (!tbody) return;
+  var rows = tbody.querySelectorAll('tr');
+  var promises = [];
+  rows.forEach(function(row) {
+    var ds = row.getAttribute('data-date');
+    var weight = (document.getElementById('ohss_weight_' + ds) || {}).value || '';
+    var pain = (document.getElementById('ohss_pain_' + ds) || {}).value || '';
+    if (!weight && !pain) return; // skip empty rows
+    var data = {
+      weight: weight, girth: (document.getElementById('ohss_girth_' + ds) || {}).value || '',
+      pain: pain, nausea: (document.getElementById('ohss_nausea_' + ds) || {}).value || '',
+      mobility: (document.getElementById('ohss_mobility_' + ds) || {}).value || 'normal',
+      fluid_intake: (document.getElementById('ohss_fluid_' + ds) || {}).value || '',
+      urine_output: (document.getElementById('ohss_urine_' + ds) || {}).value || '',
+      grade: (document.getElementById('ohss_grade_' + ds) || {}).textContent || '',
+      recorded_at: new Date().toISOString(), recorded_by: selectedRole || 'nurse'
+    };
+    promises.push(authFetch(API_BASE + '/clinician/patient/' + pid + '/post-opu/ohss/' + ds, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    }));
+  });
+  Promise.all(promises).then(function() { showToast('OHSS data saved'); }).catch(function(e) { console.error('OHSS save error:', e); });
+  // Check for escalation
+  var cur = document.getElementById('ohssCurrentGrade');
+  if (cur) {
+    var grade = cur.textContent.toLowerCase();
+    if (grade === 'severe' || grade === 'critical') escalatePatient(pid, 'RED', 'OHSS ' + grade);
+    else if (grade === 'moderate') escalatePatient(pid, 'AMBER', 'OHSS moderate');
+  }
+}
+
+function saveComplications(pid) {
+  var comps = {};
+  ['ed_visit','excessive_pain','infection','torsion','bleeding','thromboembolic'].forEach(function(k) {
+    var el = document.getElementById('comp_' + k);
+    comps[k] = el ? el.classList.contains('on') : false;
+  });
+  comps.ed_hospital = (document.getElementById('comp_ed_hospital') || {}).value || '';
+  comps.ed_complaint = (document.getElementById('comp_ed_complaint') || {}).value || '';
+  comps.notes = (document.getElementById('comp_notes') || {}).value || '';
+  comps.updated_at = new Date().toISOString();
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/post-opu/complications', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(comps)
+  }).then(function() {
+    showToast('Complications saved');
+    // Auto-escalate if any complication active
+    var anyActive = Object.keys(comps).some(function(k) { return comps[k] === true; });
+    if (anyActive) escalatePatient(pid, 'RED', 'Post-OPU complication: ' + Object.keys(comps).filter(function(k) { return comps[k] === true; }).join(', '));
+  }).catch(function(e) { console.error('Complications save error:', e); });
+}
+
+function escalatePatient(pid, level, reason) {
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/escalate', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ level: level, reason: reason, source: 'post_opu_monitoring' })
+  }).catch(function(e) { console.warn('Escalation failed:', e); });
+}
+
+function loadPostOpuData(pid) {
+  // Load OHSS daily data
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data) return;
+      var ohss = data.ohss_daily || {};
+      Object.keys(ohss).forEach(function(ds) {
+        var row = ohss[ds];
+        if (document.getElementById('ohss_weight_' + ds)) document.getElementById('ohss_weight_' + ds).value = row.weight || '';
+        if (document.getElementById('ohss_girth_' + ds)) document.getElementById('ohss_girth_' + ds).value = row.girth || '';
+        if (document.getElementById('ohss_pain_' + ds)) document.getElementById('ohss_pain_' + ds).value = row.pain || '';
+        if (document.getElementById('ohss_nausea_' + ds)) document.getElementById('ohss_nausea_' + ds).value = row.nausea || '';
+        if (document.getElementById('ohss_mobility_' + ds)) document.getElementById('ohss_mobility_' + ds).value = row.mobility || 'normal';
+        if (document.getElementById('ohss_fluid_' + ds)) document.getElementById('ohss_fluid_' + ds).value = row.fluid_intake || '';
+        if (document.getElementById('ohss_urine_' + ds)) document.getElementById('ohss_urine_' + ds).value = row.urine_output || '';
+        recalcOhss(pid, ds);
+      });
+      var comps = data.complications || {};
+      _postOpuComps = comps;
+      ['ed_visit','excessive_pain','infection','torsion','bleeding','thromboembolic'].forEach(function(k) {
+        var el = document.getElementById('comp_' + k);
+        if (el && comps[k]) { el.classList.remove('off'); el.classList.add('on'); }
+      });
+      if (comps.ed_visit) document.getElementById('compEdDetails').style.display = 'block';
+      if (comps.ed_hospital && document.getElementById('comp_ed_hospital')) document.getElementById('comp_ed_hospital').value = comps.ed_hospital;
+      if (comps.ed_complaint && document.getElementById('comp_ed_complaint')) document.getElementById('comp_ed_complaint').value = comps.ed_complaint;
+      if (comps.notes && document.getElementById('comp_notes')) document.getElementById('comp_notes').value = comps.notes;
+      // Load patient self-reports
+      var reports = data.patient_reports || {};
+      var rBody = document.getElementById('patientReportsBody');
+      if (rBody) {
+        var rKeys = Object.keys(reports).sort().reverse();
+        if (rKeys.length === 0) { rBody.innerHTML = 'No patient reports yet.'; }
+        else {
+          var rHtml = '';
+          rKeys.slice(0, 10).forEach(function(k) {
+            var r = reports[k];
+            var g = calcOhssGrade({ pain: r.pain || 0, nausea: r.nausea || 0, mobility: r.mobility || 'normal', weight_gain: 0 });
+            rHtml += '<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">';
+            rHtml += '<div><strong style="font-size:11px">' + (r.submitted_at || k).substring(0, 16) + '</strong>';
+            rHtml += ' Pain: ' + (r.pain || 0) + '/10, Bloating: ' + (r.bloating || 0) + '/10, Nausea: ' + (r.nausea || 0) + '/3';
+            if (r.notes) rHtml += '<div style="color:#555;font-size:11px;margin-top:2px">"' + escHtml(r.notes).substring(0, 100) + '"</div>';
+            rHtml += '</div><span class="ohss-grade ' + g + '">' + g.charAt(0).toUpperCase() + g.slice(1) + '</span></div>';
+          });
+          rBody.innerHTML = rHtml;
+        }
+      }
+    }).catch(function(e) { console.warn('Post-OPU load error:', e); });
+}
+// ═══ END POST-OPU ════════════════════════════════════════════
 
 function deletePatient(pid, name) {
   if (!confirm('Delete patient ' + name + '? This cannot be undone.')) return;

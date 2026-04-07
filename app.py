@@ -1377,6 +1377,37 @@ def build_patient_context(patient_id: str) -> str:
         ctx += """- MIXED: Balance both approaches — acknowledge feelings, then provide the data they need.
 """
 
+    # Post-OPU context from Firebase
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            cycle = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").get()
+            if cycle and isinstance(cycle, dict):
+                opu_sched = cycle.get("opu_schedule")
+                if opu_sched and opu_sched.get("opu_date"):
+                    ctx += f"\nPOST-OPU CONTEXT:\n"
+                    ctx += f"- Egg collection date: {opu_sched['opu_date']}\n"
+                    ctx += f"- Trigger drug: {opu_sched.get('trigger_drug', 'unknown')}\n"
+                    # Latest patient-reported symptoms
+                    reports = cycle.get("patient_reports", {})
+                    if reports and isinstance(reports, dict):
+                        latest_key = sorted(reports.keys())[-1] if reports else None
+                        if latest_key:
+                            r = reports[latest_key]
+                            ctx += f"- Latest symptom report: pain {r.get('pain', '?')}/10, bloating {r.get('bloating', '?')}/10, nausea {r.get('nausea', '?')}/3\n"
+                            if r.get("notes"):
+                                ctx += f"- Patient note: \"{r['notes'][:100]}\"\n"
+                            grade = r.get("calculated_grade", "unknown")
+                            if grade in ("moderate", "severe", "critical"):
+                                ctx += f"- OHSS grade: {grade.upper()} — recommend calling clinic\n"
+                    comps = cycle.get("complications", {})
+                    if comps and isinstance(comps, dict):
+                        active = [k for k in ["ed_visit","excessive_pain","infection","torsion","bleeding","thromboembolic"] if comps.get(k)]
+                        if active:
+                            ctx += f"- ACTIVE COMPLICATIONS: {', '.join(active)}\n"
+                            ctx += "- DO NOT try to diagnose or manage these — tell patient to call the clinic or go to ED immediately.\n"
+    except Exception as e:
+        logger.warning(f"Post-OPU context error for {patient_id}: {e}")
+
     return ctx
 
 
@@ -5347,6 +5378,109 @@ async def notify_patient_opu(patient_id: str, request: Request):
     except Exception as e:
         logger.error(f"notify-opu error for {patient_id}: {e}")
         return {"success": False, "error": str(e)}
+
+
+@app.post("/clinician/patient/{patient_id}/post-opu/ohss/{date_str}", dependencies=[Depends(verify_clinician_api_key)])
+async def save_ohss_daily(patient_id: str, date_str: str, request: Request):
+    """Save OHSS daily monitoring data."""
+    try:
+        data = await request.json()
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").child("ohss_daily").child(date_str).update(data)
+        return {"status": "saved"}
+    except Exception as e:
+        logger.error(f"OHSS save error for {patient_id}/{date_str}: {e}")
+        return {"error": str(e)}
+
+
+@app.post("/clinician/patient/{patient_id}/post-opu/complications", dependencies=[Depends(verify_clinician_api_key)])
+async def save_complications(patient_id: str, request: Request):
+    """Save post-OPU complications."""
+    try:
+        data = await request.json()
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").child("complications").update(data)
+        return {"status": "saved"}
+    except Exception as e:
+        logger.error(f"Complications save error for {patient_id}: {e}")
+        return {"error": str(e)}
+
+
+@app.post("/clinician/patient/{patient_id}/escalate", dependencies=[Depends(verify_clinician_api_key)])
+async def escalate_patient(patient_id: str, request: Request):
+    """Manually escalate a patient's risk level."""
+    try:
+        data = await request.json()
+        level = data.get("level", "AMBER")
+        reason = data.get("reason", "Manual escalation")
+        source = data.get("source", "clinician")
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patients").child(patient_id).update({
+                "escalation_level": level,
+                "escalation_reason": reason,
+                "escalation_source": source,
+                "escalated_at": utc_iso(),
+            })
+        # Push to alert queue
+        alert_queue.insert(0, {
+            "type": "manual_escalation",
+            "patient_id": patient_id,
+            "level": level,
+            "summary": reason,
+            "source": source,
+            "timestamp": utc_iso(),
+            "acknowledged": False,
+        })
+        alert_queue[:] = alert_queue[:100]
+        return {"status": "escalated", "level": level}
+    except Exception as e:
+        logger.error(f"Escalation error for {patient_id}: {e}")
+        return {"error": str(e)}
+
+
+@app.post("/patient/{patient_id}/post-opu-symptoms")
+async def submit_post_opu_symptoms(patient_id: str, request: Request):
+    """Patient self-reports post-OPU symptoms."""
+    try:
+        data = await request.json()
+        data["submitted_at"] = utc_iso()
+        # Calculate OHSS grade
+        pain = int(data.get("pain", 0))
+        nausea = int(data.get("nausea", 0))
+        mobility = data.get("mobility", "normal")
+        grade = "none"
+        if pain >= 7 or nausea >= 3 or mobility == "cannot move":
+            grade = "severe"
+        elif pain >= 4 or nausea >= 2 or mobility == "difficult":
+            grade = "moderate"
+        elif pain >= 1 or nausea >= 1:
+            grade = "mild"
+        data["calculated_grade"] = grade
+
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patients").child(patient_id).child("cycle").child("patient_reports").push(data)
+            # Auto-escalate if moderate+
+            if grade in ("severe", "critical"):
+                firebase_db._fb_ref.child("patients").child(patient_id).update({
+                    "escalation_level": "RED",
+                    "escalation_reason": f"Patient-reported OHSS symptoms: pain {pain}/10, nausea {nausea}/3, mobility: {mobility}",
+                    "escalated_at": utc_iso(),
+                })
+                alert_queue.insert(0, {
+                    "type": "patient_ohss_alert", "patient_id": patient_id, "level": "RED",
+                    "summary": f"Patient reports severe post-OPU symptoms (pain {pain}/10)",
+                    "timestamp": utc_iso(), "acknowledged": False,
+                })
+            elif grade == "moderate":
+                firebase_db._fb_ref.child("patients").child(patient_id).update({
+                    "escalation_level": "AMBER",
+                    "escalation_reason": f"Patient-reported moderate symptoms: pain {pain}/10",
+                    "escalated_at": utc_iso(),
+                })
+        return {"status": "saved", "grade": grade}
+    except Exception as e:
+        logger.error(f"Post-OPU symptoms error for {patient_id}: {e}")
+        return {"error": str(e)}
 
 
 @app.post("/clinician/patient/{patient_id}/cycle/medication", dependencies=[Depends(verify_clinician_api_key)])

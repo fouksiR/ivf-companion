@@ -252,10 +252,14 @@ h1,h2,h3{font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-
 .checkin-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,0.1);transition:all .3s ease}
 .checkin-dot.active{background:#0D9488;width:24px;border-radius:4px}
 .checkin-dot.completed{background:#0D9488}
-.checkin-faces{display:flex;justify-content:center;gap:16px;padding:8px 0}
-.checkin-face{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;border:2px solid transparent;transition:all .2s ease;background:rgba(0,0,0,0.03)}
-.checkin-face:hover{background:rgba(45,142,142,0.08)}
-.checkin-face.selected{border-color:#0D9488;background:rgba(13,148,136,0.12);transform:scale(1.15)}
+.checkin-egg-container{display:flex;flex-direction:column;align-items:center;gap:24px;padding:16px 0;position:relative;min-height:300px}
+.checkin-egg-canvas{position:absolute;top:0;z-index:2}
+.checkin-sperm-canvas{position:absolute;top:0;z-index:1}
+.checkin-egg-container canvas{width:220px;height:220px}
+.checkin-egg-container .checkin-slider{width:80%;max-width:280px;margin-top:230px;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:linear-gradient(to right,#EF4444,#F59E0B,#0D9488);outline:none;z-index:3;position:relative}
+.checkin-slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;border:3px solid #0D9488;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.checkin-slider::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:#fff;border:3px solid #0D9488;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.checkin-slider-labels{display:flex;justify-content:space-between;width:80%;max-width:280px;font-family:'Inter',sans-serif;font-size:12px;font-weight:300;opacity:0.6;margin-top:4px;z-index:3;position:relative}
 #btn-checkin{width:100%;padding:16px 48px;border-radius:24px;background:linear-gradient(135deg,#0D9488,#14B8A6);color:white;font-size:15px;font-weight:600;border:none;cursor:pointer;font-family:var(--sans);box-shadow:0 4px 16px rgba(13,148,136,.25);transition:transform .15s,box-shadow .15s;letter-spacing:.3px}
 #btn-checkin:active{transform:scale(.97);box-shadow:0 2px 8px rgba(13,148,136,.15)}
 #btn-checkin:disabled{opacity:.6;transform:none}
@@ -864,27 +868,27 @@ h1,h2,h3{font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-
         <div class="checkin-card" data-step="0" data-dimension="mood">
           <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">How's your heart today?</h2>
           <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">No right answer — just how you feel right now</p>
-          <div class="checkin-faces" data-dimension="mood"></div>
+          <div class="checkin-egg-container" data-dimension="mood"><canvas class="checkin-egg-canvas" width="280" height="280"></canvas><canvas class="checkin-sperm-canvas" width="280" height="280"></canvas><input type="range" class="checkin-slider" min="1" max="5" value="3" step="1" oninput="updateCheckinEgg(this.closest('.checkin-egg-container').dataset.dimension,parseInt(this.value))"><div class="checkin-slider-labels"><span>Not at all</span><span>Very much</span></div></div>
         </div>
         <div class="checkin-card" data-step="1" data-dimension="calm" style="display:none;">
           <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">Feeling calm or restless?</h2>
           <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">Your body holds a lot right now</p>
-          <div class="checkin-faces" data-dimension="calm"></div>
+          <div class="checkin-egg-container" data-dimension="calm"><canvas class="checkin-egg-canvas" width="280" height="280"></canvas><canvas class="checkin-sperm-canvas" width="280" height="280"></canvas><input type="range" class="checkin-slider" min="1" max="5" value="3" step="1" oninput="updateCheckinEgg(this.closest('.checkin-egg-container').dataset.dimension,parseInt(this.value))"><div class="checkin-slider-labels"><span>Not at all</span><span>Very much</span></div></div>
         </div>
         <div class="checkin-card" data-step="2" data-dimension="connection" style="display:none;">
           <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">How connected do you feel?</h2>
           <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">To your partner, your people, yourself</p>
-          <div class="checkin-faces" data-dimension="connection"></div>
+          <div class="checkin-egg-container" data-dimension="connection"><canvas class="checkin-egg-canvas" width="280" height="280"></canvas><canvas class="checkin-sperm-canvas" width="280" height="280"></canvas><input type="range" class="checkin-slider" min="1" max="5" value="3" step="1" oninput="updateCheckinEgg(this.closest('.checkin-egg-container').dataset.dimension,parseInt(this.value))"><div class="checkin-slider-labels"><span>Not at all</span><span>Very much</span></div></div>
         </div>
         <div class="checkin-card" data-step="3" data-dimension="clarity" style="display:none;">
           <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">How clear is your thinking?</h2>
           <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">Foggy days are completely normal</p>
-          <div class="checkin-faces" data-dimension="clarity"></div>
+          <div class="checkin-egg-container" data-dimension="clarity"><canvas class="checkin-egg-canvas" width="280" height="280"></canvas><canvas class="checkin-sperm-canvas" width="280" height="280"></canvas><input type="range" class="checkin-slider" min="1" max="5" value="3" step="1" oninput="updateCheckinEgg(this.closest('.checkin-egg-container').dataset.dimension,parseInt(this.value))"><div class="checkin-slider-labels"><span>Not at all</span><span>Very much</span></div></div>
         </div>
         <div class="checkin-card" data-step="4" data-dimension="hope" style="display:none;">
           <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">How hopeful are you feeling?</h2>
           <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">It's okay if this changes hour to hour</p>
-          <div class="checkin-faces" data-dimension="hope"></div>
+          <div class="checkin-egg-container" data-dimension="hope"><canvas class="checkin-egg-canvas" width="280" height="280"></canvas><canvas class="checkin-sperm-canvas" width="280" height="280"></canvas><input type="range" class="checkin-slider" min="1" max="5" value="3" step="1" oninput="updateCheckinEgg(this.closest('.checkin-egg-container').dataset.dimension,parseInt(this.value))"><div class="checkin-slider-labels"><span>Not at all</span><span>Very much</span></div></div>
         </div>
       </div>
       <div id="checkin-nav" style="display:flex;justify-content:center;gap:16px;padding:24px 16px;">
@@ -2301,19 +2305,17 @@ var CHECKIN_DIMS=['mood','calm','connection','clarity','hope'];
 var _ciStep=0,_ciScores={},_ciStepStart=null;
 
 function initProgressiveCheckin(){
-  document.querySelectorAll('.checkin-faces').forEach(function(container){
-    var dim=container.dataset.dimension;
-    container.innerHTML='';
-    CHECKIN_FACES.forEach(function(face,i){
-      var el=document.createElement('div');
-      el.className='checkin-face';
-      el.textContent=face;
-      el.onclick=function(){selectCheckinFace(dim,CHECKIN_FACE_VALUES[i],el)};
-      container.appendChild(el);
-    });
-  });
   _ciStep=0;_ciScores={};_ciStepStart=Date.now();
+  // Reset sliders to middle
+  document.querySelectorAll('.checkin-slider').forEach(function(s){s.value=3});
+  // Setup canvas for retina
+  var dpr=window.devicePixelRatio||1;
+  document.querySelectorAll('.checkin-egg-canvas,.checkin-sperm-canvas').forEach(function(c){
+    c.width=280*dpr;c.height=280*dpr;
+    c.getContext('2d').scale(dpr,dpr);
+  });
   showCheckinStep(0);
+  startCheckinAnimation();
   // Show progressive, hide old
   var prog=document.getElementById('progressive-checkin');if(prog)prog.style.display='block';
   var old=document.getElementById('old-stacked-checkin');if(old)old.style.display='none';
@@ -2322,13 +2324,142 @@ function initProgressiveCheckin(){
   var cn=document.getElementById('checkin-card-container');if(cn)cn.style.display='block';
   var nav=document.getElementById('checkin-nav');if(nav)nav.style.display='flex';
   var prg=document.getElementById('checkin-progress');if(prg)prg.style.display='flex';
-  document.querySelectorAll('.checkin-face').forEach(function(f){f.classList.remove('selected')});
 }
 
+/* selectCheckinFace — replaced by egg slider
 function selectCheckinFace(dim,value,el){
   el.parentElement.querySelectorAll('.checkin-face').forEach(function(f){f.classList.remove('selected')});
   el.classList.add('selected');
   _ciScores[dim]=value;
+  var btn=document.getElementById('checkin-next-btn');
+  btn.style.opacity='1';btn.style.pointerEvents='auto';
+} */
+
+// ── Egg Expression Engine ──
+var _ciAnimRunning=false;
+
+function drawCheckinEgg(canvas,value,dimension){
+  var ctx=canvas.getContext('2d');var w=canvas.width;var h=canvas.height;
+  var cx=w/2;var cy=h/2;var r=80;var t=Date.now()/1000;
+  ctx.clearRect(0,0,w,h);
+  // distress: 1=happy(value=5), 5=distressed(value=1)
+  var distress=6-value;
+  // Zona pellucida
+  var zonaAlpha=0.1+distress*0.04;
+  var zonaWobble=distress>3?Math.sin(t*(distress*2))*(distress-2):0;
+  ctx.beginPath();ctx.arc(cx+zonaWobble,cy,r+14,0,Math.PI*2);
+  ctx.fillStyle='rgba(180,160,120,'+zonaAlpha+')';ctx.fill();
+  // Egg body
+  var squishX=distress>3?Math.sin(t*distress*3)*(distress-2)*2:0;
+  var squishY=distress>3?Math.cos(t*distress*2.5)*(distress-2)*1.5:0;
+  var tremor=distress>2?Math.sin(t*distress*8)*(distress-1)*0.5:0;
+  ctx.save();ctx.translate(cx+tremor,cy+squishY*0.3);
+  var scaleX=1+squishX*0.005;var scaleY=1-squishX*0.003;
+  ctx.scale(scaleX,scaleY);
+  ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);
+  var hue=40-distress*3;var sat=80-distress*10;var light=88-distress*3;
+  ctx.fillStyle='hsl('+hue+','+sat+'%,'+light+'%)';ctx.fill();
+  // Eyes
+  var eyeSpread=18;var eyeY=-12;var eyeSize=4;
+  if(distress<=1){
+    ctx.strokeStyle='#4a3728';ctx.lineWidth=2.5;ctx.lineCap='round';
+    [-1,1].forEach(function(side){ctx.beginPath();ctx.arc(side*eyeSpread,eyeY,6,Math.PI,0);ctx.stroke()});
+  }else if(distress<=2){
+    ctx.fillStyle='#4a3728';
+    [-1,1].forEach(function(side){ctx.beginPath();ctx.arc(side*eyeSpread,eyeY,eyeSize,0,Math.PI*2);ctx.fill()});
+  }else if(distress<=3){
+    ctx.fillStyle='#5a4738';
+    [-1,1].forEach(function(side){ctx.beginPath();ctx.arc(side*eyeSpread,eyeY+2,eyeSize-0.5,0,Math.PI*2);ctx.fill()});
+  }else if(distress<=4){
+    ctx.fillStyle='#5a4738';
+    [-1,1].forEach(function(side){
+      ctx.beginPath();ctx.ellipse(side*eyeSpread,eyeY,4,5.5,0,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='#5a4738';ctx.lineWidth=1.5;ctx.beginPath();
+      ctx.moveTo(side*eyeSpread-6,eyeY-10);ctx.lineTo(side*eyeSpread+6,eyeY-12+side*2);ctx.stroke();
+    });
+  }else{
+    var eyeT=Math.sin(t*15)*1;ctx.fillStyle='#4a3728';
+    [-1,1].forEach(function(side){
+      ctx.beginPath();ctx.ellipse(side*eyeSpread+eyeT,eyeY,5,7,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(side*eyeSpread+2+eyeT,eyeY-2,1.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#4a3728';
+    });
+  }
+  // Blush
+  if(distress<=2){
+    ctx.fillStyle='rgba(255,150,130,'+(0.3-distress*0.1)+')';
+    [-1,1].forEach(function(side){ctx.beginPath();ctx.ellipse(side*30,eyeY+14,8,5,0,0,Math.PI*2);ctx.fill()});
+  }
+  // Mouth
+  var mouthY=14;ctx.strokeStyle='#4a3728';ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();
+  if(distress<=1){ctx.arc(0,mouthY-4,14,0.1*Math.PI,0.9*Math.PI)}
+  else if(distress<=2){ctx.arc(0,mouthY-2,10,0.15*Math.PI,0.85*Math.PI)}
+  else if(distress<=3){ctx.moveTo(-8,mouthY);ctx.lineTo(8,mouthY)}
+  else if(distress<=4){ctx.arc(0,mouthY+10,10,1.2*Math.PI,1.8*Math.PI)}
+  else{var mT=Math.sin(t*12)*2;ctx.arc(0,mouthY+14+mT,12,1.15*Math.PI,1.85*Math.PI)}
+  ctx.stroke();
+  // Arms
+  if(distress<=2){
+    ctx.strokeStyle='#4a3728';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-r*0.6,10);ctx.quadraticCurveTo(-r*0.3,25,-8,20);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(r*0.6,10);ctx.quadraticCurveTo(r*0.3,25,8,20);ctx.stroke();
+    if(distress<=1){ctx.fillStyle='#e87461';ctx.beginPath();ctx.moveTo(0,24);ctx.bezierCurveTo(-5,18,-10,14,-5,10);ctx.bezierCurveTo(-2,8,0,11,0,11);ctx.bezierCurveTo(0,11,2,8,5,10);ctx.bezierCurveTo(10,14,5,18,0,24);ctx.fill()}
+  }else if(distress>=4){
+    ctx.strokeStyle='#4a3728';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-r*0.5,5);ctx.quadraticCurveTo(-r*0.1,15,r*0.3,0);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(r*0.5,5);ctx.quadraticCurveTo(r*0.1,15,-r*0.3,0);ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawCheckinSperm(canvas,value,dimension){
+  var ctx=canvas.getContext('2d');var w=canvas.width;var h=canvas.height;var t=Date.now()/1000;
+  var distress=6-value;ctx.clearRect(0,0,w,h);
+  var count=5;
+  for(var i=0;i<count;i++){
+    var angle=(i/count)*Math.PI*2+t*(0.3+distress*0.15);
+    var orbitR=110+Math.sin(t*1.5+i)*10;
+    var jitterX=distress>2?Math.sin(t*(distress*3)+i*7)*(distress*2):0;
+    var jitterY=distress>2?Math.cos(t*(distress*2.5)+i*5)*(distress*1.5):0;
+    var sx=w/2+Math.cos(angle)*orbitR+jitterX;
+    var sy=h/2+Math.sin(angle)*orbitR*0.7+jitterY;
+    // Head
+    ctx.fillStyle='rgba(200,200,210,'+(0.5+distress*0.08)+')';
+    ctx.beginPath();ctx.ellipse(sx,sy,3.5,4.5,angle+Math.PI/2,0,Math.PI*2);ctx.fill();
+    // Tail
+    var tailFreq=3+distress*2;var tailAmp=3+distress*1.5;
+    ctx.strokeStyle='rgba(200,200,210,'+(0.35+distress*0.06)+')';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(sx,sy);
+    for(var j=1;j<=5;j++){
+      var tx=sx-Math.cos(angle)*j*5;var ty=sy-Math.sin(angle)*j*5+Math.sin(t*tailFreq+j+i)*tailAmp*(j/5);
+      ctx.lineTo(tx,ty);
+    }ctx.stroke();
+  }
+}
+
+function startCheckinAnimation(){
+  if(_ciAnimRunning)return;_ciAnimRunning=true;
+  function animate(){
+    if(!_ciAnimRunning)return;
+    var visible=document.querySelector('.checkin-card[data-step="'+_ciStep+'"]');
+    if(visible){
+      var container=visible.querySelector('.checkin-egg-container');
+      if(container){
+        var slider=container.querySelector('.checkin-slider');
+        var val=slider?parseInt(slider.value):3;
+        var eggC=container.querySelector('.checkin-egg-canvas');
+        var spermC=container.querySelector('.checkin-sperm-canvas');
+        if(eggC)drawCheckinEgg(eggC,val,container.dataset.dimension);
+        if(spermC)drawCheckinSperm(spermC,val,container.dataset.dimension);
+      }
+    }
+    requestAnimationFrame(animate);
+  }
+  animate();
+}
+function stopCheckinAnimation(){_ciAnimRunning=false}
+
+function updateCheckinEgg(dimension,value){
+  _ciScores[dimension]=CHECKIN_FACE_VALUES[value-1]; // map 1-5 to [0,2,5,7,10]
   var btn=document.getElementById('checkin-next-btn');
   btn.style.opacity='1';btn.style.pointerEvents='auto';
 }
@@ -2364,6 +2495,7 @@ function checkinBack(){
 }
 
 async function submitProgressiveCheckin(){
+  stopCheckinAnimation();
   // Map progressive scores to old DOM elements so wrappers still work
   var mood=_ciScores.mood||5;
   var anxiety=10-(_ciScores.calm||5); // invert: calm 10 → anxiety 0
@@ -2403,6 +2535,7 @@ async function submitProgressiveCheckin(){
 }
 
 function closeCheckin(){
+  stopCheckinAnimation();
   // Reset progressive UI for next time
   var cn=document.getElementById('checkin-card-container');if(cn)cn.style.display='block';
   var nav=document.getElementById('checkin-nav');if(nav)nav.style.display='flex';

@@ -5287,6 +5287,68 @@ async def update_patient_cycle(patient_id: str, request: Request):
         return {"error": str(e)}
     return {"status": "no_firebase"}
 
+@app.post("/clinician/notify-opu/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def notify_patient_opu(patient_id: str, request: Request):
+    """Notify patient about confirmed OPU: updates Firebase, sends message."""
+    try:
+        data = await request.json()
+        trigger_drug = data.get("trigger_drug", "Ovidrel")
+        trigger_time = data.get("trigger_time", "20:30")
+        opu_date = data.get("opu_date", "")
+        opu_time = data.get("opu_time_confirmed") or data.get("opu_time_calculated", "")
+        doctor = data.get("doctor", "your doctor")
+
+        # Update opu_schedule in Firebase with notification status
+        if firebase_db and firebase_db._fb_ref:
+            ref = firebase_db._fb_ref.child("patients").child(patient_id).child("cycle")
+            ref.child("opu_schedule").update({
+                "patient_notified": True,
+                "notification_sent_at": utc_iso(),
+            })
+            # Also add OPU as a procedure on the patient's calendar via medications_simple
+            existing_meds = ref.child("medications_simple").get() or {}
+            # Find next med index
+            max_idx = -1
+            for k in existing_meds:
+                try:
+                    idx = int(k.replace("med_", ""))
+                    if idx > max_idx:
+                        max_idx = idx
+                except (ValueError, AttributeError):
+                    pass
+            # Add trigger and OPU entries if not already present
+            has_opu = any(
+                isinstance(m, dict) and "OPU" in m.get("name", "")
+                for m in existing_meds.values()
+            )
+            if not has_opu:
+                ref.child("medications_simple").child(f"med_{max_idx + 1}").update({
+                    "name": "OPU (egg retrieval)",
+                    "doses": {}  # Will be populated by dashboard grid
+                })
+
+        # Send message to patient via clinician message system
+        msg = (
+            f"Your egg collection is confirmed for {opu_date} at {opu_time}. "
+            f"Trigger injection: {trigger_drug} tonight at {trigger_time}. "
+            f"Fasting from midnight — no food or water. "
+            f"Your doctor: {doctor}. You've got this."
+        )
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("clinician_messages").child(patient_id).push({
+                "from": "clinic",
+                "message": msg,
+                "timestamp": utc_iso(),
+                "read": False,
+                "type": "opu_confirmation",
+            })
+
+        return {"success": True, "notification_sent": True, "message": msg}
+    except Exception as e:
+        logger.error(f"notify-opu error for {patient_id}: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @app.post("/clinician/patient/{patient_id}/cycle/medication", dependencies=[Depends(verify_clinician_api_key)])
 async def add_cycle_medication(patient_id: str, request: Request):
     """Add a medication to the patient's cycle."""

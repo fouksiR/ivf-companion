@@ -377,6 +377,8 @@ def _is_expired(session: Dict[str, Any]) -> bool:
 app = FastAPI(title="previsit-agent", version="0.1.0")
 from consultation_routes import router as consultation_router
 app.include_router(consultation_router)
+from consultation_routes import init_helpers
+init_helpers(_session_get, _session_update)
 
 
 @app.get("/")

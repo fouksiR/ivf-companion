@@ -610,6 +610,8 @@ def doctor_page(token: str, key: Optional[str] = None):
             "No pre-visit session found for this token."
         ), status_code=404)
 
+    if session.get("consultation_completed"):
+        return HTMLResponse(_render_consultation_profile(session))
     if session.get("status") != "complete":
         return HTMLResponse(_render_doctor_pending(session))
 
@@ -1113,6 +1115,48 @@ def _render_doctor_key_prompt(token: str) -> str:
   </form>
 </div>
 </body></html>"""
+
+
+def _render_consultation_profile(session):
+    name = (session.get("patient_name") or "Patient").replace("<", "&lt;").replace(">", "&gt;")
+    cp = session.get("consultation_profile") or {}
+    ptype = cp.get("type", "—")
+    desc = cp.get("description", "")
+    answers = session.get("consultation_answers") or []
+    submitted = session.get("consultation_submitted_at") or ""
+    questions = [
+        "Confident managing health decisions",
+        "Prefers doctor to guide decisions",
+        "Feels worried/overwhelmed about health",
+        "Researches options before appointments",
+        "Questions or double-checks advice",
+        "Finds it easy to follow medical plans",
+        "Prefers time before committing to a plan",
+    ]
+    rows = ""
+    for i, q in enumerate(questions):
+        val = answers[i] if i < len(answers) else "—"
+        rows += f"<tr><td style=\"padding:8px 12px;border-bottom:1px solid #e2e8f0;\">{q}</td><td style=\"padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;font-weight:600;\">{val}/5</td></tr>"
+    return f"""<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{name} — Consultation Profile</title>
+<style>
+html,body{{margin:0;padding:0;font-family:-apple-system,system-ui,sans-serif;background:#F0FDFA;color:#134E4A;}}
+.wrap{{max-width:560px;margin:40px auto;padding:28px;background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(13,148,136,.12);}}
+h1{{color:#0D9488;margin:0 0 4px;font-size:22px;}}
+.badge{{display:inline-block;padding:4px 14px;border-radius:999px;font-size:13px;font-weight:600;background:#0D9488;color:#fff;margin:8px 0 16px;}}
+.desc{{color:#475569;line-height:1.6;margin-bottom:20px;}}
+table{{width:100%;border-collapse:collapse;font-size:14px;}}
+th{{text-align:left;padding:8px 12px;background:#F0FDFA;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#0D9488;}}
+.meta{{font-size:13px;color:#94a3b8;margin-top:16px;}}
+</style></head><body><div class="wrap">
+<h1>{name}</h1>
+<span class="badge">{ptype}</span>
+<p class="desc">{desc}</p>
+<table><thead><tr><th>Question</th><th>Score</th></tr></thead><tbody>{rows}</tbody></table>
+<p class="meta">Submitted: {submitted}</p>
+</div></body></html>"""
 
 
 def _render_doctor_pending(session: Dict[str, Any]) -> str:

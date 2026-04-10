@@ -394,7 +394,7 @@ def healthz():
 # ---------------------------------------------------------------------------
 # Patient-facing: chat page + chat API
 # ---------------------------------------------------------------------------
-@app.get("/chat/{token}", response_class=HTMLResponse)
+@app.get("/form/{token}", response_class=HTMLResponse)
 def chat_page(token: str):
     session = _session_get(token)
     if not session:
@@ -418,7 +418,7 @@ def chat_page(token: str):
     return HTMLResponse(_render_chat_page(token, session.get("patient_name", "")))
 
 
-@app.post("/api/chat/{token}")
+@app.post("/api/form/{token}")
 def api_chat(token: str, body: ChatMessageIn):
     session = _session_get(token)
     if not session:
@@ -552,7 +552,7 @@ def admin_create_session(
 
     return {
         "token": token,
-        "link": f"{SERVICE_URL.rstrip('/')}/chat/{token}",
+        "link": f"{SERVICE_URL.rstrip('/')}/form/{token}",
     }
 
 
@@ -977,7 +977,7 @@ async function loadSessions(){
         const status = (s.status === 'complete')
           ? '<span class="badge complete">Complete</span>'
           : '<span class="badge pending">Pending</span>';
-        const chatLink = location.origin + '/chat/' + s.token;
+        const chatLink = location.origin + '/form/' + s.token;
         const doctorLink = '/doctor/' + s.token;
         html += '<tr>' +
           '<td><strong>' + escapeHtml(s.patient_name || '—') + '</strong><div class="muted">' + escapeHtml(s.patient_email || '') + '</div></td>' +
@@ -986,7 +986,7 @@ async function loadSessions(){
           '<td>' + status + '</td>' +
           '<td class="row">' +
             '<a href="' + doctorLink + '" target="_blank"><button type="button" class="small">View Profile</button></a>' +
-            '<button type="button" class="small ghost" data-copy="' + escapeHtml(chatLink) + '">Copy Chat Link</button>' +
+            '<button type="button" class="small ghost" data-copy="' + escapeHtml(chatLink) + '">Copy Form Link</button>' +
           '</td>' +
           '</tr>';
       }

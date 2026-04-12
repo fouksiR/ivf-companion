@@ -1906,6 +1906,61 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def audit_clinician_requests(request: Request, call_next):
+    """Middleware: automatically audit-log all /clinician/ endpoint access."""
+    response = await call_next(request)
+    # Only audit clinician endpoints that succeeded
+    if request.url.path.startswith("/clinician/") and response.status_code < 400:
+        info = getattr(request.state, "clinician", None)
+        if info:
+            # Derive action name from method + path
+            path = request.url.path
+            method = request.method
+            patient_id = None
+            # Extract patient_id from path if present
+            parts = path.split("/")
+            if "patient" in parts:
+                idx = parts.index("patient")
+                if idx + 1 < len(parts):
+                    patient_id = parts[idx + 1]
+            # Build action name
+            action = method.lower() + ":" + path.split("?")[0]
+            # Map common paths to readable names
+            action_map = {
+                "get:/clinician/dashboard": "view_patient_list",
+                "get:/clinician/patients-list": "view_patient_list",
+                "get:/clinician/alerts": "view_alerts",
+                "get:/clinician/outcomes/pending": "view_pending_outcomes",
+                "get:/clinician/digest": "view_digest",
+                "get:/clinician/audit-log": "view_audit_log",
+            }
+            if action in action_map:
+                action = action_map[action]
+            elif patient_id:
+                # Patient-specific actions
+                suffix = "/".join(parts[parts.index(patient_id) + 1:]) if parts.index(patient_id) + 1 < len(parts) else ""
+                paction_map = {
+                    ("get", ""): "view_patient_detail",
+                    ("get", "summary"): "view_patient_detail",
+                    ("get", "briefing"): "view_patient_detail",
+                    ("get", "clearance"): "view_clearance",
+                    ("get", "pronunciation"): "view_pronunciation",
+                    ("get", "conversations"): "view_conversations",
+                    ("get", "cycle"): "view_cycle",
+                    ("post", "parse-labs"): "parse_labs",
+                    ("post", "parse-document"): "parse_document",
+                    ("post", "send-message"): "send_message",
+                    ("post", "flag-topic"): "flag_topic",
+                    ("post", "cycle"): "update_cycle",
+                    ("post", "outcome"): "add_outcome",
+                    ("post", "pronunciation"): "generate_pronunciation",
+                    ("delete", ""): "delete_patient",
+                }
+                action = paction_map.get((method.lower(), suffix), method.lower() + "_" + suffix.replace("/", "_").replace("-", "_"))
+            asyncio.create_task(_log_audit_safe(action, info, patient_id))
+    return response
+
 app.include_router(signal_router)
 client = anthropic.Anthropic()  # Uses ANTHROPIC_API_KEY env var
 
@@ -3227,11 +3282,103 @@ async def get_trends(patient_id: str):
 # ── Clinician Auth ───────────────────────────────────────────────────
 
 CLINICIAN_API_KEY = os.getenv("CLINICIAN_API_KEY", "")
+_recent_login_uids = set()  # deduplicate login audit logs
 
-async def verify_clinician_api_key(x_api_key: str = Header(None)):
-    """Dependency: reject requests without a valid clinician API key."""
-    if not CLINICIAN_API_KEY or x_api_key != CLINICIAN_API_KEY:
-        raise HTTPException(status_code=403, detail={"error": "Invalid API key"})
+
+async def verify_clinician_api_key(request: Request, x_api_key: str = Header(None), authorization: str = Header(None)):
+    """Dependency: accept Bearer token (Firebase ID token) OR X-API-Key.
+    Stores clinician info in request.state.clinician for audit logging."""
+    clinician_info = {"uid": "api_key_user", "email": "api_key", "role": "doctor"}
+    # Try Bearer token first
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+        try:
+            import firebase_admin.auth as fb_auth
+            decoded = fb_auth.verify_id_token(token)
+            claims = decoded.get("clinician")
+            if not claims and not decoded.get("clinician_role"):
+                # Check custom claims
+                user_record = fb_auth.get_user(decoded["uid"])
+                cc = user_record.custom_claims or {}
+                if not cc.get("clinician"):
+                    raise HTTPException(status_code=403, detail={"error": "Not a clinician account"})
+                claims = True
+                role = cc.get("role", "doctor")
+            else:
+                role = decoded.get("clinician_role") or decoded.get("role", "doctor")
+            clinician_info = {
+                "uid": decoded["uid"],
+                "email": decoded.get("email", ""),
+                "role": role
+            }
+            # Capture IP for audit
+            ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+            clinician_info["ip"] = ip.split(",")[0].strip()
+            request.state.clinician = clinician_info
+            # Log first-seen login (deduplicated)
+            uid = decoded["uid"]
+            if uid not in _recent_login_uids:
+                _recent_login_uids.add(uid)
+                if len(_recent_login_uids) > 100:
+                    _recent_login_uids.clear()
+                asyncio.create_task(_log_audit_safe("login", clinician_info))
+            return
+        except HTTPException:
+            raise
+        except Exception as e:
+            logging.warning(f"Token verification failed: {e}")
+            raise HTTPException(status_code=401, detail={"error": "Invalid or expired token"})
+    # Fall back to API key
+    if CLINICIAN_API_KEY and x_api_key == CLINICIAN_API_KEY:
+        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+        clinician_info["ip"] = ip.split(",")[0].strip()
+        request.state.clinician = clinician_info
+        return
+    raise HTTPException(status_code=403, detail={"error": "Invalid API key or token"})
+
+
+def require_role(*allowed_roles):
+    """Dependency factory: restrict endpoint to specific clinician roles."""
+    async def _check_role(request: Request):
+        info = getattr(request.state, "clinician", None)
+        if not info:
+            raise HTTPException(status_code=403, detail={"error": "Authentication required"})
+        if info.get("role") not in allowed_roles and info.get("uid") != "api_key_user":
+            raise HTTPException(status_code=403, detail={"error": f"Requires role: {', '.join(allowed_roles)}"})
+    return _check_role
+
+
+# ── Audit Logging ────────────────────────────────────────────────────
+
+import time as _time
+
+async def _log_audit_safe(action: str, clinician_info: dict = None, patient_id: str = None, details: dict = None):
+    """Log clinician action to Firebase. Fire-and-forget, never raises."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            return
+        if clinician_info is None:
+            clinician_info = {}
+        audit_entry = {
+            "timestamp": utc_iso(),
+            "epoch": _time.time(),
+            "clinician_uid": clinician_info.get("uid", "api_key_user"),
+            "clinician_email": clinician_info.get("email", "api_key"),
+            "clinician_role": clinician_info.get("role", "unknown"),
+            "action": action,
+            "patient_id": patient_id,
+            "details": details or {},
+            "ip_address": clinician_info.get("ip", "unknown")
+        }
+        _fb_ref.child("audit_log").push(audit_entry)
+    except Exception as e:
+        logging.warning(f"Audit log failed: {e}")
+
+
+def _get_clinician(request: Request) -> dict:
+    """Helper: get clinician info from request state."""
+    return getattr(request.state, "clinician", {"uid": "api_key_user", "email": "api_key", "role": "unknown"})
 
 
 # ── Clinician Dashboard Endpoints ────────────────────────────────────
@@ -6685,6 +6832,89 @@ async def delete_patient(patient_id: str):
         return {"status": "permanently_deleted", "patient_id": patient_id, "deleted_from": deleted_from}
     except Exception as e:
         return {"error": str(e)}
+
+
+# ── Admin: Clinician Account Management ──────────────────────────────
+
+class CreateClinicianRequest(BaseModel):
+    email: str
+    password: str
+    display_name: str
+    role: str  # "doctor", "nurse", "pa"
+
+
+@app.post("/admin/clinician", dependencies=[Depends(verify_clinician_api_key)])
+async def create_clinician_account(req: CreateClinicianRequest, request: Request):
+    """Create a new clinician account with Firebase Auth + custom claims."""
+    try:
+        import firebase_admin.auth as fb_auth
+        from firebase_db import _fb_ref
+        if req.role not in ("doctor", "nurse", "pa"):
+            raise HTTPException(status_code=400, detail="Role must be doctor, nurse, or pa")
+        # Create Firebase Auth user
+        user = fb_auth.create_user(
+            email=req.email,
+            password=req.password,
+            display_name=req.display_name
+        )
+        # Set custom claims
+        fb_auth.set_custom_user_claims(user.uid, {
+            "clinician": True,
+            "role": req.role,
+            "clinician_role": req.role,
+            "clinic": "melod-ai"
+        })
+        # Save to RTDB
+        if _fb_ref:
+            _fb_ref.child("clinicians").child(user.uid).update({
+                "email": req.email,
+                "display_name": req.display_name,
+                "role": req.role,
+                "created_at": utc_iso(),
+                "active": True
+            })
+        # Audit log
+        info = _get_clinician(request)
+        asyncio.create_task(_log_audit_safe("create_clinician", info, details={
+            "new_uid": user.uid, "email": req.email, "role": req.role
+        }))
+        return {"uid": user.uid, "email": req.email, "role": req.role, "display_name": req.display_name}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Failed to create clinician: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Audit Log Viewer ─────────────────────────────────────────────────
+
+@app.get("/clinician/audit-log", dependencies=[Depends(verify_clinician_api_key)])
+async def get_audit_log(request: Request, days: int = 7, clinician_uid: str = None, patient_id: str = None):
+    """View audit log entries. Doctor-only in practice (enforced by frontend)."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            return {"entries": []}
+        cutoff_epoch = _time.time() - (days * 86400)
+        all_entries = _fb_ref.child("audit_log").order_by_child("epoch").start_at(cutoff_epoch).limit_to_last(500).get()
+        if not all_entries:
+            return {"entries": []}
+        entries = []
+        for key, val in all_entries.items():
+            if not isinstance(val, dict):
+                continue
+            if clinician_uid and val.get("clinician_uid") != clinician_uid:
+                continue
+            if patient_id and val.get("patient_id") != patient_id:
+                continue
+            val["id"] = key
+            entries.append(val)
+        # Sort by epoch descending
+        entries.sort(key=lambda x: x.get("epoch", 0), reverse=True)
+        return {"entries": entries[:500]}
+    except Exception as e:
+        logging.error(f"Audit log read failed: {e}")
+        return {"entries": []}
 
 
 if __name__ == "__main__":

@@ -6,6 +6,8 @@
     <title>Melod·AI — Clinician Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <style>
         :root {
             --white: #ffffff;
@@ -628,6 +630,22 @@
 </head>
 <body>
 
+<!-- Login Screen -->
+<div id="loginScreen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#0d7377 0%,#14919b 50%,#0d7377 100%)">
+  <div style="background:#fff;border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:0 8px 32px rgba(0,0,0,.15);text-align:center">
+    <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#1a1a2e;margin-bottom:4px">Melod<span style="font-weight:400;color:#999">·AI</span></div>
+    <div style="font-size:13px;color:#888;margin-bottom:28px">Clinical Dashboard</div>
+    <input id="loginEmail" type="email" placeholder="Email address" style="width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:12px;box-sizing:border-box;font-family:Inter,sans-serif">
+    <input id="loginPassword" type="password" placeholder="Password" style="width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-bottom:16px;box-sizing:border-box;font-family:Inter,sans-serif" onkeydown="if(event.key==='Enter')doLogin()">
+    <button onclick="doLogin()" style="width:100%;padding:12px;background:#0d7377;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Sign In</button>
+    <div id="loginError" style="color:#e85d4a;font-size:13px;margin-top:12px;display:none"></div>
+    <div style="margin-top:20px;font-size:11px;color:#ccc">Accounts are created by your administrator</div>
+  </div>
+</div>
+
+<!-- Dashboard wrapper (hidden until auth) -->
+<div id="dashboardWrapper" style="display:none">
+
 <!-- Header -->
 <div class="header">
   <div class="header-left">
@@ -772,6 +790,219 @@
 <!-- Toast container -->
 <div class="toast-container" id="toastContainer"></div>
 
+</div><!-- /dashboardWrapper -->
+
+<!-- Audit Log Modal -->
+<div id="auditLogModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:10000;overflow:auto">
+  <div style="background:#fff;border-radius:12px;max-width:900px;margin:40px auto;padding:24px;max-height:85vh;display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:18px;font-weight:700;color:#1a1a2e">📋 Access Log</div>
+      <button onclick="document.getElementById('auditLogModal').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999">×</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <select id="auditDaysFilter" onchange="loadAuditLog()" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">
+        <option value="1">Last 24 hours</option>
+        <option value="7" selected>Last 7 days</option>
+        <option value="30">Last 30 days</option>
+      </select>
+      <select id="auditClinicianFilter" onchange="loadAuditLog()" style="padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">
+        <option value="">All clinicians</option>
+      </select>
+    </div>
+    <div id="auditLogBody" style="overflow-y:auto;flex:1;max-height:65vh">
+      <div style="text-align:center;color:#999;padding:40px">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Firebase Auth Setup ─────────────────────────────────────────────
+var _fbCfg = {apiKey:"AIzaSyDfqkNkezFiO7qcXELKwzzwoK3kLvqdOFw",authDomain:"fertility-gp-portal.firebaseapp.com",databaseURL:"https://fertility-gp-portal-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"fertility-gp-portal",storageBucket:"fertility-gp-portal.appspot.com",messagingSenderId:"532857641879",appId:"1:532857641879:web:226d22b6b33987ce7e82d2"};
+if (!firebase.apps.length) firebase.initializeApp(_fbCfg);
+
+var currentUserToken = null;
+var currentUserRole = null;
+var currentUserEmail = null;
+var currentUserName = null;
+var lastActivityTime = Date.now();
+var INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
+function doLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var pwd = document.getElementById('loginPassword').value;
+  var errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !pwd) { errEl.textContent = 'Please enter email and password'; errEl.style.display = 'block'; return; }
+  firebase.auth().signInWithEmailAndPassword(email, pwd)
+    .then(function(cred) { return cred.user.getIdTokenResult(); })
+    .then(function(result) {
+      if (!result.claims.clinician) {
+        firebase.auth().signOut();
+        errEl.textContent = 'Not a clinician account';
+        errEl.style.display = 'block';
+        return;
+      }
+      onAuthSuccess(result);
+    })
+    .catch(function(err) {
+      errEl.textContent = 'Invalid email or password';
+      errEl.style.display = 'block';
+    });
+}
+
+function onAuthSuccess(tokenResult) {
+  currentUserToken = tokenResult.token;
+  currentUserRole = tokenResult.claims.role || tokenResult.claims.clinician_role || 'doctor';
+  currentUserEmail = firebase.auth().currentUser.email;
+  currentUserName = firebase.auth().currentUser.displayName || currentUserEmail;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashboardWrapper').style.display = 'block';
+  // Set role and lock selector
+  setRole(currentUserRole);
+  lockRoleSelector(currentUserRole);
+  // Update header with user info
+  updateHeaderUserInfo();
+  // Auto-connect (use stored backend URL)
+  startPolling();
+}
+
+function lockRoleSelector(role) {
+  document.querySelectorAll('.role-pill').forEach(function(p) {
+    if (role === 'doctor') {
+      p.disabled = false;
+      p.style.opacity = '1';
+    } else {
+      if (p.dataset.role !== role) {
+        p.disabled = true;
+        p.style.opacity = '0.4';
+        p.style.pointerEvents = 'none';
+      }
+    }
+  });
+}
+
+function updateHeaderUserInfo() {
+  var headerRight = document.querySelector('.header-right');
+  if (!headerRight) return;
+  // Remove existing user info if any
+  var existing = document.getElementById('clinicianUserInfo');
+  if (existing) existing.remove();
+  var roleBadge = currentUserRole === 'doctor' ? 'Doctor' : currentUserRole === 'nurse' ? 'Nurse' : 'PA';
+  var userHtml = '<div id="clinicianUserInfo" style="display:flex;align-items:center;gap:8px;margin-right:8px">' +
+    '<span style="font-size:12px;color:#fff;opacity:.9">' + escHtml(currentUserName) + '</span>' +
+    '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.2);color:#fff">' + roleBadge + '</span>' +
+    (currentUserRole === 'doctor' ? '<button onclick="showAuditLog()" style="background:none;border:1px solid rgba(255,255,255,.3);border-radius:4px;color:#fff;font-size:11px;padding:2px 8px;cursor:pointer" title="Access Log">📋</button>' : '') +
+    '<button onclick="doSignOut()" style="background:none;border:1px solid rgba(255,255,255,.3);border-radius:4px;color:#fff;font-size:11px;padding:2px 8px;cursor:pointer">Sign Out</button>' +
+  '</div>';
+  headerRight.insertAdjacentHTML('afterbegin', userHtml);
+}
+
+function doSignOut() {
+  firebase.auth().signOut();
+  currentUserToken = null;
+  currentUserRole = null;
+  if (pollTimer) clearInterval(pollTimer);
+  document.getElementById('dashboardWrapper').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+// Auth state listener
+firebase.auth().onAuthStateChanged(function(user) {
+  if (user) {
+    user.getIdTokenResult().then(function(result) {
+      if (result.claims.clinician) {
+        onAuthSuccess(result);
+      } else {
+        firebase.auth().signOut();
+      }
+    });
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboardWrapper').style.display = 'none';
+  }
+});
+
+// Token refresh every 50 minutes
+setInterval(function() {
+  var user = firebase.auth().currentUser;
+  if (user) {
+    user.getIdToken(true).then(function(token) { currentUserToken = token; });
+  }
+}, 50 * 60 * 1000);
+
+// Inactivity timeout
+['click','keypress','scroll','mousemove'].forEach(function(evt) {
+  document.addEventListener(evt, function() { lastActivityTime = Date.now(); }, {passive: true});
+});
+setInterval(function() {
+  if (currentUserToken && Date.now() - lastActivityTime > INACTIVITY_TIMEOUT) {
+    doSignOut();
+  }
+}, 60000);
+
+// ── Audit Log Functions ─────────────────────────────────────────────
+function showAuditLog() {
+  document.getElementById('auditLogModal').style.display = 'block';
+  loadAuditLog();
+}
+
+function loadAuditLog() {
+  var days = document.getElementById('auditDaysFilter').value;
+  var clinicianFilter = document.getElementById('auditClinicianFilter').value;
+  var url = API_BASE + '/clinician/audit-log?days=' + days;
+  if (clinicianFilter) url += '&clinician_uid=' + clinicianFilter;
+  var body = document.getElementById('auditLogBody');
+  body.innerHTML = '<div style="text-align:center;color:#999;padding:40px">Loading...</div>';
+  authFetch(url).then(function(r) {
+    if (r.ok) return r.json(); throw new Error('fail');
+  }).then(function(data) {
+    var entries = data.entries || [];
+    if (entries.length === 0) {
+      body.innerHTML = '<div style="text-align:center;color:#999;padding:40px">No audit entries found</div>';
+      return;
+    }
+    var actionLabels = {
+      'view_patient_list': 'Viewed patients', 'view_patient_detail': 'Viewed patient',
+      'view_clearance': 'Viewed clearance', 'view_pronunciation': 'Viewed pronunciation',
+      'parse_labs': 'Parsed lab report', 'parse_document': 'Parsed document',
+      'add_outcome': 'Added outcome', 'send_message': 'Sent message',
+      'flag_topic': 'Flagged topic', 'delete_patient': 'Deleted patient',
+      'update_cycle': 'Updated cycle', 'create_clinician': 'Created clinician',
+      'generate_pronunciation': 'Generated pronunciation', 'login': 'Logged in',
+      'view_pending_outcomes': 'Viewed outcomes', 'view_alerts': 'Viewed alerts',
+      'view_digest': 'Viewed digest', 'view_conversations': 'Viewed conversations',
+      'view_audit_log': 'Viewed audit log', 'view_cycle': 'Viewed cycle'
+    };
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html += '<tr style="border-bottom:2px solid #eee;text-align:left"><th style="padding:6px">Time</th><th style="padding:6px">Who</th><th style="padding:6px">Action</th><th style="padding:6px">Patient</th></tr>';
+    entries.forEach(function(e) {
+      var dt = e.timestamp ? new Date(e.timestamp) : new Date(e.epoch * 1000);
+      var timeStr = dt.toLocaleDateString('en-AU', {day:'numeric',month:'short'}) + ', ' + dt.toLocaleTimeString('en-AU', {hour:'numeric',minute:'2-digit'});
+      var who = e.clinician_email || e.clinician_uid || '?';
+      var act = actionLabels[e.action] || e.action || '?';
+      var pid = e.patient_id || '—';
+      // Find patient name
+      if (pid !== '—') {
+        var pt = patients.find(function(p) { return p.patient_id === pid; });
+        if (pt) pid = pt.patient_name || pid;
+      }
+      html += '<tr style="border-bottom:1px solid #f5f5f5">' +
+        '<td style="padding:6px;color:#888;white-space:nowrap">' + timeStr + '</td>' +
+        '<td style="padding:6px">' + escHtml(who) + '</td>' +
+        '<td style="padding:6px">' + escHtml(act) + '</td>' +
+        '<td style="padding:6px;color:#666">' + escHtml(pid) + '</td>' +
+      '</tr>';
+    });
+    html += '</table>';
+    body.innerHTML = html;
+  }).catch(function() {
+    body.innerHTML = '<div style="text-align:center;color:#e85d4a;padding:40px">Failed to load audit log</div>';
+  });
+}
+</script>
+
 <script>
 // STATE
 var API_BASE = '';
@@ -820,6 +1051,10 @@ function startPolling() {
 function authFetch(url, opts) {
   opts = opts || {};
   opts.headers = opts.headers || {};
+  // Prefer Bearer token from Firebase Auth, fall back to API key
+  if (currentUserToken) {
+    opts.headers['Authorization'] = 'Bearer ' + currentUserToken;
+  }
   if (API_KEY) opts.headers['X-API-Key'] = API_KEY;
   return fetch(url, opts);
 }

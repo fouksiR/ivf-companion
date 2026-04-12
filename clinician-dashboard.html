@@ -811,6 +811,28 @@ function authFetch(url, opts) {
   return fetch(url, opts);
 }
 
+// ── Pronunciation Helper ──
+var pronunciationCache = {};
+function fetchPronunciation(pid) {
+  if (pronunciationCache[pid]) return;
+  pronunciationCache[pid] = 'loading';
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/pronunciation').then(function(r) {
+    if (r.ok) return r.json(); throw new Error('none');
+  }).then(function(d) { pronunciationCache[pid] = d; renderPatients(); }).catch(function() { pronunciationCache[pid] = null; });
+}
+function refreshPronunciation(pid) {
+  event.stopPropagation();
+  pronunciationCache[pid] = 'loading';
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/pronunciation', {method:'POST'}).then(function(r) {
+    if (r.ok) return r.json(); throw new Error('fail');
+  }).then(function(d) { pronunciationCache[pid] = d; renderPatients(); if (currentPatientId === pid) loadModalTab(pid, 'briefing'); }).catch(function() { pronunciationCache[pid] = null; });
+}
+function pronBadgeHtml(pid) {
+  var p = pronunciationCache[pid];
+  if (!p || p === 'loading') return '';
+  return '<div style="font-size:11px;color:#6a9e9e;font-style:italic;margin-top:1px">🔊 ' + escHtml(p.phonetic || '') + (p.sounds_like ? ' (' + escHtml(p.sounds_like) + ')' : '') + '</div>';
+}
+
 async function poll() {
   try {
     var [pRes, aRes] = await Promise.all([
@@ -820,6 +842,7 @@ async function poll() {
     if (pRes.ok) {
       patients = (await pRes.json()).patients || [];
       renderPatients();
+      patients.forEach(function(pt) { fetchPronunciation(pt.patient_id); });
       // renderSpreadsheet(patients);
       document.getElementById('statusDot').className = 'status-dot connected';
       document.getElementById('statusText').textContent = 'Connected';
@@ -1027,6 +1050,7 @@ function renderPatients() {
       '<div class="risk-dot ' + dotClass + '"></div>' +
       '<div style="flex:1;min-width:0" onclick="openDetail(\'' + p.patient_id + '\')">' +
         '<div class="pc-name">' + escHtml(p.patient_name || p.patient_id) + ' ' + phenoBadgeHtml(p.patient_id) + '</div>' +
+        pronBadgeHtml(p.patient_id) +
         '<div class="pc-active' + lastActiveClass + '">' + (p.email ? escHtml(p.email) + ' · ' : '') + lastActive + '</div>' +
       '</div>' +
       '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span>' +
@@ -1252,6 +1276,12 @@ function renderBriefing(b) {
     '<span style="font-size:18px;font-weight:700;color:var(--text-primary,#1a2a2e)">'+escHtml(b.patient_name||'Patient')+'</span>' +
     '<span style="font-size:13px;color:#888">'+(b.patient_age||'?')+'y</span>' +
     '<span style="font-size:12px;font-weight:600;color:#0d7377;background:#e6f2f2;padding:2px 8px;border-radius:4px">'+escHtml((b.stage||'').replace(/_/g,' ').toUpperCase())+'</span></div>';
+  // Pronunciation line in briefing
+  var pronData = pronunciationCache[currentPatientId];
+  if (pronData && pronData !== 'loading' && pronData.phonetic) {
+    html += '<div style="font-size:13px;color:#6a9e9e;font-style:italic;margin-bottom:8px">🔊 ' + escHtml(pronData.phonetic) + (pronData.sounds_like ? ' &mdash; sounds like: ' + escHtml(pronData.sounds_like) : '') +
+      ' <button onclick="refreshPronunciation(\'' + currentPatientId + '\')" style="background:none;border:none;cursor:pointer;font-size:12px;color:#6a9e9e" title="Refresh pronunciation">🔄</button></div>';
+  }
 
   // Briefing text — parse sections
   if (b.briefing_text) {

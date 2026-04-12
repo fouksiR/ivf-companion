@@ -1927,6 +1927,28 @@ Do NOT be generic — show you understand where they are in their journey."""
     # Store patient to Firebase
     firebase_db.save_patient(patient_id, patient)
 
+    # Auto-generate pronunciation guide (fire-and-forget)
+    async def _gen_pronunciation(pid, name):
+        try:
+            hr = client.messages.create(
+                model=HAIKU_MODEL, max_tokens=200,
+                messages=[{"role": "user", "content": f"You are a pronunciation guide for an Australian English speaker. Given the name below, provide:\n1. Phonetic pronunciation with syllable breaks and stress markers (CAPS for stressed syllable)\n2. A 'sounds like' approximation using common English words\nName: {name}\nRespond in this exact format:\nPhonetic: [phonetic]\nSounds like: [approximation]"}]
+            )
+            resp_text = hr.content[0].text
+            phonetic = sounds_like = ""
+            for line in resp_text.strip().split("\n"):
+                if line.lower().startswith("phonetic:"): phonetic = line.split(":", 1)[1].strip()
+                elif line.lower().startswith("sounds like:"): sounds_like = line.split(":", 1)[1].strip()
+            from firebase_db import _fb_ref
+            if _fb_ref:
+                _fb_ref.child("patients").child(pid).child("pronunciation").update({
+                    "phonetic": phonetic, "sounds_like": sounds_like,
+                    "source": "haiku_auto", "generated_at": utc_iso()
+                })
+        except Exception as e:
+            logging.warning(f"Auto-pronunciation failed for {pid}: {e}")
+    asyncio.create_task(_gen_pronunciation(patient_id, req.name))
+
     # Store in conversation history
     _sync_conversation(patient_id, {
         "role": "assistant",
@@ -6147,6 +6169,64 @@ async def cleanup_patients(keep_id: str):
         return {"error": str(e)}
 
 
+
+
+# ── Name Pronunciation Helper ────────────────────────────────────────
+
+@app.post("/clinician/patient/{patient_id}/pronunciation", dependencies=[Depends(verify_clinician_api_key)])
+async def generate_pronunciation(patient_id: str):
+    """Generate pronunciation guide for a patient's name using Haiku."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            raise HTTPException(status_code=503, detail="Firebase not available")
+        patient_data = _fb_ref.child("patients").child(patient_id).get()
+        if not patient_data:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        display_name = patient_data.get("patient_name") or patient_data.get("name") or patient_id
+        haiku_resp = client.messages.create(
+            model=HAIKU_MODEL,
+            max_tokens=200,
+            messages=[{"role": "user", "content": f"You are a pronunciation guide for an Australian English speaker. Given the name below, provide:\n1. Phonetic pronunciation with syllable breaks and stress markers (CAPS for stressed syllable)\n2. A 'sounds like' approximation using common English words\nName: {display_name}\nRespond in this exact format:\nPhonetic: [phonetic]\nSounds like: [approximation]"}]
+        )
+        resp_text = haiku_resp.content[0].text
+        phonetic = ""
+        sounds_like = ""
+        for line in resp_text.strip().split("\n"):
+            if line.lower().startswith("phonetic:"):
+                phonetic = line.split(":", 1)[1].strip()
+            elif line.lower().startswith("sounds like:"):
+                sounds_like = line.split(":", 1)[1].strip()
+        pronunciation_data = {
+            "phonetic": phonetic,
+            "sounds_like": sounds_like,
+            "source": "haiku_auto",
+            "generated_at": utc_iso()
+        }
+        _fb_ref.child("patients").child(patient_id).child("pronunciation").update(pronunciation_data)
+        return pronunciation_data
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Pronunciation generation failed for {patient_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/clinician/patient/{patient_id}/pronunciation", dependencies=[Depends(verify_clinician_api_key)])
+async def get_pronunciation(patient_id: str):
+    """Get stored pronunciation for a patient."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            raise HTTPException(status_code=503, detail="Firebase not available")
+        data = _fb_ref.child("patients").child(patient_id).child("pronunciation").get()
+        if not data:
+            raise HTTPException(status_code=404, detail="No pronunciation data")
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.delete("/clinician/patient/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])

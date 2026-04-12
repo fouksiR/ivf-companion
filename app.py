@@ -1748,6 +1748,7 @@ class OnboardRequest(BaseModel):
     clinic_name: Optional[str] = None
     patient_id: Optional[str] = None  # Firebase Auth UID — if provided, use this instead of random
     email: Optional[str] = None  # Store email for clinician dashboard
+    phone: Optional[str] = None  # Patient phone number
 
 class CommunityPostRequest(BaseModel):
     patient_id: str
@@ -1757,6 +1758,15 @@ class CommunityPostRequest(BaseModel):
 class CommunityReactRequest(BaseModel):
     reaction: str  # "support", "same", "strength"
     patient_id: str
+
+class OutcomeRequest(BaseModel):
+    outcome_type: str  # "beta_hcg", "fertilisation", "pgt", "general"
+    outcome_value: str  # "positive", "negative", or free text
+    notes: Optional[str] = None
+
+class OutcomeUpdateRequest(BaseModel):
+    status: str  # "informed", "voicemail_left", "unreachable"
+    call_notes: Optional[str] = None
 
 
 # ── App Setup ─────────────────────────────────────────────────────────
@@ -1889,6 +1899,8 @@ async def onboard_patient(req: OnboardRequest):
     patient["clinic_name"] = req.clinic_name
     if req.email:
         patient["email"] = req.email
+    if req.phone:
+        patient["phone"] = req.phone
 
     # Generate contextual welcome message using smart greeting + LLM
     stage_name = STAGE_DISPLAY.get(req.treatment_stage, req.treatment_stage)
@@ -6169,6 +6181,107 @@ async def cleanup_patients(keep_id: str):
         return {"error": str(e)}
 
 
+
+
+# ── Outcome Notification Queue ───────────────────────────────────────
+
+@app.post("/clinician/patient/{patient_id}/outcome", dependencies=[Depends(verify_clinician_api_key)])
+async def create_outcome(patient_id: str, req: OutcomeRequest):
+    """Add an outcome result to the notification queue."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            raise HTTPException(status_code=503, detail="Firebase not available")
+        outcome = {
+            "outcome_type": req.outcome_type,
+            "outcome_value": req.outcome_value,
+            "notes": req.notes or "",
+            "created_at": utc_iso(),
+            "status": "pending_call",
+            "informed_at": None,
+            "call_attempts": 0,
+            "patient_id": patient_id
+        }
+        ref = _fb_ref.child("outcomes").child(patient_id).push(outcome)
+        outcome["outcome_id"] = ref.key
+        return outcome
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/clinician/outcomes/pending", dependencies=[Depends(verify_clinician_api_key)])
+async def get_pending_outcomes():
+    """Get all outcomes pending doctor call, sorted by urgency."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            return {"outcomes": []}
+        all_outcomes = _fb_ref.child("outcomes").get() or {}
+        pending = []
+        now = datetime.now(timezone.utc)
+        for pid, outcomes in all_outcomes.items():
+            if not isinstance(outcomes, dict):
+                continue
+            # Fetch patient info once per patient
+            patient_data = _fb_ref.child("patients").child(pid).get() or {}
+            patient_name = patient_data.get("patient_name") or patient_data.get("name") or pid
+            patient_phone = patient_data.get("phone") or ""
+            pron = patient_data.get("pronunciation") or {}
+            for oid, o in outcomes.items():
+                if not isinstance(o, dict):
+                    continue
+                if o.get("status") not in ("pending_call", "voicemail_left"):
+                    continue
+                created = o.get("created_at", "")
+                age_hours = 0
+                try:
+                    created_dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                    age_hours = round((now - created_dt).total_seconds() / 3600, 1)
+                except Exception:
+                    pass
+                pending.append({
+                    "patient_id": pid,
+                    "outcome_id": oid,
+                    "patient_name": patient_name,
+                    "patient_phone": patient_phone,
+                    "pronunciation": pron,
+                    "outcome_type": o.get("outcome_type", ""),
+                    "outcome_value": o.get("outcome_value", ""),
+                    "notes": o.get("notes", ""),
+                    "status": o.get("status", ""),
+                    "created_at": created,
+                    "age_hours": age_hours,
+                    "call_attempts": o.get("call_attempts", 0)
+                })
+        pending.sort(key=lambda x: x.get("created_at", ""))
+        return {"outcomes": pending}
+    except Exception as e:
+        logging.error(f"Error fetching pending outcomes: {e}")
+        return {"outcomes": []}
+
+
+@app.patch("/clinician/patient/{patient_id}/outcome/{outcome_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def update_outcome(patient_id: str, outcome_id: str, req: OutcomeUpdateRequest):
+    """Update outcome status (mark as informed, voicemail, unreachable)."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            raise HTTPException(status_code=503, detail="Firebase not available")
+        update_data = {"status": req.status, "informed_at": utc_iso()}
+        if req.call_notes:
+            update_data["call_notes"] = req.call_notes
+        # Increment call attempts
+        existing = _fb_ref.child("outcomes").child(patient_id).child(outcome_id).get()
+        if existing:
+            update_data["call_attempts"] = (existing.get("call_attempts", 0) or 0) + 1
+        _fb_ref.child("outcomes").child(patient_id).child(outcome_id).update(update_data)
+        return {"status": "updated", "outcome_id": outcome_id, **update_data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── Name Pronunciation Helper ────────────────────────────────────────

@@ -698,6 +698,15 @@
       <button class="filter-pill" onclick="setFilter('green',this)">🟢 Green</button>
       <button class="filter-pill" onclick="setFilter('flagged',this)">⚠️ Flagged</button>
     </div>
+    <!-- Results to Communicate Queue -->
+    <div id="outcomeQueuePanel" style="display:none;margin-bottom:12px;background:#fffbf0;border:1px solid #f0e0b0;border-radius:8px;padding:10px 14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="document.getElementById('outcomeQueueList').style.display=document.getElementById('outcomeQueueList').style.display==='none'?'block':'none'">
+        <span style="font-size:13px;font-weight:700;color:#b8860b">📋 Results to Communicate <span id="outcomeQueueCount" style="background:#e85d4a;color:#fff;font-size:11px;padding:1px 7px;border-radius:10px;margin-left:4px">0</span></span>
+        <span style="font-size:11px;color:#999">▼</span>
+      </div>
+      <div id="outcomeQueueList" style="margin-top:8px"></div>
+    </div>
+
     <!-- Search and sort -->
     <div class="search-sort-bar">
       <input class="search-bar" id="patientSearch" placeholder="Search patients..." oninput="filterPatients()">
@@ -743,6 +752,7 @@
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">Patient Detail</div>
+      <button onclick="showAddOutcomeModal()" style="background:#f0e0b0;border:1px solid #d4b96a;color:#8b6914;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:8px" title="Add a result to the notification queue">+ Add Result</button>
       <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
     <!-- Modal Tabs -->
@@ -800,6 +810,8 @@ function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   poll(); setTimeout(function() { if (window.injectMedGrids) window.injectMedGrids(); }, 1500);
   pollTimer = setInterval(poll, 300000);
+  // Load outcome queue
+  loadOutcomeQueue();
   // Load digest on first connect
   if (!digestLoaded) loadDigest();
 }
@@ -3727,6 +3739,109 @@ function deletePatient(pid, name) {
     }
   }).catch(function(e) { alert('Delete failed: ' + e); });
 }
+
+// ── Outcome Notification Queue ──────────────────────────────────────
+var DOCTOR_WHATSAPP_NUMBER = '614XXXXXXXX'; // Configure with doctor's WhatsApp number
+var pendingOutcomes = [];
+
+function loadOutcomeQueue() {
+  if (!API_BASE) return;
+  authFetch(API_BASE + '/clinician/outcomes/pending').then(function(r) {
+    if (r.ok) return r.json(); throw new Error('fail');
+  }).then(function(data) {
+    pendingOutcomes = data.outcomes || [];
+    renderOutcomeQueue();
+  }).catch(function() {});
+}
+
+function renderOutcomeQueue() {
+  var panel = document.getElementById('outcomeQueuePanel');
+  var list = document.getElementById('outcomeQueueList');
+  var count = document.getElementById('outcomeQueueCount');
+  if (!panel) return;
+  if (pendingOutcomes.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  count.textContent = pendingOutcomes.length;
+  var html = '';
+  pendingOutcomes.forEach(function(o) {
+    var isPositive = (o.outcome_value || '').toLowerCase() === 'positive';
+    var isNegative = (o.outcome_value || '').toLowerCase() === 'negative';
+    var valColor = isPositive ? '#2d8a4e' : (isNegative ? '#e85d4a' : '#333');
+    var ageColor = o.age_hours > 4 ? '#e85d4a' : '#b8860b';
+    var ageText = o.age_hours < 1 ? Math.round(o.age_hours * 60) + 'm ago' : Math.round(o.age_hours) + 'h ago';
+    var pronText = o.pronunciation && o.pronunciation.phonetic ? ' <span style="font-size:11px;color:#6a9e9e;font-style:italic">(' + escHtml(o.pronunciation.phonetic) + ')</span>' : '';
+    var phoneEncoded = encodeURIComponent('#31#' + (o.patient_phone || ''));
+    var nameEncoded = encodeURIComponent(o.patient_name || '');
+    var whatsappText = encodeURIComponent('Patient: ' + (o.patient_name || '') + '\nOutcome: ' + (o.outcome_type || '') + ' - ' + (o.outcome_value || '') + '\nPhone: #31#' + (o.patient_phone || ''));
+    var dimStyle = o.status === 'voicemail_left' ? 'opacity:0.6;' : '';
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0e0b0;' + dimStyle + '">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600;color:#333">' + escHtml(o.patient_name || o.patient_id) + pronText + '</div>' +
+        '<div style="font-size:12px"><span style="color:' + valColor + ';font-weight:600">' + escHtml(o.outcome_type) + ': ' + escHtml(o.outcome_value) + '</span>' +
+        (o.notes ? ' — <span style="color:#888">' + escHtml(o.notes) + '</span>' : '') + '</div>' +
+        '<div style="font-size:11px;color:' + ageColor + '">' + (o.status === 'voicemail_left' ? '📞 Voicemail left · ' : '') + ageText + '</div>' +
+      '</div>' +
+      '<a href="https://wa.me/' + DOCTOR_WHATSAPP_NUMBER + '?text=' + whatsappText + '" target="_blank" style="font-size:18px;text-decoration:none;padding:2px 6px" title="Call via WhatsApp">📱</a>' +
+      '<button onclick="markOutcomeInformed(\'' + o.patient_id + '\',\'' + o.outcome_id + '\')" style="background:#2d8a4e;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer" title="Mark as informed">✅</button>' +
+      '<button onclick="markOutcomeVoicemail(\'' + o.patient_id + '\',\'' + o.outcome_id + '\')" style="background:#e0e0e0;color:#666;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer" title="Voicemail left">📞</button>' +
+    '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function markOutcomeInformed(pid, oid) {
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/outcome/' + oid, {
+    method: 'PATCH', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({status: 'informed'})
+  }).then(function() { loadOutcomeQueue(); });
+}
+
+function markOutcomeVoicemail(pid, oid) {
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/outcome/' + oid, {
+    method: 'PATCH', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({status: 'voicemail_left'})
+  }).then(function() { loadOutcomeQueue(); });
+}
+
+function showAddOutcomeModal() {
+  var pid = currentPatientId;
+  if (!pid) return;
+  var modal = document.createElement('div');
+  modal.id = 'outcomeFormOverlay';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:10000;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:20px;width:360px;max-width:90vw">' +
+    '<div style="font-size:15px;font-weight:700;margin-bottom:12px;color:#333">Add Result to Queue</div>' +
+    '<label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Outcome Type</label>' +
+    '<select id="outcomeType" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:10px;font-size:13px">' +
+      '<option value="beta_hcg">Beta hCG</option><option value="fertilisation">Fertilisation Report</option><option value="pgt">PGT Result</option><option value="general">General</option></select>' +
+    '<label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Value / Result</label>' +
+    '<input id="outcomeValue" placeholder="e.g. positive, negative, 1200 mIU/mL" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:10px;font-size:13px;box-sizing:border-box">' +
+    '<label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Notes (optional)</label>' +
+    '<textarea id="outcomeNotes" rows="2" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:12px;font-size:13px;box-sizing:border-box;resize:vertical"></textarea>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+      '<button onclick="document.getElementById(\'outcomeFormOverlay\').remove()" style="padding:6px 14px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;font-size:13px">Cancel</button>' +
+      '<button onclick="submitOutcome(\'' + pid + '\')" style="padding:6px 14px;border:none;border-radius:6px;background:#0d7377;color:#fff;cursor:pointer;font-size:13px;font-weight:600">Save</button>' +
+    '</div></div>';
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+
+function submitOutcome(pid) {
+  var type = document.getElementById('outcomeType').value;
+  var value = document.getElementById('outcomeValue').value.trim();
+  if (!value) { alert('Please enter a value'); return; }
+  var notes = document.getElementById('outcomeNotes').value.trim();
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/outcome', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({outcome_type: type, outcome_value: value, notes: notes || null})
+  }).then(function(r) {
+    if (r.ok) { document.getElementById('outcomeFormOverlay').remove(); loadOutcomeQueue(); }
+    else { alert('Failed to save outcome'); }
+  }).catch(function() { alert('Failed to save outcome'); });
+}
+
+// Auto-refresh outcome queue every 60s
+setInterval(function() { if (API_BASE) loadOutcomeQueue(); }, 60000);
 
 </script>
 </body>

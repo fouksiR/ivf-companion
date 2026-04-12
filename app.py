@@ -24,6 +24,8 @@ import json
 import uuid
 import hashlib
 import logging
+import io
+import pdfplumber
 from datetime import datetime, timedelta, date, timezone
 from typing import Optional
 
@@ -38,7 +40,7 @@ def utc_iso() -> str:
     return utc_now().isoformat()
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request, Header, Depends
+from fastapi import FastAPI, HTTPException, Request, Header, Depends, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from pydantic import BaseModel, Field
@@ -6231,50 +6233,183 @@ class ClearanceOverrideRequest(BaseModel):
     notes: Optional[str] = None
 
 
+def _build_enhanced_lab_prompt():
+    """Build the enhanced Sonnet prompt for lab/document parsing."""
+    all_items = PRE_IVF_CHECKLIST["mandatory"] + PRE_IVF_CHECKLIST["often_required"]
+    item_list = json.dumps([item["id"] + ": " + item["label"] for item in all_items])
+    return (
+        "You are an IVF clinical document analyzer. Given a document (referral letter, lab report, or patient summary), extract TWO things:\n\n"
+        "PART 1 - REFERRAL SUMMARY:\n"
+        "Extract patient demographics and referral information:\n"
+        "- patient_name (if found)\n- female_age\n- male_age\n- referring_doctor (name and practice if found)\n"
+        "- reason_for_referral\n- relevant_history (list of key points)\n- previous_treatments (list if any)\n"
+        "- medications (current medications if listed)\n- allergies (if listed)\n\n"
+        "PART 2 - LAB RESULTS:\n"
+        "Map all test results to these checklist items:\n" + item_list + "\n\n"
+        "For each lab found, assess status:\n"
+        '- "normal" = within reference range / acceptable for IVF\n'
+        '- "abnormal" = outside range OR clinically significant for IVF planning\n'
+        '- "borderline" = at edge of range, needs clinical review\n\n'
+        "CLINICAL FLAGS — mark as abnormal:\n"
+        '- Rubella IgG: "Non-immune" or "Negative" = ABNORMAL (needs vaccination before cycle)\n'
+        '- Varicella IgG: "Non-immune" or "Negative" = ABNORMAL\n'
+        "- TSH: >4.0 mIU/L = ABNORMAL for IVF (target <2.5)\n"
+        "- AMH: <5.4 pmol/L = flag as LOW (consider dosing implications)\n"
+        "- FSH: >12 IU/L = flag as ELEVATED\n"
+        "- Semen: concentration <15M/mL OR motility <40% OR morphology <4% = ABNORMAL\n"
+        "- Any positive infectious serology = ABNORMAL\n\n"
+        "Also extract any ADDITIONAL FINDINGS not in the checklist:\n"
+        "- Ultrasound findings (cysts, fibroids, polyps, hydrosalpinx)\n"
+        "- Any abnormal results not in the standard checklist\n\n"
+        "Return ONLY valid JSON, no markdown, no backticks:\n"
+        "{\n"
+        '  "referral_summary": {\n'
+        '    "patient_name": "...", "female_age": null, "male_age": null,\n'
+        '    "referring_doctor": "...", "reason_for_referral": "...",\n'
+        '    "relevant_history": ["..."], "previous_treatments": ["..."],\n'
+        '    "medications": ["..."], "allergies": ["..."]\n'
+        "  },\n"
+        '  "lab_results": [\n'
+        '    {"id": "checklist_item_id", "value": "result value", "unit": "unit", "status": "normal|abnormal|borderline", "clinical_note": "why flagged if abnormal"}\n'
+        "  ],\n"
+        '  "additional_findings": [\n'
+        '    {"finding": "description", "clinical_significance": "why it matters for IVF", "action_required": "what to do"}\n'
+        "  ],\n"
+        '  "missing_mandatory": ["list of checklist item IDs not found in document"],\n'
+        '  "overall_concerns": ["top 3-5 clinical concerns in priority order"]\n'
+        "}"
+    )
+
+
+def _strip_markdown_fences(text: str) -> str:
+    """Strip markdown code fences from AI response."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+        if text.endswith("```"):
+            text = text[:-3]
+    return text.strip()
+
+
+def _save_enhanced_parse_results(patient_id: str, parsed: dict, source: str, _fb_ref):
+    """Save enhanced parse results (lab results + referral summary + findings) to Firebase."""
+    # Save lab results to clearance
+    results = parsed.get("lab_results", [])
+    for r in results:
+        item_id = r.get("id")
+        if not item_id:
+            continue
+        clearance_data = {
+            "value": r.get("value", ""),
+            "unit": r.get("unit", ""),
+            "status": "cleared" if r.get("status") == "normal" else r.get("status", "cleared"),
+            "clinical_note": r.get("clinical_note", ""),
+            "raw_match": r.get("raw_match", ""),
+            "parsed_at": utc_iso(),
+            "source": source
+        }
+        _fb_ref.child("patients").child(patient_id).child("clearance").child(item_id).update(clearance_data)
+    # Save referral summary
+    ref_summary = parsed.get("referral_summary")
+    if ref_summary and any(v for v in ref_summary.values() if v):
+        ref_summary["parsed_at"] = utc_iso()
+        ref_summary["source"] = source
+        _fb_ref.child("patients").child(patient_id).child("referral_summary").update(ref_summary)
+    # Save additional findings
+    add_findings = parsed.get("additional_findings", [])
+    if add_findings:
+        _fb_ref.child("patients").child(patient_id).child("additional_findings").set(
+            {"items": add_findings, "updated_at": utc_iso(), "source": source}
+        )
+    # Save overall concerns
+    concerns = parsed.get("overall_concerns", [])
+    if concerns:
+        _fb_ref.child("patients").child(patient_id).child("clinical_concerns").set(
+            {"items": concerns, "updated_at": utc_iso(), "source": source}
+        )
+    return results
+
+
 @app.post("/clinician/patient/{patient_id}/parse-labs", dependencies=[Depends(verify_clinician_api_key)])
 async def parse_lab_results(patient_id: str, req: LabParseRequest):
-    """Parse pasted lab report text and map to pre-IVF clearance checklist."""
+    """Parse pasted lab report text and map to pre-IVF clearance checklist (enhanced with referral summary)."""
     try:
         from firebase_db import _fb_ref
         if not _fb_ref:
             raise HTTPException(status_code=503, detail="Firebase not available")
-        all_items = PRE_IVF_CHECKLIST["mandatory"] + PRE_IVF_CHECKLIST["often_required"]
-        item_list = json.dumps([item["id"] + ": " + item["label"] for item in all_items])
+        system_prompt = _build_enhanced_lab_prompt()
         sonnet_resp = client.messages.create(
             model=SONNET_MODEL,
-            max_tokens=2000,
-            system="You are a lab result extractor for IVF pre-treatment clearance. Given raw pathology report text, extract all test results and map them to the following checklist items. Return ONLY valid JSON, no markdown, no backticks.\n\nChecklist items to match: " + item_list + "\n\nFor each item found in the text, return:\n{ \"id\": \"checklist_item_id\", \"value\": \"the result value\", \"unit\": \"unit if applicable\", \"status\": \"normal\" | \"abnormal\" | \"borderline\", \"raw_match\": \"the exact text snippet you matched\" }\n\nReturn format: { \"results\": [...], \"unmatched_items\": [\"any test results in the text that don't map to the checklist\"] }",
+            max_tokens=4000,
+            system=system_prompt,
             messages=[{"role": "user", "content": req.raw_text}]
         )
-        resp_text = sonnet_resp.content[0].text.strip()
-        # Strip markdown fences if present
-        if resp_text.startswith("```"):
-            resp_text = resp_text.split("\n", 1)[1] if "\n" in resp_text else resp_text[3:]
-            if resp_text.endswith("```"):
-                resp_text = resp_text[:-3]
+        resp_text = _strip_markdown_fences(sonnet_resp.content[0].text)
         parsed = json.loads(resp_text)
-        results = parsed.get("results", [])
-        # Save each result to Firebase
-        for r in results:
-            item_id = r.get("id")
-            if not item_id:
-                continue
-            clearance_data = {
-                "value": r.get("value", ""),
-                "unit": r.get("unit", ""),
-                "status": "cleared" if r.get("status") == "normal" else r.get("status", "cleared"),
-                "raw_match": r.get("raw_match", ""),
-                "parsed_at": utc_iso(),
-                "source": "lab_paste"
-            }
-            _fb_ref.child("patients").child(patient_id).child("clearance").child(item_id).update(clearance_data)
-        return {"parsed_count": len(results), "results": results, "unmatched": parsed.get("unmatched_items", [])}
+        results = _save_enhanced_parse_results(patient_id, parsed, "lab_paste", _fb_ref)
+        return {
+            "parsed_count": len(results),
+            "lab_results": results,
+            "referral_summary": parsed.get("referral_summary"),
+            "additional_findings": parsed.get("additional_findings", []),
+            "overall_concerns": parsed.get("overall_concerns", []),
+            "missing_mandatory": parsed.get("missing_mandatory", []),
+            "unmatched": parsed.get("unmatched_items", [])
+        }
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=422, detail=f"Failed to parse AI response: {e}")
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Lab parse failed for {patient_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/clinician/patient/{patient_id}/parse-document", dependencies=[Depends(verify_clinician_api_key)])
+async def parse_document_upload(patient_id: str, file: UploadFile = File(...)):
+    """Parse an uploaded PDF document (referral letter, lab report) and extract clearance data + referral summary."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            raise HTTPException(status_code=503, detail="Firebase not available")
+        contents = await file.read()
+        text = ""
+        try:
+            with pdfplumber.open(io.BytesIO(contents)) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
+        except Exception as pdf_err:
+            raise HTTPException(status_code=400, detail=f"Could not read PDF: {pdf_err}")
+        text = text.strip()
+        if not text:
+            raise HTTPException(status_code=400, detail="Could not extract text from PDF")
+        system_prompt = _build_enhanced_lab_prompt()
+        sonnet_resp = client.messages.create(
+            model=SONNET_MODEL,
+            max_tokens=4000,
+            system=system_prompt,
+            messages=[{"role": "user", "content": text}]
+        )
+        resp_text = _strip_markdown_fences(sonnet_resp.content[0].text)
+        parsed = json.loads(resp_text)
+        results = _save_enhanced_parse_results(patient_id, parsed, "pdf_upload", _fb_ref)
+        return {
+            "parsed_count": len(results),
+            "lab_results": results,
+            "referral_summary": parsed.get("referral_summary"),
+            "additional_findings": parsed.get("additional_findings", []),
+            "overall_concerns": parsed.get("overall_concerns", []),
+            "missing_mandatory": parsed.get("missing_mandatory", []),
+            "extracted_text_length": len(text)
+        }
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=422, detail=f"Failed to parse AI response: {e}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Document parse failed for {patient_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -6299,6 +6434,7 @@ async def get_clearance_status(patient_id: str):
                     "status": status,
                     "value": stored.get("value", ""),
                     "unit": stored.get("unit", ""),
+                    "clinical_note": stored.get("clinical_note", ""),
                     "parsed_at": stored.get("parsed_at", ""),
                     "notes": stored.get("notes", ""),
                     "source": stored.get("source", "")
@@ -6314,6 +6450,10 @@ async def get_clearance_status(patient_id: str):
             readiness = "pending"
         else:
             readiness = "ready"
+        # Fetch enhanced data (referral summary, findings, concerns)
+        referral_summary = _fb_ref.child("patients").child(patient_id).child("referral_summary").get()
+        additional_findings = _fb_ref.child("patients").child(patient_id).child("additional_findings").get()
+        clinical_concerns = _fb_ref.child("patients").child(patient_id).child("clinical_concerns").get()
         return {
             "readiness": readiness,
             "mandatory": mandatory,
@@ -6321,7 +6461,10 @@ async def get_clearance_status(patient_id: str):
             "missing_count": missing_count,
             "abnormal_count": abnormal_count,
             "total_mandatory": len(mandatory),
-            "cleared_count": sum(1 for i in mandatory if i["status"] in ("cleared", "normal"))
+            "cleared_count": sum(1 for i in mandatory if i["status"] in ("cleared", "normal")),
+            "referral_summary": referral_summary,
+            "additional_findings": (additional_findings or {}).get("items", []),
+            "clinical_concerns": (clinical_concerns or {}).get("items", [])
         }
     except Exception as e:
         logging.error(f"Clearance status failed for {patient_id}: {e}")

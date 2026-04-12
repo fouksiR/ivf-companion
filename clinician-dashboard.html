@@ -3788,14 +3788,74 @@ function renderClearancePanel(pid, data) {
     '<div style="font-size:15px;font-weight:700;color:' + tlColor + '">' + (tlLabels[data.readiness] || 'Unknown') + '</div>' +
     '<div style="font-size:12px;color:#888">' + (data.cleared_count || 0) + '/' + (data.total_mandatory || 0) + ' cleared · ' + (data.missing_count || 0) + ' missing · ' + (data.abnormal_count || 0) + ' abnormal</div>' +
   '</div>';
-  // Lab paste box
+  // Overall concerns banner
+  var concerns = data.clinical_concerns || [];
+  if (concerns.length > 0) {
+    html += '<div style="background:#fff3e0;border-left:4px solid #e85d4a;border-radius:8px;padding:12px 16px;margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:#c62828;margin-bottom:6px">⚠ Clinical Concerns</div>' +
+      '<ol style="margin:0;padding-left:20px;font-size:12px;color:#333;line-height:1.6">';
+    concerns.forEach(function(c) { html += '<li>' + escHtml(c) + '</li>'; });
+    html += '</ol></div>';
+  }
+  // Referral summary card
+  var ref = data.referral_summary;
+  if (ref && (ref.patient_name || ref.referring_doctor || ref.reason_for_referral)) {
+    html += '<div style="background:#f8fffe;border-left:4px solid #0d7377;border-radius:8px;padding:12px 16px;margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:#0d7377;margin-bottom:6px">📋 Referral Summary</div>';
+    if (ref.patient_name) html += '<div style="font-size:12px;color:#333"><b>Patient:</b> ' + escHtml(ref.patient_name) + (ref.female_age ? ' (F: ' + ref.female_age + ')' : '') + (ref.male_age ? ' (M: ' + ref.male_age + ')' : '') + '</div>';
+    if (ref.referring_doctor) html += '<div style="font-size:12px;color:#333"><b>Referring Doctor:</b> ' + escHtml(ref.referring_doctor) + '</div>';
+    if (ref.reason_for_referral) html += '<div style="font-size:12px;color:#333"><b>Reason:</b> ' + escHtml(ref.reason_for_referral) + '</div>';
+    if (ref.relevant_history && ref.relevant_history.length > 0) {
+      html += '<div style="font-size:12px;color:#555;margin-top:4px"><b>History:</b><ul style="margin:2px 0 0;padding-left:16px">';
+      ref.relevant_history.forEach(function(h) { html += '<li>' + escHtml(h) + '</li>'; });
+      html += '</ul></div>';
+    }
+    if (ref.previous_treatments && ref.previous_treatments.length > 0) {
+      html += '<div style="font-size:12px;color:#555"><b>Previous Treatments:</b> ' + ref.previous_treatments.map(escHtml).join(', ') + '</div>';
+    }
+    if (ref.medications && ref.medications.length > 0) {
+      html += '<div style="font-size:12px;color:#555"><b>Medications:</b> ' + ref.medications.map(escHtml).join(', ') + '</div>';
+    }
+    if (ref.allergies && ref.allergies.length > 0) {
+      html += '<div style="font-size:12px;color:#555"><b>Allergies:</b> ' + ref.allergies.map(escHtml).join(', ') + '</div>';
+    }
+    html += '</div>';
+  }
+  // Additional findings
+  var findings = data.additional_findings || [];
+  if (findings.length > 0) {
+    html += '<div style="margin-bottom:16px">' +
+      '<div style="font-size:12px;font-weight:700;color:#6a8a8e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Additional Findings</div>';
+    findings.forEach(function(f) {
+      html += '<div style="background:#fff;border-left:4px solid #e85d4a;border-radius:6px;padding:8px 12px;margin-bottom:6px;box-shadow:0 1px 2px rgba(0,0,0,.05)">' +
+        '<div style="font-size:12px;font-weight:600;color:#333">' + escHtml(f.finding || '') + '</div>' +
+        '<div style="font-size:11px;color:#666;margin-top:2px">' + escHtml(f.clinical_significance || '') + '</div>' +
+        (f.action_required ? '<div style="font-size:11px;color:#0d7377;font-style:italic;margin-top:2px">→ ' + escHtml(f.action_required) + '</div>' : '') +
+      '</div>';
+    });
+    html += '</div>';
+  }
+  // PDF upload zone
+  html += '<div id="pdfDropZone_' + pid + '" style="border:2px dashed #ccc;border-radius:12px;padding:30px 20px;text-align:center;cursor:pointer;margin-bottom:12px;transition:border-color .2s,background .2s" ' +
+    'ondragover="event.preventDefault();this.style.borderColor=\'#0d7377\';this.style.background=\'#f0fffe\'" ' +
+    'ondragleave="this.style.borderColor=\'#ccc\';this.style.background=\'transparent\'" ' +
+    'ondrop="event.preventDefault();this.style.borderColor=\'#ccc\';this.style.background=\'transparent\';handlePdfDrop(event,\'' + pid + '\')" ' +
+    'onclick="document.getElementById(\'pdfFileInput_' + pid + '\').click()">' +
+    '<div style="font-size:28px;margin-bottom:4px">📄</div>' +
+    '<div style="font-size:14px;font-weight:600;color:#333">Drop PDF here or click to upload</div>' +
+    '<div style="font-size:11px;color:#999;margin-top:4px">Referral letters, lab reports, patient summaries</div>' +
+    '<input type="file" id="pdfFileInput_' + pid + '" accept=".pdf" style="display:none" onchange="handlePdfSelect(this,\'' + pid + '\')">' +
+  '</div>';
+  html += '<span id="pdfParseStatus_' + pid + '" style="font-size:12px;color:#888;display:block;margin-bottom:8px"></span>';
+  // Text paste box (secondary)
   html += '<div style="margin-bottom:16px">' +
-    '<textarea id="labPasteBox" rows="4" placeholder="Paste lab report text here..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>' +
+    '<div style="font-size:11px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Or paste lab text directly</div>' +
+    '<textarea id="labPasteBox" rows="3" placeholder="Paste lab report text here..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>' +
     '<button onclick="parseLabResults(\'' + pid + '\')" style="margin-top:6px;background:#0d7377;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer">Parse Results</button>' +
     '<span id="labParseStatus" style="margin-left:10px;font-size:12px;color:#888"></span>' +
   '</div>';
-  // Copy button
-  html += '<button onclick="copyClearanceReport(\'' + pid + '\')" style="margin-bottom:12px;background:#f0f0f0;border:1px solid #ddd;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:#555">📋 Copy as text</button>';
+  // Copy summary button
+  html += '<button onclick="copyClearanceSummary(\'' + pid + '\')" style="margin-bottom:12px;background:#f0f0f0;border:1px solid #ddd;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:#555">📋 Copy Summary</button>';
   // Checklist table
   html += renderClearanceTable(data.mandatory, 'Mandatory', pid, false);
   html += renderClearanceTable(data.often_required, 'Often Required', pid, true);
@@ -3822,19 +3882,30 @@ function renderClearanceTable(items, title, pid, collapsed) {
   Object.keys(cats).forEach(function(cat) {
     html += '<div style="font-size:11px;color:#aaa;font-weight:600;margin:8px 0 4px;text-transform:uppercase">' + escHtml(cat) + '</div>';
     cats[cat].forEach(function(it) {
-      var badge = '', badgeBg = '';
-      if (it.status === 'cleared' || it.status === 'normal') { badge = '✓ Cleared'; badgeBg = '#e6f9ee;color:#2d8a4e'; }
-      else if (it.status === 'missing') { badge = 'NOT FOUND'; badgeBg = '#fff3e0;color:#b8860b'; }
-      else if (it.status === 'abnormal') { badge = '✗ ' + escHtml(it.value || 'ABNORMAL'); badgeBg = '#fdeaea;color:#e85d4a;font-weight:700'; }
-      else if (it.status === 'borderline') { badge = '~ ' + escHtml(it.value || 'Borderline'); badgeBg = '#fff8e1;color:#b8860b'; }
-      else { badge = it.status || 'missing'; badgeBg = '#f5f5f5;color:#999'; }
+      var badge = '', badgeBg = '', valueStr = '';
+      if (it.status === 'cleared' || it.status === 'normal') {
+        badge = '✓ ' + escHtml(it.value || 'Cleared');
+        badgeBg = '#e6f9ee;color:#2d8a4e';
+        if (it.value && it.unit) valueStr = escHtml(it.value) + ' ' + escHtml(it.unit);
+      } else if (it.status === 'missing') {
+        badge = 'Not found';
+        badgeBg = '#f5f5f5;color:#999';
+      } else if (it.status === 'abnormal') {
+        badge = '⚠ ' + escHtml(it.value || 'ABNORMAL');
+        badgeBg = '#fdeaea;color:#e85d4a;font-weight:700';
+      } else if (it.status === 'borderline') {
+        badge = '~ ' + escHtml(it.value || 'Borderline');
+        badgeBg = '#fff8e1;color:#b8860b';
+      } else { badge = it.status || 'missing'; badgeBg = '#f5f5f5;color:#999'; }
       var dateStr = it.parsed_at ? new Date(it.parsed_at).toLocaleDateString() : '';
-      html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f5f5f5">' +
+      var noteHtml = (it.clinical_note && it.status === 'abnormal') ? '<div style="font-size:10px;color:#c62828;margin-top:1px;font-style:italic">→ ' + escHtml(it.clinical_note) + '</div>' : '';
+      html += '<div style="padding:4px 0;border-bottom:1px solid #f5f5f5">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
         '<div style="flex:1;font-size:13px;color:#333">' + escHtml(it.label) + '<span style="font-size:10px;color:#bbb;margin-left:4px">' + escHtml(it.partner || '') + '</span></div>' +
-        '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + badgeBg + '">' + badge + '</span>' +
-        (it.value && it.status !== 'missing' && it.status !== 'abnormal' ? '<span style="font-size:11px;color:#666">' + escHtml(it.value) + (it.unit ? ' ' + escHtml(it.unit) : '') + '</span>' : '') +
-        '<span style="font-size:10px;color:#ccc">' + dateStr + '</span>' +
+        '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + badgeBg + ';white-space:nowrap">' + badge + (it.unit && it.status !== 'missing' ? ' ' + escHtml(it.unit) : '') + '</span>' +
+        '<span style="font-size:10px;color:#ccc;white-space:nowrap">' + dateStr + '</span>' +
         '<button onclick="overrideClearanceItem(\'' + pid + '\',\'' + it.id + '\',\'' + escHtml(it.label) + '\')" style="background:none;border:none;cursor:pointer;font-size:11px;color:#bbb;padding:0 2px" title="Manual override">✏️</button>' +
+        '</div>' + noteHtml +
       '</div>';
     });
   });
@@ -3876,25 +3947,102 @@ function overrideClearanceItem(pid, itemId, label) {
   }).then(function() { loadClearanceTab(pid); fetchClearanceStatus(pid); });
 }
 
-function copyClearanceReport(pid) {
+function handlePdfDrop(event, pid) {
+  var files = event.dataTransfer.files;
+  if (files.length > 0 && files[0].type === 'application/pdf') {
+    uploadPdfForParse(files[0], pid);
+  } else {
+    alert('Please drop a PDF file');
+  }
+}
+
+function handlePdfSelect(input, pid) {
+  if (input.files.length > 0) {
+    uploadPdfForParse(input.files[0], pid);
+    input.value = '';
+  }
+}
+
+function uploadPdfForParse(file, pid) {
+  var statusEl = document.getElementById('pdfParseStatus_' + pid);
+  if (statusEl) { statusEl.textContent = 'Parsing "' + file.name + '"...'; statusEl.style.color = '#0d7377'; }
+  var formData = new FormData();
+  formData.append('file', file);
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/parse-document', {
+    method: 'POST',
+    body: formData
+  }).then(function(r) {
+    if (r.ok) return r.json(); throw new Error('fail');
+  }).then(function(d) {
+    if (statusEl) { statusEl.textContent = '✓ Parsed ' + (d.parsed_count || 0) + ' results from PDF'; statusEl.style.color = '#2d8a4e'; }
+    loadClearanceTab(pid);
+    fetchClearanceStatus(pid);
+  }).catch(function(e) {
+    if (statusEl) { statusEl.textContent = '✗ PDF parse failed'; statusEl.style.color = '#e85d4a'; }
+  });
+}
+
+function copyClearanceSummary(pid) {
   authFetch(API_BASE + '/clinician/patient/' + pid + '/clearance').then(function(r) {
     if (r.ok) return r.json(); throw new Error('fail');
   }).then(function(d) {
     var p = patients.find(function(pt) { return pt.patient_id === pid; });
     var name = p ? (p.patient_name || pid) : pid;
-    var lines = ['PRE-IVF CLEARANCE — ' + name + ' — ' + new Date().toLocaleDateString()];
+    var lines = ['PRE-IVF CLEARANCE SUMMARY — ' + name + ' — ' + new Date().toLocaleDateString()];
+    lines.push('');
+    // Concerns
+    var concerns = d.clinical_concerns || [];
+    if (concerns.length > 0) {
+      lines.push('CONCERNS:');
+      concerns.forEach(function(c, i) { lines.push((i + 1) + '. ' + c); });
+      lines.push('');
+    }
+    // Referral info
+    var ref = d.referral_summary;
+    if (ref && ref.reason_for_referral) {
+      lines.push('REFERRAL: ' + ref.reason_for_referral + (ref.referring_doctor ? ', referred by ' + ref.referring_doctor : ''));
+      if (ref.female_age || ref.male_age) {
+        lines.push('Female age: ' + (ref.female_age || '?') + ' | Male age: ' + (ref.male_age || '?'));
+      }
+      lines.push('');
+    }
+    // Clearance status
+    var cleared = d.cleared_count || 0;
+    var total = d.total_mandatory || 0;
+    lines.push('CLEARANCE STATUS: [' + cleared + '/' + total + ' cleared, ' + (d.missing_count || 0) + ' missing, ' + (d.abnormal_count || 0) + ' abnormal]');
     (d.mandatory || []).concat(d.often_required || []).forEach(function(it) {
-      var icon = it.status === 'cleared' || it.status === 'normal' ? '✓' : it.status === 'abnormal' ? '✗ ABNORMAL:' : '⚠ MISSING:';
-      var val = it.value ? ' ' + it.value + (it.unit ? ' ' + it.unit : '') : '';
+      var val = it.value ? it.value + (it.unit ? ' ' + it.unit : '') : '';
       var dt = it.parsed_at ? ' (' + new Date(it.parsed_at).toLocaleDateString() + ')' : '';
-      lines.push(icon + ' ' + it.label + (it.status !== 'missing' ? ':' + val + dt : ''));
+      var note = it.clinical_note ? ' — ' + it.clinical_note : '';
+      if (it.status === 'cleared' || it.status === 'normal') {
+        lines.push('✓ ' + it.label + ': ' + (val || 'Cleared') + dt);
+      } else if (it.status === 'abnormal') {
+        lines.push('⚠ ABNORMAL: ' + it.label + ': ' + (val || '?') + dt + note);
+      } else if (it.status === 'borderline') {
+        lines.push('~ BORDERLINE: ' + it.label + ': ' + (val || '?') + dt + note);
+      } else {
+        lines.push('✗ MISSING: ' + it.label);
+      }
     });
+    // Additional findings
+    var findings = d.additional_findings || [];
+    if (findings.length > 0) {
+      lines.push('');
+      lines.push('ADDITIONAL FINDINGS:');
+      findings.forEach(function(f) {
+        lines.push('- ' + f.finding + (f.action_required ? ' — ' + f.action_required : ''));
+      });
+    }
     navigator.clipboard.writeText(lines.join('\n')).then(function() { alert('Copied to clipboard'); });
   });
 }
 
+function copyClearanceReport(pid) {
+  copyClearanceSummary(pid);
+}
+
 // ── Outcome Notification Queue ──────────────────────────────────────
-var DOCTOR_WHATSAPP_NUMBER = '614XXXXXXXX'; // Configure with doctor's WhatsApp number
+var DOCTOR_PHONE_NUMBER = '+61493835221'; // Configure with doctor's WhatsApp number
 var pendingOutcomes = [];
 
 function loadOutcomeQueue() {
@@ -3934,7 +4082,7 @@ function renderOutcomeQueue() {
         (o.notes ? ' — <span style="color:#888">' + escHtml(o.notes) + '</span>' : '') + '</div>' +
         '<div style="font-size:11px;color:' + ageColor + '">' + (o.status === 'voicemail_left' ? '📞 Voicemail left · ' : '') + ageText + '</div>' +
       '</div>' +
-      '<a href="https://wa.me/' + DOCTOR_WHATSAPP_NUMBER + '?text=' + whatsappText + '" target="_blank" style="font-size:18px;text-decoration:none;padding:2px 6px" title="Call via WhatsApp">📱</a>' +
+      '<a href="sms:' + DOCTOR_PHONE_NUMBER + '&body=' + whatsappText + '" target="_blank" style="font-size:18px;text-decoration:none;padding:2px 6px" title="Call via WhatsApp">📱</a>' +
       '<button onclick="markOutcomeInformed(\'' + o.patient_id + '\',\'' + o.outcome_id + '\')" style="background:#2d8a4e;color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer" title="Mark as informed">✅</button>' +
       '<button onclick="markOutcomeVoicemail(\'' + o.patient_id + '\',\'' + o.outcome_id + '\')" style="background:#e0e0e0;color:#666;border:none;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer" title="Voicemail left">📞</button>' +
     '</div>';

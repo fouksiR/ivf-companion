@@ -763,6 +763,7 @@
       <button class="tab-btn" onclick="switchModalTab('actions')">Actions</button>
       <button class="tab-btn" onclick="switchModalTab('opu')">Trigger &amp; OPU</button>
       <button class="tab-btn" onclick="switchModalTab('postopu')">Post-OPU</button>
+      <button class="tab-btn" onclick="switchModalTab('clearance')">Clearance</button>
     </div>
     <div id="modalBody"></div>
   </div>
@@ -854,7 +855,7 @@ async function poll() {
     if (pRes.ok) {
       patients = (await pRes.json()).patients || [];
       renderPatients();
-      patients.forEach(function(pt) { fetchPronunciation(pt.patient_id); });
+      patients.forEach(function(pt) { fetchPronunciation(pt.patient_id); fetchClearanceStatus(pt.patient_id); });
       // renderSpreadsheet(patients);
       document.getElementById('statusDot').className = 'status-dot connected';
       document.getElementById('statusText').textContent = 'Connected';
@@ -1065,6 +1066,7 @@ function renderPatients() {
         pronBadgeHtml(p.patient_id) +
         '<div class="pc-active' + lastActiveClass + '">' + (p.email ? escHtml(p.email) + ' · ' : '') + lastActive + '</div>' +
       '</div>' +
+      clearanceDotHtml(p.patient_id) +
       '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span>' +
       '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + (p.patient_name||p.name||'') + '\')" style="font-size:12px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 4px;" title="Delete patient">&times;</button>' +
       '<button onclick="event.stopPropagation();window.toggleMedGrid(\'' + p.patient_id + '\')" style="font-size:16px;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:0 6px;color:#0d7377;">+</button>' +
@@ -1259,6 +1261,9 @@ async function loadModalTab(patientId, tab) {
   } else if (tab === 'postopu') {
     body.innerHTML = renderPostOpuTab(patientId);
     loadPostOpuData(patientId);
+  } else if (tab === 'clearance') {
+    body.innerHTML = '<div style="padding:20px"><div style="text-align:center;color:#999">Loading clearance data...</div></div>';
+    loadClearanceTab(patientId);
   }
 }
 
@@ -3738,6 +3743,154 @@ function deletePatient(pid, name) {
       alert(name + ' deleted.');
     }
   }).catch(function(e) { alert('Delete failed: ' + e); });
+}
+
+// ── Pre-IVF Clearance System ────────────────────────────────────────
+var clearanceCache = {};
+
+function clearanceDotHtml(pid) {
+  var c = clearanceCache[pid];
+  if (!c) return '<span style="width:8px;height:8px;border-radius:50%;background:#ddd;display:inline-block;margin-right:4px" title="No clearance data"></span>';
+  var colors = {ready:'#2d8a4e',pending:'#f59e0b',blocked:'#e85d4a'};
+  var titles = {ready:'Clearance: Ready',pending:'Clearance: Pending',blocked:'Clearance: Blocked'};
+  return '<span style="width:8px;height:8px;border-radius:50%;background:' + (colors[c] || '#ddd') + ';display:inline-block;margin-right:4px" title="' + (titles[c] || '') + '"></span>';
+}
+
+function fetchClearanceStatus(pid) {
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/clearance').then(function(r) {
+    if (r.ok) return r.json(); throw new Error('none');
+  }).then(function(d) {
+    clearanceCache[pid] = d.readiness || 'pending';
+    renderPatients();
+  }).catch(function() {});
+}
+
+function loadClearanceTab(pid) {
+  var body = document.getElementById('modalBody');
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/clearance').then(function(r) {
+    if (r.ok) return r.json(); throw new Error('fail');
+  }).then(function(d) {
+    body.innerHTML = renderClearancePanel(pid, d);
+  }).catch(function() {
+    body.innerHTML = '<div style="padding:40px;color:var(--red)">Failed to load clearance data</div>';
+  });
+}
+
+function renderClearancePanel(pid, data) {
+  var html = '<div style="padding:20px">';
+  // Traffic light
+  var tlColors = {ready:'#2d8a4e',pending:'#f59e0b',blocked:'#e85d4a'};
+  var tlLabels = {ready:'✓ Ready',pending:'⏳ Pending',blocked:'⚠ Blocked'};
+  var tlColor = tlColors[data.readiness] || '#999';
+  html += '<div style="text-align:center;margin-bottom:16px">' +
+    '<div style="width:48px;height:48px;border-radius:50%;background:' + tlColor + ';margin:0 auto 8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:700">' +
+    (data.readiness === 'ready' ? '✓' : data.readiness === 'blocked' ? '!' : '⏳') + '</div>' +
+    '<div style="font-size:15px;font-weight:700;color:' + tlColor + '">' + (tlLabels[data.readiness] || 'Unknown') + '</div>' +
+    '<div style="font-size:12px;color:#888">' + (data.cleared_count || 0) + '/' + (data.total_mandatory || 0) + ' cleared · ' + (data.missing_count || 0) + ' missing · ' + (data.abnormal_count || 0) + ' abnormal</div>' +
+  '</div>';
+  // Lab paste box
+  html += '<div style="margin-bottom:16px">' +
+    '<textarea id="labPasteBox" rows="4" placeholder="Paste lab report text here..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>' +
+    '<button onclick="parseLabResults(\'' + pid + '\')" style="margin-top:6px;background:#0d7377;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer">Parse Results</button>' +
+    '<span id="labParseStatus" style="margin-left:10px;font-size:12px;color:#888"></span>' +
+  '</div>';
+  // Copy button
+  html += '<button onclick="copyClearanceReport(\'' + pid + '\')" style="margin-bottom:12px;background:#f0f0f0;border:1px solid #ddd;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:#555">📋 Copy as text</button>';
+  // Checklist table
+  html += renderClearanceTable(data.mandatory, 'Mandatory', pid, false);
+  html += renderClearanceTable(data.often_required, 'Often Required', pid, true);
+  html += '</div>';
+  return html;
+}
+
+function renderClearanceTable(items, title, pid, collapsed) {
+  if (!items || !items.length) return '';
+  var html = '<div style="margin-top:14px">';
+  if (collapsed) {
+    html += '<div style="cursor:pointer;font-size:12px;font-weight:700;color:#6a8a8e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px" onclick="var el=this.nextElementSibling;el.style.display=el.style.display===\'none\'?\'block\':\'none\'">' + escHtml(title) + ' ▸</div>';
+    html += '<div style="display:none">';
+  } else {
+    html += '<div style="font-size:12px;font-weight:700;color:#6a8a8e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">' + escHtml(title) + '</div>';
+    html += '<div>';
+  }
+  // Group by category
+  var cats = {};
+  items.forEach(function(it) {
+    if (!cats[it.category]) cats[it.category] = [];
+    cats[it.category].push(it);
+  });
+  Object.keys(cats).forEach(function(cat) {
+    html += '<div style="font-size:11px;color:#aaa;font-weight:600;margin:8px 0 4px;text-transform:uppercase">' + escHtml(cat) + '</div>';
+    cats[cat].forEach(function(it) {
+      var badge = '', badgeBg = '';
+      if (it.status === 'cleared' || it.status === 'normal') { badge = '✓ Cleared'; badgeBg = '#e6f9ee;color:#2d8a4e'; }
+      else if (it.status === 'missing') { badge = 'NOT FOUND'; badgeBg = '#fff3e0;color:#b8860b'; }
+      else if (it.status === 'abnormal') { badge = '✗ ' + escHtml(it.value || 'ABNORMAL'); badgeBg = '#fdeaea;color:#e85d4a;font-weight:700'; }
+      else if (it.status === 'borderline') { badge = '~ ' + escHtml(it.value || 'Borderline'); badgeBg = '#fff8e1;color:#b8860b'; }
+      else { badge = it.status || 'missing'; badgeBg = '#f5f5f5;color:#999'; }
+      var dateStr = it.parsed_at ? new Date(it.parsed_at).toLocaleDateString() : '';
+      html += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f5f5f5">' +
+        '<div style="flex:1;font-size:13px;color:#333">' + escHtml(it.label) + '<span style="font-size:10px;color:#bbb;margin-left:4px">' + escHtml(it.partner || '') + '</span></div>' +
+        '<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:' + badgeBg + '">' + badge + '</span>' +
+        (it.value && it.status !== 'missing' && it.status !== 'abnormal' ? '<span style="font-size:11px;color:#666">' + escHtml(it.value) + (it.unit ? ' ' + escHtml(it.unit) : '') + '</span>' : '') +
+        '<span style="font-size:10px;color:#ccc">' + dateStr + '</span>' +
+        '<button onclick="overrideClearanceItem(\'' + pid + '\',\'' + it.id + '\',\'' + escHtml(it.label) + '\')" style="background:none;border:none;cursor:pointer;font-size:11px;color:#bbb;padding:0 2px" title="Manual override">✏️</button>' +
+      '</div>';
+    });
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function parseLabResults(pid) {
+  var textarea = document.getElementById('labPasteBox');
+  var status = document.getElementById('labParseStatus');
+  var text = textarea.value.trim();
+  if (!text) { alert('Paste lab report text first'); return; }
+  status.textContent = 'Parsing...';
+  status.style.color = '#0d7377';
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/parse-labs', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({raw_text: text})
+  }).then(function(r) {
+    if (r.ok) return r.json(); throw new Error('fail');
+  }).then(function(d) {
+    status.textContent = 'Parsed ' + (d.parsed_count || 0) + ' results';
+    status.style.color = '#2d8a4e';
+    textarea.value = '';
+    loadClearanceTab(pid);
+    fetchClearanceStatus(pid);
+  }).catch(function() {
+    status.textContent = 'Parse failed';
+    status.style.color = '#e85d4a';
+  });
+}
+
+function overrideClearanceItem(pid, itemId, label) {
+  var newStatus = prompt('Override status for "' + label + '":\nEnter: cleared, abnormal, or missing');
+  if (!newStatus || !['cleared','abnormal','missing'].includes(newStatus)) return;
+  var value = newStatus === 'cleared' ? prompt('Value (optional):') : (newStatus === 'abnormal' ? prompt('Abnormal value:') : null);
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/clearance/' + itemId, {
+    method: 'PATCH', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({status: newStatus, value: value || null})
+  }).then(function() { loadClearanceTab(pid); fetchClearanceStatus(pid); });
+}
+
+function copyClearanceReport(pid) {
+  authFetch(API_BASE + '/clinician/patient/' + pid + '/clearance').then(function(r) {
+    if (r.ok) return r.json(); throw new Error('fail');
+  }).then(function(d) {
+    var p = patients.find(function(pt) { return pt.patient_id === pid; });
+    var name = p ? (p.patient_name || pid) : pid;
+    var lines = ['PRE-IVF CLEARANCE — ' + name + ' — ' + new Date().toLocaleDateString()];
+    (d.mandatory || []).concat(d.often_required || []).forEach(function(it) {
+      var icon = it.status === 'cleared' || it.status === 'normal' ? '✓' : it.status === 'abnormal' ? '✗ ABNORMAL:' : '⚠ MISSING:';
+      var val = it.value ? ' ' + it.value + (it.unit ? ' ' + it.unit : '') : '';
+      var dt = it.parsed_at ? ' (' + new Date(it.parsed_at).toLocaleDateString() + ')' : '';
+      lines.push(icon + ' ' + it.label + (it.status !== 'missing' ? ':' + val + dt : ''));
+    });
+    navigator.clipboard.writeText(lines.join('\n')).then(function() { alert('Copied to clipboard'); });
+  });
 }
 
 // ── Outcome Notification Queue ──────────────────────────────────────

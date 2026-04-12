@@ -54,6 +54,43 @@ logger = logging.getLogger("ivf-companion")
 SONNET_MODEL = "claude-sonnet-4-20250514"
 HAIKU_MODEL = "claude-haiku-4-5-20251001"
 
+# ── Pre-IVF Clearance Checklist ─────────────────────────────────────
+PRE_IVF_CHECKLIST = {
+    "mandatory": [
+        {"id": "hiv", "label": "HIV 1 & 2 Ab/Ag", "category": "Infectious Serology", "partner": "both"},
+        {"id": "hep_b_sag", "label": "Hepatitis B Surface Antigen (HBsAg)", "category": "Infectious Serology", "partner": "both"},
+        {"id": "hep_b_core", "label": "Anti-HBc (if required)", "category": "Infectious Serology", "partner": "both"},
+        {"id": "hep_c", "label": "Hepatitis C Ab", "category": "Infectious Serology", "partner": "both"},
+        {"id": "syphilis", "label": "Syphilis Serology", "category": "Infectious Serology", "partner": "both"},
+        {"id": "rubella", "label": "Rubella IgG", "category": "Infectious Serology", "partner": "female"},
+        {"id": "varicella", "label": "Varicella IgG", "category": "Infectious Serology", "partner": "female"},
+        {"id": "cst", "label": "Cervical Screening Test (CST)", "category": "Cervical Screening", "partner": "female"},
+        {"id": "semen_analysis", "label": "Semen Analysis (WHO)", "category": "Semen Analysis", "partner": "male"},
+        {"id": "blood_group", "label": "ABO Group & Rh Status", "category": "Blood Group", "partner": "female"},
+        {"id": "antibody_screen", "label": "Antibody Screen", "category": "Blood Group", "partner": "female"},
+        {"id": "amh", "label": "AMH", "category": "Baseline Hormones", "partner": "female"},
+        {"id": "fsh", "label": "FSH", "category": "Baseline Hormones", "partner": "female"},
+        {"id": "lh", "label": "LH", "category": "Baseline Hormones", "partner": "female"},
+        {"id": "e2", "label": "Estradiol (E2)", "category": "Baseline Hormones", "partner": "female"},
+        {"id": "tsh", "label": "TSH", "category": "Baseline Hormones", "partner": "female"},
+        {"id": "prolactin", "label": "Prolactin", "category": "Baseline Hormones", "partner": "female"},
+        {"id": "pelvic_us", "label": "Baseline Pelvic Ultrasound (AFC + Uterus)", "category": "Imaging", "partner": "female"},
+        {"id": "carrier_cf", "label": "CF Carrier Screening", "category": "Genetic Screening", "partner": "both"},
+        {"id": "carrier_sma", "label": "SMA Carrier Screening", "category": "Genetic Screening", "partner": "both"},
+        {"id": "carrier_fragx", "label": "Fragile X (Female)", "category": "Genetic Screening", "partner": "female"},
+        {"id": "consent_ivf", "label": "IVF Consent Forms", "category": "Administrative", "partner": "both"},
+        {"id": "consent_genetics", "label": "Genetics Counselling Consent", "category": "Administrative", "partner": "both"},
+        {"id": "id_verification", "label": "ID Verification", "category": "Administrative", "partner": "both"},
+    ],
+    "often_required": [
+        {"id": "hsg", "label": "HSG / Tubal Assessment", "category": "Often Required", "partner": "female"},
+        {"id": "hba1c", "label": "HbA1c", "category": "Often Required", "partner": "female"},
+        {"id": "vitd", "label": "Vitamin D", "category": "Often Required", "partner": "female"},
+        {"id": "dna_frag", "label": "DNA Fragmentation", "category": "Often Required", "partner": "male"},
+        {"id": "karyotype", "label": "Karyotype", "category": "Often Required", "partner": "both"},
+    ]
+}
+
 # ── Treatment Stages (29 granular stages for prospective training) ────
 TREATMENT_STAGES = [
     "consultation", "investigation", "waiting_to_start", "downregulation",
@@ -6181,6 +6218,134 @@ async def cleanup_patients(keep_id: str):
         return {"error": str(e)}
 
 
+
+
+# ── Lab Parser + Pre-IVF Clearance ───────────────────────────────────
+
+class LabParseRequest(BaseModel):
+    raw_text: str
+
+class ClearanceOverrideRequest(BaseModel):
+    status: str  # "cleared", "abnormal", "missing"
+    value: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@app.post("/clinician/patient/{patient_id}/parse-labs", dependencies=[Depends(verify_clinician_api_key)])
+async def parse_lab_results(patient_id: str, req: LabParseRequest):
+    """Parse pasted lab report text and map to pre-IVF clearance checklist."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            raise HTTPException(status_code=503, detail="Firebase not available")
+        all_items = PRE_IVF_CHECKLIST["mandatory"] + PRE_IVF_CHECKLIST["often_required"]
+        item_list = json.dumps([item["id"] + ": " + item["label"] for item in all_items])
+        sonnet_resp = client.messages.create(
+            model=SONNET_MODEL,
+            max_tokens=2000,
+            system="You are a lab result extractor for IVF pre-treatment clearance. Given raw pathology report text, extract all test results and map them to the following checklist items. Return ONLY valid JSON, no markdown, no backticks.\n\nChecklist items to match: " + item_list + "\n\nFor each item found in the text, return:\n{ \"id\": \"checklist_item_id\", \"value\": \"the result value\", \"unit\": \"unit if applicable\", \"status\": \"normal\" | \"abnormal\" | \"borderline\", \"raw_match\": \"the exact text snippet you matched\" }\n\nReturn format: { \"results\": [...], \"unmatched_items\": [\"any test results in the text that don't map to the checklist\"] }",
+            messages=[{"role": "user", "content": req.raw_text}]
+        )
+        resp_text = sonnet_resp.content[0].text.strip()
+        # Strip markdown fences if present
+        if resp_text.startswith("```"):
+            resp_text = resp_text.split("\n", 1)[1] if "\n" in resp_text else resp_text[3:]
+            if resp_text.endswith("```"):
+                resp_text = resp_text[:-3]
+        parsed = json.loads(resp_text)
+        results = parsed.get("results", [])
+        # Save each result to Firebase
+        for r in results:
+            item_id = r.get("id")
+            if not item_id:
+                continue
+            clearance_data = {
+                "value": r.get("value", ""),
+                "unit": r.get("unit", ""),
+                "status": "cleared" if r.get("status") == "normal" else r.get("status", "cleared"),
+                "raw_match": r.get("raw_match", ""),
+                "parsed_at": utc_iso(),
+                "source": "lab_paste"
+            }
+            _fb_ref.child("patients").child(patient_id).child("clearance").child(item_id).update(clearance_data)
+        return {"parsed_count": len(results), "results": results, "unmatched": parsed.get("unmatched_items", [])}
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=422, detail=f"Failed to parse AI response: {e}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Lab parse failed for {patient_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/clinician/patient/{patient_id}/clearance", dependencies=[Depends(verify_clinician_api_key)])
+async def get_clearance_status(patient_id: str):
+    """Get full pre-IVF clearance status for a patient."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            return {"readiness": "pending", "mandatory": [], "often_required": [], "missing_count": 0, "abnormal_count": 0}
+        clearance_data = _fb_ref.child("patients").child(patient_id).child("clearance").get() or {}
+        def build_items(checklist_items):
+            items = []
+            for item in checklist_items:
+                stored = clearance_data.get(item["id"], {})
+                status = stored.get("status", "missing") if stored else "missing"
+                items.append({
+                    "id": item["id"],
+                    "label": item["label"],
+                    "category": item["category"],
+                    "partner": item["partner"],
+                    "status": status,
+                    "value": stored.get("value", ""),
+                    "unit": stored.get("unit", ""),
+                    "parsed_at": stored.get("parsed_at", ""),
+                    "notes": stored.get("notes", ""),
+                    "source": stored.get("source", "")
+                })
+            return items
+        mandatory = build_items(PRE_IVF_CHECKLIST["mandatory"])
+        often_required = build_items(PRE_IVF_CHECKLIST["often_required"])
+        missing_count = sum(1 for i in mandatory if i["status"] == "missing")
+        abnormal_count = sum(1 for i in mandatory if i["status"] == "abnormal")
+        if abnormal_count > 0:
+            readiness = "blocked"
+        elif missing_count > 0:
+            readiness = "pending"
+        else:
+            readiness = "ready"
+        return {
+            "readiness": readiness,
+            "mandatory": mandatory,
+            "often_required": often_required,
+            "missing_count": missing_count,
+            "abnormal_count": abnormal_count,
+            "total_mandatory": len(mandatory),
+            "cleared_count": sum(1 for i in mandatory if i["status"] in ("cleared", "normal"))
+        }
+    except Exception as e:
+        logging.error(f"Clearance status failed for {patient_id}: {e}")
+        return {"readiness": "pending", "mandatory": [], "often_required": [], "missing_count": 0, "abnormal_count": 0}
+
+
+@app.patch("/clinician/patient/{patient_id}/clearance/{item_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def update_clearance_item(patient_id: str, item_id: str, req: ClearanceOverrideRequest):
+    """Manually override a clearance item status."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            raise HTTPException(status_code=503, detail="Firebase not available")
+        update_data = {"status": req.status, "parsed_at": utc_iso(), "source": "manual_override"}
+        if req.value is not None:
+            update_data["value"] = req.value
+        if req.notes is not None:
+            update_data["notes"] = req.notes
+        _fb_ref.child("patients").child(patient_id).child("clearance").child(item_id).update(update_data)
+        return {"status": "updated", "item_id": item_id, **update_data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── Outcome Notification Queue ───────────────────────────────────────

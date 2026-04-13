@@ -3548,6 +3548,67 @@ async def clinician_patients_v2():
     return {"patients": overview, "total": len(overview), "timestamp": utc_iso()}
 
 
+@app.post("/clinician/patient/create", dependencies=[Depends(verify_clinician_api_key)])
+async def create_patient_from_dashboard(request: Request):
+    """Create a patient directly from the clinician dashboard (no Firebase Auth account)."""
+    try:
+        from firebase_db import _fb_ref
+        if not _fb_ref:
+            raise HTTPException(status_code=503, detail="Firebase not available")
+        data = await request.json()
+        name = (data.get("name") or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Patient name is required")
+        patient_id = f"dash_{int(_time.time() * 1000)}"
+        # Calculate age from DOB if provided
+        dob = data.get("dob", "")
+        age = data.get("age", "")
+        if dob and not age:
+            try:
+                parts = dob.split("-")
+                born_y, born_m, born_d = int(parts[0]), int(parts[1]), int(parts[2])
+                today = datetime.now()
+                age = today.year - born_y - ((today.month, today.day) < (born_m, born_d))
+            except Exception:
+                pass
+        patient_record = {
+            "name": name,
+            "patient_name": name,
+            "email": data.get("email", ""),
+            "phone": data.get("phone", ""),
+            "dob": dob,
+            "age": str(age) if age else "",
+            "partner_name": data.get("partner_name", ""),
+            "pronunciation": data.get("pronunciation", ""),
+            "treatment_stage": data.get("stage", "consultation"),
+            "notes": data.get("notes", ""),
+            "created_from": "dashboard",
+            "created_at": utc_iso(),
+            "risk_level": "low"
+        }
+        _fb_ref.child("patients").child(patient_id).update(patient_record)
+        patients_db[patient_id] = patient_record
+        # Cycle record
+        cycle_type = data.get("cycle_type", "")
+        if cycle_type:
+            cycle_record = {
+                "type": cycle_type,
+                "cycle_number": int(data.get("cycle_number", 1)),
+                "stage": data.get("stage", "consultation"),
+                "start_date": datetime.now().strftime("%Y-%m-%d"),
+            }
+            _fb_ref.child("patients").child(patient_id).child("cycle").update(cycle_record)
+        # Audit
+        info = _get_clinician(request)
+        asyncio.create_task(_log_audit_safe("create_patient", info, patient_id, {"name": name}))
+        return {"patient_id": patient_id, "name": name, "status": "created"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Create patient failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ── In-memory alert store (derived from escalations + check-ins) ──
 clinician_alerts: list[dict] = []
 

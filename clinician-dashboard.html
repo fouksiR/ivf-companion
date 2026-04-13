@@ -735,7 +735,10 @@
         <option value="name">Alphabetical</option>
       </select>
     </div>
-    <div class="section-title">Patients <span class="section-count" id="patientCount">0</span></div>
+    <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Patients <span class="section-count" id="patientCount">0</span></span>
+      <button onclick="openAddPatientModal()" style="width:32px;height:32px;border-radius:50%;background:#0d7377;color:#fff;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.12);line-height:1" title="Add new patient">+</button>
+    </div>
     <div class="patient-grid" id="patientGrid">
       <div class="empty-state"><div class="empty-state-icon">◌</div><div class="empty-state-text">Waiting for connection</div></div>
     </div>
@@ -789,6 +792,89 @@
 
 <!-- Toast container -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Add Patient Modal -->
+<div id="addPatientModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:32px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="margin:0;font-size:20px;color:#1a3a4a">Add New Patient</h2>
+      <button onclick="closeAddPatientModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:#999">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Full Name *</label>
+        <input id="np_name" type="text" placeholder="e.g. Yamit Cohen" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Pronunciation hint</label>
+        <input id="np_pronunciation" type="text" placeholder="e.g. YAM-it" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+      </div>
+      <div style="display:flex;gap:12px">
+        <div style="flex:1">
+          <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Date of Birth</label>
+          <input id="np_dob" type="date" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+        </div>
+        <div style="flex:0 0 80px">
+          <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Age</label>
+          <input id="np_age" type="number" placeholder="34" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+        </div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div style="flex:1">
+          <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Email</label>
+          <input id="np_email" type="email" placeholder="patient@email.com" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+        </div>
+        <div style="flex:1">
+          <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Phone</label>
+          <input id="np_phone" type="tel" placeholder="+61..." style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Partner Name</label>
+        <input id="np_partner" type="text" placeholder="Optional" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+      </div>
+      <div style="display:flex;gap:12px">
+        <div style="flex:1">
+          <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Cycle Type</label>
+          <select id="np_cycle_type" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#fff;box-sizing:border-box">
+            <option value="">— No cycle yet —</option>
+            <option value="IVF">IVF</option>
+            <option value="ICSI">ICSI</option>
+            <option value="FET">Frozen Embryo Transfer</option>
+            <option value="OI">Ovulation Induction</option>
+            <option value="IUI">IUI</option>
+            <option value="Egg Freezing">Egg Freezing</option>
+          </select>
+        </div>
+        <div style="flex:0 0 100px">
+          <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Cycle #</label>
+          <input id="np_cycle_num" type="number" value="1" min="1" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Current Stage</label>
+        <select id="np_stage" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#fff;box-sizing:border-box">
+          <option value="consultation">First Consultation</option>
+          <option value="investigation">Investigations</option>
+          <option value="waiting_to_start">Pre-Cycle (Clearance)</option>
+          <option value="downregulation">Down-regulation</option>
+          <option value="stimulation">Stimulation</option>
+          <option value="trigger">Trigger</option>
+          <option value="post_retrieval">Post Retrieval</option>
+          <option value="before_transfer">Transfer</option>
+          <option value="early_tww">Two-Week Wait</option>
+          <option value="between_cycles">Between Cycles</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Notes</label>
+        <textarea id="np_notes" rows="2" placeholder="Any initial notes..." style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box"></textarea>
+      </div>
+      <button id="np_submit" onclick="submitNewPatient()" style="margin-top:8px;padding:14px;background:#0d7377;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">Add Patient</button>
+      <div id="np_error" style="display:none;color:#e74c3c;font-size:13px;text-align:center;margin-top:4px"></div>
+    </div>
+  </div>
+</div>
 
 </div><!-- /dashboardWrapper -->
 
@@ -1344,6 +1430,72 @@ function setFilter(filter, btn) {
 }
 function filterPatients() { renderPatients(); }
 function sortPatients() { renderPatients(); }
+
+// ── Add Patient Modal ───────────────────────────────────────────────
+function openAddPatientModal() {
+  var m = document.getElementById('addPatientModal');
+  m.style.display = 'flex';
+  document.getElementById('np_name').focus();
+  document.getElementById('np_dob').onchange = function() {
+    if (this.value) {
+      var born = new Date(this.value);
+      var today = new Date();
+      var age = today.getFullYear() - born.getFullYear();
+      if (today.getMonth() < born.getMonth() || (today.getMonth() === born.getMonth() && today.getDate() < born.getDate())) age--;
+      document.getElementById('np_age').value = age;
+    }
+  };
+}
+
+function closeAddPatientModal() {
+  document.getElementById('addPatientModal').style.display = 'none';
+  ['np_name','np_pronunciation','np_dob','np_age','np_email','np_phone','np_partner','np_notes'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  var ct = document.getElementById('np_cycle_type'); if (ct) ct.selectedIndex = 0;
+  var cn = document.getElementById('np_cycle_num'); if (cn) cn.value = '1';
+  var st = document.getElementById('np_stage'); if (st) st.selectedIndex = 0;
+  var er = document.getElementById('np_error'); if (er) er.style.display = 'none';
+}
+
+async function submitNewPatient() {
+  var name = document.getElementById('np_name').value.trim();
+  if (!name) {
+    document.getElementById('np_error').textContent = 'Patient name is required';
+    document.getElementById('np_error').style.display = 'block';
+    return;
+  }
+  var btn = document.getElementById('np_submit');
+  btn.textContent = 'Adding...'; btn.disabled = true;
+  try {
+    var payload = {
+      name: name,
+      pronunciation: document.getElementById('np_pronunciation').value.trim(),
+      dob: document.getElementById('np_dob').value,
+      age: document.getElementById('np_age').value,
+      email: document.getElementById('np_email').value.trim(),
+      phone: document.getElementById('np_phone').value.trim(),
+      partner_name: document.getElementById('np_partner').value.trim(),
+      cycle_type: document.getElementById('np_cycle_type').value,
+      cycle_number: parseInt(document.getElementById('np_cycle_num').value) || 1,
+      stage: document.getElementById('np_stage').value,
+      notes: document.getElementById('np_notes').value.trim()
+    };
+    var resp = await authFetch(API_BASE + '/clinician/patient/create', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) { var err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    closeAddPatientModal();
+    poll(); // refresh patient list
+  } catch(e) {
+    document.getElementById('np_error').textContent = e.message;
+    document.getElementById('np_error').style.display = 'block';
+  } finally {
+    btn.textContent = 'Add Patient'; btn.disabled = false;
+  }
+}
 
 // ALERTS
 function renderAlerts() {

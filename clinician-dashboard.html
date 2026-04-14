@@ -1165,6 +1165,28 @@
           .stat-card .stat-value { font-size: 18px; }
           .morning-digest-v2 { margin: 0 8px 6px; }
           .results-bar-v2 { margin: 0 8px 6px; }
+          .med-toggle-btn { display: none !important; }
+          .inline-medgrid { display: none !important; }
+        }
+
+        /* Inline med grid toggle button + container (desktop) */
+        .med-toggle-btn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 18px;
+          padding: 4px 8px;
+          border-radius: 8px;
+          transition: background 0.15s;
+        }
+        .med-toggle-btn:hover { background: #f0f0ee; }
+        .inline-medgrid {
+          margin: -4px 0 8px 0;
+          border: 0.5px solid #e5e5e3;
+          border-top: none;
+          border-radius: 0 0 12px 12px;
+          padding: 12px;
+          background: #fafaf8;
         }
     </style>
 </head>
@@ -1981,12 +2003,14 @@ function renderPatients() {
         '<div class="card-right-v2">' +
           '<span class="stage-badge-v2">' + escHtml(p.treatment_stage || '') + '</span>' +
           '<div class="card-actions-v2">' +
+            '<button class="med-toggle-btn" onclick="event.stopPropagation();window.toggleMedGrid(\'' + p.patient_id + '\')" title="Medications">💊</button>' +
             '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + escHtml(p.patient_name||p.name||'') + '\')" title="Delete" style="font-size:16px;color:#ccc;background:none;border:none;cursor:pointer;min-width:28px;min-height:28px">×</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
       flagsHtml +
-    '</div>';
+    '</div>' +
+    '<div id="medgrid-container-' + p.patient_id + '" class="inline-medgrid" style="display:none"></div>';
   }).join('');
 }
 function sortPatientList(list) {
@@ -4022,12 +4046,15 @@ var MED_DEFAULT = { bg: 'rgba(136,135,128,0.05)', text: '#5F5E5A' };
     var container = document.getElementById('medgrid-container-' + pid);
     console.log('[MedGrid] container found:', !!container, 'children:', container ? container.children.length : 'N/A');
     if (!container) { console.warn('[MedGrid] No container for', pid); return; }
+    // Toggle visibility for inline-medgrid containers
     if (container.children.length > 0) {
       console.log('[MedGrid] Collapsing grid for', pid);
       container.innerHTML = '';
+      container.style.display = 'none';
       _builtGrids[pid] = false;
       return;
     }
+    container.style.display = 'block';
     // Show empty grid immediately, then populate from API
     window._medGridLoading = true;
     buildMedGridForPatient(pid, container, null);

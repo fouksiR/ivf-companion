@@ -751,19 +751,37 @@
           .pc-active { font-size: 12px !important; }
           .risk-dot { width: 10px !important; height: 10px !important; }
 
-          /* ── Modal (Patient Detail) ── */
+          /* ── Modal (Patient Detail) — full screen on mobile ── */
           .modal-overlay {
             padding-top: 0 !important;
-            align-items: flex-end !important;
+            align-items: stretch !important;
+            background: none !important;
           }
           .modal {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
             width: 100% !important;
             max-width: 100% !important;
-            max-height: 92vh !important;
-            border-radius: 16px 16px 0 0 !important;
-            margin: 0;
+            max-height: 100vh !important;
+            height: 100% !important;
+            border-radius: 0 !important;
+            margin: 0 !important;
+            z-index: 9999 !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            background: #fff !important;
           }
-          .modal-header { padding: 14px 16px; }
+          .modal-header {
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 10;
+            border-bottom: 1px solid #e5e5e3;
+          }
           .modal-title { font-size: 16px; }
           .modal-close {
             font-size: 24px;
@@ -773,27 +791,64 @@
             align-items: center;
             justify-content: center;
           }
+          /* Mobile back button */
+          .mobile-back-btn { display: block !important; }
 
-          /* ── Modal Tabs ── */
+          /* ── Modal Tabs — horizontal scroll ── */
           .modal-tabs {
             padding: 0 8px !important;
-            overflow-x: auto;
+            display: flex !important;
+            overflow-x: auto !important;
             -webkit-overflow-scrolling: touch;
-            flex-wrap: nowrap;
+            flex-wrap: nowrap !important;
             gap: 0;
+            white-space: nowrap;
+            padding-bottom: 8px !important;
+            position: sticky;
+            top: 52px;
+            background: #fff;
+            z-index: 9;
+            border-bottom: 1px solid #e5e5e3;
           }
           .tab-btn {
-            font-size: 12px !important;
-            padding: 10px 10px !important;
+            font-size: 13px !important;
+            padding: 10px 14px !important;
             white-space: nowrap;
-            min-height: 40px;
+            min-height: 44px;
             flex-shrink: 0;
+          }
+
+          /* ── Med Grid — scrollable on mobile ── */
+          .med-grid-wrap,
+          [id^="medgrid-container-"],
+          .ss-wrap {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100vw;
+          }
+          .ss-table,
+          .med-grid-wrap table {
+            min-width: 600px;
           }
 
           /* ── Briefing Content ── */
           .briefing-card {
             padding: 14px !important;
             margin: 8px 0 !important;
+          }
+
+          /* ── Hide patient list when detail is open ── */
+          body.mobile-detail-open .panel-left {
+            display: none !important;
+          }
+          body.mobile-detail-open .morning-digest-v2,
+          body.mobile-detail-open .results-bar-v2,
+          body.mobile-detail-open .stats-bar,
+          body.mobile-detail-open .header {
+            display: none !important;
+          }
+          body.mobile-detail-open .panel-right {
+            display: none !important;
           }
 
           /* ── Outcome Queue ── */
@@ -1276,6 +1331,7 @@
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
+      <button class="mobile-back-btn" onclick="closeModal()" style="display:none;background:none;border:none;font-size:14px;color:#0d7377;padding:4px 0;cursor:pointer;font-weight:500;font-family:var(--sans)">← Back</button>
       <div class="modal-title" id="modalTitle">Patient Detail</div>
       <button onclick="showAddOutcomeModal()" style="background:#f0e0b0;border:1px solid #d4b96a;color:#8b6914;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:8px" title="Notify patient of results">Notify Results</button>
       <button class="modal-close" onclick="closeModal()">&times;</button>
@@ -2166,6 +2222,10 @@ async function openDetail(patientId) {
   currentModalTab = 'briefing';
   if (typeof loadMedGrid === "function") loadMedGrid(patientId);
   document.getElementById('modalOverlay').classList.add('active');
+  if (window.innerWidth <= 768) {
+    document.body.classList.add('mobile-detail-open');
+    window.scrollTo(0, 0);
+  }
   document.querySelectorAll('.modal-tabs .tab-btn').forEach(function(b, i) { b.classList.toggle('active', i === 0); });
 
   var p = patients.find(function(p) { return p.patient_id === patientId; });
@@ -2601,6 +2661,7 @@ async function loadPhenotypeCharts(pid) {
 function closeModal(e) {
   if (e && e.target !== document.getElementById('modalOverlay')) return;
   document.getElementById('modalOverlay').classList.remove('active');
+  document.body.classList.remove('mobile-detail-open');
   currentPatientId = null;
   if (typeof _adhInterval !== 'undefined' && _adhInterval) { clearInterval(_adhInterval); _adhInterval = null; }
 }

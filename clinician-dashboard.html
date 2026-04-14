@@ -1277,13 +1277,12 @@
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle">Patient Detail</div>
-      <button onclick="showAddOutcomeModal()" style="background:#f0e0b0;border:1px solid #d4b96a;color:#8b6914;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:8px" title="Add a result to the notification queue">+ Add Result</button>
+      <button onclick="showAddOutcomeModal()" style="background:#f0e0b0;border:1px solid #d4b96a;color:#8b6914;font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;cursor:pointer;margin-right:8px" title="Notify patient of results">Notify Results</button>
       <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
     <!-- Modal Tabs -->
     <div class="modal-tabs">
       <button class="tab-btn active" onclick="switchModalTab('briefing')">Briefing</button>
-      <button class="tab-btn" onclick="switchModalTab('phenotype')">Trends</button>
       <button class="tab-btn" onclick="switchModalTab('conversations')">Conversations</button>
       <button class="tab-btn" onclick="switchModalTab('actions')">Actions</button>
       <button class="tab-btn" onclick="switchModalTab('opu')">Trigger &amp; OPU</button>
@@ -2187,15 +2186,17 @@ async function loadModalTab(patientId, tab) {
       console.log("[BRIEFING] Data received:", JSON.stringify(b).substring(0,200)); body.innerHTML = renderBriefing(b); console.log("[BRIEFING] Rendered HTML length:", body.innerHTML.length);
       // Load adherence card into briefing
       loadAdherenceCard(patientId);
+      // Append trends charts below briefing
+      body.innerHTML += '<div style="margin-top:24px;border-top:1px solid #e5e5e3;padding-top:20px">' +
+        '<div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:12px;padding:0 20px">Trends</div>' +
+        '<div id="phenoCharts" style="padding:0 20px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
+        '<div class="chart-wrap"><canvas id="chartMood"></canvas></div>' +
+        '<div class="chart-wrap"><canvas id="chartAnxiety"></canvas></div>' +
+        '<div class="chart-wrap"><canvas id="chartTyping"></canvas></div>' +
+        '<div class="chart-wrap"><canvas id="chartSleep"></canvas></div>' +
+        '</div><div class="chart-wrap" style="margin:16px 0"><canvas id="chartEscalation"></canvas></div></div></div>';
+      setTimeout(function(){ loadPhenotypeCharts(patientId); }, 100);
     } catch (e) { body.innerHTML = '<div style="padding:40px;color:var(--red)">Failed to load briefing</div>'; }
-  } else if (tab === 'phenotype') {
-    body.innerHTML = '<div id="phenoCharts" style="padding:20px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">' +
-      '<div class="chart-wrap"><canvas id="chartMood"></canvas></div>' +
-      '<div class="chart-wrap"><canvas id="chartAnxiety"></canvas></div>' +
-      '<div class="chart-wrap"><canvas id="chartTyping"></canvas></div>' +
-      '<div class="chart-wrap"><canvas id="chartSleep"></canvas></div>' +
-      '</div><div class="chart-wrap" style="margin:16px 20px"><canvas id="chartEscalation"></canvas></div></div>';
-    setTimeout(function(){ loadPhenotypeCharts(patientId); }, 100); // Wait for canvas DOM
   } else if (tab === 'conversations') {
     try {
       var r = await authFetch(API_BASE + '/clinician/patient/' + patientId + '/conversations');
@@ -5069,7 +5070,7 @@ function showAddOutcomeModal() {
   modal.id = 'outcomeFormOverlay';
   modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:10000;display:flex;align-items:center;justify-content:center';
   modal.innerHTML = '<div style="background:#fff;border-radius:12px;padding:20px;width:360px;max-width:90vw">' +
-    '<div style="font-size:15px;font-weight:700;margin-bottom:12px;color:#333">Add Result to Queue</div>' +
+    '<div style="font-size:15px;font-weight:700;margin-bottom:12px;color:#333">Notify Results</div>' +
     '<label style="font-size:12px;color:#666;display:block;margin-bottom:4px">Outcome Type</label>' +
     '<select id="outcomeType" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:10px;font-size:13px">' +
       '<option value="beta_hcg">Beta hCG</option><option value="fertilisation">Fertilisation Report</option><option value="pgt">PGT Result</option><option value="general">General</option></select>' +

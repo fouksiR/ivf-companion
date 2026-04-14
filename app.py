@@ -6947,6 +6947,36 @@ async def create_clinician_account(req: CreateClinicianRequest, request: Request
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/admin/create-test-accounts", dependencies=[Depends(verify_clinician_api_key)])
+async def create_test_accounts():
+    """Create test clinician accounts for each role — idempotent."""
+    try:
+        import firebase_admin.auth as fb_auth
+        from firebase_db import _fb_ref
+        test_accounts = [
+            {"email": "doctor@melodai.test", "password": "MelodTest2026!", "role": "doctor", "name": "Dr. Test"},
+            {"email": "nurse@melodai.test", "password": "MelodTest2026!", "role": "nurse", "name": "Nurse Test"},
+            {"email": "pa@melodai.test", "password": "MelodTest2026!", "role": "pa", "name": "PA Test"},
+            {"email": "secretary@melodai.test", "password": "MelodTest2026!", "role": "secretary", "name": "Secretary Test"},
+        ]
+        results = []
+        for acct in test_accounts:
+            try:
+                user = fb_auth.create_user(email=acct["email"], password=acct["password"], display_name=acct["name"])
+                fb_auth.set_custom_user_claims(user.uid, {"clinician": True, "role": acct["role"], "clinician_role": acct["role"], "clinic": "melod-ai"})
+                if _fb_ref:
+                    _fb_ref.child("clinicians").child(user.uid).update({"email": acct["email"], "role": acct["role"], "display_name": acct["name"], "created_at": utc_iso(), "active": True})
+                results.append({"email": acct["email"], "status": "created", "uid": user.uid})
+            except Exception as e:
+                if "ALREADY_EXISTS" in str(e) or "already exists" in str(e).lower():
+                    results.append({"email": acct["email"], "status": "already_exists"})
+                else:
+                    results.append({"email": acct["email"], "status": f"error: {e}"})
+        return {"accounts": results}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ── Audit Log Viewer ─────────────────────────────────────────────────
 
 @app.get("/clinician/audit-log", dependencies=[Depends(verify_clinician_api_key)])

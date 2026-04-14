@@ -1527,6 +1527,7 @@ function onAuthSuccess(tokenResult) {
   // Set role and lock selector
   setRole(currentUserRole);
   lockRoleSelector(currentUserRole);
+  applyRolePermissions();
   // Update header with user info
   updateHeaderUserInfo();
   // Auto-connect (use stored backend URL)
@@ -1683,6 +1684,54 @@ var currentModalTab = 'briefing';
 var digestLoaded = false;
 var phenotypeScores = {}; // keyed by patient_id
 
+// ── Role-Based Access Control ───────────────────────────────────────
+var ROLE_PERMISSIONS = {
+  doctor: {
+    tabs: ['briefing', 'conversations', 'actions', 'opu', 'postopu', 'clearance'],
+    canDelete: true, canAdd: true, canEditMeds: true, canEditBriefing: true,
+    canSeeOPU: true, canNotifyResults: true
+  },
+  nurse: {
+    tabs: ['briefing', 'conversations', 'actions', 'opu', 'postopu', 'clearance'],
+    canDelete: false, canAdd: true, canEditMeds: true, canEditBriefing: true,
+    canSeeOPU: true, canNotifyResults: true
+  },
+  secretary: {
+    tabs: ['briefing', 'conversations'],
+    canDelete: false, canAdd: true, canEditMeds: false, canEditBriefing: false,
+    canSeeOPU: false, canNotifyResults: true
+  }
+};
+
+function getCurrentPermissions() {
+  var role = (selectedRole || 'doctor').toLowerCase();
+  if (role === 'pa') role = 'secretary';
+  return ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS['doctor'];
+}
+
+function applyRolePermissions() {
+  var perms = getCurrentPermissions();
+  // Modal tabs — show/hide based on role
+  document.querySelectorAll('.modal-tabs .tab-btn').forEach(function(btn) {
+    var tabId = '';
+    var text = btn.textContent.toLowerCase();
+    if (text.includes('briefing')) tabId = 'briefing';
+    else if (text.includes('conversations')) tabId = 'conversations';
+    else if (text.includes('actions')) tabId = 'actions';
+    else if (text.includes('trigger') || text.includes('opu')) tabId = 'opu';
+    else if (text.includes('post')) tabId = 'postopu';
+    else if (text.includes('clearance')) tabId = 'clearance';
+    btn.style.display = perms.tabs.indexOf(tabId) >= 0 ? '' : 'none';
+  });
+  // OPU List button
+  var opuBtn = document.querySelector('[onclick*="showOpuList"]');
+  if (opuBtn) opuBtn.style.display = perms.canSeeOPU ? '' : 'none';
+  // Notify Results button in modal
+  var notifyBtn = document.querySelector('[onclick*="showAddOutcomeModal"]');
+  if (notifyBtn) notifyBtn.style.display = perms.canNotifyResults ? '' : 'none';
+  // Med grid edit controls — toggled when grid renders (handled in renderPatients)
+}
+
 // ROLE MANAGEMENT
 function setRole(role) {
   selectedRole = role;
@@ -1690,8 +1739,9 @@ function setRole(role) {
   document.querySelectorAll('.role-pill').forEach(function(p) {
     p.classList.toggle('active', p.dataset.role === role);
   });
+  applyRolePermissions();
   renderPatients();
-  // If modal is open, refresh briefing
+  // If modal is open, refresh with new permissions
   if (currentPatientId) openDetail(currentPatientId);
 }
 
@@ -1961,6 +2011,7 @@ function renderPatients() {
   document.getElementById('statAlerts').innerHTML = alertsHtml;
   document.getElementById('statResults').textContent = (typeof pendingOutcomes !== 'undefined' ? pendingOutcomes.length : 0);
 
+  var _perms = getCurrentPermissions();
   grid.innerHTML = sorted.map(function(p) {
     var esc = (p.escalation_level || p.risk_level || 'GREEN').toUpperCase();
     var riskColor = getRiskColor(esc);
@@ -2004,7 +2055,7 @@ function renderPatients() {
           '<span class="stage-badge-v2">' + escHtml(p.treatment_stage || '') + '</span>' +
           '<div class="card-actions-v2">' +
             '<button class="med-toggle-btn" onclick="event.stopPropagation();window.toggleMedGrid(\'' + p.patient_id + '\')" title="Medications">💊</button>' +
-            '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + escHtml(p.patient_name||p.name||'') + '\')" title="Delete" style="font-size:16px;color:#ccc;background:none;border:none;cursor:pointer;min-width:28px;min-height:28px">×</button>' +
+            (_perms.canDelete ? '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + escHtml(p.patient_name||p.name||'') + '\')" title="Delete" style="font-size:16px;color:#ccc;background:none;border:none;cursor:pointer;min-width:28px;min-height:28px">×</button>' : '') +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -2246,7 +2297,12 @@ async function openDetail(patientId) {
     document.body.classList.add('mobile-detail-open');
     window.scrollTo(0, 0);
   }
-  document.querySelectorAll('.modal-tabs .tab-btn').forEach(function(b, i) { b.classList.toggle('active', i === 0); });
+  applyRolePermissions();
+  // Select first VISIBLE tab
+  var perms = getCurrentPermissions();
+  document.querySelectorAll('.modal-tabs .tab-btn').forEach(function(b, i) {
+    b.classList.toggle('active', i === 0 && b.style.display !== 'none');
+  });
 
   var p = patients.find(function(p) { return p.patient_id === patientId; });
   document.getElementById('modalTitle').textContent = (p ? p.patient_name || patientId : patientId);

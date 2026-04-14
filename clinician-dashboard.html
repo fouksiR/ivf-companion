@@ -626,6 +626,308 @@
         .pheno-flag { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:16px; font-size:11px; font-weight:600; margin:4px 4px 0 0; }
         .pheno-flag.flag-red { background:#ffebee; color:#c62828; }
         .pheno-flag.flag-amber { background:#fff3e0; color:#e65100; }
+
+        /* ═══════════════════════════════════════════════════════════
+           MOBILE RESPONSIVE — 768px and below
+           Only additive rules. Desktop appearance is unchanged.
+           ═══════════════════════════════════════════════════════════ */
+        @media (max-width: 768px) {
+          /* ── Global ── */
+          html, body { overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+          * { box-sizing: border-box; }
+
+          /* ── Header ── */
+          .header {
+            padding: 0 12px !important;
+            height: 50px;
+            gap: 6px;
+            flex-wrap: nowrap;
+          }
+          .header-left { gap: 6px; min-width: 0; flex-shrink: 1; }
+          .header-right { gap: 6px; flex-shrink: 0; }
+          .logo { font-size: 16px; white-space: nowrap; }
+          .logo > span { display: none; } /* hide "Clinical Dashboard" subtitle */
+          .role-selector { display: none !important; }
+          .connection-status { display: none; }
+          .poll-info { display: none; }
+          .notif-bell { font-size: 18px !important; padding: 6px !important; min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+          .settings-btn { font-size: 18px; min-width: 36px; min-height: 36px; }
+          .settings-dropdown {
+            position: fixed !important;
+            top: 50px !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            border-radius: 0 0 12px 12px !important;
+            z-index: 500;
+            padding: 16px !important;
+          }
+          .settings-dropdown input,
+          .settings-dropdown select {
+            font-size: 16px !important;
+            padding: 12px !important;
+            min-height: 44px;
+          }
+          .settings-dropdown .btn-connect {
+            min-height: 44px;
+            font-size: 15px;
+          }
+          /* Clinician user info in header */
+          #clinicianUserInfo {
+            gap: 4px !important;
+            margin-right: 2px !important;
+          }
+          #clinicianUserInfo > span:first-child {
+            display: none; /* hide name, keep role badge + buttons */
+          }
+
+          /* ── Main Layout ── */
+          .main {
+            display: flex !important;
+            flex-direction: column !important;
+            height: auto !important;
+            min-height: calc(100vh - 50px);
+          }
+          .panel-left {
+            border-right: none !important;
+            border-bottom: 1px solid var(--border);
+            max-height: none !important;
+            padding: 8px !important;
+            overflow-y: visible !important;
+          }
+          .panel-right {
+            padding: 12px !important;
+            border-left: none !important;
+          }
+
+          /* ── Alert Banner ── */
+          .alert-banner { padding: 8px 12px; font-size: 13px; }
+
+          /* ── Digest Panel ── */
+          .digest-panel { margin: 8px 12px !important; }
+          .digest-header { padding: 12px 14px; font-size: 13px; }
+          .digest-body { padding: 0 0 12px; }
+
+          /* ── Search & Filter ── */
+          .search-sort-bar {
+            flex-direction: column !important;
+            gap: 6px;
+            padding: 0 0 8px !important;
+          }
+          .search-bar {
+            font-size: 16px !important;
+            padding: 12px 14px !important;
+            min-height: 44px;
+            border-radius: 8px !important;
+            border: 1px solid var(--border) !important;
+          }
+          .sort-select {
+            font-size: 14px;
+            padding: 10px 12px;
+            min-height: 44px;
+            width: 100%;
+          }
+          .filter-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; padding: 0 4px; }
+          .filter-pill {
+            font-size: 13px !important;
+            padding: 8px 14px !important;
+            min-height: 36px;
+          }
+
+          /* ── Section Title ── */
+          .section-title { padding: 12px 14px 10px !important; font-size: 13px; }
+
+          /* ── Patient Cards ── */
+          .patient-card {
+            padding: 12px 14px !important;
+            min-height: 56px;
+            gap: 10px !important;
+          }
+          .pc-name { font-size: 15px !important; }
+          .stage-badge { font-size: 12px !important; padding: 3px 10px !important; }
+          .pc-cycle { font-size: 12px !important; }
+          .pc-stats { font-size: 12px !important; gap: 8px; }
+          .pc-active { font-size: 12px !important; }
+          .risk-dot { width: 10px !important; height: 10px !important; }
+
+          /* ── Modal (Patient Detail) ── */
+          .modal-overlay {
+            padding-top: 0 !important;
+            align-items: flex-end !important;
+          }
+          .modal {
+            width: 100% !important;
+            max-width: 100% !important;
+            max-height: 92vh !important;
+            border-radius: 16px 16px 0 0 !important;
+            margin: 0;
+          }
+          .modal-header { padding: 14px 16px; }
+          .modal-title { font-size: 16px; }
+          .modal-close {
+            font-size: 24px;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          /* ── Modal Tabs ── */
+          .modal-tabs {
+            padding: 0 8px !important;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            flex-wrap: nowrap;
+            gap: 0;
+          }
+          .tab-btn {
+            font-size: 12px !important;
+            padding: 10px 10px !important;
+            white-space: nowrap;
+            min-height: 40px;
+            flex-shrink: 0;
+          }
+
+          /* ── Briefing Content ── */
+          .briefing-card {
+            padding: 14px !important;
+            margin: 8px 0 !important;
+          }
+
+          /* ── Outcome Queue ── */
+          #outcomeQueuePanel {
+            margin: 0 0 8px !important;
+            padding: 10px 12px !important;
+          }
+
+          /* ── Add Patient Modal ── */
+          #addPatientModal > div {
+            max-width: 100% !important;
+            width: 100% !important;
+            max-height: 95vh !important;
+            border-radius: 16px 16px 0 0 !important;
+            padding: 20px 16px !important;
+          }
+          #addPatientModal input,
+          #addPatientModal select,
+          #addPatientModal textarea {
+            font-size: 16px !important;
+            min-height: 44px;
+            padding: 10px 12px !important;
+          }
+          #addPatientModal button[onclick="submitNewPatient()"] {
+            min-height: 48px;
+            font-size: 16px !important;
+          }
+
+          /* ── Audit Log Modal ── */
+          #auditLogModal > div {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            border-radius: 16px 16px 0 0 !important;
+            max-height: 95vh !important;
+            padding: 16px !important;
+            position: fixed;
+            bottom: 0;
+          }
+          #auditLogModal select {
+            font-size: 14px;
+            min-height: 40px;
+          }
+          #auditLogModal table { font-size: 11px; }
+          #auditLogModal th,
+          #auditLogModal td { padding: 6px 4px !important; }
+
+          /* ── Login Screen ── */
+          #loginScreen > div {
+            width: 92% !important;
+            max-width: 380px;
+            padding: 28px 20px !important;
+          }
+          #loginScreen input {
+            font-size: 16px !important;
+            padding: 14px !important;
+            min-height: 48px;
+          }
+          #loginScreen button {
+            font-size: 16px !important;
+            min-height: 48px;
+          }
+
+          /* ── Clearance Tab ── */
+          #labPasteBox {
+            font-size: 14px !important;
+            min-height: 80px;
+          }
+          /* PDF upload zone */
+          [id^="pdfDropZone_"] {
+            padding: 20px 14px !important;
+          }
+
+          /* ── Med Grid (spreadsheet) ── */
+          .med-grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          .med-picker-input { font-size: 14px !important; }
+          .med-picker-item { padding: 10px 12px !important; font-size: 14px !important; min-height: 44px; }
+
+          /* ── OPU Grid ── */
+          .opu-grid { grid-template-columns: 1fr !important; padding: 12px !important; gap: 12px !important; }
+          .opu-card { padding: 14px !important; }
+          .opu-field input,
+          .opu-field select {
+            font-size: 16px !important;
+            min-height: 44px;
+            padding: 10px 12px !important;
+          }
+
+          /* ── Toast ── */
+          .med-toast { font-size: 14px !important; padding: 10px 20px !important; bottom: 16px !important; }
+          .toast-container { bottom: 16px !important; }
+
+          /* ── Phenotype cards ── */
+          .pheno-heatmap { flex-wrap: wrap; }
+          .pheno-hm-cell { min-width: 40px; font-size: 11px !important; }
+
+          /* ── General buttons ── */
+          button { -webkit-tap-highlight-color: transparent; }
+
+          /* ── Scrollable areas ── */
+          .panel-left, .panel-right, .modal {
+            -webkit-overflow-scrolling: touch;
+          }
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           EXTRA SMALL PHONES — 480px and below
+           ═══════════════════════════════════════════════════════════ */
+        @media (max-width: 480px) {
+          .header { height: 46px; }
+          .logo { font-size: 15px; }
+          .notif-bell { min-width: 32px !important; min-height: 32px !important; font-size: 16px !important; }
+
+          .patient-card { padding: 10px 12px !important; }
+          .pc-name { font-size: 14px !important; }
+          .pc-stats { flex-wrap: wrap; }
+          .pc-summary { font-size: 11px; }
+
+          .modal-header { padding: 12px 14px; }
+          .modal-title { font-size: 15px; }
+          .tab-btn { font-size: 11px !important; padding: 8px 8px !important; }
+
+          .briefing-card { padding: 10px !important; }
+
+          #addPatientModal > div { padding: 16px 12px !important; }
+
+          .opu-card { padding: 12px !important; }
+          .opu-card h3 { font-size: 13px !important; }
+
+          .digest-panel { margin: 6px 8px !important; }
+
+          /* Outcome queue items tighter */
+          #outcomeQueueList > div { padding: 8px !important; }
+        }
     </style>
 </head>
 <body>

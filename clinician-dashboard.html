@@ -928,6 +928,189 @@
           /* Outcome queue items tighter */
           #outcomeQueueList > div { padding: 8px !important; }
         }
+
+        /* ===== DASHBOARD REDESIGN v2 ===== */
+        .stats-bar {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin-bottom: 16px;
+          padding: 0 20px;
+        }
+        .stat-card {
+          background: #f7f7f5;
+          border-radius: 12px;
+          padding: 16px 20px;
+        }
+        .stat-card .stat-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+        .stat-card .stat-value { font-size: 24px; font-weight: 500; }
+        .stat-card .stat-badge {
+          display: inline-block; font-size: 12px; padding: 2px 8px;
+          border-radius: 10px; margin-left: 8px; vertical-align: middle;
+        }
+        .stat-badge.red { background: #FCEBEB; color: #A32D2D; }
+        .stat-badge.amber { background: #FAEEDA; color: #854F0B; }
+
+        /* Morning digest v2 */
+        .morning-digest-v2 {
+          background: #fff; border: 0.5px solid #e5e5e3; border-radius: 12px;
+          margin: 0 20px 12px; overflow: hidden;
+        }
+        .morning-digest-v2 .md2-header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 14px 20px; cursor: pointer; user-select: none;
+        }
+        .morning-digest-v2 .md2-header:hover { background: #f7f7f5; }
+        .morning-digest-v2 .md2-title {
+          font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px;
+        }
+        .morning-digest-v2 .md2-chevron { transition: transform 0.2s; color: #888; font-size: 12px; }
+        .morning-digest-v2.collapsed .md2-chevron { transform: rotate(-90deg); }
+        .morning-digest-v2 .md2-body {
+          padding: 0 20px 16px; font-size: 14px; line-height: 1.6; color: #555;
+          border-top: 0.5px solid #e5e5e3;
+        }
+        .morning-digest-v2.collapsed .md2-body { display: none; }
+
+        /* Results to communicate bar */
+        .results-bar-v2 {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 20px; background: #FAEEDA; border-radius: 12px;
+          margin: 0 20px 12px; cursor: pointer;
+        }
+        .results-bar-v2:hover { background: #f5e4c8; }
+        .results-bar-v2 .rb-label {
+          font-size: 14px; font-weight: 500; color: #854F0B;
+          display: flex; align-items: center; gap: 8px;
+        }
+        .results-bar-v2 .rb-count {
+          background: #854F0B; color: #fff; font-size: 12px; font-weight: 500;
+          padding: 2px 10px; border-radius: 10px;
+        }
+
+        /* Segmented filter control */
+        .filter-segmented {
+          display: flex; gap: 4px; padding: 4px; background: #f7f7f5; border-radius: 12px;
+        }
+        .filter-segmented .seg-btn {
+          padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 500;
+          cursor: pointer; border: none; background: transparent; color: #888;
+          display: flex; align-items: center; gap: 4px; transition: all 0.15s;
+          font-family: var(--sans);
+        }
+        .filter-segmented .seg-btn.active {
+          background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); color: #333;
+        }
+        .filter-segmented .seg-btn .dot {
+          width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+        }
+        .dot-red { background: #E24B4A; }
+        .dot-amber { background: #EF9F27; }
+        .dot-green { background: #1D9E75; }
+
+        /* Patient cards v2 */
+        .patient-card-v2 {
+          background: #fff; border: 0.5px solid #e5e5e3; border-radius: 12px;
+          padding: 16px 20px; cursor: pointer; transition: border-color 0.15s;
+          margin-bottom: 8px;
+        }
+        .patient-card-v2:hover { border-color: #ccc; background: #fafaf9; }
+        .patient-card-v2.risk-high {
+          border-color: #F09595; border-left: 3px solid #E24B4A;
+        }
+        .patient-card-v2 .card-top {
+          display: flex; align-items: flex-start; justify-content: space-between;
+        }
+        .patient-card-v2 .card-left {
+          display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;
+        }
+        .patient-card-v2 .avatar {
+          width: 40px; height: 40px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-weight: 500; font-size: 14px; flex-shrink: 0;
+        }
+        .avatar-green { background: #E1F5EE; color: #0F6E56; }
+        .avatar-amber { background: #FAEEDA; color: #854F0B; }
+        .avatar-red { background: #FCEBEB; color: #A32D2D; }
+        .avatar-gray { background: #f0f0ee; color: #888; }
+
+        .patient-card-v2 .patient-name-v2 {
+          font-size: 15px; font-weight: 500; color: #1a1a2e;
+        }
+        .patient-card-v2 .patient-meta-v2 {
+          font-size: 12px; color: #aaa; margin-top: 2px;
+        }
+        .patient-card-v2 .card-right-v2 {
+          display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+        }
+        .patient-card-v2 .stage-badge-v2 {
+          font-size: 12px; padding: 4px 10px; border-radius: 8px;
+          background: #f7f7f5; color: #888; white-space: nowrap;
+        }
+        .patient-card-v2 .card-actions-v2 {
+          display: flex; gap: 4px;
+        }
+        .patient-card-v2 .card-actions-v2 button {
+          background: none; border: 1px solid #e5e5e3; border-radius: 6px;
+          cursor: pointer; font-size: 14px; padding: 2px 6px; color: #888;
+          transition: border-color 0.15s;
+        }
+        .patient-card-v2 .card-actions-v2 button:hover { border-color: #0d7377; color: #0d7377; }
+        .patient-card-v2 .card-flags-v2 {
+          display: flex; gap: 6px; padding-left: 52px; margin-top: 8px; flex-wrap: wrap;
+        }
+        .card-flags-v2 .flag {
+          padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 500;
+        }
+        .flag-red { background: #FCEBEB; color: #A32D2D; }
+        .flag-amber { background: #FAEEDA; color: #854F0B; }
+        .flag-green { background: #E1F5EE; color: #085041; }
+
+        /* Connection live badge */
+        .live-badge {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 4px 12px; border-radius: 20px;
+          background: #E1F5EE; color: #0F6E56; font-size: 12px; font-weight: 500;
+        }
+        .live-badge .live-dot {
+          width: 6px; height: 6px; border-radius: 50%; background: #1D9E75;
+        }
+        .live-badge.disconnected {
+          background: #FCEBEB; color: #A32D2D;
+        }
+        .live-badge.disconnected .live-dot { background: #E24B4A; }
+
+        /* Icon button v2 */
+        .icon-btn-v2 {
+          width: 36px; height: 36px; border-radius: 50%; background: #f7f7f5;
+          border: none; display: flex; align-items: center; justify-content: center;
+          cursor: pointer; position: relative; transition: background 0.15s;
+        }
+        .icon-btn-v2:hover { background: #eee; }
+        .icon-btn-v2 .notif-dot {
+          position: absolute; top: 2px; right: 2px;
+          width: 8px; height: 8px; border-radius: 50%;
+          background: #E24B4A; border: 2px solid #fff;
+        }
+
+        /* v2 mobile overrides */
+        @media (max-width: 768px) {
+          .stats-bar { grid-template-columns: repeat(2, 1fr); padding: 0 12px; gap: 8px; }
+          .stat-card { padding: 12px 14px; }
+          .stat-card .stat-value { font-size: 20px; }
+          .morning-digest-v2 { margin: 0 12px 8px; }
+          .results-bar-v2 { margin: 0 12px 8px; }
+          .patient-card-v2 .card-right-v2 { display: none; }
+          .patient-card-v2 .card-flags-v2 { padding-left: 0; }
+          .patient-card-v2 { padding: 12px 14px; }
+          .filter-segmented { margin: 0; }
+        }
+        @media (max-width: 480px) {
+          .stats-bar { grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 8px; }
+          .stat-card .stat-value { font-size: 18px; }
+          .morning-digest-v2 { margin: 0 8px 6px; }
+          .results-bar-v2 { margin: 0 8px 6px; }
+        }
     </style>
 </head>
 <body>
@@ -961,8 +1144,8 @@
   </div>
   <div class="header-right">
     <div class="connection-status">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">Connecting…</span>
+      <span class="live-badge disconnected" id="liveBadge"><span class="live-dot"></span><span id="statusText">Connecting…</span></span>
+      <div class="status-dot" id="statusDot" style="display:none"></div>
     </div>
     <!-- Notification bell -->
     <button class="notif-bell" onclick="showOpuList()" title="OPU List" style="font-size:14px;font-weight:600;color:#0d7377;padding:4px 10px;border:1px solid #0d7377;border-radius:6px;margin-right:6px">OPU List</button>
@@ -1010,38 +1193,57 @@
 <!-- Main Layout -->
 <div class="main">
   <div class="panel-left">
-    <!-- Filter pills -->
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-      <button class="filter-pill active" onclick="setFilter('all',this)">All</button>
-      <button class="filter-pill" onclick="setFilter('red',this)">🔴 Red</button>
-      <button class="filter-pill" onclick="setFilter('amber',this)">🟡 Amber</button>
-      <button class="filter-pill" onclick="setFilter('green',this)">🟢 Green</button>
-      <button class="filter-pill" onclick="setFilter('flagged',this)">⚠️ Flagged</button>
-    </div>
-    <!-- Results to Communicate Queue -->
-    <div id="outcomeQueuePanel" style="display:none;margin-bottom:12px;background:#fffbf0;border:1px solid #f0e0b0;border-radius:8px;padding:10px 14px">
-      <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="document.getElementById('outcomeQueueList').style.display=document.getElementById('outcomeQueueList').style.display==='none'?'block':'none'">
-        <span style="font-size:13px;font-weight:700;color:#b8860b">📋 Results to Communicate <span id="outcomeQueueCount" style="background:#e85d4a;color:#fff;font-size:11px;padding:1px 7px;border-radius:10px;margin-left:4px">0</span></span>
-        <span style="font-size:11px;color:#999">▼</span>
+    <!-- Morning Digest v2 -->
+    <div class="morning-digest-v2 collapsed" id="morningDigestV2" style="display:none">
+      <div class="md2-header" onclick="document.getElementById('morningDigestV2').classList.toggle('collapsed')">
+        <div class="md2-title"><span>☀️</span> Morning digest <span id="digestTimeV2" style="font-size:12px;color:#aaa;font-weight:400"></span></div>
+        <span class="md2-chevron">▼</span>
       </div>
-      <div id="outcomeQueueList" style="margin-top:8px"></div>
+      <div class="md2-body" id="digestBodyV2">Loading morning digest...</div>
     </div>
 
-    <!-- Search and sort -->
-    <div class="search-sort-bar">
-      <input class="search-bar" id="patientSearch" placeholder="Search patients..." oninput="filterPatients()">
-      <select class="sort-select" id="patientSort" onchange="sortPatients()" autocomplete="off">
-        <option value="escalation">By Risk Level</option>
-        <option value="dropout_risk">By Dropout Risk</option>
-        <option value="last_active">By Last Active</option>
-        <option value="name">Alphabetical</option>
+    <!-- Results to Communicate v2 -->
+    <div class="results-bar-v2" id="resultsBarV2" style="display:none" onclick="document.getElementById('outcomeQueueList').style.display=document.getElementById('outcomeQueueList').style.display==='none'?'block':'none'">
+      <div class="rb-label">📋 Results to communicate</div>
+      <div class="rb-count" id="resultsCountV2">0</div>
+    </div>
+    <!-- Hidden outcome queue list (shown on click) -->
+    <div id="outcomeQueuePanel" style="display:none;margin:0 20px 12px;background:#fffbf0;border:1px solid #f0e0b0;border-radius:8px;padding:10px 14px">
+      <div id="outcomeQueueList" style="margin-top:0"></div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-card"><div class="stat-label">Patients</div><div class="stat-value" id="statPatients">0</div></div>
+      <div class="stat-card"><div class="stat-label">Alerts</div><div class="stat-value" id="statAlerts">0</div></div>
+      <div class="stat-card"><div class="stat-label">Results pending</div><div class="stat-value" id="statResults">0</div></div>
+      <div class="stat-card"><div class="stat-label">OPU today</div><div class="stat-value" id="statOpu">0</div></div>
+    </div>
+
+    <!-- Segmented filter + Search -->
+    <div style="padding:0 20px 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div class="filter-segmented" id="filterSegmented">
+        <button class="seg-btn active" onclick="setFilterV2('all',this)">All</button>
+        <button class="seg-btn" onclick="setFilterV2('red',this)"><span class="dot dot-red"></span>Red</button>
+        <button class="seg-btn" onclick="setFilterV2('amber',this)"><span class="dot dot-amber"></span>Amber</button>
+        <button class="seg-btn" onclick="setFilterV2('green',this)"><span class="dot dot-green"></span>Green</button>
+        <button class="seg-btn" onclick="setFilterV2('flagged',this)">⚠ Flagged</button>
+      </div>
+      <div style="flex:1;min-width:120px">
+        <input class="search-bar" id="patientSearch" placeholder="Search patients..." oninput="filterPatients()" style="border:1px solid #e5e5e3;border-radius:8px;padding:8px 14px;width:100%;box-sizing:border-box;font-size:14px;background:#fff">
+      </div>
+      <select class="sort-select" id="patientSort" onchange="sortPatients()" autocomplete="off" style="border:1px solid #e5e5e3;border-radius:8px;padding:8px 12px;font-size:12px;background:#fff">
+        <option value="escalation">By Risk</option>
+        <option value="dropout_risk">By Dropout</option>
+        <option value="last_active">By Active</option>
+        <option value="name">A-Z</option>
       </select>
     </div>
     <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>Patients <span class="section-count" id="patientCount">0</span></span>
       <button onclick="openAddPatientModal()" style="width:32px;height:32px;border-radius:50%;background:#0d7377;color:#fff;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.12);line-height:1" title="Add new patient">+</button>
     </div>
-    <div class="patient-grid" id="patientGrid">
+    <div class="patient-grid" id="patientGrid" style="padding:8px 12px">
       <div class="empty-state"><div class="empty-state-icon">◌</div><div class="empty-state-text">Waiting for connection</div></div>
     </div>
   </div>
@@ -1481,7 +1683,9 @@ async function poll() {
       patients.forEach(function(pt) { fetchPronunciation(pt.patient_id); fetchClearanceStatus(pt.patient_id); });
       // renderSpreadsheet(patients);
       document.getElementById('statusDot').className = 'status-dot connected';
-      document.getElementById('statusText').textContent = 'Connected';
+      document.getElementById('statusText').textContent = 'Live';
+      var lb = document.getElementById('liveBadge');
+      if (lb) { lb.className = 'live-badge'; }
     }
     if (aRes.ok) {
       alerts = (await aRes.json()).alerts || [];
@@ -1504,6 +1708,8 @@ async function poll() {
   } catch (e) {
     document.getElementById('statusDot').className = 'status-dot';
     document.getElementById('statusText').textContent = 'Disconnected';
+    var lb = document.getElementById('liveBadge');
+    if (lb) { lb.className = 'live-badge disconnected'; }
   }
 }
 
@@ -1524,6 +1730,15 @@ async function loadDigest() {
     document.getElementById('digestBody').innerHTML =
       '<pre style="white-space:pre-wrap;font-family:var(--sans);font-size:13px;line-height:1.7;color:var(--text-primary)">' +
       escHtml(d.digest) + '</pre>';
+    // Also populate digest v2
+    var dv2 = document.getElementById('morningDigestV2');
+    if (dv2) {
+      dv2.style.display = 'block';
+      document.getElementById('digestBodyV2').innerHTML =
+        '<pre style="white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.7;color:#555;margin:0">' +
+        escHtml(d.digest) + '</pre>';
+      document.getElementById('digestTimeV2').textContent = new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    }
   } catch (e) { console.warn('Digest load failed:', e); }
 }
 
@@ -1660,41 +1875,65 @@ function renderPatients() {
     return;
   }
 
+  // Update stats bar
+  var redCount = patients.filter(function(p) { return ((p.escalation_level||p.risk_level||'GREEN').toUpperCase()) === 'RED'; }).length;
+  var amberCount = patients.filter(function(p) { return ((p.escalation_level||p.risk_level||'GREEN').toUpperCase()) === 'AMBER'; }).length;
+  document.getElementById('statPatients').textContent = patients.length;
+  var alertsHtml = (redCount + amberCount) + '';
+  if (redCount > 0) alertsHtml += ' <span class="stat-badge red">' + redCount + ' red</span>';
+  document.getElementById('statAlerts').innerHTML = alertsHtml;
+  document.getElementById('statResults').textContent = (typeof pendingOutcomes !== 'undefined' ? pendingOutcomes.length : 0);
+
   grid.innerHTML = sorted.map(function(p) {
     var esc = (p.escalation_level || p.risk_level || 'GREEN').toUpperCase();
-    var ci = p.latest_checkin || {};
-    var lastActive = p.last_active ? timeAgo(p.last_active) : 'unknown';
-    var lastActiveClass = '';
-    if (p.last_active) {
-      try {
-        var d = (new Date() - new Date(p.last_active)) / 86400000;
-        if (d >= 2) lastActiveClass = ' warn';
-      } catch(e) {}
-    }
-    var summary = p.summary || '';
-    var style_badge = '';
-    if (p.communication_style) {
-      var sc = p.communication_style === 'ANALYTICAL' ? 'blue' : p.communication_style === 'EMOTIONAL' ? 'coral' : 'purple';
-      style_badge = '<span class="style-mini ' + sc + '">' + p.communication_style.charAt(0) + '</span>';
-    }
+    var riskColor = getRiskColor(esc);
+    var lastActive = p.last_active ? timeAgo(p.last_active) : '';
+    var initials = getInitials(p.patient_name || p.name || '');
+    var name = escHtml(p.patient_name || p.name || p.patient_id);
+    var pronCache = pronunciationCache[p.patient_id];
+    var pronText = pronCache && typeof pronCache === 'object' ? pronCache.phonetic : '';
 
-    var dotClass = esc === "RED" ? "red" : esc === "AMBER" ? "amber" : "green";
-    var dayHeaders = '';
-    for (var dd = 1; dd <= 14; dd++) dayHeaders += '<th style="border:1px solid #ddd;padding:1px 2px;background:#f8f9fb;font-size:9px;color:#999;min-width:32px;">D' + dd + '</th>';
-    return '<div style="border-bottom:1px solid #eee;padding:4px 0;">' +
-      '<div class="patient-card" style="display:flex;align-items:center;gap:8px;">' +
-      '<div class="risk-dot ' + dotClass + '"></div>' +
-      '<div style="flex:1;min-width:0" onclick="openDetail(\'' + p.patient_id + '\')">' +
-        '<div class="pc-name">' + escHtml(p.patient_name || p.patient_id) + ' ' + phenoBadgeHtml(p.patient_id) + '</div>' +
-        pronBadgeHtml(p.patient_id) +
-        '<div class="pc-active' + lastActiveClass + '">' + (p.email ? escHtml(p.email) + ' · ' : '') + lastActive + '</div>' +
+    // Build meta line
+    var metaParts = [];
+    if (pronText) metaParts.push('🔊 ' + escHtml(pronText));
+    if (p.treatment_stage) metaParts.push(escHtml(p.treatment_stage));
+    if (lastActive) metaParts.push(lastActive);
+    var metaLine = metaParts.join(' · ');
+
+    // Build flags
+    var flags = '';
+    var phenoData = phenotypeScores[p.patient_id];
+    if (phenoData) {
+      var oRisk = (phenoData.overall_risk || '').toUpperCase();
+      if (oRisk === 'RED') flags += '<span class="flag flag-red">At risk</span>';
+      else if (oRisk === 'AMBER') flags += '<span class="flag flag-amber">Monitor</span>';
+      if (phenoData.dropout_risk && phenoData.dropout_risk > 50) flags += '<span class="flag flag-amber">Dropout risk</span>';
+    }
+    if (p.unresolved_count > 0) flags += '<span class="flag flag-amber">⚠ ' + p.unresolved_count + ' unresolved</span>';
+    var flagsHtml = flags ? '<div class="card-flags-v2">' + flags + '</div>' : '';
+
+    var riskClass = riskColor === 'red' ? ' risk-high' : '';
+
+    return '<div class="patient-card-v2' + riskClass + '" onclick="openDetail(\'' + p.patient_id + '\')">' +
+      '<div class="card-top">' +
+        '<div class="card-left">' +
+          '<div class="avatar avatar-' + riskColor + '">' + initials + '</div>' +
+          '<div style="min-width:0">' +
+            '<div class="patient-name-v2">' + name + ' ' + clearanceDotHtml(p.patient_id) + '</div>' +
+            '<div class="patient-meta-v2">' + metaLine + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="card-right-v2">' +
+          '<span class="stage-badge-v2">' + escHtml(p.treatment_stage || '') + '</span>' +
+          '<div class="card-actions-v2">' +
+            '<button onclick="event.stopPropagation();window.toggleMedGrid(\'' + p.patient_id + '\')" title="Med grid">💊</button>' +
+            '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + escHtml(p.patient_name||p.name||'') + '\')" title="Delete">×</button>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
-      clearanceDotHtml(p.patient_id) +
-      '<span class="stage-badge">' + escHtml(p.treatment_stage || '') + '</span>' +
-      '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + (p.patient_name||p.name||'') + '\')" style="font-size:12px;background:none;border:none;cursor:pointer;color:#ddd;padding:0 4px;" title="Delete patient">&times;</button>' +
-      '<button onclick="event.stopPropagation();window.toggleMedGrid(\'' + p.patient_id + '\')" style="font-size:16px;background:none;border:1px solid #ccc;border-radius:4px;cursor:pointer;padding:0 6px;color:#0d7377;">+</button>' +
-      '</div>' +
-      '<div id="medgrid-container-' + p.patient_id + '" style="padding:4px 12px 8px;"></div></div>';
+      flagsHtml +
+    '</div>' +
+    '<div id="medgrid-container-' + p.patient_id + '"></div>';
   }).join('');
   // Load saved meds into grid containers after DOM is updated
   setTimeout(function() { if (typeof injectMedGrids === 'function') injectMedGrids(); }, 200);
@@ -1730,8 +1969,30 @@ function setFilter(filter, btn) {
   if (btn) btn.classList.add('active');
   renderPatients();
 }
+function setFilterV2(filter, btn) {
+  _escFilter = filter;
+  document.querySelectorAll('.seg-btn').forEach(function(p) { p.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  renderPatients();
+}
 function filterPatients() { renderPatients(); }
 function sortPatients() { renderPatients(); }
+
+function getInitials(name) {
+  if (!name) return '?';
+  var parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return name.substring(0, 2).toUpperCase();
+}
+
+function getRiskColor(risk) {
+  if (!risk) return 'gray';
+  var r = risk.toLowerCase();
+  if (r === 'red' || r.includes('high')) return 'red';
+  if (r === 'amber' || r === 'yellow' || r.includes('medium') || r.includes('moderate')) return 'amber';
+  if (r === 'green' || r.includes('low')) return 'green';
+  return 'gray';
+}
 
 // ── Add Patient Modal ───────────────────────────────────────────────
 function openAddPatientModal() {
@@ -4749,9 +5010,17 @@ function renderOutcomeQueue() {
   var list = document.getElementById('outcomeQueueList');
   var count = document.getElementById('outcomeQueueCount');
   if (!panel) return;
+  // Update results bar v2
+  var rbv2 = document.getElementById('resultsBarV2');
+  var rcv2 = document.getElementById('resultsCountV2');
+  if (rbv2) { rbv2.style.display = pendingOutcomes.length > 0 ? 'flex' : 'none'; }
+  if (rcv2) { rcv2.textContent = pendingOutcomes.length; }
+  // Update stat card
+  var sr = document.getElementById('statResults');
+  if (sr) sr.textContent = pendingOutcomes.length;
   if (pendingOutcomes.length === 0) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
-  count.textContent = pendingOutcomes.length;
+  if (count) count.textContent = pendingOutcomes.length;
   var html = '';
   pendingOutcomes.forEach(function(o) {
     var isPositive = (o.outcome_value || '').toLowerCase() === 'positive';

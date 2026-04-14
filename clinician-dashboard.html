@@ -1981,17 +1981,13 @@ function renderPatients() {
         '<div class="card-right-v2">' +
           '<span class="stage-badge-v2">' + escHtml(p.treatment_stage || '') + '</span>' +
           '<div class="card-actions-v2">' +
-            '<button onclick="event.stopPropagation();window.toggleMedGrid(\'' + p.patient_id + '\')" title="Med grid">💊</button>' +
-            '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + escHtml(p.patient_name||p.name||'') + '\')" title="Delete">×</button>' +
+            '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + escHtml(p.patient_name||p.name||'') + '\')" title="Delete" style="font-size:16px;color:#ccc;background:none;border:none;cursor:pointer;min-width:28px;min-height:28px">×</button>' +
           '</div>' +
         '</div>' +
       '</div>' +
       flagsHtml +
-    '</div>' +
-    '<div id="medgrid-container-' + p.patient_id + '"></div>';
+    '</div>';
   }).join('');
-  // Load saved meds into grid containers after DOM is updated
-  setTimeout(function() { if (typeof injectMedGrids === 'function') injectMedGrids(); }, 200);
 }
 function sortPatientList(list) {
   var sort = document.getElementById('patientSort') ? document.getElementById('patientSort').value : 'escalation';
@@ -2244,6 +2240,10 @@ async function loadModalTab(patientId, tab) {
       if (!r.ok) throw new Error('Failed');
       var b = await r.json();
       console.log("[BRIEFING] Data received:", JSON.stringify(b).substring(0,200)); body.innerHTML = renderBriefing(b); console.log("[BRIEFING] Rendered HTML length:", body.innerHTML.length);
+      // Add med grid container inside modal
+      body.innerHTML += '<div style="margin-top:16px;padding:0 20px"><div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:8px">Medication Grid</div><div id="medgrid-container-' + patientId + '" class="med-grid-wrap"></div></div>';
+      // Auto-expand med grid
+      if (typeof window.toggleMedGrid === 'function') { setTimeout(function() { window.toggleMedGrid(patientId); }, 300); }
       // Load adherence card into briefing
       loadAdherenceCard(patientId);
       // Append trends charts below briefing

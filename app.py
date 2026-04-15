@@ -7575,3 +7575,132 @@ async def get_patient_engagement(patient_id: str):
     if eng["alert_status"]:
         fb_db_mod.reference("melod_ai").child("alerts").push({"type": "disengagement", "patient_id": patient_id, "score": eng["current_score"], "alert_status": eng["alert_status"], "timestamp": now.isoformat()})
     return eng
+
+
+# --- Proactive Escalation Nudge Endpoints ---
+
+def _evaluate_escalation(patient_id):
+    import firebase_admin.db as fb_db_mod
+    triggers = []
+    # 1. Check latest PHQ-4
+    try:
+        phq_scores = fb_db_mod.reference(f"melod_ai/patients/{patient_id}/phq4_scores").get() or {}
+        if phq_scores:
+            sorted_dates = sorted(phq_scores.keys(), reverse=True)
+            latest = phq_scores[sorted_dates[0]]
+            if isinstance(latest, dict):
+                total = latest.get("total", 0)
+                dep_sub = latest.get("depression_sub", 0)
+                if total >= 9:
+                    triggers.append({"type": "phq4_severe", "severity": "strong_recommendation", "detail": f"PHQ-4 total={total}"})
+                if dep_sub >= 5 and len(sorted_dates) >= 3:
+                    scores_3 = [phq_scores[d].get("depression_sub", 0) for d in sorted_dates[:3] if isinstance(phq_scores[d], dict)]
+                    if len(scores_3) == 3 and scores_3[0] > scores_3[1] > scores_3[2]:
+                        triggers.append({"type": "depression_trending", "severity": "gentle_nudge", "detail": f"Depression trending up: {scores_3[::-1]}"})
+    except Exception:
+        pass
+    # 2. Check engagement
+    try:
+        eng = _compute_engagement(patient_id)
+        if eng["current_score"] < 15:
+            triggers.append({"type": "severe_disengagement", "severity": "clinician_alert_only", "detail": f"Engagement score={eng['current_score']}"})
+    except Exception:
+        pass
+    # 3. Check alliance
+    try:
+        surveys = fb_db_mod.reference(f"melod_ai/patients/{patient_id}/alliance_surveys").get() or {}
+        if surveys:
+            sorted_keys = sorted(surveys.keys(), reverse=True)
+            latest_survey = surveys[sorted_keys[0]]
+            if isinstance(latest_survey, dict) and latest_survey.get("overall_mean", 5) < 2.0:
+                triggers.append({"type": "low_alliance", "severity": "gentle_nudge", "detail": f"Alliance overall={latest_survey.get('overall_mean')}"})
+    except Exception:
+        pass
+    # 4. Check phenotype
+    try:
+        pheno = fb_db_mod.reference(f"melod_ai/phenotype_scores/{patient_id}/latest").get() or {}
+        if isinstance(pheno, dict):
+            for construct, score in pheno.items():
+                if isinstance(score, (int, float)) and score > 0.8:
+                    triggers.append({"type": "phenotype_elevated", "severity": "strong_recommendation", "detail": f"{construct}={score}"})
+                    break
+    except Exception:
+        pass
+    if not triggers:
+        return {"needs_escalation": False, "trigger_type": None, "severity": None, "message": None}
+    worst = sorted(triggers, key=lambda t: {"strong_recommendation": 0, "gentle_nudge": 1, "clinician_alert_only": 2}.get(t["severity"], 3))[0]
+    messages = {
+        "gentle_nudge": "It sounds like things have been really tough lately. Your care team is here for you \u2014 would you like me to let them know you\u2019d appreciate a check-in?",
+        "strong_recommendation": "I want to make sure you\u2019re getting the best support possible. I\u2019m going to let your nurse know to reach out \u2014 they care about how you\u2019re doing.",
+        "clinician_alert_only": None
+    }
+    return {"needs_escalation": True, "trigger_type": worst["type"], "severity": worst["severity"], "message": messages.get(worst["severity"]), "detail": worst["detail"], "all_triggers": triggers}
+
+
+@app.get("/escalation/{patient_id}/check")
+async def check_escalation(patient_id: str):
+    return _evaluate_escalation(patient_id)
+
+
+@app.post("/escalation/{patient_id}/respond")
+async def respond_to_escalation(patient_id: str, response: dict):
+    import firebase_admin.db as fb_db_mod
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("Australia/Melbourne"))
+    ts = now.strftime("%Y%m%d_%H%M%S")
+    patient_response = response.get("response", "unknown")
+    trigger_type = response.get("trigger_type", "unknown")
+    severity = response.get("severity", "unknown")
+    record = {"patient_id": patient_id, "response": patient_response, "trigger_type": trigger_type, "severity": severity, "timestamp": now.isoformat(), "resolved": False}
+    fb_db_mod.reference(f"melod_ai/patients/{patient_id}/escalation_responses/{ts}").update(record)
+    if patient_response == "yes_please" or severity == "strong_recommendation":
+        fb_db_mod.reference("melod_ai").child("alerts").push({"type": "patient_requested_contact" if patient_response == "yes_please" else "escalation_auto", "patient_id": patient_id, "trigger_type": trigger_type, "severity": severity, "patient_response": patient_response, "timestamp": now.isoformat()})
+    followups = {"yes_please": "Thank you. Your care team will reach out to you soon.", "not_now": "No worries at all. I\u2019m here whenever you need me.", "im_okay": "Glad to hear it. Remember, your care team is always just a message away."}
+    return {"acknowledged": True, "message": followups.get(patient_response, "Thank you for letting me know.")}
+
+
+@app.get("/clinician/escalations/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def get_patient_escalations(patient_id: str):
+    import firebase_admin.db as fb_db_mod
+    responses = fb_db_mod.reference(f"melod_ai/patients/{patient_id}/escalation_responses").get() or {}
+    entries = [{"id": k, **v} for k, v in responses.items() if isinstance(v, dict)]
+    entries.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    return {"escalations": entries}
+
+
+@app.post("/clinician/escalations/{patient_id}/resolve", dependencies=[Depends(verify_clinician_api_key)])
+async def resolve_escalation(patient_id: str, body: dict):
+    import firebase_admin.db as fb_db_mod
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("Australia/Melbourne"))
+    esc_id = body.get("escalation_id", "")
+    action = body.get("action", "dismissed")
+    note = body.get("note", "")
+    if esc_id:
+        fb_db_mod.reference(f"melod_ai/patients/{patient_id}/escalation_responses/{esc_id}").update({"resolved": True, "resolved_action": action, "resolved_note": note, "resolved_at": now.isoformat()})
+    return {"resolved": True}
+
+
+@app.get("/anti-dependency/{patient_id}/check")
+async def check_anti_dependency(patient_id: str):
+    import firebase_admin.db as fb_db_mod
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("Australia/Melbourne"))
+    try:
+        msgs = fb_db_mod.reference(f"melod_ai/patients/{patient_id}/anti_dependency_msgs").get() or {}
+        if msgs:
+            last_date = max(msgs.keys())
+            days_since = (now.date() - datetime.strptime(last_date, "%Y-%m-%d").date()).days
+            if days_since < 14:
+                return {"show_message": False}
+    except Exception:
+        pass
+    try:
+        eng = _compute_engagement(patient_id)
+        if eng["current_score"] > 80:
+            date_str = now.strftime("%Y-%m-%d")
+            fb_db_mod.reference(f"melod_ai/patients/{patient_id}/anti_dependency_msgs/{date_str}").update({"shown": True, "timestamp": now.isoformat()})
+            return {"show_message": True, "message": "Remember, your care team is always available for anything you need. I\u2019m here to support you between appointments."}
+    except Exception:
+        pass
+    return {"show_message": False}

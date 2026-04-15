@@ -1,0 +1,352 @@
+{
+  "timestamp": "2026-04-04T15:36:38.796203",
+  "url": "https://ivf-companion-532857641879.australia-southeast1.run.app",
+  "results": [
+    {
+      "query_id": "EDU_01",
+      "category": "education",
+      "message": "I'm 37 \u2014 what are my realistic chances of getting pregnant naturally?",
+      "response_text": "I just answered this same question for you a moment ago! At 37, you have about a 15-20% chance per month naturally, with 65-75% of women conceiving over a full year of trying.\n\nIs there a specific aspect of natural conception chances you'd like me to explore further? For example, are you wondering how these odds compare to IVF success rates at your age, or are you thinking about how long to try naturally before seeking treatment? I'm happy to dive deeper into whatever part of this is most relevant to your decision-making right now.\n\nSince you're in the initial workup stage, understanding these baseline natural conception rates helps put your fertility test results into context once you get them back.",
+      "charts_shown": [
+        "age_outcomes"
+      ],
+      "charts_expected": [
+        "age_outcomes"
+      ],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 18.25,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5VebeVhgxyBXHsFix1'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EDU_02",
+      "category": "education",
+      "message": "Should I do fresh or frozen embryo transfer? Which is better?",
+      "response_text": "I just covered this for you - frozen transfers (FET) are now as successful as or often better than fresh transfers, with 5-10% higher success rates in many studies.\n\nAre you asking because you're trying to plan ahead for your treatment, or did something specific come up about fresh vs frozen that's making you reconsider? Since you're still in the initial workup phase, you've got time to discuss the strategy with your specialist once they see how you respond to medications.\n\nIs there a particular aspect of the fresh vs frozen decision you'd like me to explore more - like the timeline differences, the medication protocols, or how the decision gets made based on your individual response?",
+      "charts_shown": [
+        "fresh_vs_frozen",
+        "age_outcomes"
+      ],
+      "charts_expected": [
+        "fresh_vs_frozen"
+      ],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 11.08,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5WZxcnnvuQCr1vj89t'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EDU_03",
+      "category": "education",
+      "message": "My doctor says I have stage 2 endometriosis. Can I still get pregnant?",
+      "response_text": "Yes, you absolutely can still get pregnant with stage 2 endometriosis. Stage 2 is considered mild endometriosis, and many women at this stage conceive both naturally and with fertility treatment. The data is actually quite encouraging for your situation.\n\nHere's what the research shows: women with mild endometriosis (stages 1-2) have about a 60-70% chance of conceiving naturally within 2 years, compared to 85-90% for women without endo. While that's a reduction, it's not insurmountable. For IVF, success rates are typically only slightly lower than women without endometriosis - we're talking maybe a 5-10% difference in live birth rates, not a dramatic drop.\n\nThe way stage 2 endo affects fertility is mainly through inflammation. Think of it like having a low-grade irritation in your pelvis that can interfere with the normal process of ovulation, fertilization, and implantation. The endometrial tissue creates inflammatory factors that can make the environment less friendly for sperm and eggs to meet, and for embryos to implant.\n\nSome specialists recommend a few months of treatment to quiet down the inflammation before trying to conceive - this might be hormonal suppression or anti-inflammatory approaches. Others prefer to move straight to fertility treatment, especially given your age. The key is that stage 2 typically doesn't involve major structural damage like severe adhesions or large cysts that would require surgery.\n\nYour specialist can give you specifics for your situation about whether any pre-treatment for the endo would be beneficial before starting your fertility journey.",
+      "charts_shown": [
+        "age_outcomes"
+      ],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 12.99,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5XdZCGH5cjuUNyy7LT'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EDU_04",
+      "category": "education",
+      "message": "How many IVF cycles should I expect to need?",
+      "response_text": "At 37, most women need 2-3 IVF cycles to achieve a live birth, though this varies significantly based on your individual situation. Here's what the data shows:\n\nThe cumulative success rates are more encouraging than single-cycle rates. While one IVF cycle at 37 typically has about a 35-40% live birth rate, after three cycles, cumulative success rates climb to around 65-75% for women your age. Some studies show even higher cumulative rates - up to 85% after 4-6 cycles - but this includes women who may have had less complex fertility issues.\n\nThink of it like this: each cycle gives you valuable information. The first cycle shows how you respond to medications, how many eggs you produce, and the quality of your embryos. Even if that cycle doesn't result in pregnancy, it provides a roadmap for optimizing future attempts. Many women see improved outcomes in their second or third cycles as protocols get fine-tuned.\n\nThe key factors that influence how many cycles you might need include your AMH levels, antral follicle count, any underlying conditions (like your endometriosis), and sperm quality. Women with higher egg reserves and good embryo quality may succeed in 1-2 cycles, while others may need 3-4 cycles.\n\nMost fertility specialists recommend planning mentally and financially for at least 2-3 cycles, while hoping you'll be successful sooner. This helps manage both expectations and the emotional rollercoaster.\n\nYour specialist can give you specifics for your situation once they see your hormone levels and how you respond to your first stimulation cycle.",
+      "charts_shown": [
+        "cumulative",
+        "age_outcomes"
+      ],
+      "charts_expected": [
+        "cumulative"
+      ],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 15.39,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5YsUdWczkqKnv2EZf5'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EDU_05",
+      "category": "education",
+      "message": "My AMH is low \u2014 does that mean I can't have kids?",
+      "response_text": "Absolutely not - a low AMH does not mean you can't have kids. It's one of the most misunderstood fertility tests, and I see women with low AMH numbers have babies all the time.\n\nHere's what low AMH actually means: it suggests you have fewer eggs remaining in your ovaries (diminished ovarian reserve), but it tells you nothing about egg quality. Think of it like this - you might have a smaller basket of apples, but the apples you do have could be perfectly good. Studies show that women with low AMH can have the same pregnancy rates per embryo transferred as women with normal AMH levels.\n\nThe numbers vary by lab, but generally AMH under 1.0 ng/mL (or 7 pmol/L) is considered low. However, research shows that women with AMH as low as 0.3-0.5 still have around 20-30% live birth rates per IVF cycle when good quality embryos are available. Some women with \"undetectable\" AMH still conceive naturally.\n\nWhat low AMH does mean is that you'll likely need higher medication doses during IVF stimulation, may produce fewer eggs per cycle, and might need to move more quickly rather than waiting. Your fertility specialist might recommend a more aggressive stimulation protocol or suggest banking embryos from multiple cycles if you want more than one child.\n\nThe key is not to let that number become your identity or define your journey. Women with low AMH have successful pregnancies every single day - it just might take a different approach or more cycles to get there.\n\nYour specialist can give you specifics for your situation about what your particular AMH level means for your treatment strategy.",
+      "charts_shown": [
+        "cumulative"
+      ],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 14.97,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5a5LY4bJsRpHdkVPZy'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EDU_06",
+      "category": "education",
+      "message": "Do I need ICSI or is regular IVF fine?",
+      "response_text": "Whether you need ICSI or conventional IVF depends mainly on your partner's sperm quality and a few other factors specific to your situation. Here's how the decision typically gets made:\n\nConventional IVF works well when sperm parameters are normal - the eggs and sperm are simply mixed together in a dish, and fertilization happens naturally. Success rates are excellent, with about 70-80% of mature eggs fertilizing this way when sperm quality is good.\n\nICSI becomes necessary when there are sperm issues: low count (under 15 million/mL), poor motility (less than 40% moving), abnormal shape (under 4% normal forms), or if there's been previous fertilization failure. With ICSI, an embryologist selects the single best-looking sperm and injects it directly into each egg. Think of it like giving each egg a guaranteed dance partner rather than hoping they find each other at the party.\n\nThe data shows that when ICSI is appropriately indicated, fertilization rates are similar to conventional IVF (70-80%). However, using ICSI when it's not needed doesn't improve outcomes and adds unnecessary cost and a tiny additional risk to the eggs.\n\nSome other situations where ICSI might be recommended include: if you're doing PGT-A genetic testing (to avoid sperm DNA contaminating the biopsy), if you're using frozen eggs (they can be more fragile), or if your clinic has a blanket ICSI policy.\n\nYour specialist can give you specifics for your situation once they review your partner's semen analysis and consider your overall treatment plan.",
+      "charts_shown": [
+        "age_outcomes"
+      ],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 12.58,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5b7G9wTF3yDG8afsxA'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EDU_07",
+      "category": "education",
+      "message": "My clinic is recommending PGT-A testing. Is it worth it?",
+      "response_text": "At 37, PGT-A testing is definitely worth considering, though it's not automatically right for everyone. Here's what the data shows for your age group:\n\nThe main benefit is improved efficiency per transfer. Without PGT-A, about 40-50% of your embryos are likely to have chromosomal abnormalities (aneuploidy), which increases sharply after 35. With PGT-A, embryos that test normal (euploid) have implantation rates of 60-70% per transfer, compared to 35-45% when transferring untested embryos. This means fewer transfer cycles and potentially less time to pregnancy.\n\nHowever, there are important considerations. PGT-A adds 1-2 weeks to your timeline and costs about $3,000-5,000 per cycle. Not all embryos survive the biopsy process (though loss rates are low, around 2-5%). Some \"mosaic\" embryos (mix of normal/abnormal cells) can still lead to healthy pregnancies but might be discarded depending on your clinic's policy.\n\nThe math often favors PGT-A at your age, especially if you have good embryo numbers. Studies show that women 37+ who do PGT-A typically reach live birth faster overall, despite the extra waiting time per cycle. If you only have 1-2 embryos, the decision becomes more complex since you're putting your limited embryos at that small additional risk.\n\nYour individual factors matter too: your egg reserve, whether you've had previous losses, and how many transfer attempts your insurance covers all influence whether PGT-A makes sense financially and emotionally.\n\nYour specialist can give you specifics for your situation based on your expected embryo yield and personal circumstances.",
+      "charts_shown": [],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 12.69,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5c9QAmMi3Qh9p8wEYm'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EDU_08",
+      "category": "education",
+      "message": "We've been told it's unexplained infertility. What does that even mean?",
+      "response_text": "Unexplained infertility is frustrating because it means all your standard fertility tests came back normal, yet you haven't conceived after a year of trying (or 6 months at 37+). Studies show this accounts for about 10-15% of all fertility cases, so you're definitely not alone.\n\nHere's what \"unexplained\" actually means: your ovulation is regular, your fallopian tubes are open, your partner's sperm analysis is normal, and your hormone levels look good. But fertility is incredibly complex - there are dozens of microscopic steps that need to work perfectly for conception to happen. Think of it like a very intricate machine where all the big parts look fine, but something in the detailed mechanics isn't quite clicking.\n\nThe reality is that current testing can only evaluate so much. We can't easily assess egg quality, how well sperm actually penetrates eggs, whether fertilization happens normally, if embryos develop properly, or how receptive your uterine lining truly is. Some theories include subtle hormone imbalances, immune factors, or issues with the luteal phase that don't show up on standard tests.\n\nFrom a practical standpoint, unexplained infertility often responds well to treatment. IVF success rates for unexplained infertility are typically similar to or sometimes better than other diagnoses - around 35-45% per cycle at your age. The process reveals information you couldn't get otherwise: how many eggs you produce, fertilization rates, embryo quality, and how you respond to medications.\n\nYour specialist can give you specifics for your situation about whether to try simpler treatments first (like ovulation induction) or move directly to IVF given your age.",
+      "charts_shown": [
+        "age_outcomes",
+        "causes"
+      ],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 14.35,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5dJSAfydmZBQKDuD5v'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EMO_01",
+      "category": "emotional",
+      "message": "We just got a negative result. I feel completely broken. I don't know if I can do this again.",
+      "response_text": "I'm so sorry. A negative result after everything you've been through - the medications, the procedures, the hope - it's absolutely devastating. Feeling completely broken right now makes total sense. This wasn't just a treatment cycle; it was your hopes and dreams for your family, and that loss is real and profound.\n\nIt's completely normal to question whether you can do this again. Right now, in the immediate aftermath, everything feels impossible. The thought of more injections, more waiting, more emotional rollercoaster - of course that feels overwhelming. You don't have to make any decisions about next steps right now. Give yourself permission to just feel whatever you're feeling without pressure to be strong or optimistic.\n\nMany people describe this exact feeling after a failed cycle - like they've been emotionally shattered and can't imagine picking up the pieces. But here's what I've seen: that feeling doesn't mean you actually can't do it again, it just means you need time to process this loss first. Some people need a few weeks, others need months. There's no timeline you have to follow.\n\nWhen you're ready - and only when you're ready - remember that this cycle gave your team valuable information about how you respond, and many people see different outcomes in subsequent cycles. But right now, that's not what you need to hear. Right now, you need to be gentle with yourself and acknowledge that what you're going through is incredibly hard.\n\nIs there support available to you right now? Sometimes talking to someone at your clinic's counseling service can help process these feelings when you're ready.",
+      "charts_shown": [],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "emotional_distress",
+      "latency_s": 15.33,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5eXewE6ajfRW8NhXXR'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EMO_02",
+      "category": "emotional",
+      "message": "My partner doesn't understand what I'm going through. He thinks I'm overreacting about the injections.",
+      "response_text": "That disconnect is so incredibly frustrating and isolating. You're dealing with daily injections, hormone swings, constant medical appointments, and the emotional weight of this whole journey - and feeling like your partner doesn't grasp the magnitude of what you're experiencing makes it so much harder.\n\nThe reality is that partners often experience fertility treatment very differently. While you're physically feeling every injection, every side effect, every procedure, they're watching from the sidelines. Many partners cope by staying practical and solution-focused, which can come across as dismissive when you need emotional support. They might think minimizing the difficulty will help you feel better, not realizing it makes you feel unheard.\n\nThe injections aren't \"just\" injections - they represent hope, fear, control over your body being handed to medical protocols, and the daily reminder that your body isn't doing what you desperately want it to do. Add in the actual physical discomfort, bloating, mood changes from hormones, and it's completely understandable that they feel significant to you.\n\nMany couples find it helpful to be really explicit about what you need. Instead of expecting him to intuitively understand, you might say something like \"I need you to acknowledge that this is physically and emotionally hard for me\" or \"When I complain about injections, I'm not looking for solutions, I just need you to say this sucks.\" Some people find couples counseling or fertility support groups helpful for bridging this gap.\n\nYou're not overreacting. Your experience is valid, and you deserve to have it acknowledged by the person closest to you.",
+      "charts_shown": [],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "emotional_distress",
+      "latency_s": 15.44,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5fmc6k7XjgtbhHPD7L'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EMO_03",
+      "category": "emotional",
+      "message": "Everyone around me is having babies so easily. I feel so alone in this.",
+      "response_text": "The isolation of watching everyone else seem to get pregnant effortlessly while you're going through this struggle is one of the cruelest parts of infertility. It really does feel like you're living in a parallel universe where everyone else has been handed something that feels impossibly out of reach for you.\n\nWhat makes it worse is that pregnancy announcements seem to be everywhere when you're trying to conceive - it's like your brain becomes hyperaware of every bump, every baby, every casual mention of someone's \"surprise\" pregnancy. And then there's the guilt that comes with not being able to feel purely happy for people you care about, which just adds another layer of emotional complexity.\n\nThe truth is, you're not as alone as it feels. About 1 in 6 couples experience fertility challenges, but most people don't talk openly about it. So while it seems like everyone around you conceives easily, there are likely others in your circle who have struggled or are struggling silently. The difference is that their journey isn't visible the way pregnancy announcements are.\n\nThis feeling of being on the outside looking in is so valid and so common. Many people in fertility treatment describe feeling like they're living a secret, difficult life that no one else understands. Some find it helpful to connect with others going through similar experiences - whether through support groups, online communities, or fertility counseling.\n\nIt's okay to protect yourself too - limiting social media, politely declining baby showers, or asking friends to give you a heads up about pregnancy news. Taking care of your emotional wellbeing isn't selfish; it's necessary.",
+      "charts_shown": [],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "emotional_distress",
+      "latency_s": 12.11,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5gm1RCKLo9bNj9UKjm'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "MED_01",
+      "category": "medication",
+      "message": "What does Orgalutran do? I'm confused about all these injections.",
+      "response_text": "Orgalutran (ganirelix) is what's called a GnRH antagonist - essentially, it's the brake pedal in your IVF cycle. Let me break down how it fits into the bigger picture of your injections.\n\nDuring a natural cycle, your brain would normally release a hormone (LH) that triggers ovulation when your follicles reach a certain size. In IVF, you want to prevent this premature ovulation so your eggs don't release before retrieval. That's where Orgalutran comes in - it blocks those natural LH signals, keeping your eggs safely in their follicles until your clinic is ready to retrieve them.\n\nYou'll typically start Orgalutran partway through your stimulation cycle (usually around day 5-7) when your follicles reach about 12-14mm. It's a daily injection that you continue right up until your trigger shot. Think of it like putting a pause button on your body's natural ovulation process while the stimulation medications (like Gonal-F or Menopur) continue growing multiple follicles.\n\nThe data shows that cycles using antagonist protocols like Orgalutran have similar success rates to other protocols but often with fewer side effects and lower risk of ovarian hyperstimulation syndrome (OHSS). Studies indicate about 2-5% OHSS risk with antagonist protocols versus 8-12% with older protocols.\n\nMost women find Orgalutran causes minimal side effects - maybe some mild injection site reactions or headaches, but generally less dramatic than the stimulation medications.\n\nYour specialist can give you specifics for your situation about exactly when to start it based on your follicle monitoring scans.",
+      "charts_shown": [
+        "age_outcomes"
+      ],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 15.42,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5hzrPLdTCowrx3fGsi'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "MED_02",
+      "category": "medication",
+      "message": "What's a trigger shot and when will I get it?",
+      "response_text": "The trigger shot is the final, crucial step in your stimulation cycle - it tells your eggs to complete their final maturation so they can be retrieved exactly 34-36 hours later. Think of it as the \"go\" signal that prepares your eggs for collection, mimicking what would naturally happen right before ovulation.\n\nYou'll get your trigger shot when your follicles reach the right size and maturity - typically when you have several follicles measuring 18-20mm and good hormone levels (estrogen usually above 1000-1500 pg/mL per mature follicle). Your clinic monitors this through blood tests and ultrasounds during your stimulation phase. Most commonly, this happens around day 10-14 of stimulation, but it varies significantly between individuals.\n\nThe timing is absolutely precise because your egg retrieval must happen within that 34-36 hour window. Too early and the eggs aren't mature enough; too late and they might ovulate naturally and be lost. The most common trigger medications are Ovidrel (pre-filled pen) or Pregnyl (powder you mix), though some clinics use Lupron if you're at high risk for ovarian hyperstimulation.\n\nStudies show that properly timed triggers result in about 70-80% of retrieved eggs being mature and ready for fertilization. The shot itself is usually subcutaneous (under the skin) like your other injections, though some triggers are intramuscular.\n\nTrigger night can feel surreal after weeks of daily injections - suddenly you're at the finish line of stimulation. Many people set multiple alarms since the timing must be exact.\n\nYour specialist can give you specifics for your situation about which trigger medication they'll use and the exact timing based on your follicle development.",
+      "charts_shown": [],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 14.71,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi5jBeJYsXHc7geaBMs2'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "MED_03",
+      "error": "HTTPSConnectionPool(host='ivf-companion-532857641879.australia-southeast1.run.app', port=443): Read timed out. (read timeout=30)",
+      "verdict": "ERROR"
+    },
+    {
+      "query_id": "EDGE_01",
+      "category": "edge",
+      "message": "Should my husband take CoQ10 and antioxidants for his sperm DNA fragmentation?",
+      "response_text": "The data on antioxidants for sperm DNA fragmentation is actually quite promising, though it takes time to see results. DNA fragmentation occurs when sperm are damaged by oxidative stress during their development, and antioxidants can help reduce this damage by neutralizing harmful free radicals.\n\nCoQ10 is one of the most studied supplements for male fertility. Studies show that 200-300mg daily for 3 months can improve sperm concentration, motility, and reduce DNA fragmentation by 15-20% in many men. The 3-month timeframe is crucial because sperm take about 72-74 days to fully develop, so you need that full cycle to see improvements.\n\nOther well-researched antioxidants include vitamin C (1000mg), vitamin E (400 IU), selenium (200mcg), and zinc (15-30mg). A 2019 systematic review found that men taking combined antioxidant therapy showed significant improvements in pregnancy rates - about 20-25% higher than controls. Specifically for DNA fragmentation, studies show reductions from baseline levels of 25-30% down to 15-20% after 3 months of treatment.\n\nThe evidence is strongest for men with elevated DNA fragmentation levels (typically above 20-30% depending on the test used). If your husband's levels are already low-normal, the benefit may be minimal. Some men see improvements in as little as 6-8 weeks, but most studies use 3-month protocols.\n\nSide effects are generally minimal - mainly mild GI upset if taken on an empty stomach. Quality matters with supplements, so pharmaceutical-grade versions tend to be more reliable.\n\nYour specialist can give you specifics for your situation about which supplements and doses make sense based on his actual DNA fragmentation results.",
+      "charts_shown": [],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 17.57,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi7JWgZurdsGS6UDGAav'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "EDGE_02",
+      "category": "edge",
+      "message": "My naturopath says I should get NK cell testing and intralipids. What do you think?",
+      "response_text": "NK (natural killer) cell testing and intralipids are part of what's called \"reproductive immunology\" - an area with passionate advocates but limited evidence. Let me walk you through what the current data actually shows.\n\nNK cell theory suggests that some women have overactive immune cells that attack embryos like foreign invaders. The testing measures NK cell levels and activity, and intralipids (a fat emulsion originally for IV nutrition) supposedly calms this immune response. It sounds logical, but the science is much murkier.\n\nThe data is problematic: NK cell levels vary dramatically throughout your cycle and between different labs, making interpretation difficult. Studies show that NK cell levels in blood don't necessarily correlate with what's happening in your uterus. Most importantly, large randomized trials haven't shown intralipids improve live birth rates in unselected IVF populations.\n\nA 2019 systematic review found no significant benefit from intralipids for recurrent pregnancy loss or repeated IVF failure. However, some smaller studies suggest possible benefits in very specific subgroups - women with 3+ failed transfers with good embryos and elevated NK cells. Even then, the improvement rates are modest (10-15% at best) and not consistently replicated.\n\nThe testing costs several hundred dollars, and intralipids add $200-500 per cycle plus clinic fees. Risks are generally low but include allergic reactions and rare fat embolism.\n\nMost mainstream fertility specialists remain skeptical because the evidence doesn't meet standard medical criteria for effectiveness. Some offer it as \"it can't hurt\" after multiple failures, but it's not evidence-based medicine.\n\nYour specialist can give you specifics for your situation about whether your case history might warrant considering these treatments.",
+      "charts_shown": [
+        "age_outcomes"
+      ],
+      "charts_expected": [],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 17.32,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi7Kteh1nofxhfYTiYLP'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "MIX_01",
+      "category": "mixed",
+      "message": "I just turned 40. My clinic says I only get one funded cycle. That feels so unfair. What are my actual chances?",
+      "response_text": "That policy is incredibly frustrating - one funded cycle at 40 feels particularly arbitrary when you've just crossed that birthday line. The age cutoffs for funding don't suddenly change your individual biology overnight, but unfortunately the system treats them as hard lines.\n\nLet me give you the actual data for 40-year-old women doing IVF, because the numbers are more nuanced than the doom-and-gloom messaging you often hear. Using fresh embryos, women at 40 have about a 20-25% chance of live birth per cycle. With frozen embryo transfers (often from the same stimulation cycle), success rates are similar. Cumulative success rates - meaning your chances after multiple cycles - are significantly higher: about 40-50% after two cycles, 50-60% after three.\n\nThe key factor at 40 isn't just age - it's egg quality and your individual ovarian reserve. Studies show that women at 40 with good AMH levels (above 15 pmol/L) and antral follicle counts (above 10) often have success rates closer to younger women. Conversely, some 35-year-olds with diminished ovarian reserve have lower success rates than healthy 40-year-olds.\n\nYour embryo quality matters enormously too. Data shows that about 50-60% of embryos from 40-year-old women are chromosomally normal, compared to 70-80% at 35. But if you produce several blastocysts, your chances with PGT-tested normal embryos approach those of younger women - around 60-65% per transfer.\n\nThe one-cycle limitation is particularly harsh because many women need 2-3 cycles to optimize protocols and achieve success. Private cycle costs vary but typically run $8,000-12,000 in Australia.\n\nYour specialist can give you specifics for your situation based on your AMH, antral follicle count, and response predictions for multiple cycle planning.",
+      "charts_shown": [],
+      "charts_expected": [
+        "age_outcomes",
+        "cumulative"
+      ],
+      "evidence_sources": [],
+      "triage_label": "emotional_distress",
+      "latency_s": 20.07,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi7MUSU1MHTcX7UuRyDY'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    },
+    {
+      "query_id": "MIX_02",
+      "category": "mixed",
+      "message": "We've been trying for 8 months and nothing. I'm 34. Should I already be worried?",
+      "response_text": "Eight months of trying can feel like an eternity when you're desperate to get pregnant, but at 34, you're actually still within the timeframe that's considered normal. The medical definition of infertility is 12 months of trying for women under 35, and 6 months for women over 35 - so you're right at that boundary where it makes sense to start taking action.\n\nThe data shows that about 85% of couples under 35 conceive within the first year of trying, with most happening in the first 6 months. However, this varies significantly based on factors like cycle regularity, timing of intercourse, and underlying fertility factors you might not know about yet. At 34, your egg quality is still quite good - studies show minimal decline until around 35-37, then more noticeable changes after that.\n\nWhat's worth considering is that fertility testing can identify easily treatable issues that might be slowing things down. Simple blood tests can check your ovarian reserve (AMH), hormone levels, and ovulation patterns. A semen analysis for your partner is equally important since male factors contribute to about 40-50% of fertility challenges. Sometimes there are straightforward fixes - irregular ovulation that responds well to medication, or timing issues that can be resolved.\n\nMany fertility specialists will see patients after 6-8 months of trying at your age, especially if you have any concerns about cycle irregularity or other symptoms. Getting baseline testing doesn't mean jumping straight to IVF - it often means optimizing natural conception or trying simpler interventions like ovulation tracking or medications.\n\nYour GP can start with initial blood work and referrals, giving you a clearer picture of whether there are any factors worth addressing sooner rather than later.",
+      "charts_shown": [
+        "age_outcomes",
+        "causes"
+      ],
+      "charts_expected": [
+        "age_outcomes"
+      ],
+      "evidence_sources": [],
+      "triage_label": "educational",
+      "latency_s": 16.46,
+      "judgment": {
+        "overall_verdict": "ERROR",
+        "overall_score": 0,
+        "note": "Error code: 401 - {'type': 'error', 'error': {'type': 'authentication_error', 'message': 'invalid x-api-key'}, 'request_id': 'req_011CZi7Nnn4Sr7DhZ1jGj6AE'}"
+      },
+      "verdict": "ERROR",
+      "score": 0
+    }
+  ]
+}

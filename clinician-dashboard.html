@@ -3321,203 +3321,203 @@ function reloadSS(){
 
 
 // === MEDICATION GRID — INSIDE RIGHT PANEL ===
-function loadMedGrid(patientId) {
-    var container = document.getElementById('cycle-grid-' + patientId) || document.getElementById('cycle-grid-area');
-    if (!container) return;
-    fetch(API_BASE + '/clinician/patient/' + patientId + '/cycle', {
-        headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' }
-    }).then(function(r) { return r.json(); }).then(function(cycle) {
-        if (!cycle || cycle.error || (!cycle.type && !cycle.medications_simple)) {
-            container.innerHTML = renderStartCycleUI(patientId);
-            wireStartCycle(patientId);
-        } else {
-            container.innerHTML = renderMedTable(patientId, cycle);
-            wireMedEvents(patientId);
-        }
-    }).catch(function() {
-        container.innerHTML = '<div style="padding:8px;font-size:12px;color:#aaa;">No cycle data</div>';
-    });
-}
-
-function renderStartCycleUI(pid) {
-    var types = ['IVF', 'FET', 'IUI', 'Egg Freeze', 'Monitoring'];
-    var btns = types.map(function(t) {
-        return '<button class="start-cycle-btn" data-type="' + t + '" style="padding:5px 12px;border-radius:6px;border:1px solid #d4ecec;background:white;font-size:11px;cursor:pointer;">' + t + '</button>';
-    }).join(' ');
-    return '<div style="padding:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:12px;color:#888;">No cycle &mdash;</span>' + btns + '</div>';
-}
-
-function wireStartCycle(pid) {
-    document.querySelectorAll('.start-cycle-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({type:btn.dataset.type, status:'active', cycle_number:1, start_date:localDateStr(new Date()), key_dates:{stim_start:localDateStr(new Date())}, medications:{}})
-            }).then(function() { loadMedGrid(pid); });
-        });
-    });
-}
-
-function renderMedTable(pid, cycle) {
-    var start = new Date(cycle.start_date || new Date());
-    var today = new Date();
-    var days = Math.max(Math.ceil((today - start) / 86400000) + 3, 10);
-    var meds = cycle.medications ? Object.entries(cycle.medications) : (cycle.medications_simple ? Object.entries(cycle.medications_simple) : []);
-    var kd = cycle.key_dates || {};
-    var cc = {gonadotropin:'#3b82f6',antagonist:'#8b5cf6',agonist:'#6366f1',trigger:'#ef4444',suppression:'#f59e0b',progesterone:'#ec4899',other:'#6b7280'};
-    var cycleDay = Math.floor((today - start) / 86400000) + 1;
-    var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:600;color:#1a2a2e;">' + (cycle.type||'Cycle') + ' #' + (cycle.cycle_number||1) + ' &middot; Day ' + cycleDay + '</span><span style="font-size:10px;color:#888;">Started ' + (cycle.start_date||'?') + '</span></div>';
-    var kdL = {opu:'OPU',et:'ET',trigger:'Trig',pregnancy_test:'bhCG'};
-    var kdP = [];
-    Object.keys(kdL).forEach(function(k){if(kd[k])kdP.push(kdL[k]+': '+kd[k].substring(5))});
-    if(kdP.length) h += '<div style="font-size:10px;color:#0d7377;margin-bottom:6px;">' + kdP.join(' &middot; ') + '</div>';
-    h += '<div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:11px;width:max-content;"><tr><td style="padding:3px 6px;border:1px solid #eee;background:#f8f9fb;min-width:90px;font-weight:600;font-size:10px;color:#888;">Med</td>';
-    for(var d=0;d<days;d++){var dt=new Date(start);dt.setDate(dt.getDate()+d);var isT=dt.toDateString()===today.toDateString();h+='<td style="padding:2px 3px;border:1px solid #eee;text-align:center;min-width:36px;background:'+(isT?'#dff0ee':'#f8f9fb')+';font-size:9px;'+(isT?'font-weight:700;color:#0d7377;':'color:#888;')+'">D'+(d+1)+'<br>'+(dt.getMonth()+1)+'/'+dt.getDate()+'</td>'}
-    h += '</tr>';
-    meds.forEach(function(e){var mid=e[0],m=e[1];var c=cc[m.category]||'#6b7280';var mS=new Date(m.start_date||cycle.start_date||today);var mE=m.end_date?new Date(m.end_date):null;
-    h+='<tr><td style="padding:3px 6px;border:1px solid #eee;background:white;white-space:nowrap;"><span style="color:'+c+';font-weight:700;font-size:11px;">'+m.name+'</span> <span style="color:#bbb;font-size:9px;">'+(m.unit||'')+'</span><span class="del-med" data-pid="'+pid+'" data-mid="'+mid+'" style="float:right;cursor:pointer;color:#ddd;font-size:12px;">&times;</span></td>';
-    for(var d=0;d<days;d++){var dt=new Date(start);dt.setDate(dt.getDate()+d);var ds=dt.toISOString().substring(0,10);var active=dt>=mS&&(!mE||dt<=mE);var dose=(m.doses&&m.doses[ds])||(active?m.dose:'');
-    h+='<td class="med-dose" data-pid="'+pid+'" data-mid="'+mid+'" data-date="'+ds+'" data-dose="'+(dose||0)+'" style="padding:1px;border:1px solid #eee;text-align:center;background:'+(active?c+'08':'white')+';'+(active?'cursor:pointer;':'')+'">'+(active&&dose?'<span style="font-size:10px;font-weight:700;color:'+c+';">'+dose+'</span>':'')+'</td>'}
-    h+='</tr>'});
-    h += '</table></div>';
-    h += '<div style="margin-top:6px;"><select class="add-med-dd" data-pid="'+pid+'" style="padding:3px 6px;border:1px solid #ddd;border-radius:4px;font-size:10px;color:#888;"><option value="">+ Add medication...</option><optgroup label="Gonadotropins"><option value="Gonal-F|IU|225|gonadotropin">Gonal-F</option><option value="Puregon|IU|200|gonadotropin">Puregon</option><option value="Menopur|IU|150|gonadotropin">Menopur</option><option value="Bemfola|IU|225|gonadotropin">Bemfola</option><option value="Elonva|mcg|150|gonadotropin">Elonva</option></optgroup><optgroup label="Antagonist"><option value="Orgalutran|mg|0.25|antagonist">Orgalutran</option><option value="Cetrotide|mg|0.25|antagonist">Cetrotide</option><option value="Fyremadel|mg|0.25|antagonist">Fyremadel</option></optgroup><optgroup label="Agonist"><option value="Lucrin|mg|0.5|agonist">Lucrin</option><option value="Synarel|spray|2|agonist">Synarel</option></optgroup><optgroup label="Trigger"><option value="Ovidrel|mcg|250|trigger">Ovidrel</option><option value="Pregnyl|IU|5000|trigger">Pregnyl</option></optgroup><optgroup label="Suppression"><option value="Provera|mg|10|suppression">Provera</option><option value="OCP|tab|1|suppression">OCP</option></optgroup><optgroup label="Luteal"><option value="Crinone|gel|1|progesterone">Crinone</option><option value="Utrogestan|mg|200|progesterone">Utrogestan</option><option value="Progesterone pessary|mg|400|progesterone">Prog pessary</option></optgroup><optgroup label="Other"><option value="Prednisolone|mg|5|other">Prednisolone</option><option value="Clexane|mg|40|other">Clexane</option><option value="Aspirin|mg|100|other">Aspirin</option><option value="Letrozole|mg|2.5|other">Letrozole</option><option value="Estradiol valerate|mg|2|other">Estradiol valerate</option><option value="Folic acid|mg|5|other">Folic acid</option></optgroup></select></div>';
-    return h;
-}
-
-function wireMedEvents(pid) {
-    document.querySelectorAll('.med-dose').forEach(function(cell){
-        cell.addEventListener('click',function(){
-            if(!cell.dataset.mid)return;
-            var n=prompt('Dose for '+cell.dataset.date+':',cell.dataset.dose);
-            if(n===null)return;
-            authFetch(API_BASE+'/clinician/patient/'+cell.dataset.pid+'/cycle/medication/'+cell.dataset.mid+'/dose',{
-                method:'POST',headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({date:cell.dataset.date,dose:parseFloat(n)||0})
-            }).then(function(){loadMedGrid(cell.dataset.pid)});
-        });
-    });
-    document.querySelectorAll('.del-med').forEach(function(btn){
-        btn.addEventListener('click',function(e){e.stopPropagation();
-            if(!confirm('Remove this medication?'))return;
-            authFetch(API_BASE+'/clinician/patient/'+btn.dataset.pid+'/cycle/medication/'+btn.dataset.mid,{method:'DELETE'}).then(function(){loadMedGrid(btn.dataset.pid)});
-        });
-    });
-    document.querySelectorAll('.add-med-dd').forEach(function(sel){
-        sel.addEventListener('change',function(){
-            if(!sel.value)return;var p=sel.value.split('|');
-            authFetch(API_BASE+'/clinician/patient/'+sel.dataset.pid+'/cycle/medication',{
-                method:'POST',headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({name:p[0],unit:p[1],dose:parseFloat(p[2])||0,category:p[3]||'other',start_date:localDateStr(new Date())})
-            }).then(function(){loadMedGrid(sel.dataset.pid)});
-        });
-    });
-}
-// === COLLAPSE/EXPAND CYCLE GRIDS ===
-var _expandedCycle = null;
-function toggleCycleGrid(pid) {
-    if (_expandedCycle && _expandedCycle !== pid) {
-        var prev = document.getElementById('cycle-grid-' + _expandedCycle);
-        if (prev) prev.style.display = 'none';
-        var prevA = document.querySelector('[data-cycle-toggle="' + _expandedCycle + '"]');
-        if (prevA) prevA.textContent = '▶';
-    }
-    var el = document.getElementById('cycle-grid-' + pid);
-    if (!el) return;
-    var vis = el.style.display !== 'none';
-    if (vis) {
-        el.style.display = 'none';
-        _expandedCycle = null;
-        var a = document.querySelector('[data-cycle-toggle="' + pid + '"]');
-        if (a) a.textContent = '▶';
-    } else {
-        el.style.display = 'block';
-        _expandedCycle = pid;
-        var a = document.querySelector('[data-cycle-toggle="' + pid + '"]');
-        if (a) a.textContent = '▼';
-        loadMedGrid(pid);
-    }
-}
-// === SIMPLE MED GRID — [+] adds rows, type doses, auto-save ===
-function OLD_addMedRow(pid) { try {
-  var grid = document.getElementById('medgrid-' + pid);
-  if (!grid) return;
-  var tbody = grid.querySelector('tbody');
-  if (!tbody) return;
-  var tr = document.createElement('tr');
-  var h = '<td style="border:1px solid #ddd;padding:2px;background:#fff;"><input type="text" placeholder="Med name" autocomplete="off" data-lpignore="true" style="width:80px;border:none;font-size:11px;outline:none;font-weight:600;"></td>';
-  for (var i = 0; i < 14; i++) {
-    h += '<td style="border:1px solid #eee;padding:1px;"><input type="text" autocomplete="off" data-lpignore="true" style="width:30px;border:none;font-size:11px;text-align:center;outline:none;"></td>';
-  }
-  tr.innerHTML = h;
-  tbody.appendChild(tr); } catch(e){ console.error("addMedRow:",e); }
-}
-
-function saveMedGrid(pid) { try {
-  if (window._medGridLoading) return;
-  if (window._medGridSaving) return;
-  if (!pid || pid.startsWith('container-')) return;
-  var grid = document.getElementById('medgrid-container-' + pid);
-  if (!grid) return;
-  var rows = grid.querySelectorAll('tbody tr');
-  var meds = {};
-  rows.forEach(function(row, i) {
-    var nameEl = row.querySelector('select') || row.querySelector('td:first-child .med-picker-input') || row.querySelector('td:first-child input');
-    var name = nameEl ? nameEl.value.trim() : '';
-    if (!name) return;
-    // Use data-col attribute to get correct dose key (skips past-day columns)
-    var doseTds = row.querySelectorAll('td:not(:first-child):not(:last-child)');
-    var doses = {};
-    doseTds.forEach(function(td) {
-      var col = td.getAttribute('data-col');
-      if (!col) return;
-      var colNum = parseInt(col);
-      if (colNum < 1) return; // skip past-day columns
-      var inp = td.querySelector('input');
-      var val = inp ? inp.value.trim() : '';
-      if (val) doses['d' + colNum] = val;
-    });
-    meds['med_' + i] = { name: name, doses: doses };
-  });
-  if (Object.keys(meds).length === 0) { console.log('[MedGrid] No named meds — skip save'); return; }
-  console.log('[MedGrid] saveMedGrid payload for', pid, JSON.stringify(meds));
-  authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ medications_simple: meds })
-  }).catch(function(e) { console.error("Med save error:", e); }); } catch(err) { console.error("saveMedGrid crash:", err); }
-}
-
-// Auto-save on blur (when user tabs/clicks away from a cell)
-// GUARD: skip during grid loading to prevent overwriting real data with empty grids
-document.addEventListener('focusout', function(e) {
-  if (window._medGridLoading) return;
-  var grid = e.target.closest('[id^="medgrid-container-"]');
-  if (!grid) return;
-  var pid = grid.id.replace('medgrid-container-', '');
-  if (!pid || pid.startsWith('container-')) return;
-  saveMedGrid(pid);
-});
-
-function loadSavedMeds(pid) {
-  authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle')
-  .then(function(r) { return r.json(); })
-  .then(function(cycle) {
-    if (!cycle || !cycle.medications_simple) return;
-    var meds = cycle.medications_simple;
-    Object.values(meds).forEach(function(m) {
-      addMedRow(pid);
-      var grid = document.getElementById('medgrid-container-' + pid);
-      if (!grid) return;
-      var lastRow = grid.querySelector('tbody tr:last-child');
-      var inputs = lastRow.querySelectorAll('input');
-      if (inputs[0]) inputs[0].value = m.name || '';
-      var doses = m.doses || {};
-      for (var d = 1; d <= 14; d++) {
-        if (inputs[d] && doses['d' + d]) inputs[d].value = doses['d' + d];
-      }
-    });
-  }).catch(function() {});
-}
-</script>
+// OLD: function loadMedGrid(patientId) {
+// OLD:     var container = document.getElementById('cycle-grid-' + patientId) || document.getElementById('cycle-grid-area');
+// OLD:     if (!container) return;
+// OLD:     fetch(API_BASE + '/clinician/patient/' + patientId + '/cycle', {
+// OLD:         headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' }
+// OLD:     }).then(function(r) { return r.json(); }).then(function(cycle) {
+// OLD:         if (!cycle || cycle.error || (!cycle.type && !cycle.medications_simple)) {
+// OLD:             container.innerHTML = renderStartCycleUI(patientId);
+// OLD:             wireStartCycle(patientId);
+// OLD:         } else {
+// OLD:             container.innerHTML = renderMedTable(patientId, cycle);
+// OLD:             wireMedEvents(patientId);
+// OLD:         }
+// OLD:     }).catch(function() {
+// OLD:         container.innerHTML = '<div style="padding:8px;font-size:12px;color:#aaa;">No cycle data</div>';
+// OLD:     });
+// OLD: }
+// OLD: 
+// OLD: function renderStartCycleUI(pid) {
+// OLD:     var types = ['IVF', 'FET', 'IUI', 'Egg Freeze', 'Monitoring'];
+// OLD:     var btns = types.map(function(t) {
+// OLD:         return '<button class="start-cycle-btn" data-type="' + t + '" style="padding:5px 12px;border-radius:6px;border:1px solid #d4ecec;background:white;font-size:11px;cursor:pointer;">' + t + '</button>';
+// OLD:     }).join(' ');
+// OLD:     return '<div style="padding:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-size:12px;color:#888;">No cycle &mdash;</span>' + btns + '</div>';
+// OLD: }
+// OLD: 
+// OLD: function wireStartCycle(pid) {
+// OLD:     document.querySelectorAll('.start-cycle-btn').forEach(function(btn) {
+// OLD:         btn.addEventListener('click', function() {
+// OLD:             authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
+// OLD:                 method: 'POST', headers: {'Content-Type':'application/json'},
+// OLD:                 body: JSON.stringify({type:btn.dataset.type, status:'active', cycle_number:1, start_date:localDateStr(new Date()), key_dates:{stim_start:localDateStr(new Date())}, medications:{}})
+// OLD:             }).then(function() { loadMedGrid(pid); });
+// OLD:         });
+// OLD:     });
+// OLD: }
+// OLD: 
+// OLD: function renderMedTable(pid, cycle) {
+// OLD:     var start = new Date(cycle.start_date || new Date());
+// OLD:     var today = new Date();
+// OLD:     var days = Math.max(Math.ceil((today - start) / 86400000) + 3, 10);
+// OLD:     var meds = cycle.medications ? Object.entries(cycle.medications) : (cycle.medications_simple ? Object.entries(cycle.medications_simple) : []);
+// OLD:     var kd = cycle.key_dates || {};
+// OLD:     var cc = {gonadotropin:'#3b82f6',antagonist:'#8b5cf6',agonist:'#6366f1',trigger:'#ef4444',suppression:'#f59e0b',progesterone:'#ec4899',other:'#6b7280'};
+// OLD:     var cycleDay = Math.floor((today - start) / 86400000) + 1;
+// OLD:     var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:600;color:#1a2a2e;">' + (cycle.type||'Cycle') + ' #' + (cycle.cycle_number||1) + ' &middot; Day ' + cycleDay + '</span><span style="font-size:10px;color:#888;">Started ' + (cycle.start_date||'?') + '</span></div>';
+// OLD:     var kdL = {opu:'OPU',et:'ET',trigger:'Trig',pregnancy_test:'bhCG'};
+// OLD:     var kdP = [];
+// OLD:     Object.keys(kdL).forEach(function(k){if(kd[k])kdP.push(kdL[k]+': '+kd[k].substring(5))});
+// OLD:     if(kdP.length) h += '<div style="font-size:10px;color:#0d7377;margin-bottom:6px;">' + kdP.join(' &middot; ') + '</div>';
+// OLD:     h += '<div style="overflow-x:auto;"><table style="border-collapse:collapse;font-size:11px;width:max-content;"><tr><td style="padding:3px 6px;border:1px solid #eee;background:#f8f9fb;min-width:90px;font-weight:600;font-size:10px;color:#888;">Med</td>';
+// OLD:     for(var d=0;d<days;d++){var dt=new Date(start);dt.setDate(dt.getDate()+d);var isT=dt.toDateString()===today.toDateString();h+='<td style="padding:2px 3px;border:1px solid #eee;text-align:center;min-width:36px;background:'+(isT?'#dff0ee':'#f8f9fb')+';font-size:9px;'+(isT?'font-weight:700;color:#0d7377;':'color:#888;')+'">D'+(d+1)+'<br>'+(dt.getMonth()+1)+'/'+dt.getDate()+'</td>'}
+// OLD:     h += '</tr>';
+// OLD:     meds.forEach(function(e){var mid=e[0],m=e[1];var c=cc[m.category]||'#6b7280';var mS=new Date(m.start_date||cycle.start_date||today);var mE=m.end_date?new Date(m.end_date):null;
+// OLD:     h+='<tr><td style="padding:3px 6px;border:1px solid #eee;background:white;white-space:nowrap;"><span style="color:'+c+';font-weight:700;font-size:11px;">'+m.name+'</span> <span style="color:#bbb;font-size:9px;">'+(m.unit||'')+'</span><span class="del-med" data-pid="'+pid+'" data-mid="'+mid+'" style="float:right;cursor:pointer;color:#ddd;font-size:12px;">&times;</span></td>';
+// OLD:     for(var d=0;d<days;d++){var dt=new Date(start);dt.setDate(dt.getDate()+d);var ds=dt.toISOString().substring(0,10);var active=dt>=mS&&(!mE||dt<=mE);var dose=(m.doses&&m.doses[ds])||(active?m.dose:'');
+// OLD:     h+='<td class="med-dose" data-pid="'+pid+'" data-mid="'+mid+'" data-date="'+ds+'" data-dose="'+(dose||0)+'" style="padding:1px;border:1px solid #eee;text-align:center;background:'+(active?c+'08':'white')+';'+(active?'cursor:pointer;':'')+'">'+(active&&dose?'<span style="font-size:10px;font-weight:700;color:'+c+';">'+dose+'</span>':'')+'</td>'}
+// OLD:     h+='</tr>'});
+// OLD:     h += '</table></div>';
+// OLD:     h += '<div style="margin-top:6px;"><select class="add-med-dd" data-pid="'+pid+'" style="padding:3px 6px;border:1px solid #ddd;border-radius:4px;font-size:10px;color:#888;"><option value="">+ Add medication...</option><optgroup label="Gonadotropins"><option value="Gonal-F|IU|225|gonadotropin">Gonal-F</option><option value="Puregon|IU|200|gonadotropin">Puregon</option><option value="Menopur|IU|150|gonadotropin">Menopur</option><option value="Bemfola|IU|225|gonadotropin">Bemfola</option><option value="Elonva|mcg|150|gonadotropin">Elonva</option></optgroup><optgroup label="Antagonist"><option value="Orgalutran|mg|0.25|antagonist">Orgalutran</option><option value="Cetrotide|mg|0.25|antagonist">Cetrotide</option><option value="Fyremadel|mg|0.25|antagonist">Fyremadel</option></optgroup><optgroup label="Agonist"><option value="Lucrin|mg|0.5|agonist">Lucrin</option><option value="Synarel|spray|2|agonist">Synarel</option></optgroup><optgroup label="Trigger"><option value="Ovidrel|mcg|250|trigger">Ovidrel</option><option value="Pregnyl|IU|5000|trigger">Pregnyl</option></optgroup><optgroup label="Suppression"><option value="Provera|mg|10|suppression">Provera</option><option value="OCP|tab|1|suppression">OCP</option></optgroup><optgroup label="Luteal"><option value="Crinone|gel|1|progesterone">Crinone</option><option value="Utrogestan|mg|200|progesterone">Utrogestan</option><option value="Progesterone pessary|mg|400|progesterone">Prog pessary</option></optgroup><optgroup label="Other"><option value="Prednisolone|mg|5|other">Prednisolone</option><option value="Clexane|mg|40|other">Clexane</option><option value="Aspirin|mg|100|other">Aspirin</option><option value="Letrozole|mg|2.5|other">Letrozole</option><option value="Estradiol valerate|mg|2|other">Estradiol valerate</option><option value="Folic acid|mg|5|other">Folic acid</option></optgroup></select></div>';
+// OLD:     return h;
+// OLD: }
+// OLD: 
+// OLD: function wireMedEvents(pid) {
+// OLD:     document.querySelectorAll('.med-dose').forEach(function(cell){
+// OLD:         cell.addEventListener('click',function(){
+// OLD:             if(!cell.dataset.mid)return;
+// OLD:             var n=prompt('Dose for '+cell.dataset.date+':',cell.dataset.dose);
+// OLD:             if(n===null)return;
+// OLD:             authFetch(API_BASE+'/clinician/patient/'+cell.dataset.pid+'/cycle/medication/'+cell.dataset.mid+'/dose',{
+// OLD:                 method:'POST',headers:{'Content-Type':'application/json'},
+// OLD:                 body:JSON.stringify({date:cell.dataset.date,dose:parseFloat(n)||0})
+// OLD:             }).then(function(){loadMedGrid(cell.dataset.pid)});
+// OLD:         });
+// OLD:     });
+// OLD:     document.querySelectorAll('.del-med').forEach(function(btn){
+// OLD:         btn.addEventListener('click',function(e){e.stopPropagation();
+// OLD:             if(!confirm('Remove this medication?'))return;
+// OLD:             authFetch(API_BASE+'/clinician/patient/'+btn.dataset.pid+'/cycle/medication/'+btn.dataset.mid,{method:'DELETE'}).then(function(){loadMedGrid(btn.dataset.pid)});
+// OLD:         });
+// OLD:     });
+// OLD:     document.querySelectorAll('.add-med-dd').forEach(function(sel){
+// OLD:         sel.addEventListener('change',function(){
+// OLD:             if(!sel.value)return;var p=sel.value.split('|');
+// OLD:             authFetch(API_BASE+'/clinician/patient/'+sel.dataset.pid+'/cycle/medication',{
+// OLD:                 method:'POST',headers:{'Content-Type':'application/json'},
+// OLD:                 body:JSON.stringify({name:p[0],unit:p[1],dose:parseFloat(p[2])||0,category:p[3]||'other',start_date:localDateStr(new Date())})
+// OLD:             }).then(function(){loadMedGrid(sel.dataset.pid)});
+// OLD:         });
+// OLD:     });
+// OLD: }
+// OLD: // === COLLAPSE/EXPAND CYCLE GRIDS ===
+// OLD: var _expandedCycle = null;
+// OLD: function toggleCycleGrid(pid) {
+// OLD:     if (_expandedCycle && _expandedCycle !== pid) {
+// OLD:         var prev = document.getElementById('cycle-grid-' + _expandedCycle);
+// OLD:         if (prev) prev.style.display = 'none';
+// OLD:         var prevA = document.querySelector('[data-cycle-toggle="' + _expandedCycle + '"]');
+// OLD:         if (prevA) prevA.textContent = '▶';
+// OLD:     }
+// OLD:     var el = document.getElementById('cycle-grid-' + pid);
+// OLD:     if (!el) return;
+// OLD:     var vis = el.style.display !== 'none';
+// OLD:     if (vis) {
+// OLD:         el.style.display = 'none';
+// OLD:         _expandedCycle = null;
+// OLD:         var a = document.querySelector('[data-cycle-toggle="' + pid + '"]');
+// OLD:         if (a) a.textContent = '▶';
+// OLD:     } else {
+// OLD:         el.style.display = 'block';
+// OLD:         _expandedCycle = pid;
+// OLD:         var a = document.querySelector('[data-cycle-toggle="' + pid + '"]');
+// OLD:         if (a) a.textContent = '▼';
+// OLD:         loadMedGrid(pid);
+// OLD:     }
+// OLD: }
+// OLD: // === SIMPLE MED GRID — [+] adds rows, type doses, auto-save ===
+// OLD: function OLD_addMedRow(pid) { try {
+// OLD:   var grid = document.getElementById('medgrid-' + pid);
+// OLD:   if (!grid) return;
+// OLD:   var tbody = grid.querySelector('tbody');
+// OLD:   if (!tbody) return;
+// OLD:   var tr = document.createElement('tr');
+// OLD:   var h = '<td style="border:1px solid #ddd;padding:2px;background:#fff;"><input type="text" placeholder="Med name" autocomplete="off" data-lpignore="true" style="width:80px;border:none;font-size:11px;outline:none;font-weight:600;"></td>';
+// OLD:   for (var i = 0; i < 14; i++) {
+// OLD:     h += '<td style="border:1px solid #eee;padding:1px;"><input type="text" autocomplete="off" data-lpignore="true" style="width:30px;border:none;font-size:11px;text-align:center;outline:none;"></td>';
+// OLD:   }
+// OLD:   tr.innerHTML = h;
+// OLD:   tbody.appendChild(tr); } catch(e){ console.error("addMedRow:",e); }
+// OLD: }
+// OLD: 
+// OLD: function saveMedGrid(pid) { try {
+// OLD:   if (window._medGridLoading) return;
+// OLD:   if (window._medGridSaving) return;
+// OLD:   if (!pid || pid.startsWith('container-')) return;
+// OLD:   var grid = document.getElementById('medgrid-container-' + pid);
+// OLD:   if (!grid) return;
+// OLD:   var rows = grid.querySelectorAll('tbody tr');
+// OLD:   var meds = {};
+// OLD:   rows.forEach(function(row, i) {
+// OLD:     var nameEl = row.querySelector('select') || row.querySelector('td:first-child .med-picker-input') || row.querySelector('td:first-child input');
+// OLD:     var name = nameEl ? nameEl.value.trim() : '';
+// OLD:     if (!name) return;
+// OLD:     // Use data-col attribute to get correct dose key (skips past-day columns)
+// OLD:     var doseTds = row.querySelectorAll('td:not(:first-child):not(:last-child)');
+// OLD:     var doses = {};
+// OLD:     doseTds.forEach(function(td) {
+// OLD:       var col = td.getAttribute('data-col');
+// OLD:       if (!col) return;
+// OLD:       var colNum = parseInt(col);
+// OLD:       if (colNum < 1) return; // skip past-day columns
+// OLD:       var inp = td.querySelector('input');
+// OLD:       var val = inp ? inp.value.trim() : '';
+// OLD:       if (val) doses['d' + colNum] = val;
+// OLD:     });
+// OLD:     meds['med_' + i] = { name: name, doses: doses };
+// OLD:   });
+// OLD:   if (Object.keys(meds).length === 0) { console.log('[MedGrid] No named meds — skip save'); return; }
+// OLD:   console.log('[MedGrid] saveMedGrid payload for', pid, JSON.stringify(meds));
+// OLD:   authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle', {
+// OLD:     method: 'POST', headers: {'Content-Type':'application/json'},
+// OLD:     body: JSON.stringify({ medications_simple: meds })
+// OLD:   }).catch(function(e) { console.error("Med save error:", e); }); } catch(err) { console.error("saveMedGrid crash:", err); }
+// OLD: }
+// OLD: 
+// OLD: // Auto-save on blur (when user tabs/clicks away from a cell)
+// OLD: // GUARD: skip during grid loading to prevent overwriting real data with empty grids
+// OLD: // DISABLED: document.addEventListener('focusout_disabled', function(e) {
+// OLD:   if (window._medGridLoading) return;
+// OLD:   var grid = e.target.closest('[id^="medgrid-container-"]');
+// OLD:   if (!grid) return;
+// OLD:   var pid = grid.id.replace('medgrid-container-', '');
+// OLD:   if (!pid || pid.startsWith('container-')) return;
+// OLD:   saveMedGrid(pid);
+// OLD: });
+// OLD: 
+// OLD: function loadSavedMeds(pid) {
+// OLD:   authFetch(API_BASE + '/clinician/patient/' + pid + '/cycle')
+// OLD:   .then(function(r) { return r.json(); })
+// OLD:   .then(function(cycle) {
+// OLD:     if (!cycle || !cycle.medications_simple) return;
+// OLD:     var meds = cycle.medications_simple;
+// OLD:     Object.values(meds).forEach(function(m) {
+// OLD:       addMedRow(pid);
+// OLD:       var grid = document.getElementById('medgrid-container-' + pid);
+// OLD:       if (!grid) return;
+// OLD:       var lastRow = grid.querySelector('tbody tr:last-child');
+// OLD:       var inputs = lastRow.querySelectorAll('input');
+// OLD:       if (inputs[0]) inputs[0].value = m.name || '';
+// OLD:       var doses = m.doses || {};
+// OLD:       for (var d = 1; d <= 14; d++) {
+// OLD:         if (inputs[d] && doses['d' + d]) inputs[d].value = doses['d' + d];
+// OLD:       }
+// OLD:     });
+// OLD:   }).catch(function() {});
+// OLD: }
+// OLD: </script>
 
 <script>
 // Global helper — timezone-safe local YYYY-MM-DD (never use toISOString for dates!)

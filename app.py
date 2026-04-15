@@ -7012,3 +7012,45 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
 # deploy trigger 1774411583
+
+
+# --- PHQ-4 Screening Endpoints ---
+
+class PHQ4Request(BaseModel):
+    q1: int
+    q2: int
+    q3: int
+    q4: int
+    triggered_by: str = "daily"
+
+@app.post("/phq4/{patient_id}")
+async def submit_phq4(patient_id: str, req: PHQ4Request):
+    from zoneinfo import ZoneInfo
+    import firebase_admin.db as fb_db_mod
+    now = datetime.now(ZoneInfo("Australia/Melbourne"))
+    date_str = now.strftime("%Y-%m-%d")
+    anxiety_sub = req.q1 + req.q2
+    depression_sub = req.q3 + req.q4
+    total = anxiety_sub + depression_sub
+    if total <= 2:
+        severity = "normal"
+    elif total <= 5:
+        severity = "mild"
+    elif total <= 8:
+        severity = "moderate"
+    else:
+        severity = "severe"
+    phq4_data = {"date": date_str, "anxiety_sub": anxiety_sub, "depression_sub": depression_sub, "total": total, "severity": severity, "triggered_by": req.triggered_by, "timestamp": now.isoformat()}
+    fb_db_mod.reference(f"melod_ai/patients/{patient_id}/phq4_scores/{date_str}").update(phq4_data)
+    if total >= 6 or anxiety_sub >= 4 or depression_sub >= 4:
+        fb_db_mod.reference("melod_ai").child("alerts").push({"type": "phq4_elevated", "patient_id": patient_id, "total": total, "anxiety_sub": anxiety_sub, "depression_sub": depression_sub, "severity": severity, "timestamp": now.isoformat()})
+    return {"total": total, "anxiety_sub": anxiety_sub, "depression_sub": depression_sub, "severity": severity}
+
+@app.get("/phq4/{patient_id}/pending")
+async def check_pending_phq4(patient_id: str):
+    import firebase_admin.db as fb_db_mod
+    ref = fb_db_mod.reference(f"melod_ai/patients/{patient_id}/pending_phq4")
+    val = ref.get()
+    if val:
+        return {"pending": True, "cycle_phase": val.get("cycle_phase") if isinstance(val, dict) else None}
+    return {"pending": False, "cycle_phase": None}

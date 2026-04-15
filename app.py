@@ -7054,3 +7054,81 @@ async def check_pending_phq4(patient_id: str):
     if val:
         return {"pending": True, "cycle_phase": val.get("cycle_phase") if isinstance(val, dict) else None}
     return {"pending": False, "cycle_phase": None}
+
+
+# --- Engagement Composite Score Endpoints ---
+
+def _compute_engagement(patient_id):
+    import firebase_admin.db as fb_db_mod
+    from zoneinfo import ZoneInfo
+    now = datetime.now(ZoneInfo("Australia/Melbourne"))
+    week_ago = now - timedelta(days=7)
+    week_ago_str = week_ago.strftime("%Y-%m-%d")
+    checkins = 0
+    messages = 0
+    phq4_count = 0
+    active_dates = set()
+    try:
+        ci = fb_db_mod.reference(f"melod_ai/checkins/{patient_id}").get() or {}
+        for k, v in ci.items():
+            d = v.get("date", k) if isinstance(v, dict) else k
+            if d >= week_ago_str:
+                checkins += 1
+                active_dates.add(d)
+    except Exception:
+        pass
+    try:
+        convs = fb_db_mod.reference(f"melod_ai/conversations/{patient_id}").get() or {}
+        for k, v in convs.items():
+            if isinstance(v, dict):
+                d = v.get("date", "")
+                if d >= week_ago_str and v.get("role") == "user":
+                    messages += 1
+                    active_dates.add(d)
+    except Exception:
+        pass
+    try:
+        phq = fb_db_mod.reference(f"melod_ai/patients/{patient_id}/phq4_scores").get() or {}
+        for k, v in phq.items():
+            if k >= week_ago_str:
+                phq4_count += 1
+                active_dates.add(k)
+    except Exception:
+        pass
+    active_days = len(active_dates)
+    ci_pct = min(checkins / 7.0, 1.0) * 100
+    msg_pct = min(messages / 18.0, 1.0) * 100
+    phq_pct = min(phq4_count / 1.0, 1.0) * 100
+    day_pct = min(active_days / 5.0, 1.0) * 100
+    score = int(ci_pct * 0.30 + msg_pct * 0.40 + phq_pct * 0.15 + day_pct * 0.15)
+    alert_status = None
+    if score < 15:
+        alert_status = "critical"
+    elif score < 30:
+        alert_status = "warning"
+    return {"current_score": score, "components": {"check_ins": checkins, "messages": messages, "phq4": phq4_count, "active_days": active_days}, "alert_status": alert_status}
+
+
+@app.get("/clinician/engagement/all", dependencies=[Depends(verify_clinician_api_key)])
+async def get_all_engagement():
+    import firebase_admin.db as fb_db_mod
+    patients = fb_db_mod.reference("melod_ai/patients").get() or {}
+    results = []
+    for pid in patients.keys():
+        eng = _compute_engagement(pid)
+        eng["patient_id"] = pid
+        results.append(eng)
+    return {"patients": results}
+
+
+@app.get("/clinician/engagement/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def get_patient_engagement(patient_id: str):
+    import firebase_admin.db as fb_db_mod
+    from zoneinfo import ZoneInfo
+    eng = _compute_engagement(patient_id)
+    now = datetime.now(ZoneInfo("Australia/Melbourne"))
+    date_str = now.strftime("%Y-%m-%d")
+    fb_db_mod.reference(f"melod_ai/engagement_scores/{patient_id}/{date_str}").update({"score": eng["current_score"], "components": eng["components"], "timestamp": now.isoformat()})
+    if eng["alert_status"]:
+        fb_db_mod.reference("melod_ai").child("alerts").push({"type": "disengagement", "patient_id": patient_id, "score": eng["current_score"], "alert_status": eng["alert_status"], "timestamp": now.isoformat()})
+    return eng

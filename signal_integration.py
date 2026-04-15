@@ -667,6 +667,18 @@ def compute_phenotype_score(patient_id: str) -> Dict:
     # Persist to Firebase (fire-and-forget)
     _save_phenotype_score_to_firebase(patient_id, score)
 
+    # ── PHQ-4 ad-hoc trigger ────────────────────────────────────────────────
+    # If any construct score crosses 0.5 (≈2 SD from baseline), flag for PHQ-4
+    any_elevated = any(v >= 0.5 for v in c_scores.values())
+    if any_elevated and store.get("baseline_established"):
+        try:
+            db = _firebase_db()
+            if db and db._fb_ref:
+                db._fb_ref.child("patients").child(patient_id).update({"pending_phq4": True})
+                logger.info(f"[phenotype] PHQ-4 ad-hoc trigger set for {patient_id} — elevated constructs detected")
+        except Exception as e:
+            logger.warning(f"[phenotype] pending_phq4 flag write error for {patient_id}: {e}")
+
     return score
 
 

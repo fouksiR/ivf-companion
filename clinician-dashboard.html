@@ -1121,6 +1121,48 @@
         .flag-amber { background: #FAEEDA; color: #854F0B; }
         .flag-green { background: #E1F5EE; color: #085041; }
 
+        /* Engagement traffic light */
+        .engagement-dot {
+          width: 14px; height: 14px; border-radius: 50%; display: inline-block;
+          vertical-align: middle; margin-right: 4px; position: relative; cursor: pointer;
+        }
+        .engagement-dot.eng-green { background: #1D9E75; }
+        .engagement-dot.eng-amber { background: #D4960A; }
+        .engagement-dot.eng-red { background: #E24B4A; }
+        .engagement-dot.eng-critical::after {
+          content: ''; position: absolute; top: -3px; left: -3px;
+          width: 20px; height: 20px; border-radius: 50%;
+          border: 2px solid #E24B4A; animation: eng-pulse 1.5s infinite;
+        }
+        @keyframes eng-pulse {
+          0% { opacity: 1; transform: scale(1); }
+          100% { opacity: 0; transform: scale(1.6); }
+        }
+        .engagement-score-num {
+          font-size: 11px; color: #888; vertical-align: middle; font-weight: 500;
+        }
+        .engagement-wrapper { display: inline-flex; align-items: center; gap: 3px; position: relative; }
+        .engagement-tooltip {
+          display: none; position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+          background: #1a1a2e; color: #fff; font-size: 11px; padding: 8px 12px; border-radius: 8px;
+          white-space: nowrap; z-index: 100; line-height: 1.5;
+        }
+        .engagement-wrapper:hover .engagement-tooltip { display: block; }
+
+        /* Alliance bars */
+        .alliance-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 10px; padding: 14px 18px; margin: 12px 20px; }
+        .alliance-card h4 { font-size: 13px; font-weight: 600; color: #1a1a2e; margin: 0 0 10px; }
+        .alliance-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .alliance-bar-label { font-size: 12px; color: #666; width: 90px; flex-shrink: 0; }
+        .alliance-bar-track { flex: 1; height: 8px; background: #f0f0ee; border-radius: 4px; overflow: hidden; }
+        .alliance-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+        .alliance-bar-fill.ab-green { background: #1D9E75; }
+        .alliance-bar-fill.ab-amber { background: #D4960A; }
+        .alliance-bar-fill.ab-red { background: #E24B4A; }
+        .alliance-bar-val { font-size: 11px; color: #888; width: 30px; text-align: right; }
+        .alliance-trend { font-size: 12px; margin-top: 6px; color: #888; }
+        .alliance-warn { font-size: 12px; color: #E24B4A; margin-top: 6px; font-weight: 500; }
+
         /* Connection live badge */
         .live-badge {
           display: inline-flex; align-items: center; gap: 6px;
@@ -1683,6 +1725,7 @@ var currentPatientId = null;
 var currentModalTab = 'briefing';
 var digestLoaded = false;
 var phenotypeScores = {}; // keyed by patient_id
+var engagementScores = {}; // keyed by patient_id
 
 // ── Role-Based Access Control ───────────────────────────────────────
 var ROLE_PERMISSIONS = {
@@ -1829,6 +1872,16 @@ async function poll() {
         renderPatients(); // re-render with badges
       }
     } catch (pe) { console.warn('Phenotype fetch failed:', pe); }
+    // Fetch engagement scores (non-blocking)
+    try {
+      var engRes = await authFetch(API_BASE + '/clinician/engagement/all');
+      if (engRes.ok) {
+        var engData = await engRes.json();
+        engagementScores = {};
+        (engData.patients || []).forEach(function(s) { if (s && s.patient_id) engagementScores[s.patient_id] = s; });
+        renderPatients();
+      }
+    } catch (ee) { console.warn('Engagement fetch failed:', ee); }
     // Load pending actions badge
     try { loadPendingActions(); } catch(pe) {}
     document.getElementById('pollInfo').textContent = 'Last: ' + new Date().toLocaleTimeString();
@@ -2038,6 +2091,28 @@ function renderPatients() {
       if (phenoData.dropout_risk && phenoData.dropout_risk > 50) flags += '<span class="flag flag-amber">Dropout risk</span>';
     }
     if (p.unresolved_count > 0) flags += '<span class="flag flag-amber">⚠ ' + p.unresolved_count + ' unresolved</span>';
+
+    // Engagement indicator
+    var engData = engagementScores[p.patient_id];
+    var engHtml = '';
+    if (engData) {
+      var engScore = engData.current_score || 0;
+      var engColor = engScore >= 70 ? 'eng-green' : (engScore >= 30 ? 'eng-amber' : 'eng-red');
+      var engExtra = engData.alert_status === 'critical' ? ' eng-critical' : '';
+      var c = engData.components || {};
+      var tooltipText = 'Check-ins: ' + (c.check_ins||0) + '/7 days<br>' +
+        'Messages: ' + (c.messages||0) + ' (benchmark: 18/wk)<br>' +
+        'PHQ-4: ' + (c.phq4_completed||0 ? 'completed' : 'missed') + '<br>' +
+        'Active days: ' + (c.active_days||0) + '/7';
+      engHtml = '<span class="engagement-wrapper">' +
+        '<span class="engagement-dot ' + engColor + engExtra + '"></span>' +
+        '<span class="engagement-score-num">' + engScore + '</span>' +
+        '<span class="engagement-tooltip">' + tooltipText + '</span>' +
+      '</span>';
+      if (engData.alert_status === 'critical') flags += '<span class="flag flag-red">Disengaged</span>';
+      else if (engData.alert_status === 'warning') flags += '<span class="flag flag-amber">Low engagement</span>';
+    }
+
     var flagsHtml = flags ? '<div class="card-flags-v2">' + flags + '</div>' : '';
 
     var riskClass = riskColor === 'red' ? ' risk-high' : '';
@@ -2047,7 +2122,7 @@ function renderPatients() {
         '<div class="card-left">' +
           '<div class="avatar avatar-' + riskColor + '">' + initials + '</div>' +
           '<div style="min-width:0">' +
-            '<div class="patient-name-v2">' + name + ' ' + clearanceDotHtml(p.patient_id) + '</div>' +
+            '<div class="patient-name-v2">' + name + ' ' + clearanceDotHtml(p.patient_id) + ' ' + engHtml + '</div>' +
             '<div class="patient-meta-v2">' + metaLine + '</div>' +
           '</div>' +
         '</div>' +
@@ -2326,6 +2401,7 @@ async function loadModalTab(patientId, tab) {
       if (typeof window.toggleMedGrid === 'function') { setTimeout(function() { window.toggleMedGrid(patientId); }, 300); }
       // Load adherence card into briefing
       loadAdherenceCard(patientId);
+      loadAllianceCard(patientId);
       // Append trends charts below briefing
       body.innerHTML += '<div style="margin-top:24px;border-top:1px solid #e5e5e3;padding-top:20px">' +
         '<div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:12px;padding:0 20px">Trends</div>' +
@@ -2807,6 +2883,48 @@ var COMMON_MEDS=[
 var CAT_COL={gonadotropin:'#0d7377',antagonist:'#7c5cbf',trigger:'#e8953a',support:'#d4548a',oral:'#2da87a',other:'#6b7280'};
 // ── Medication Adherence Card ────────────────────────────────────
 var _adhInterval = null;
+
+async function loadAllianceCard(pid) {
+  try {
+    var r = await authFetch(API_BASE + '/clinician/alliance/' + pid);
+    if (!r.ok) return;
+    var d = await r.json();
+    if (!d.surveys || d.surveys.length === 0) return;
+
+    var existing = document.getElementById('alliance-card-container');
+    if (existing) existing.remove();
+
+    function barColor(val) { return val >= 3.5 ? 'ab-green' : (val >= 2.5 ? 'ab-amber' : 'ab-red'); }
+    function barWidth(val) { return Math.round((val / 5.0) * 100); }
+
+    var w = d.current_warmth || 0;
+    var c = d.current_competence || 0;
+    var overall = d.surveys[d.surveys.length - 1].overall_mean || 0;
+    var trendArrow = d.trend === 'improving' ? '↑' : (d.trend === 'declining' ? '↓' : '→');
+    var trendColor = d.trend === 'improving' ? '#1D9E75' : (d.trend === 'declining' ? '#E24B4A' : '#888');
+
+    var html = '<div id="alliance-card-container" class="alliance-card">' +
+      '<h4>Therapeutic Alliance ' + '<span style="color:' + trendColor + ';font-weight:400">' + trendArrow + ' ' + d.trend + '</span></h4>' +
+      '<div class="alliance-bar-row">' +
+        '<span class="alliance-bar-label">Warmth</span>' +
+        '<div class="alliance-bar-track"><div class="alliance-bar-fill ' + barColor(w) + '" style="width:' + barWidth(w) + '%"></div></div>' +
+        '<span class="alliance-bar-val">' + w.toFixed(1) + '</span>' +
+      '</div>' +
+      '<div class="alliance-bar-row">' +
+        '<span class="alliance-bar-label">Competence</span>' +
+        '<div class="alliance-bar-track"><div class="alliance-bar-fill ' + barColor(c) + '" style="width:' + barWidth(c) + '%"></div></div>' +
+        '<span class="alliance-bar-val">' + c.toFixed(1) + '</span>' +
+      '</div>';
+
+    if (overall < 2.5) {
+      html += '<div class="alliance-warn">Low alliance — consider adjusting approach</div>';
+    }
+    html += '</div>';
+
+    var body = document.getElementById('modalBody');
+    if (body) body.insertAdjacentHTML('beforeend', html);
+  } catch(e) { console.log('Alliance load error:', e); }
+}
 
 async function loadAdherenceCard(pid) {
   // Clear previous auto-refresh

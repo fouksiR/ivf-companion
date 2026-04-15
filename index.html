@@ -254,6 +254,11 @@ h1,h2,h3{font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-
 .checkin-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,0.1);transition:all .3s ease}
 .checkin-dot.active{background:#0D9488;width:24px;border-radius:4px}
 .checkin-dot.completed{background:#0D9488}
+.phq4-options{display:flex;flex-direction:column;gap:10px;max-width:320px;margin:0 auto}
+.phq4-opt{padding:14px 20px;border-radius:12px;border:1.5px solid rgba(0,0,0,0.08);background:rgba(255,255,255,0.8);font-family:'Inter',sans-serif;font-size:15px;font-weight:400;color:#1a3a3a;cursor:pointer;transition:all .2s ease;text-align:left}
+.phq4-opt:hover{background:rgba(13,148,136,0.06);border-color:rgba(13,148,136,0.2)}
+.phq4-opt.selected{background:rgba(13,148,136,0.1);border-color:#0D9488;color:#0D9488;font-weight:500}
+.phq4-card .phq4-transition-label{font-family:'Cormorant Garamond',serif;font-size:20px;text-align:center;opacity:0.7;padding:24px 0}
 .checkin-egg-container{display:flex;flex-direction:column;align-items:center;gap:16px;padding:0;position:relative;width:100%;height:320px}
 .checkin-egg-container canvas{position:absolute;top:0;left:50%;transform:translateX(-50%);width:320px;height:320px}
 .checkin-egg-canvas{z-index:2}
@@ -865,6 +870,10 @@ h1,h2,h3{font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-
         <span class="checkin-dot" data-step="2"></span>
         <span class="checkin-dot" data-step="3"></span>
         <span class="checkin-dot" data-step="4"></span>
+        <span class="checkin-dot phq4-dot" data-step="5"></span>
+        <span class="checkin-dot phq4-dot" data-step="6"></span>
+        <span class="checkin-dot phq4-dot" data-step="7"></span>
+        <span class="checkin-dot phq4-dot" data-step="8"></span>
       </div>
       <div id="checkin-card-container" style="position:relative;overflow:hidden;min-height:300px;">
         <div class="checkin-card" data-step="0" data-dimension="mood">
@@ -891,6 +900,51 @@ h1,h2,h3{font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-
           <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;text-align:center;margin-bottom:8px;">How hopeful are you feeling?</h2>
           <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.7;margin-bottom:32px;">It's okay if this changes hour to hour</p>
           <div class="checkin-egg-container" data-dimension="hope"><canvas class="checkin-egg-canvas" width="280" height="280"></canvas><canvas class="checkin-sperm-canvas" width="280" height="280"></canvas><input type="range" class="checkin-slider" min="1" max="5" value="3" step="1" oninput="updateCheckinEgg(this.closest('.checkin-egg-container').dataset.dimension,parseInt(this.value))"><div class="checkin-slider-labels"><span>Not at all</span><span>Very much</span></div></div>
+        </div>
+        <!-- PHQ-4 cards (steps 5-8) -->
+        <div class="checkin-card phq4-card" data-step="5" data-phq="q1" style="display:none;">
+          <p style="font-family:'Inter',sans-serif;font-weight:400;font-size:13px;text-align:center;opacity:0.5;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Over the last 2 weeks</p>
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:24px;text-align:center;margin-bottom:8px;line-height:1.3;">How often have you felt nervous, anxious, or on edge?</h2>
+          <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.6;margin-bottom:28px;font-size:14px;">Just pick what feels closest</p>
+          <div class="phq4-options" data-q="q1">
+            <button class="phq4-opt" data-val="0" onclick="selectPHQ4(this)">Not at all</button>
+            <button class="phq4-opt" data-val="1" onclick="selectPHQ4(this)">Several days</button>
+            <button class="phq4-opt" data-val="2" onclick="selectPHQ4(this)">More than half the days</button>
+            <button class="phq4-opt" data-val="3" onclick="selectPHQ4(this)">Nearly every day</button>
+          </div>
+        </div>
+        <div class="checkin-card phq4-card" data-step="6" data-phq="q2" style="display:none;">
+          <p style="font-family:'Inter',sans-serif;font-weight:400;font-size:13px;text-align:center;opacity:0.5;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Over the last 2 weeks</p>
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:24px;text-align:center;margin-bottom:8px;line-height:1.3;">Not being able to stop or control worrying?</h2>
+          <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.6;margin-bottom:28px;font-size:14px;">There are no wrong answers here</p>
+          <div class="phq4-options" data-q="q2">
+            <button class="phq4-opt" data-val="0" onclick="selectPHQ4(this)">Not at all</button>
+            <button class="phq4-opt" data-val="1" onclick="selectPHQ4(this)">Several days</button>
+            <button class="phq4-opt" data-val="2" onclick="selectPHQ4(this)">More than half the days</button>
+            <button class="phq4-opt" data-val="3" onclick="selectPHQ4(this)">Nearly every day</button>
+          </div>
+        </div>
+        <div class="checkin-card phq4-card" data-step="7" data-phq="q3" style="display:none;">
+          <p style="font-family:'Inter',sans-serif;font-weight:400;font-size:13px;text-align:center;opacity:0.5;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Over the last 2 weeks</p>
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:24px;text-align:center;margin-bottom:8px;line-height:1.3;">Feeling down, depressed, or hopeless?</h2>
+          <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.6;margin-bottom:28px;font-size:14px;">Whatever you feel is okay</p>
+          <div class="phq4-options" data-q="q3">
+            <button class="phq4-opt" data-val="0" onclick="selectPHQ4(this)">Not at all</button>
+            <button class="phq4-opt" data-val="1" onclick="selectPHQ4(this)">Several days</button>
+            <button class="phq4-opt" data-val="2" onclick="selectPHQ4(this)">More than half the days</button>
+            <button class="phq4-opt" data-val="3" onclick="selectPHQ4(this)">Nearly every day</button>
+          </div>
+        </div>
+        <div class="checkin-card phq4-card" data-step="8" data-phq="q4" style="display:none;">
+          <p style="font-family:'Inter',sans-serif;font-weight:400;font-size:13px;text-align:center;opacity:0.5;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px;">Over the last 2 weeks</p>
+          <h2 style="font-family:'Cormorant Garamond',serif;font-size:24px;text-align:center;margin-bottom:8px;line-height:1.3;">Little interest or pleasure in doing things?</h2>
+          <p style="font-family:'Inter',sans-serif;font-weight:300;text-align:center;opacity:0.6;margin-bottom:28px;font-size:14px;">Nearly there — last question</p>
+          <div class="phq4-options" data-q="q4">
+            <button class="phq4-opt" data-val="0" onclick="selectPHQ4(this)">Not at all</button>
+            <button class="phq4-opt" data-val="1" onclick="selectPHQ4(this)">Several days</button>
+            <button class="phq4-opt" data-val="2" onclick="selectPHQ4(this)">More than half the days</button>
+            <button class="phq4-opt" data-val="3" onclick="selectPHQ4(this)">Nearly every day</button>
+          </div>
         </div>
       </div>
       <div id="checkin-nav" style="display:flex;justify-content:center;gap:16px;padding:24px 16px;">
@@ -1676,7 +1730,11 @@ if(!localStorage.getItem('melodai_onboarding_complete')){
     wb.innerHTML='<div style="font-size:28px;margin-bottom:8px">\uD83E\uDD5A</div><div style="font-family:var(--serif);font-size:16px;color:#1a3a3a;line-height:1.5">Welcome '+(state.name||'')+'! I\u2019ll be with you through every step \u2014 the injections, the waits, the hopes. Tap me anytime. \uD83D\uDC9B</div><button onclick="this.parentElement.remove()" style="margin-top:14px;padding:8px 28px;background:linear-gradient(135deg,#0D9488,#14B8A6);color:#fff;border:none;border-radius:24px;font-size:14px;font-weight:600;cursor:pointer">Got it!</button>';
     document.body.appendChild(wb);
   },800);
-}}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
+}
+// Check for pending PHQ-4 from phenotype trigger
+checkPendingPHQ4();
+checkPendingAlliance();
+}catch(e){console.warn('showApp error:',e);document.getElementById('screen-onboard').classList.remove('active');document.getElementById('screen-app').classList.add('active')}}
 /* ═══ FCM PUSH NOTIFICATIONS ═══════════════════════════════════════ */
 function initFCM(patientId){
 if(!('Notification' in window)||!('serviceWorker' in navigator))return;
@@ -2305,11 +2363,14 @@ var CHECKIN_FACES=['😔','😟','😐','🙂','😊'];
 var CHECKIN_FACE_VALUES=[0,2,5,7,10]; // maps to 0-10 scale for backend
 var CHECKIN_DIMS=['mood','calm','connection','clarity','hope'];
 var _ciStep=0,_ciScores={},_ciStepStart=null;
+var _phq4Scores={};  // q1-q4, each 0-3
+var _CI_TOTAL_STEPS=9; // 5 mood + 4 PHQ-4
 
 function initProgressiveCheckin(){
-  _ciStep=0;_ciScores={};_ciStepStart=Date.now();
-  // Reset sliders to middle
+  _ciStep=0;_ciScores={};_phq4Scores={};_ciStepStart=Date.now();
+  // Reset sliders to middle and PHQ-4 buttons
   document.querySelectorAll('.checkin-slider').forEach(function(s){s.value=3});
+  document.querySelectorAll('.phq4-opt').forEach(function(b){b.classList.remove('selected')});
   // Setup canvas for retina (640x640 logical 320x320)
   document.querySelectorAll('.checkin-egg-canvas,.checkin-sperm-canvas').forEach(function(c){
     c.width=640;c.height=640;
@@ -2483,10 +2544,259 @@ function updateCheckinEgg(dimension,value){
   btn.style.opacity='1';btn.style.pointerEvents='auto';
 }
 
+function selectPHQ4(el){
+  var qKey=el.parentElement.dataset.q;
+  var val=parseInt(el.dataset.val);
+  _phq4Scores[qKey]=val;
+  // Highlight selected
+  el.parentElement.querySelectorAll('.phq4-opt').forEach(function(b){b.classList.remove('selected')});
+  el.classList.add('selected');
+  // Enable next
+  var btn=document.getElementById('checkin-next-btn');
+  btn.style.opacity='1';btn.style.pointerEvents='auto';
+}
+
+function checkPendingPHQ4(){
+  if(!API_BASE||!state.patientId)return;
+  fetch(API_BASE+'/phq4/'+state.patientId+'/pending').then(function(r){
+    if(r.ok)return r.json();return null;
+  }).then(function(d){
+    if(d&&d.pending){
+      window._phq4TriggeredBy='phenotype_alert';
+      showAdHocPHQ4();
+    }
+  }).catch(function(){});
+}
+
+function showAdHocPHQ4(){
+  // Show a standalone PHQ-4 overlay (not embedded in full check-in)
+  var overlay=document.createElement('div');
+  overlay.id='phq4-adhoc-overlay';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(180deg,#faf9f7 0%,#f0f7f7 50%,#f5f0f8 100%);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 20px;overflow-y:auto;';
+  overlay.innerHTML='<div style="max-width:380px;width:100%;text-align:center;">'+
+    '<div style="font-size:40px;margin-bottom:12px;">\uD83D\uDC9B</div>'+
+    '<h2 style="font-family:\'Cormorant Garamond\',serif;font-size:24px;margin-bottom:8px;">A quick check-in</h2>'+
+    '<p style="font-family:\'Inter\',sans-serif;font-weight:300;font-size:14px;opacity:0.7;margin-bottom:32px;">We noticed some changes and want to make sure you\'re okay. Just 4 quick questions.</p>'+
+    '<div id="phq4-adhoc-cards"></div>'+
+    '<div id="phq4-adhoc-nav" style="margin-top:24px;display:flex;justify-content:center;gap:12px;">'+
+    '<button id="phq4-adhoc-back" onclick="phq4AdhocBack()" style="display:none;padding:12px 28px;border-radius:8px;border:1px solid rgba(0,0,0,0.12);background:transparent;font-family:\'Inter\',sans-serif;font-size:15px;cursor:pointer;">Back</button>'+
+    '<button id="phq4-adhoc-next" onclick="phq4AdhocNext()" style="padding:12px 40px;border-radius:8px;background:#0D9488;color:#fff;border:none;font-family:\'Inter\',sans-serif;font-weight:500;font-size:15px;cursor:pointer;opacity:0.4;pointer-events:none;">Next</button>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+  // Build adhoc cards
+  var questions=[
+    {q:'q1',text:'How often have you felt nervous, anxious, or on edge?'},
+    {q:'q2',text:'Not being able to stop or control worrying?'},
+    {q:'q3',text:'Feeling down, depressed, or hopeless?'},
+    {q:'q4',text:'Little interest or pleasure in doing things?'}
+  ];
+  var container=document.getElementById('phq4-adhoc-cards');
+  window._phq4AdhocStep=0;
+  window._phq4AdhocScores={};
+  questions.forEach(function(item,i){
+    var card=document.createElement('div');card.className='phq4-adhoc-card';card.dataset.step=i;card.style.display=i===0?'block':'none';
+    card.innerHTML='<p style="font-family:\'Inter\',sans-serif;font-size:13px;opacity:0.5;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Over the last 2 weeks</p>'+
+      '<h3 style="font-family:\'Cormorant Garamond\',serif;font-size:22px;line-height:1.3;margin-bottom:24px;">'+item.text+'</h3>'+
+      '<div class="phq4-options" data-q="'+item.q+'">'+
+      '<button class="phq4-opt" data-val="0" onclick="selectAdhocPHQ4(this)">Not at all</button>'+
+      '<button class="phq4-opt" data-val="1" onclick="selectAdhocPHQ4(this)">Several days</button>'+
+      '<button class="phq4-opt" data-val="2" onclick="selectAdhocPHQ4(this)">More than half the days</button>'+
+      '<button class="phq4-opt" data-val="3" onclick="selectAdhocPHQ4(this)">Nearly every day</button></div>';
+    container.appendChild(card);
+  });
+}
+
+function selectAdhocPHQ4(el){
+  var qKey=el.parentElement.dataset.q;
+  window._phq4AdhocScores[qKey]=parseInt(el.dataset.val);
+  el.parentElement.querySelectorAll('.phq4-opt').forEach(function(b){b.classList.remove('selected')});
+  el.classList.add('selected');
+  var btn=document.getElementById('phq4-adhoc-next');
+  btn.style.opacity='1';btn.style.pointerEvents='auto';
+}
+
+function phq4AdhocNext(){
+  if(window._phq4AdhocStep<3){
+    window._phq4AdhocStep++;
+    document.querySelectorAll('.phq4-adhoc-card').forEach(function(c){c.style.display='none'});
+    var card=document.querySelector('.phq4-adhoc-card[data-step="'+window._phq4AdhocStep+'"]');
+    if(card){card.style.display='block';card.style.animation='checkinSlideIn .3s ease-out'}
+    document.getElementById('phq4-adhoc-back').style.display='inline-block';
+    document.getElementById('phq4-adhoc-next').textContent=window._phq4AdhocStep===3?'Submit':'Next';
+    var qKey='q'+(window._phq4AdhocStep+1);
+    var btn=document.getElementById('phq4-adhoc-next');
+    if(window._phq4AdhocScores[qKey]!==undefined){btn.style.opacity='1';btn.style.pointerEvents='auto'}
+    else{btn.style.opacity='0.4';btn.style.pointerEvents='none'}
+  }else{
+    submitAdhocPHQ4();
+  }
+}
+
+function phq4AdhocBack(){
+  if(window._phq4AdhocStep>0){
+    window._phq4AdhocStep--;
+    document.querySelectorAll('.phq4-adhoc-card').forEach(function(c){c.style.display='none'});
+    document.querySelector('.phq4-adhoc-card[data-step="'+window._phq4AdhocStep+'"]').style.display='block';
+    if(window._phq4AdhocStep===0)document.getElementById('phq4-adhoc-back').style.display='none';
+    document.getElementById('phq4-adhoc-next').textContent='Next';
+    document.getElementById('phq4-adhoc-next').style.opacity='1';document.getElementById('phq4-adhoc-next').style.pointerEvents='auto';
+  }
+}
+
+async function submitAdhocPHQ4(){
+  var s=window._phq4AdhocScores;
+  if(s.q1===undefined||s.q2===undefined||s.q3===undefined||s.q4===undefined)return;
+  var btn=document.getElementById('phq4-adhoc-next');btn.textContent='Submitting...';btn.style.pointerEvents='none';
+  try{
+    var resp=await fetch(API_BASE+'/phq4/'+state.patientId,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({q1:s.q1,q2:s.q2,q3:s.q3,q4:s.q4,triggered_by:'phenotype_alert'})
+    });
+    var data=resp.ok?await resp.json():null;
+    var overlay=document.getElementById('phq4-adhoc-overlay');
+    if(overlay){
+      var msg=data&&data.flagged?'Thank you for sharing. Your care team will check in with you.':'Thank you \u2014 your answers help us support you better.';
+      overlay.innerHTML='<div style="max-width:380px;width:100%;text-align:center;padding-top:80px;">'+
+        '<div style="font-size:48px;margin-bottom:16px;">\uD83D\uDC9B</div>'+
+        '<h2 style="font-family:\'Cormorant Garamond\',serif;font-size:24px;margin-bottom:12px;">'+msg+'</h2>'+
+        '<button onclick="document.getElementById(\'phq4-adhoc-overlay\').remove()" style="margin-top:24px;padding:12px 32px;border-radius:8px;background:#0D9488;color:#fff;border:none;font-family:\'Inter\',sans-serif;font-weight:500;cursor:pointer;">Continue</button></div>';
+    }
+  }catch(e){
+    console.error('Ad-hoc PHQ-4 submit error:',e);
+    var overlay=document.getElementById('phq4-adhoc-overlay');if(overlay)overlay.remove();
+  }
+}
+
+// ── Alliance Survey (patient-facing) ──────────────────────────────
+function checkPendingAlliance(){
+  if(!API_BASE||!state.patientId)return;
+  fetch(API_BASE+'/alliance-survey/'+state.patientId+'/pending').then(function(r){
+    if(r.ok)return r.json();return null;
+  }).then(function(d){
+    if(d&&d.pending){
+      // Delay slightly so PHQ-4 overlay has priority
+      setTimeout(function(){ showAllianceSurvey(d.cycle_phase||'general'); },2000);
+    }
+  }).catch(function(){});
+}
+
+function showAllianceSurvey(cyclePhase){
+  // Don't stack on top of PHQ-4
+  if(document.getElementById('phq4-adhoc-overlay'))return;
+  var questions=[
+    {id:'q1',text:'My companion understands what I\'m going through'},
+    {id:'q2',text:'I feel comfortable sharing my feelings here'},
+    {id:'q3',text:'My companion gives me useful suggestions'},
+    {id:'q4',text:'The support I receive feels relevant to my situation'},
+    {id:'q5',text:'I feel cared for when I use this app'},
+    {id:'q6',text:'I trust the information I receive here'}
+  ];
+  var overlay=document.createElement('div');
+  overlay.id='alliance-survey-overlay';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(180deg,#faf9f7 0%,#f0f7f7 50%,#f5f0f8 100%);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 20px;overflow-y:auto;';
+  window._allianceStep=0;
+  window._allianceScores={};
+  window._allianceCyclePhase=cyclePhase;
+
+  var cardsHtml='';
+  questions.forEach(function(q,i){
+    var stars='';
+    for(var s=1;s<=5;s++){
+      stars+='<button onclick="selectAllianceStar(\''+q.id+'\','+s+')" data-qid="'+q.id+'" data-val="'+s+'" style="width:48px;height:48px;border-radius:50%;border:2px solid #e5e5e3;background:#fff;font-size:20px;cursor:pointer;transition:all .15s;margin:0 4px;">'+
+        (s<=2?['😔','😐','🙂','😊','🤗'][s-1]:['😔','😐','🙂','😊','🤗'][s-1])+'</button>';
+    }
+    cardsHtml+='<div class="alliance-q-card" data-step="'+i+'" style="display:'+(i===0?'block':'none')+';text-align:center;">'+
+      '<p style="font-family:\'Inter\',sans-serif;font-size:13px;opacity:0.5;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Question '+(i+1)+' of 6</p>'+
+      '<p style="font-family:\'Cormorant Garamond\',serif;font-size:20px;margin-bottom:24px;line-height:1.4;">'+q.text+'</p>'+
+      '<div style="display:flex;justify-content:center;gap:4px;">'+stars+'</div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-top:8px;padding:0 8px;"><span>Strongly disagree</span><span>Strongly agree</span></div>'+
+    '</div>';
+  });
+
+  overlay.innerHTML='<div style="max-width:380px;width:100%;text-align:center;">'+
+    '<div style="font-size:40px;margin-bottom:12px;">\uD83D\uDCAC</div>'+
+    '<h2 style="font-family:\'Cormorant Garamond\',serif;font-size:24px;margin-bottom:8px;">Quick feedback</h2>'+
+    '<p style="font-family:\'Inter\',sans-serif;font-weight:300;font-size:14px;opacity:0.7;margin-bottom:32px;">Helps us support you better — 6 quick questions.</p>'+
+    '<div id="alliance-cards">'+cardsHtml+'</div>'+
+    '<div style="margin-top:24px;display:flex;justify-content:center;gap:12px;">'+
+    '<button id="alliance-back" onclick="allianceBack()" style="display:none;padding:12px 28px;border-radius:8px;border:1px solid rgba(0,0,0,0.12);background:transparent;font-family:\'Inter\',sans-serif;font-size:15px;cursor:pointer;">Back</button>'+
+    '<button id="alliance-next" onclick="allianceNext()" style="padding:12px 40px;border-radius:8px;background:#0D9488;color:#fff;border:none;font-family:\'Inter\',sans-serif;font-weight:500;font-size:15px;cursor:pointer;opacity:0.4;pointer-events:none;">Next</button>'+
+    '</div></div>';
+  document.body.appendChild(overlay);
+}
+
+function selectAllianceStar(qid,val){
+  window._allianceScores[qid]=val;
+  document.querySelectorAll('button[data-qid="'+qid+'"]').forEach(function(b){
+    var v=parseInt(b.dataset.val);
+    b.style.background=v<=val?'#E1F5EE':'#fff';
+    b.style.borderColor=v<=val?'#0D9488':'#e5e5e3';
+    b.style.transform=v===val?'scale(1.15)':'scale(1)';
+  });
+  var btn=document.getElementById('alliance-next');
+  if(btn){btn.style.opacity='1';btn.style.pointerEvents='auto';}
+}
+
+function allianceNext(){
+  if(window._allianceStep<5){
+    window._allianceStep++;
+    document.querySelectorAll('.alliance-q-card').forEach(function(c){c.style.display='none'});
+    var card=document.querySelector('.alliance-q-card[data-step="'+window._allianceStep+'"]');
+    if(card){card.style.display='block';}
+    document.getElementById('alliance-back').style.display='inline-block';
+    var qid='q'+(window._allianceStep+1);
+    var btn=document.getElementById('alliance-next');
+    if(window._allianceStep===5){btn.textContent='Submit';}
+    if(!window._allianceScores[qid]){btn.style.opacity='0.4';btn.style.pointerEvents='none';}
+    else{btn.style.opacity='1';btn.style.pointerEvents='auto';}
+  }else{
+    submitAllianceSurvey();
+  }
+}
+
+function allianceBack(){
+  if(window._allianceStep>0){
+    window._allianceStep--;
+    document.querySelectorAll('.alliance-q-card').forEach(function(c){c.style.display='none'});
+    document.querySelector('.alliance-q-card[data-step="'+window._allianceStep+'"]').style.display='block';
+    if(window._allianceStep===0)document.getElementById('alliance-back').style.display='none';
+    var btn=document.getElementById('alliance-next');
+    btn.textContent='Next';btn.style.opacity='1';btn.style.pointerEvents='auto';
+  }
+}
+
+async function submitAllianceSurvey(){
+  var s=window._allianceScores;
+  var items=[];
+  for(var i=1;i<=6;i++){
+    if(s['q'+i]===undefined)return;
+    items.push({q_id:'q'+i,score:s['q'+i]});
+  }
+  var btn=document.getElementById('alliance-next');
+  btn.textContent='Submitting...';btn.style.pointerEvents='none';
+  try{
+    var resp=await fetch(API_BASE+'/alliance-survey/'+state.patientId,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({items:items,cycle_phase:window._allianceCyclePhase||'general'})
+    });
+    var overlay=document.getElementById('alliance-survey-overlay');
+    if(overlay){
+      overlay.innerHTML='<div style="max-width:380px;width:100%;text-align:center;padding-top:80px;">'+
+        '<div style="font-size:48px;margin-bottom:16px;">\uD83D\uDC9B</div>'+
+        '<h2 style="font-family:\'Cormorant Garamond\',serif;font-size:24px;margin-bottom:12px;">Thank you for your feedback!</h2>'+
+        '<p style="font-family:\'Inter\',sans-serif;font-weight:300;font-size:14px;opacity:0.7;margin-bottom:24px;">Your input helps us improve your experience.</p>'+
+        '<button onclick="document.getElementById(\'alliance-survey-overlay\').remove()" style="padding:12px 32px;border-radius:8px;background:#0D9488;color:#fff;border:none;font-family:\'Inter\',sans-serif;font-weight:500;cursor:pointer;">Continue</button></div>';
+    }
+  }catch(e){
+    console.error('Alliance survey submit error:',e);
+    var overlay=document.getElementById('alliance-survey-overlay');if(overlay)overlay.remove();
+  }
+}
+
 function showCheckinStep(step){
   if(_ciStepStart&&step>0){
     var elapsed=Date.now()-_ciStepStart;
-    try{if(window.collector)collector.onSliderChange(CHECKIN_DIMS[step-1],_ciScores[CHECKIN_DIMS[step-1]]||5)}catch(e){}
+    if(step<=5)try{if(window.collector)collector.onSliderChange(CHECKIN_DIMS[step-1],_ciScores[CHECKIN_DIMS[step-1]]||5)}catch(e){}
   }
   _ciStepStart=Date.now();
   document.querySelectorAll('.checkin-card').forEach(function(c){c.style.display='none'});
@@ -2499,14 +2809,23 @@ function showCheckinStep(step){
   });
   document.getElementById('checkin-back-btn').style.display=step>0?'inline-block':'none';
   var nextBtn=document.getElementById('checkin-next-btn');
-  nextBtn.textContent=step===4?'Submit':'Next';
-  var dim=CHECKIN_DIMS[step];
-  if(_ciScores[dim]!==undefined){nextBtn.style.opacity='1';nextBtn.style.pointerEvents='auto'}
-  else{nextBtn.style.opacity='0.4';nextBtn.style.pointerEvents='none'}
+  var lastStep=_CI_TOTAL_STEPS-1; // 8
+  nextBtn.textContent=step===lastStep?'Submit':'Next';
+  // Enable/disable based on whether this step has a selection
+  if(step<5){
+    var dim=CHECKIN_DIMS[step];
+    if(_ciScores[dim]!==undefined){nextBtn.style.opacity='1';nextBtn.style.pointerEvents='auto'}
+    else{nextBtn.style.opacity='0.4';nextBtn.style.pointerEvents='none'}
+  }else{
+    var qKey='q'+(step-4); // steps 5-8 → q1-q4
+    if(_phq4Scores[qKey]!==undefined){nextBtn.style.opacity='1';nextBtn.style.pointerEvents='auto'}
+    else{nextBtn.style.opacity='0.4';nextBtn.style.pointerEvents='none'}
+  }
 }
 
 function checkinNext(){
-  if(_ciStep<4){_ciStep++;showCheckinStep(_ciStep)}
+  var lastStep=_CI_TOTAL_STEPS-1;
+  if(_ciStep<lastStep){_ciStep++;showCheckinStep(_ciStep)}
   else{submitProgressiveCheckin()}
 }
 function checkinBack(){
@@ -2546,6 +2865,24 @@ async function submitProgressiveCheckin(){
         "You're the first to check in today — you're setting the pace";}
     else{document.getElementById('checkin-similar').textContent='Every check-in matters. We see you.';}
   }catch(e){document.getElementById('checkin-similar').textContent='Every check-in matters. We see you.';}
+
+  // Submit PHQ-4 scores
+  if(_phq4Scores.q1!==undefined&&_phq4Scores.q2!==undefined&&_phq4Scores.q3!==undefined&&_phq4Scores.q4!==undefined){
+    try{
+      var phq4Resp=await fetch(API_BASE+'/phq4/'+state.patientId,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({q1:_phq4Scores.q1,q2:_phq4Scores.q2,q3:_phq4Scores.q3,q4:_phq4Scores.q4,triggered_by:window._phq4TriggeredBy||'daily'})
+      });
+      if(phq4Resp.ok){
+        var phq4Data=await phq4Resp.json();
+        if(phq4Data.flagged){
+          var simEl=document.getElementById('checkin-similar');
+          if(simEl)simEl.textContent='Thank you for sharing. Your care team will check in with you.';
+        }
+      }
+    }catch(e){console.error('PHQ-4 submit:',e)}
+    window._phq4TriggeredBy=null;
+  }
 
   // Call the original submitCheckin which handles API call, escalation, wrappers etc.
   if(typeof window.submitCheckin==='function'){

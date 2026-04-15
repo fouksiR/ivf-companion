@@ -1761,6 +1761,21 @@ class ScreeningResponse(BaseModel):
     message: str
     escalation: Optional[dict] = None
 
+class PHQ4Request(BaseModel):
+    """PHQ-4 ultra-brief screening: 2 GAD-2 items + 2 PHQ-2 items, each scored 0-3."""
+    q1: int = Field(ge=0, le=3)  # Nervous, anxious, on edge
+    q2: int = Field(ge=0, le=3)  # Can't stop worrying
+    q3: int = Field(ge=0, le=3)  # Feeling down, depressed, hopeless
+    q4: int = Field(ge=0, le=3)  # Little interest or pleasure
+    triggered_by: str = "daily"  # "daily" | "phenotype_alert"
+
+class PHQ4Response(BaseModel):
+    total: int
+    anxiety_sub: int
+    depression_sub: int
+    severity: str  # normal | mild | moderate | severe
+    flagged: bool = False
+
 class PassiveSignalBatch(BaseModel):
     """Passive behavioural signals collected silently from the patient app."""
     patient_id: str
@@ -3199,6 +3214,113 @@ Keep it to 2-3 warm sentences."""
         message=response.content[0].text,
         escalation=escalation,
     )
+
+
+@app.post("/phq4/{patient_id}", response_model=PHQ4Response)
+async def submit_phq4(patient_id: str, req: PHQ4Request):
+    """Submit a PHQ-4 ultra-brief screening (2 GAD-2 + 2 PHQ-2 items).
+
+    Scores: anxiety_sub = q1+q2 (0-6), depression_sub = q3+q4 (0-6), total = 0-12.
+    Severity: 0-2 normal, 3-5 mild, 6-8 moderate, 9-12 severe.
+    Flags clinician alert if total >= 6 or either subscale >= 4.
+    """
+    get_or_create_patient(patient_id)
+
+    anxiety_sub = req.q1 + req.q2
+    depression_sub = req.q3 + req.q4
+    total = anxiety_sub + depression_sub
+
+    if total <= 2:
+        severity = "normal"
+    elif total <= 5:
+        severity = "mild"
+    elif total <= 8:
+        severity = "moderate"
+    else:
+        severity = "severe"
+
+    flagged = total >= 6 or anxiety_sub >= 4 or depression_sub >= 4
+
+    # Melbourne date string for Firebase key
+    from datetime import timezone, timedelta
+    melb_tz = timezone(timedelta(hours=10))
+    date_key = datetime.now(melb_tz).strftime("%Y-%m-%d")
+
+    phq4_record = {
+        "date": date_key,
+        "anxiety_sub": anxiety_sub,
+        "depression_sub": depression_sub,
+        "total": total,
+        "severity": severity,
+        "triggered_by": req.triggered_by,
+        "responses": {"q1": req.q1, "q2": req.q2, "q3": req.q3, "q4": req.q4},
+        "timestamp": utc_iso(),
+    }
+
+    # Store to Firebase: melod_ai/patients/{pid}/phq4_scores/{date}
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            firebase_db._fb_ref.child("patients").child(patient_id).child("phq4_scores").child(date_key).update(phq4_record)
+    except Exception as e:
+        logger.warning(f"PHQ-4 Firebase write error for {patient_id}: {e}")
+
+    # Flag clinician alert if elevated
+    if flagged:
+        alert = {
+            "patient_id": patient_id,
+            "level": "AMBER" if total < 9 else "RED",
+            "type": "phq4_elevated",
+            "message": f"PHQ-4 total={total} (anxiety={anxiety_sub}, depression={depression_sub}, severity={severity})",
+            "triggered_by": req.triggered_by,
+            "timestamp": utc_iso(),
+            "acknowledged": False,
+        }
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                firebase_db._fb_ref.child("alerts").push(alert)
+        except Exception as e:
+            logger.warning(f"PHQ-4 alert write error for {patient_id}: {e}")
+
+        _sync_escalation(patient_id, {
+            "level": alert["level"],
+            "reason": f"PHQ-4 elevated: total={total}, severity={severity}",
+            "signals": ["phq4_screening"],
+            "timestamp": utc_iso(),
+        })
+
+    # Clear pending_phq4 flag if this was triggered by phenotype
+    if req.triggered_by == "phenotype_alert":
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                firebase_db._fb_ref.child("patients").child(patient_id).update({"pending_phq4": False})
+        except Exception:
+            pass
+
+    logger.info(f"PHQ-4 submitted for {patient_id}: total={total}, severity={severity}, flagged={flagged}, triggered_by={req.triggered_by}")
+
+    return PHQ4Response(
+        total=total,
+        anxiety_sub=anxiety_sub,
+        depression_sub=depression_sub,
+        severity=severity,
+        flagged=flagged,
+    )
+
+
+@app.get("/phq4/{patient_id}/pending")
+async def check_pending_phq4(patient_id: str):
+    """Check if this patient has a pending PHQ-4 triggered by phenotyping."""
+    try:
+        if firebase_db and firebase_db._fb_ref:
+            val = firebase_db._fb_ref.child("patients").child(patient_id).child("pending_phq4").get()
+            if val:
+                cycle_phase = None
+                if isinstance(val, dict):
+                    cycle_phase = val.get("cycle_phase")
+                return {"pending": True, "cycle_phase": cycle_phase}
+    except Exception:
+        pass
+    return {"pending": False, "cycle_phase": None}
 
 
 @app.post("/patient/update")
@@ -7006,6 +7128,327 @@ async def get_audit_log(request: Request, days: int = 7, clinician_uid: str = No
     except Exception as e:
         logging.error(f"Audit log read failed: {e}")
         return {"entries": []}
+
+
+# ── Engagement Score Endpoints ───────────────────────────────────────
+
+def _compute_engagement(patient_id: str) -> dict:
+    """Compute 7-day composite engagement score for a patient.
+
+    Components (weighted):
+      - check_ins:  30%  (7/week = 100%)
+      - messages:   40%  (18/week = 100%, capped)
+      - phq4:       15%  (1/week = 100%)
+      - active_days: 15%  (5/week = 100%)
+    """
+    try:
+        from zoneinfo import ZoneInfo
+    except ImportError:
+        from backports.zoneinfo import ZoneInfo
+
+    melb = ZoneInfo("Australia/Melbourne")
+    now = datetime.now(melb)
+    cutoff = now - timedelta(days=7)
+    cutoff_iso = cutoff.isoformat()
+
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    checkin_count = 0
+    message_count = 0
+    phq4_count = 0
+    active_dates = set()
+
+    if fb_ref:
+        # Count check-ins in last 7 days
+        try:
+            checkins_raw = fb_ref.child("checkins").child(patient_id).get()
+            if checkins_raw and isinstance(checkins_raw, dict):
+                for _k, v in checkins_raw.items():
+                    if isinstance(v, dict):
+                        ts = v.get("timestamp") or v.get("date") or ""
+                        if ts >= cutoff_iso[:10]:
+                            checkin_count += 1
+                            active_dates.add(ts[:10])
+        except Exception:
+            pass
+
+        # Count messages in last 7 days
+        try:
+            convos_raw = fb_ref.child("conversations").child(patient_id).get()
+            if convos_raw and isinstance(convos_raw, dict):
+                for _k, v in convos_raw.items():
+                    if isinstance(v, dict) and v.get("role") == "user":
+                        ts = v.get("timestamp") or ""
+                        if ts >= cutoff_iso[:10]:
+                            message_count += 1
+                            active_dates.add(ts[:10])
+        except Exception:
+            pass
+
+        # Count PHQ-4 completions in last 7 days
+        try:
+            phq4_raw = fb_ref.child("patients").child(patient_id).child("phq4_scores").get()
+            if phq4_raw and isinstance(phq4_raw, dict):
+                for date_key, v in phq4_raw.items():
+                    if date_key >= cutoff_iso[:10]:
+                        phq4_count += 1
+                        active_dates.add(date_key[:10])
+        except Exception:
+            pass
+
+    active_day_count = len(active_dates)
+
+    # Weighted score (0-100)
+    checkin_pct = min(checkin_count / 7.0, 1.0) * 100
+    message_pct = min(message_count / 18.0, 1.0) * 100
+    phq4_pct = min(phq4_count / 1.0, 1.0) * 100
+    active_pct = min(active_day_count / 5.0, 1.0) * 100
+
+    score = round(checkin_pct * 0.30 + message_pct * 0.40 + phq4_pct * 0.15 + active_pct * 0.15)
+    score = max(0, min(100, score))
+
+    # Alert status
+    alert_status = None
+    if score < 15:
+        alert_status = "critical"
+    elif score < 30:
+        alert_status = "warning"
+
+    date_str = now.strftime("%Y-%m-%d")
+
+    return {
+        "patient_id": patient_id,
+        "current_score": score,
+        "components": {
+            "check_ins": checkin_count,
+            "messages": message_count,
+            "phq4_completed": phq4_count,
+            "active_days": active_day_count,
+        },
+        "alert_status": alert_status,
+        "date": date_str,
+        "timestamp": now.isoformat(),
+    }
+
+
+@app.get("/clinician/engagement/all", dependencies=[Depends(verify_clinician_api_key)])
+async def get_all_engagement_scores():
+    """Get engagement scores for all patients (batch endpoint for dashboard)."""
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    patient_ids = []
+
+    if fb_ref:
+        try:
+            fb_patients = fb_ref.child("patients").get()
+            if fb_patients and isinstance(fb_patients, dict):
+                patient_ids = list(fb_patients.keys())
+        except Exception as e:
+            logger.warning(f"Engagement batch: failed to list patients: {e}")
+
+    # Fall back to in-memory
+    if not patient_ids:
+        patient_ids = list(patients_db.keys())
+
+    results = []
+    for pid in patient_ids:
+        try:
+            results.append(_compute_engagement(pid))
+        except Exception as e:
+            logger.warning(f"Engagement compute error for {pid}: {e}")
+
+    return {"patients": results}
+
+
+@app.get("/clinician/engagement/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def get_engagement_score(patient_id: str):
+    """Get 7-day composite engagement score for a patient."""
+    result = _compute_engagement(patient_id)
+
+    # Store score to Firebase
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    if fb_ref:
+        try:
+            fb_ref.child("engagement_scores").child(patient_id).child(result["date"]).update({
+                "score": result["current_score"],
+                "components": result["components"],
+                "alert_status": result["alert_status"],
+                "timestamp": result["timestamp"],
+            })
+        except Exception as e:
+            logger.warning(f"Engagement score write error for {patient_id}: {e}")
+
+        # Push alert if disengaged
+        if result["alert_status"]:
+            try:
+                fb_ref.child("alerts").push({
+                    "patient_id": patient_id,
+                    "type": "disengagement",
+                    "level": "RED" if result["alert_status"] == "critical" else "AMBER",
+                    "message": f"Engagement score {result['current_score']}/100 ({result['alert_status']})",
+                    "score": result["current_score"],
+                    "alert_status": result["alert_status"],
+                    "timestamp": result["timestamp"],
+                    "acknowledged": False,
+                })
+            except Exception as e:
+                logger.warning(f"Engagement alert write error for {patient_id}: {e}")
+
+    return result
+
+
+# ── Therapeutic Alliance Micro-Survey Endpoints ──────────────────────
+
+
+class AllianceItem(BaseModel):
+    q_id: str
+    score: int  # 1-5
+
+
+class AllianceSurveyRequest(BaseModel):
+    items: list[AllianceItem]
+    cycle_phase: str = "general"
+
+
+# Standard TAI-SF inspired items for AI companion
+ALLIANCE_QUESTIONS = {
+    "q1": {"text": "My companion understands what I'm going through", "subscale": "warmth"},
+    "q2": {"text": "I feel comfortable sharing my feelings here", "subscale": "warmth"},
+    "q3": {"text": "My companion gives me useful suggestions", "subscale": "competence"},
+    "q4": {"text": "The support I receive feels relevant to my situation", "subscale": "competence"},
+    "q5": {"text": "I feel cared for when I use this app", "subscale": "warmth"},
+    "q6": {"text": "I trust the information I receive here", "subscale": "competence"},
+}
+
+
+@app.post("/alliance-survey/{patient_id}")
+async def submit_alliance_survey(patient_id: str, req: AllianceSurveyRequest):
+    """Submit a therapeutic alliance micro-survey (patient-facing, no auth)."""
+    try:
+        from zoneinfo import ZoneInfo
+    except ImportError:
+        from backports.zoneinfo import ZoneInfo
+
+    melb = ZoneInfo("Australia/Melbourne")
+    now = datetime.now(melb)
+    ts_str = now.strftime("%Y%m%d_%H%M%S")
+
+    # Parse scores by subscale
+    warmth_scores = []
+    competence_scores = []
+    all_scores = []
+
+    for item in req.items:
+        score = max(1, min(5, item.score))
+        all_scores.append(score)
+        q_info = ALLIANCE_QUESTIONS.get(item.q_id)
+        if q_info:
+            if q_info["subscale"] == "warmth":
+                warmth_scores.append(score)
+            else:
+                competence_scores.append(score)
+
+    warmth_mean = round(sum(warmth_scores) / len(warmth_scores), 2) if warmth_scores else 0
+    competence_mean = round(sum(competence_scores) / len(competence_scores), 2) if competence_scores else 0
+    overall_mean = round(sum(all_scores) / len(all_scores), 2) if all_scores else 0
+
+    survey_data = {
+        "patient_id": patient_id,
+        "cycle_phase": req.cycle_phase,
+        "items": {item.q_id: item.score for item in req.items},
+        "warmth_mean": warmth_mean,
+        "competence_mean": competence_mean,
+        "overall_mean": overall_mean,
+        "timestamp": now.isoformat(),
+    }
+
+    # Store to Firebase
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    if fb_ref:
+        try:
+            fb_ref.child("patients").child(patient_id).child("alliance_surveys").child(ts_str).update(survey_data)
+        except Exception as e:
+            logger.warning(f"Alliance survey write error for {patient_id}: {e}")
+
+        # Clear pending flag
+        try:
+            fb_ref.child("patients").child(patient_id).update({"pending_alliance_survey": False})
+        except Exception:
+            pass
+
+        # Alert if low alliance
+        if overall_mean < 2.5:
+            try:
+                fb_ref.child("alerts").push({
+                    "patient_id": patient_id,
+                    "type": "low_alliance",
+                    "level": "AMBER",
+                    "message": f"Low therapeutic alliance: overall={overall_mean}, warmth={warmth_mean}, competence={competence_mean}",
+                    "timestamp": now.isoformat(),
+                    "acknowledged": False,
+                })
+            except Exception as e:
+                logger.warning(f"Alliance alert write error for {patient_id}: {e}")
+
+    return {"warmth_mean": warmth_mean, "competence_mean": competence_mean, "overall_mean": overall_mean}
+
+
+@app.get("/alliance-survey/{patient_id}/pending")
+async def check_pending_alliance(patient_id: str):
+    """Check if a patient has a pending alliance survey."""
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    if fb_ref:
+        try:
+            val = fb_ref.child("patients").child(patient_id).child("pending_alliance_survey").get()
+            if val:
+                cycle_phase = None
+                if isinstance(val, dict):
+                    cycle_phase = val.get("cycle_phase")
+                return {"pending": True, "cycle_phase": cycle_phase}
+        except Exception:
+            pass
+    return {"pending": False, "cycle_phase": None}
+
+
+@app.get("/clinician/alliance/{patient_id}", dependencies=[Depends(verify_clinician_api_key)])
+async def get_alliance_history(patient_id: str):
+    """Get all alliance surveys and trend for a patient (clinician-facing)."""
+    fb_ref = getattr(firebase_db, '_fb_ref', None)
+    surveys = []
+
+    if fb_ref:
+        try:
+            raw = fb_ref.child("patients").child(patient_id).child("alliance_surveys").get()
+            if raw and isinstance(raw, dict):
+                for ts_key, sdata in sorted(raw.items()):
+                    if isinstance(sdata, dict):
+                        surveys.append(sdata)
+        except Exception as e:
+            logger.warning(f"Alliance history read error for {patient_id}: {e}")
+
+    # Compute trend from last 2 surveys
+    trend = "stable"
+    current_warmth = None
+    current_competence = None
+
+    if len(surveys) >= 1:
+        latest = surveys[-1]
+        current_warmth = latest.get("warmth_mean")
+        current_competence = latest.get("competence_mean")
+
+    if len(surveys) >= 2:
+        prev_overall = surveys[-2].get("overall_mean", 0)
+        curr_overall = surveys[-1].get("overall_mean", 0)
+        diff = curr_overall - prev_overall
+        if diff > 0.3:
+            trend = "improving"
+        elif diff < -0.3:
+            trend = "declining"
+
+    return {
+        "surveys": surveys,
+        "trend": trend,
+        "current_warmth": current_warmth,
+        "current_competence": current_competence,
+    }
 
 
 if __name__ == "__main__":

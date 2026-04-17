@@ -2835,11 +2835,22 @@ function checkinBack(){
 async function submitProgressiveCheckin(){
   stopCheckinAnimation();
   // Map progressive scores to old DOM elements so wrappers still work
-  var mood=_ciScores.mood||5;
-  var anxiety=10-(_ciScores.calm||5); // invert: calm 10 → anxiety 0
-  var loneliness=10-(_ciScores.connection||5); // invert
-  var uncertainty=10-(_ciScores.clarity||5); // invert
-  var hope=_ciScores.hope||5;
+  // Bug 2 fix: || 5 treats 0 as falsy, which collapses the lowest mood/hope
+  // face and the highest anxiety (calm=0) into a neutral 5. Use explicit
+  // !== undefined checks. Bug 2b: console.warn on the fallback path.
+  var _ciGet=function(dim){
+    var v=_ciScores[dim];
+    if(v===undefined){
+      try{console.warn('[checkin] fallback to mood=5, _ciScores.'+dim+' missing/empty')}catch(e){}
+      return 5;
+    }
+    return v;
+  };
+  var mood=_ciGet('mood');
+  var anxiety=10-_ciGet('calm');         // invert: calm 10 → anxiety 0
+  var loneliness=10-_ciGet('connection'); // invert
+  var uncertainty=10-_ciGet('clarity');   // invert
+  var hope=_ciGet('hope');
 
   // Fix C: bridge progressive scores → legacy #v-* IDs BEFORE submitCheckin runs.
   // submitCheckin reads textContent of #v-mood / #v-anxiety / #v-lonely /
@@ -5661,12 +5672,29 @@ var _origSubmitCI=window.submitCheckin;
 if(typeof _origSubmitCI==='function'){
   window.submitCheckin=async function(){
     await _origSubmitCI.apply(this,arguments);
-    // After check-in, check scores and react
+    // After check-in, check scores and react.
+    // Bug 2: || 5 collapses 0 (extreme low mood / hope, extreme high anxiety)
+    // into neutral 5 because 0 is falsy in JS. Read textContent explicitly
+    // and only fall back to 5 when the element is missing or empty.
+    // Bug 2b: console.warn on every fallback path.
+    var _vRead=function(id){
+      var el=document.getElementById(id);
+      if(!el||el.textContent===''){
+        try{console.warn('[checkin] fallback to mood=5, '+id+' missing/empty')}catch(e){}
+        return 5;
+      }
+      var n=+el.textContent;
+      if(isNaN(n)){
+        try{console.warn('[checkin] fallback to mood=5, '+id+' non-numeric ('+el.textContent+')')}catch(e){}
+        return 5;
+      }
+      return n;
+    };
     var scores={
-      mood:+(document.getElementById('v-mood')||{}).textContent||5,
-      anxiety:+(document.getElementById('v-anxiety')||{}).textContent||5,
-      loneliness:+(document.getElementById('v-lonely')||{}).textContent||5,
-      hope:+(document.getElementById('v-hope')||{}).textContent||5
+      mood:_vRead('v-mood'),
+      anxiety:_vRead('v-anxiety'),
+      loneliness:_vRead('v-lonely'),
+      hope:_vRead('v-hope')
     };
     setTimeout(function(){eggReactToMood(scores)},2000);
   };

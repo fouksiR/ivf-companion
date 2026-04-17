@@ -16,6 +16,7 @@ Dr Yuval Fouks — March 2026
 from signal_integration import (
     signal_router, get_signal_context_for_patient, patient_signal_store,
     analyze_passive_signals,
+    _load_baseline_from_firebase, _save_baseline_to_firebase, alert_queue,
 )
 from firebase_db import db as firebase_db
 from nice_ng257_evidence import match_nice_evidence
@@ -3091,6 +3092,15 @@ async def daily_checkin(req: CheckInRequest):
     # for patients who only check in (no passive signals yet).
     try:
         from signal_integration import compute_phenotype_score
+        # Cold-start baseline restore: ported from the (now-deleted)
+        # signal_router /checkin handler. On a fresh Cloud Run instance the
+        # in-memory store is empty; pulling the last saved baseline from
+        # Firebase prevents the population-norms fallback warning (Fix D)
+        # from firing for established patients after every restart.
+        # MUST run BEFORE the empty-init block below, otherwise the restored
+        # data would be clobbered.
+        if req.patient_id not in patient_signal_store:
+            _load_baseline_from_firebase(req.patient_id)
         if req.patient_id not in patient_signal_store:
             patient_signal_store[req.patient_id] = {
                 "signal_history": [],
@@ -3115,10 +3125,35 @@ async def daily_checkin(req: CheckInRequest):
         _ph_store["current_assessment"] = _ph_assessment
         _ph_store["escalation_level"] = _ph_assessment["escalation_level"]
         compute_phenotype_score(req.patient_id)
+        # Ported from signal_router /checkin: persist the updated baseline so
+        # check_in_history + escalation_level survive the next cold start.
+        _save_baseline_to_firebase(req.patient_id)
+        # Ported from signal_router /checkin: push a RED alert onto the
+        # in-memory alert_queue that the /alerts endpoint polls. This is
+        # independent of the Firebase `melod_ai/alerts/` write above — they
+        # feed different consumers (in-memory queue vs persistent store).
+        if _ph_assessment.get("escalation_level") == "RED":
+            alert_queue.insert(0, {
+                "type": "checkin_alert",
+                "patient_id": req.patient_id,
+                "level": "RED",
+                "scores": {
+                    "mood": req.mood,
+                    "anxiety": req.anxiety,
+                    "loneliness": req.loneliness,
+                    "uncertainty": req.uncertainty,
+                    "hope": req.hope,
+                },
+                "summary": _ph_assessment.get("summary", ""),
+                "timestamp": utc_iso(),
+                "acknowledged": False,
+            })
+            alert_queue[:] = alert_queue[:100]  # Cap at 100
         logger.info(
             f"[checkin] phenotype recompute triggered for {req.patient_id} "
             f"(mood={req.mood}, anxiety={req.anxiety}, hope={req.hope}, "
-            f"baseline_established={_ph_store.get('baseline_established', False)})"
+            f"baseline_established={_ph_store.get('baseline_established', False)}, "
+            f"escalation={_ph_assessment.get('escalation_level', 'GREEN')})"
         )
     except Exception as e:
         logger.warning(f"[checkin] phenotype recompute error for {req.patient_id}: {e}")

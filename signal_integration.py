@@ -803,67 +803,17 @@ async def receive_passive_signals(payload: PassiveSignalPayload):
     }
 
 
-@signal_router.post("/checkin")
-async def submit_checkin(payload: CheckInPayload):
-    """Receive daily check-in scores from patient."""
-    pid = payload.patient_id
-    
-    if pid not in patient_signal_store:
-        # Try Firebase restore on cold start
-        _load_baseline_from_firebase(pid)
-
-    if pid not in patient_signal_store:
-        patient_signal_store[pid] = {
-            "signal_history": [],
-            "check_in_history": [],
-            "current_assessment": None,
-            "escalation_level": "GREEN",
-            "human_escalation_requested": False,
-            "human_escalation_at": None,
-            "baseline_established": False,
-            "session_count": 0,
-            "last_updated": datetime.utcnow(),
-        }
-
-    store = patient_signal_store[pid]
-    checkin = payload.model_dump(exclude={"patient_id", "timestamp"}, exclude_none=True)
-    checkin["submitted_at"] = datetime.utcnow().isoformat()
-
-    store["check_in_history"].append(checkin)
-    store["check_in_history"] = store["check_in_history"][-30:]  # Keep last 30
-    store["last_updated"] = datetime.utcnow()
-
-    # Re-run assessment with updated check-in data
-    passive = store.get("last_passive_data", {})
-    assessment = analyze_passive_signals(pid, passive, store)
-    store["current_assessment"] = assessment
-    store["escalation_level"] = assessment["escalation_level"]
-
-    # Persist updated baseline + recompute phenotype score
-    _save_baseline_to_firebase(pid)
-    try:
-        compute_phenotype_score(pid)
-    except Exception as _e:
-        logger.warning(f"[phenotype] compute error on checkin for {pid}: {_e}")
-
-    # Alert on RED
-    if assessment["escalation_level"] == "RED":
-        alert_queue.insert(0, {
-            "type": "checkin_alert",
-            "patient_id": pid,
-            "level": "RED",
-            "scores": {k: v for k, v in checkin.items() if k != "submitted_at"},
-            "summary": assessment["summary"],
-            "timestamp": datetime.utcnow().isoformat(),
-            "acknowledged": False,
-        })
-
-    return {
-        "status": "ok",
-        "escalation_level": assessment["escalation_level"],
-        "summary": assessment["summary"],
-        "show_human_widget": assessment["escalation_level"] == "RED",
-    }
+# NOTE: The @signal_router.post("/checkin") handler used to live here.
+# It was shadowing @app.post("/checkin") in app.py (daily_checkin) because
+# app.include_router(signal_router) is registered before daily_checkin, and
+# FastAPI matches routes in registration order. Every POST /checkin was
+# silently handled by this stub (no Firebase checkin persistence, no AI
+# response, no PHQ-9/GAD-7 triggers, no clinical triggers, no low_mood
+# alert), which caused the March–April regression in dashboard phenotype
+# scores and clinician alerts. The three useful side effects
+# (_load_baseline_from_firebase on cold-start, _save_baseline_to_firebase
+# after recompute, and the RED alert_queue push) are now ported into
+# daily_checkin in app.py. Do not re-add a /checkin route here.
 
 
 @signal_router.post("/escalate/human")

@@ -223,9 +223,17 @@ def analyze_passive_signals(patient_id: str, passive_data: Dict, store: Dict) ->
         store["baseline_established"] = True
         baseline = _compute_baseline(history)
     else:
-        # Not enough data for personal baseline — use population norms
+        # Not enough data for personal baseline — use population norms.
+        # Fix D: log a warning so we can detect missing baselines from Cloud
+        # Run logs. Baselines should accumulate as session_count grows; if a
+        # patient with many check-ins keeps logging this, their passive
+        # signal history isn't persisting across Cloud Run restarts.
         baseline = _population_baseline()
         assessment["flags"].append("baseline_building")
+        logger.warning(
+            f"[phenotype] No personal baseline for {patient_id} — using population norms "
+            f"(session_count={session_count}, history_len={len(history)})"
+        )
     
     # ── Run each construct detector ──
     active_constructs = []

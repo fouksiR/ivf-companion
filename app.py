@@ -3059,6 +3059,70 @@ async def daily_checkin(req: CheckInRequest):
     }
     _sync_checkin(req.patient_id, checkin)
 
+    # ── Fix A: Low-mood alert fan-out ──
+    # Push an alert row whenever the check-in crosses any extreme threshold:
+    # mood<=2 OR anxiety>=8 OR hope<=2. Matches the PHQ-4 alert shape so the
+    # clinician dashboard alert feed renders it without any extra UI work.
+    if req.mood <= 2 or req.anxiety >= 8 or req.hope <= 2:
+        try:
+            if firebase_db and firebase_db._fb_ref:
+                firebase_db._fb_ref.child("alerts").push({
+                    "patient_id": req.patient_id,
+                    "type": "low_mood",
+                    "level": "AMBER",
+                    "acknowledged": False,
+                    "timestamp": utc_iso(),
+                    "checkin_snapshot": {
+                        "mood": req.mood,
+                        "anxiety": req.anxiety,
+                        "hope": req.hope,
+                    },
+                    "triggered_by": "low_mood_checkin",
+                })
+                logger.info(
+                    f"[checkin] low_mood alert written for {req.patient_id} "
+                    f"(mood={req.mood}, anxiety={req.anxiety}, hope={req.hope})"
+                )
+        except Exception as e:
+            logger.warning(f"[checkin] low_mood alert write error for {req.patient_id}: {e}")
+
+    # ── Fix A: Phenotype recompute on every check-in ──
+    # Without this hook, construct scores on the clinician dashboard stay at 0.00
+    # for patients who only check in (no passive signals yet).
+    try:
+        from signal_integration import compute_phenotype_score
+        if req.patient_id not in patient_signal_store:
+            patient_signal_store[req.patient_id] = {
+                "signal_history": [],
+                "check_in_history": [],
+                "current_assessment": None,
+                "escalation_level": "GREEN",
+                "human_escalation_requested": False,
+                "human_escalation_at": None,
+                "baseline_established": False,
+                "session_count": 0,
+                "last_updated": datetime.now(),
+            }
+        _ph_store = patient_signal_store[req.patient_id]
+        _recent_cis = checkins_db.get(req.patient_id, [])[-10:]
+        if _recent_cis:
+            _ph_store["check_in_history"] = _recent_cis
+        # Run construct analysis against existing check-in history — no passive
+        # data needed. analyze_passive_signals handles empty passive_data safely
+        # and will populate current_assessment with anxiety/hope/mood-derived
+        # constructs plus the acute_low_mood_hope floor.
+        _ph_assessment = analyze_passive_signals(req.patient_id, {}, _ph_store)
+        _ph_store["current_assessment"] = _ph_assessment
+        _ph_store["escalation_level"] = _ph_assessment["escalation_level"]
+        compute_phenotype_score(req.patient_id)
+        logger.info(
+            f"[checkin] phenotype recompute triggered for {req.patient_id} "
+            f"(mood={req.mood}, anxiety={req.anxiety}, hope={req.hope}, "
+            f"baseline_established={_ph_store.get('baseline_established', False)})"
+        )
+    except Exception as e:
+        logger.warning(f"[checkin] phenotype recompute error for {req.patient_id}: {e}")
+
     # Check escalation triggers
     esc = check_daily_escalation(req.patient_id)
     escalation = None
@@ -4006,13 +4070,20 @@ async def clinician_phenotype_history(patient_id: str, days: int = 30):
     """Return the last N days of phenotype snapshots for trend charts."""
     history = firebase_db.load_phenotype_history(patient_id, limit=500)
 
-    # Filter to last N days
+    # Filter to last N days (default 30). Sort ascending by timestamp so the
+    # dashboard charts render oldest → newest without client-side re-sort.
     cutoff = (datetime.now() - timedelta(days=days)).isoformat()
-    recent = [s for s in history if s.get("timestamp", "") >= cutoff]
+    recent = sorted(
+        [s for s in history if s.get("timestamp", "") >= cutoff],
+        key=lambda s: s.get("timestamp", ""),
+    )
 
     # Load check-ins from Firebase (in-memory may be stale across Cloud Run instances)
     checkins = firebase_db.load_checkins(patient_id) if firebase_db else checkins_db.get(patient_id, [])
-    recent_checkins = [c for c in checkins if c.get("date", "") >= cutoff]
+    recent_checkins = sorted(
+        [c for c in checkins if c.get("date", "") >= cutoff],
+        key=lambda c: c.get("date", ""),
+    )
 
     return {
         "patient_id": patient_id,

@@ -2841,12 +2841,17 @@ async function submitProgressiveCheckin(){
   var uncertainty=10-(_ciScores.clarity||5); // invert
   var hope=_ciScores.hope||5;
 
-  // Set hidden old elements for wrapper compatibility
+  // Fix C: bridge progressive scores → legacy #v-* IDs BEFORE submitCheckin runs.
+  // submitCheckin reads textContent of #v-mood / #v-anxiety / #v-lonely /
+  // #v-uncertain / #v-hope both for the POST body and for the eggReactToMood
+  // wrapper. If these aren't set, low-mood users get read as mood=5 → no egg
+  // companion fires and the backend sees a neutral check-in.
   var vm=document.getElementById('v-mood');if(vm)vm.textContent=mood;
   var va=document.getElementById('v-anxiety');if(va)va.textContent=anxiety;
   var vl=document.getElementById('v-lonely');if(vl)vl.textContent=loneliness;
   var vu=document.getElementById('v-uncertain');if(vu)vu.textContent=uncertainty;
   var vh=document.getElementById('v-hope');if(vh)vh.textContent=hope;
+  try{console.log('[checkin] bridged to legacy IDs:',{mood:mood,anxiety:anxiety,loneliness:loneliness,uncertainty:uncertainty,hope:hope})}catch(e){}
 
   // Hide cards+nav, show completion
   document.getElementById('checkin-card-container').style.display='none';

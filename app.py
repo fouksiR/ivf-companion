@@ -6801,6 +6801,49 @@ async def parse_lab_results(patient_id: str, req: LabParseRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class DictationCleanupRequest(BaseModel):
+    text: str
+
+
+@app.post("/clinician/clean-dictation", dependencies=[Depends(verify_clinician_api_key)])
+async def clean_dictation(req: DictationCleanupRequest):
+    """Clean up a raw voice-dictated transcript using Haiku. Medical-aware: IVF drug names,
+    lab units, clinical homophones. Returns flowing clinical notes in plain text."""
+    raw = (req.text or "").strip()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty text")
+    system_prompt = (
+        "You are a medical transcription cleanup assistant for an IVF clinician's "
+        "dashboard. The input is a raw voice-dictated transcript of patient history "
+        "and/or blood test results. Your job: "
+        "1) Correct misheard medical terminology and drug names (Decapeptyl, Gonal-F, "
+        "Menopur, Ovidrel, Cetrotide, Orgalutran, Progesterone, Clexane). "
+        "2) Normalise units (mIU/mL, pmol/L, ng/mL) and dose formats. "
+        "3) Fix clinical homophones (tubal not tuba, ovarian not oh-varying). "
+        "4) Preserve meaning exactly — do not add interpretation, do not invent values, "
+        "do not restructure unless dictation suggests it. "
+        "5) Keep output as flowing clinical notes, plain text. "
+        "6) If a number or drug name is ambiguous, leave it as heard and append [?]. "
+        "Return ONLY the cleaned text, no preamble, no markdown."
+    )
+    try:
+        resp = client.messages.create(
+            model=HAIKU_MODEL,
+            max_tokens=2000,
+            system=system_prompt,
+            messages=[{"role": "user", "content": raw}],
+        )
+        cleaned = (resp.content[0].text or "").strip()
+        return {
+            "cleaned": cleaned,
+            "original_length": len(raw),
+            "cleaned_length": len(cleaned),
+        }
+    except Exception as e:
+        logging.error(f"Dictation cleanup failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/clinician/patient/{patient_id}/parse-document", dependencies=[Depends(verify_clinician_api_key)])
 async def parse_document_upload(patient_id: str, file: UploadFile = File(...)):
     """Parse an uploaded PDF document (referral letter, lab report) and extract clearance data + referral summary."""

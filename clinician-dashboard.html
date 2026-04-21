@@ -1230,6 +1230,17 @@
           padding: 12px;
           background: #fafaf8;
         }
+        /* Dictate + AI cleanup controls */
+        .dictate-btn{background:#0D9488;color:#fff;border:none;border-radius:22px;min-height:44px;padding:0 18px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;font-size:14px;}
+        .dictate-btn:hover{background:#0b7d73;}
+        .dictate-btn.recording{background:#DC2626;}
+        .dictate-btn .dictate-dot{width:8px;height:8px;border-radius:50%;background:#fff;margin-right:8px;display:inline-block;}
+        .dictate-btn.recording .dictate-dot{animation:dictatePulse 1s infinite;}
+        .cleanup-btn{background:#fff;color:#0D9488;border:1.5px solid #0D9488;border-radius:22px;min-height:44px;padding:0 18px;cursor:pointer;font-weight:500;font-size:14px;}
+        .cleanup-btn:hover:not(:disabled){background:#f0fbfa;}
+        .cleanup-btn:disabled{opacity:0.4;cursor:not-allowed;}
+        .dictate-status{font-size:13px;color:#6B7280;font-style:italic;}
+        @keyframes dictatePulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
     </style>
 </head>
 <body>
@@ -5060,13 +5071,26 @@ function renderClearancePanel(pid, data) {
     '<input type="file" id="pdfFileInput_' + pid + '" accept=".pdf" style="display:none" onchange="handlePdfSelect(this,\'' + pid + '\')">' +
   '</div>';
   html += '<span id="pdfParseStatus_' + pid + '" style="font-size:12px;color:#888;display:block;margin-bottom:8px"></span>';
-  // Text paste box (secondary)
+  // Text paste box (secondary) — with dictate + cleanup
   html += '<div style="margin-bottom:16px">' +
-    '<div style="font-size:11px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Or paste lab text directly</div>' +
-    '<textarea id="labPasteBox" rows="3" placeholder="Paste lab report text here..." style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>' +
+    '<div style="font-size:11px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Or paste/dictate lab text directly</div>' +
+    '<div class="dictate-controls" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">' +
+      '<button type="button" id="dictateBtn" class="dictate-btn" onclick="toggleDictate(\'labPasteBox\')">' +
+        '<span class="dictate-dot"></span><span id="dictateLabel">Dictate</span>' +
+      '</button>' +
+      '<button type="button" id="cleanupBtn" class="cleanup-btn" disabled onclick="cleanupDictation(\'labPasteBox\')">Clean up with AI</button>' +
+      '<span id="dictateStatus" class="dictate-status"></span>' +
+    '</div>' +
+    '<textarea id="labPasteBox" rows="3" placeholder="Paste lab report text here, or tap Dictate..." oninput="var b=document.getElementById(\'cleanupBtn\');if(b)b.disabled=!this.value.trim()" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;font-family:monospace"></textarea>' +
     '<button onclick="parseLabResults(\'' + pid + '\')" style="margin-top:6px;background:#0d7377;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer">Parse Results</button>' +
     '<span id="labParseStatus" style="margin-left:10px;font-size:12px;color:#888"></span>' +
   '</div>';
+  // Hide dictate button if Web Speech API unavailable (e.g. Firefox)
+  setTimeout(function(){
+    if(!(window.SpeechRecognition||window.webkitSpeechRecognition)){
+      var db=document.getElementById('dictateBtn'); if(db) db.style.display='none';
+    }
+  },0);
   // Copy summary button
   html += '<button onclick="copyClearanceSummary(\'' + pid + '\')" style="margin-bottom:12px;background:#f0f0f0;border:1px solid #ddd;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:#555">📋 Copy Summary</button>';
   // Checklist table
@@ -5124,6 +5148,85 @@ function renderClearanceTable(items, title, pid, collapsed) {
   });
   html += '</div></div>';
   return html;
+}
+
+// --- Dictation + AI cleanup (Web Speech API + Claude Haiku) ---
+var _recognition = null;
+var _recognizing = false;
+
+function toggleDictate(targetId){
+  var btn = document.getElementById('dictateBtn');
+  var label = document.getElementById('dictateLabel');
+  var status = document.getElementById('dictateStatus');
+  var ta = document.getElementById(targetId);
+  if(!ta){ return; }
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ if(status) status.textContent = 'Dictation not supported in this browser'; return; }
+  if(_recognizing && _recognition){ try{ _recognition.stop(); }catch(e){} return; }
+  try{
+    _recognition = new SR();
+    _recognition.continuous = true;
+    _recognition.interimResults = true;
+    _recognition.lang = 'en-AU';
+    _recognition.onresult = function(e){
+      var interim = '';
+      for(var i = e.resultIndex; i < e.results.length; i++){
+        var t = e.results[i][0].transcript;
+        if(e.results[i].isFinal){
+          ta.value = (ta.value ? ta.value + ' ' : '') + t.trim();
+          var cb = document.getElementById('cleanupBtn');
+          if(cb) cb.disabled = !ta.value.trim();
+        } else {
+          interim += t;
+        }
+      }
+      if(status) status.textContent = interim ? 'Listening: ' + interim : 'Listening…';
+    };
+    _recognition.onerror = function(e){ if(status) status.textContent = 'Error: ' + (e.error || 'recognition failed'); };
+    _recognition.onend = function(){
+      _recognizing = false;
+      if(btn) btn.classList.remove('recording');
+      if(label) label.textContent = 'Dictate';
+      if(status && !String(status.textContent).startsWith('Error')) status.textContent = '';
+    };
+    _recognition.start();
+    _recognizing = true;
+    if(btn) btn.classList.add('recording');
+    if(label) label.textContent = 'Stop';
+    if(status) status.textContent = 'Listening…';
+  } catch(err){
+    if(status) status.textContent = 'Could not start: ' + err.message;
+    _recognizing = false;
+  }
+}
+
+function cleanupDictation(targetId){
+  var ta = document.getElementById(targetId);
+  var status = document.getElementById('dictateStatus');
+  var btn = document.getElementById('cleanupBtn');
+  if(!ta || !ta.value.trim()) return;
+  if(btn) btn.disabled = true;
+  if(status) status.textContent = 'Cleaning up…';
+  fetch(API_BASE + '/clinician/clean-dictation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+    body: JSON.stringify({ text: ta.value })
+  }).then(function(r){
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(j){
+    if(j && j.cleaned){
+      ta.value = j.cleaned;
+      if(status) status.textContent = 'Done';
+      setTimeout(function(){ if(status) status.textContent = ''; }, 2000);
+    } else {
+      if(status) status.textContent = 'Cleanup failed';
+    }
+  }).catch(function(err){
+    if(status) status.textContent = 'Error: ' + err.message;
+  }).finally(function(){
+    if(btn) btn.disabled = !ta.value.trim();
+  });
 }
 
 function parseLabResults(pid) {

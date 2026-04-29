@@ -3830,6 +3830,162 @@ async def create_patient_from_dashboard(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ── Pre-Clinic Intake Bridge (fouks-intake) ──────────────────────────
+# Five thin proxies onto intake_bridge with role checks. The /create
+# endpoint also writes a small `intake_lead` sub-node onto the MelodAI
+# patient so the dashboard can render a status pill on each row.
+
+import re as _re_intake
+import intake_bridge as _intake_bridge
+
+_EMAIL_RE = _re_intake.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _split_name(full_name: str) -> tuple[str, str]:
+    full_name = (full_name or "").strip()
+    if not full_name:
+        return "", ""
+    parts = full_name.split(" ", 1)
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], parts[1].strip()
+
+
+@app.post("/clinician/leads", dependencies=[Depends(verify_clinician_api_key), Depends(require_role("secretary", "doctor", "nurse"))])
+async def clinician_create_lead(request: Request):
+    """Create a fouks-intake lead for an existing MelodAI patient and trigger invite email.
+
+    Body: {melodai_patient_uid, name, email, phone?, dob?, appointment_at?, intake_form_type?}
+    Writes melod_ai/patients/{uid}/intake_lead = {bridge_patient_id, bridge_submission_id,
+    link_token, intake_url, email_sent_at, created_by_email}.
+    """
+    info = _get_clinician(request)
+    body = await request.json()
+    uid = (body.get("melodai_patient_uid") or "").strip()
+    name = (body.get("name") or "").strip()
+    email = (body.get("email") or "").strip()
+    if not uid:
+        raise HTTPException(status_code=400, detail={"error": "melodai_patient_uid is required"})
+    if not name:
+        raise HTTPException(status_code=400, detail={"error": "name is required"})
+    if not email or not _EMAIL_RE.match(email):
+        raise HTTPException(status_code=400, detail={"error": "valid email is required"})
+
+    first_name, last_name = _split_name(name)
+    creator_email = info.get("email", "") or ""
+
+    payload = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "phone": (body.get("phone") or "").strip(),
+        "dob": (body.get("dob") or "").strip(),
+        "appointment_at": (body.get("appointment_at") or "").strip(),
+        "created_by": creator_email,
+        "creator_email": creator_email,
+        "creator_id": uid,
+        "intake_form_type": (body.get("intake_form_type") or "first_consult"),
+    }
+
+    try:
+        bridge_resp = await _intake_bridge.create_lead(payload)
+    except _intake_bridge.IntakeBridgeError as e:
+        logging.warning(f"Intake bridge create_lead failed: {e}")
+        raise HTTPException(status_code=502, detail={"error": "intake_bridge_error", "status": e.status_code, "message": e.message})
+
+    bridge_patient_id = bridge_resp.get("patient_id") or ""
+    bridge_submission_id = bridge_resp.get("submission_id") or ""
+    link_token = bridge_resp.get("link_token") or ""
+    intake_url = bridge_resp.get("intake_url") or ""
+    email_sent_at = bridge_resp.get("email_sent_at") or utc_iso()
+
+    # Persist intake_lead sub-node onto the MelodAI patient (update, never set).
+    try:
+        from firebase_db import _fb_ref as _fb
+        if _fb is not None and bridge_patient_id:
+            _fb.child("patients").child(uid).child("intake_lead").update({
+                "bridge_patient_id": bridge_patient_id,
+                "bridge_submission_id": bridge_submission_id,
+                "link_token": link_token,
+                "intake_url": intake_url,
+                "email_sent_at": email_sent_at,
+                "created_by_email": creator_email,
+            })
+    except Exception as e:
+        # Firebase write failure must not undo the bridge call. Log and continue.
+        logging.warning(f"Failed to persist intake_lead for {uid}: {e}")
+
+    asyncio.create_task(_log_audit_safe(
+        "create_intake_lead",
+        info,
+        uid,
+        {"bridge_patient_id": bridge_patient_id, "email": email},
+    ))
+
+    return bridge_resp
+
+
+@app.get("/clinician/leads", dependencies=[Depends(verify_clinician_api_key), Depends(require_role("secretary", "doctor", "nurse"))])
+async def clinician_list_leads(status: Optional[str] = None, since: Optional[str] = None, limit: int = 100):
+    """Proxy GET /bridge/leads. Pills mostly cover this — exposed for ad-hoc debug/list."""
+    try:
+        rows = await _intake_bridge.list_leads(status=status, since=since, limit=limit)
+        return {"leads": rows}
+    except _intake_bridge.IntakeBridgeError as e:
+        raise HTTPException(status_code=502, detail={"error": "intake_bridge_error", "status": e.status_code, "message": e.message})
+
+
+@app.get("/clinician/leads/{patient_id}", dependencies=[Depends(verify_clinician_api_key), Depends(require_role("secretary", "doctor", "nurse"))])
+async def clinician_get_lead(patient_id: str):
+    """Proxy GET /bridge/leads/{patient_id}. patient_id here is the BRIDGE patient_id, not the MelodAI UID."""
+    try:
+        return await _intake_bridge.get_lead_detail(patient_id)
+    except _intake_bridge.IntakeBridgeError as e:
+        raise HTTPException(status_code=502, detail={"error": "intake_bridge_error", "status": e.status_code, "message": e.message})
+
+
+@app.post("/clinician/leads/{patient_id}/convert", dependencies=[Depends(verify_clinician_api_key), Depends(require_role("doctor"))])
+async def clinician_convert_lead(patient_id: str, request: Request):
+    """Doctor-only: lock the bridge lead row by linking it to the MelodAI Firebase UID.
+
+    Body: {firebase_uid}
+    v1 surface: stub-callable. The full intake-snapshot-to-Firebase-on-convert flow is v2.
+    """
+    body = await request.json()
+    firebase_uid = (body.get("firebase_uid") or "").strip()
+    if not firebase_uid:
+        raise HTTPException(status_code=400, detail={"error": "firebase_uid is required"})
+    try:
+        result = await _intake_bridge.mark_converted(patient_id, firebase_uid)
+    except _intake_bridge.IntakeBridgeError as e:
+        raise HTTPException(status_code=502, detail={"error": "intake_bridge_error", "status": e.status_code, "message": e.message})
+    info = _get_clinician(request)
+    asyncio.create_task(_log_audit_safe(
+        "convert_intake_lead",
+        info,
+        firebase_uid,
+        {"bridge_patient_id": patient_id},
+    ))
+    return result
+
+
+@app.delete("/clinician/leads/{patient_id}", dependencies=[Depends(verify_clinician_api_key), Depends(require_role("secretary", "doctor"))])
+async def clinician_delete_lead(patient_id: str, request: Request):
+    """Soft-delete a bridge lead. patient_id here is the BRIDGE patient_id."""
+    try:
+        await _intake_bridge.delete_lead(patient_id)
+    except _intake_bridge.IntakeBridgeError as e:
+        raise HTTPException(status_code=502, detail={"error": "intake_bridge_error", "status": e.status_code, "message": e.message})
+    info = _get_clinician(request)
+    asyncio.create_task(_log_audit_safe(
+        "delete_intake_lead",
+        info,
+        None,
+        {"bridge_patient_id": patient_id},
+    ))
+    return {"status": "deleted", "bridge_patient_id": patient_id}
+
+
 # ── In-memory alert store (derived from escalations + check-ins) ──
 clinician_alerts: list[dict] = []
 

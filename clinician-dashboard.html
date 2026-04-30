@@ -278,6 +278,7 @@
           opacity: 0; transform: translateY(8px); transition: all 0.3s; box-shadow: var(--shadow-lg); }
         .toast.show { opacity: 1; transform: translateY(0); }
         .toast.error { background: var(--red); }
+        .toast.warn { background: #c08400; }
 
         /* Main layout */
         .main { display: grid; grid-template-columns: 320px 1fr; gap: 0; height: calc(100vh - 56px); }
@@ -1504,6 +1505,10 @@
         <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:4px">Notes</label>
         <textarea id="np_notes" rows="2" placeholder="Any initial notes..." style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;box-sizing:border-box"></textarea>
       </div>
+      <div id="np_send_intake_row" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #eee;margin-top:4px;opacity:0.5">
+        <input id="np_send_intake" type="checkbox" disabled style="width:16px;height:16px;accent-color:#0d7377;cursor:not-allowed;flex-shrink:0">
+        <label for="np_send_intake" id="np_send_intake_label" style="font-size:13px;color:#555;cursor:not-allowed;line-height:1.3">Send pre-visit intake form on save</label>
+      </div>
       <button id="np_submit" onclick="submitNewPatient()" style="margin-top:8px;padding:14px;background:#0d7377;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">Add Patient</button>
       <div id="np_error" style="display:none;color:#e74c3c;font-size:13px;text-align:center;margin-top:4px"></div>
     </div>
@@ -2207,6 +2212,40 @@ function getRiskColor(risk) {
 }
 
 // ── Add Patient Modal ───────────────────────────────────────────────
+function _npEmailLooksValid(email) {
+  // Brief: contains @, contains . after the @
+  if (!email) return false;
+  var at = email.indexOf('@');
+  if (at < 1) return false;
+  var dot = email.indexOf('.', at + 1);
+  return dot > at + 1 && dot < email.length - 1;
+}
+
+function _npUpdateIntakeCheckbox() {
+  var stageEl = document.getElementById('np_stage');
+  var emailEl = document.getElementById('np_email');
+  var cb = document.getElementById('np_send_intake');
+  var row = document.getElementById('np_send_intake_row');
+  var lbl = document.getElementById('np_send_intake_label');
+  if (!stageEl || !emailEl || !cb || !row || !lbl) return;
+  var stage = stageEl.value;
+  var email = (emailEl.value || '').trim();
+  var canSend = (stage === 'consultation') && _npEmailLooksValid(email);
+  if (canSend) {
+    cb.disabled = false;
+    cb.checked = true;
+    cb.style.cursor = 'pointer';
+    lbl.style.cursor = 'pointer';
+    row.style.opacity = '1';
+  } else {
+    cb.checked = false;
+    cb.disabled = true;
+    cb.style.cursor = 'not-allowed';
+    lbl.style.cursor = 'not-allowed';
+    row.style.opacity = '0.5';
+  }
+}
+
 function openAddPatientModal() {
   var m = document.getElementById('addPatientModal');
   m.style.display = 'flex';
@@ -2220,6 +2259,11 @@ function openAddPatientModal() {
       document.getElementById('np_age').value = age;
     }
   };
+  var emailEl = document.getElementById('np_email');
+  var stageEl = document.getElementById('np_stage');
+  if (emailEl) emailEl.oninput = _npUpdateIntakeCheckbox;
+  if (stageEl) stageEl.onchange = _npUpdateIntakeCheckbox;
+  _npUpdateIntakeCheckbox();
 }
 
 function closeAddPatientModal() {
@@ -2231,6 +2275,7 @@ function closeAddPatientModal() {
   var cn = document.getElementById('np_cycle_num'); if (cn) cn.value = '1';
   var st = document.getElementById('np_stage'); if (st) st.selectedIndex = 0;
   var er = document.getElementById('np_error'); if (er) er.style.display = 'none';
+  _npUpdateIntakeCheckbox();
 }
 
 async function submitNewPatient() {
@@ -2240,16 +2285,22 @@ async function submitNewPatient() {
     document.getElementById('np_error').style.display = 'block';
     return;
   }
+  // Capture intake-send intent at submit time (before close resets state).
+  var sendIntakeCb = document.getElementById('np_send_intake');
+  var shouldSendIntake = !!(sendIntakeCb && sendIntakeCb.checked && !sendIntakeCb.disabled);
+  var emailVal = document.getElementById('np_email').value.trim();
+  var phoneVal = document.getElementById('np_phone').value.trim();
+  var dobVal = document.getElementById('np_dob').value;
   var btn = document.getElementById('np_submit');
   btn.textContent = 'Adding...'; btn.disabled = true;
   try {
     var payload = {
       name: name,
       pronunciation: document.getElementById('np_pronunciation').value.trim(),
-      dob: document.getElementById('np_dob').value,
+      dob: dobVal,
       age: document.getElementById('np_age').value,
-      email: document.getElementById('np_email').value.trim(),
-      phone: document.getElementById('np_phone').value.trim(),
+      email: emailVal,
+      phone: phoneVal,
       partner_name: document.getElementById('np_partner').value.trim(),
       cycle_type: document.getElementById('np_cycle_type').value,
       cycle_number: parseInt(document.getElementById('np_cycle_num').value) || 1,
@@ -2262,13 +2313,78 @@ async function submitNewPatient() {
       body: JSON.stringify(payload)
     });
     if (!resp.ok) { var err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    var created = await resp.json();
+    var newPid = created && created.patient_id ? created.patient_id : '';
     closeAddPatientModal();
+    if (shouldSendIntake && newPid) {
+      // Fire-and-forget intake invite. Don't block UI; toast on result.
+      sendIntakeForPatient(newPid, name, emailVal, phoneVal, dobVal, true);
+    }
     poll(); // refresh patient list
   } catch(e) {
     document.getElementById('np_error').textContent = e.message;
     document.getElementById('np_error').style.display = 'block';
   } finally {
     btn.textContent = 'Add Patient'; btn.disabled = false;
+  }
+}
+
+// ── Intake bridge: lead status cache + helpers ──────────────────────
+// Map: melodai_patient_uid -> { bridge_patient_id, status, submitted_at, sent_at }
+// Populated lazily by Promise.allSettled fan-out on dashboard load (commit 4).
+var _intakeStatusByUid = {};
+
+// ── Intake invite (POST /clinician/leads) ───────────────────────────
+// Used by both the Add New Patient modal (post-create) and the inline
+// "Send" button on the per-row pill.
+async function sendIntakeForPatient(melodaiUid, name, email, phone, dob, fromCreateFlow) {
+  try {
+    var body = {
+      melodai_patient_uid: melodaiUid,
+      name: name || '',
+      email: email || '',
+      phone: phone || '',
+      dob: dob || '',
+      appointment_at: null
+    };
+    var r = await authFetch(API_BASE + '/clinician/leads', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      if (fromCreateFlow) {
+        showToast("Patient created but intake send failed — use 'Send' button on the row to retry", 'warn');
+      } else {
+        var errBody = null; try { errBody = await r.json(); } catch(e){}
+        if (r.status === 409) {
+          showToast('Already sent — patient should check spam folder', 'warn');
+        } else {
+          showToast('Send failed — try again', true);
+        }
+      }
+      return null;
+    }
+    var data = await r.json();
+    showToast('Intake form sent to ' + (email || 'patient'));
+    // Optimistically update the in-memory map so the pill flips to amber on next render.
+    if (data && data.patient_id) {
+      _intakeStatusByUid[melodaiUid] = {
+        bridge_patient_id: data.patient_id,
+        status: 'pending',
+        submitted_at: null,
+        sent_at: data.email_sent_at || new Date().toISOString()
+      };
+      try { renderPatients(); } catch(e) {}
+    }
+    return data;
+  } catch (e) {
+    if (fromCreateFlow) {
+      showToast("Patient created but intake send failed — use 'Send' button on the row to retry", 'warn');
+    } else {
+      showToast('Send failed — try again', true);
+    }
+    return null;
   }
 }
 
@@ -2703,13 +2819,20 @@ async function resolveConcern(pid) {
 }
 
 // TOAST
-function showToast(msg, isError) {
+function showToast(msg, toneOrIsError) {
+  // Backwards-compatible: 2nd arg can be boolean (isError) or a string tone:
+  //   'warn' / 'amber'  → amber background
+  //   'error' / true    → red background
+  //   anything else / falsy → default teal
+  var cls = 'toast';
+  if (toneOrIsError === 'warn' || toneOrIsError === 'amber') cls += ' warn';
+  else if (toneOrIsError === 'error' || toneOrIsError === true) cls += ' error';
   var t = document.createElement('div');
-  t.className = 'toast' + (isError ? ' error' : '');
+  t.className = cls;
   t.textContent = msg;
   document.getElementById('toastContainer').appendChild(t);
   setTimeout(function() { t.classList.add('show'); }, 10);
-  setTimeout(function() { t.classList.remove('show'); setTimeout(function() { t.remove(); }, 300); }, 3000);
+  setTimeout(function() { t.classList.remove('show'); setTimeout(function() { t.remove(); }, 300); }, 4000);
 }
 
 // PHENOTYPE CHARTS (keep existing logic)

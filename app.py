@@ -3885,13 +3885,19 @@ async def clinician_create_lead(request: Request):
     first_name, last_name = _split_name(name)
     creator_email = info.get("email", "") or ""
 
+    # Bridge's pydantic model rejects "" for appointment_at (datetime parsing
+    # fails). Send None when caller passed null/empty so the field stays unset.
+    appt_raw = body.get("appointment_at")
+    appt_clean = appt_raw.strip() if isinstance(appt_raw, str) else appt_raw
+    appointment_at_value = appt_clean if appt_clean else None
+
     payload = {
         "first_name": first_name,
         "last_name": last_name,
         "email": email,
         "phone": (body.get("phone") or "").strip(),
         "dob": (body.get("dob") or "").strip(),
-        "appointment_at": (body.get("appointment_at") or "").strip(),
+        "appointment_at": appointment_at_value,
         "created_by": creator_email,
         "creator_email": creator_email,
         "creator_id": uid,

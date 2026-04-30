@@ -3885,11 +3885,12 @@ async def clinician_create_lead(request: Request):
     first_name, last_name = _split_name(name)
     creator_email = info.get("email", "") or ""
 
-    # Bridge's pydantic model rejects "" for appointment_at (datetime parsing
-    # fails). Send None when caller passed null/empty so the field stays unset.
+    # Bridge's pydantic schema requires a non-null datetime for appointment_at.
+    # When the caller passed null/empty (e.g. "Add New Patient" modal with no
+    # appointment scheduled yet), omit the key entirely so the bridge applies
+    # its default rather than failing validation.
     appt_raw = body.get("appointment_at")
     appt_clean = appt_raw.strip() if isinstance(appt_raw, str) else appt_raw
-    appointment_at_value = appt_clean if appt_clean else None
 
     payload = {
         "first_name": first_name,
@@ -3897,12 +3898,13 @@ async def clinician_create_lead(request: Request):
         "email": email,
         "phone": (body.get("phone") or "").strip(),
         "dob": (body.get("dob") or "").strip(),
-        "appointment_at": appointment_at_value,
         "created_by": creator_email,
         "creator_email": creator_email,
         "creator_id": uid,
         "intake_form_type": (body.get("intake_form_type") or "first_consult"),
     }
+    if appt_clean:
+        payload["appointment_at"] = appt_clean
 
     try:
         bridge_resp = await _intake_bridge.create_lead(payload)

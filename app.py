@@ -3679,6 +3679,8 @@ async def clinician_dashboard():
             "patient_name": patient_name,
             "name": patient_name,  # backward compat
             "email": patient.get("email", ""),
+            "phone": patient.get("phone", ""),
+            "dob": patient.get("dob", ""),
             "treatment_stage": STAGE_DISPLAY.get(stage, stage),
             "cycle_number": patient.get("cycle_number", 1),
             "avg_mood_3d": avg_mood,
@@ -3839,6 +3841,40 @@ async def create_patient_from_dashboard(request: Request):
     except Exception as e:
         logging.error(f"Create patient failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/clinician/patient/{patient_id}/details", dependencies=[Depends(verify_clinician_api_key)])
+async def clinician_update_patient_details(patient_id: str, request: Request):
+    """Update an existing patient's contact / profile fields (dob, phone, email).
+
+    Uses ref.update() — never .set() — so siblings like cycle/, intake_lead/,
+    conversations/ are preserved (CLAUDE.md rule). Empty values are dropped
+    rather than written, so a partial PATCH stays partial.
+    """
+    body = await request.json()
+    allowed: dict = {}
+    for key in ("dob", "phone", "email"):
+        v = body.get(key)
+        if isinstance(v, str):
+            v = v.strip()
+            if v:
+                allowed[key] = v
+    if not allowed:
+        return {"status": "noop", "patient_id": patient_id}
+    try:
+        from firebase_db import _fb_ref as _fb
+        if _fb is not None:
+            _fb.child("patients").child(patient_id).update(allowed)
+        if patient_id in patients_db and isinstance(patients_db[patient_id], dict):
+            patients_db[patient_id].update(allowed)
+    except Exception as e:
+        logging.warning(f"update_patient_details {patient_id} failed: {e}")
+        raise HTTPException(status_code=500, detail={"error": str(e)})
+    info = _get_clinician(request)
+    asyncio.create_task(_log_audit_safe(
+        "update_patient_details", info, patient_id, {"fields": list(allowed.keys())}
+    ))
+    return {"status": "updated", "patient_id": patient_id, "fields": list(allowed.keys())}
 
 
 # ── Pre-Clinic Intake Bridge (fouks-intake) ──────────────────────────

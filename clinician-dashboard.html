@@ -1597,6 +1597,32 @@
   </div>
 </div>
 
+<!-- Required Information Modal (DOB / phone gate before bridge call) -->
+<div id="requiredInfoModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:10002;align-items:center;justify-content:center" onclick="if(event.target===this)_closeRequiredInfoModal()">
+  <div style="background:#fff;border-radius:12px;padding:24px;max-width:380px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+      <h2 style="margin:0;font-size:17px;color:#1a3a4a;font-weight:700">Required information</h2>
+      <button onclick="_closeRequiredInfoModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;padding:0 4px">×</button>
+    </div>
+    <div id="ri_msg" style="font-size:13.5px;color:#555;line-height:1.5;margin-bottom:14px">Date of birth is required to send the pre-visit intake form.</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <label for="ri_dob" style="font-size:12.5px;font-weight:600;color:#555;display:block;margin-bottom:4px">Date of birth</label>
+        <input id="ri_dob" type="date" style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+      </div>
+      <div id="ri_phone_row" style="display:none">
+        <label for="ri_phone" style="font-size:12.5px;font-weight:600;color:#555;display:block;margin-bottom:4px">Phone (optional)</label>
+        <input id="ri_phone" type="tel" placeholder="+61..." style="width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box">
+      </div>
+      <div id="ri_error" style="display:none;color:#A32D2D;font-size:12.5px;text-align:left"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+        <button id="ri_cancel" onclick="_closeRequiredInfoModal()" style="padding:9px 16px;background:#fff;color:#555;border:1px solid #ddd;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer">Cancel</button>
+        <button id="ri_save" style="padding:9px 18px;background:#0d7377;color:#fff;border:none;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer">Save & send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Pre-visit Intake Detail Drawer -->
 <div id="intakeDrawerOverlay" onclick="if(event.target===this)closeIntakeDrawer()">
   <div class="intake-drawer" role="dialog" aria-labelledby="intakeDrawerName">
@@ -2582,11 +2608,89 @@ function _intakeRowSend(uid) {
     showToast('No valid email for this patient', true);
     return;
   }
-  sendIntakeForPatient(uid, p.patient_name || p.name || '', p.email || '', p.phone || '', p.dob || '', false);
+  _intakeEnsureProfileThenContinue(uid, function(pUpdated) {
+    sendIntakeForPatient(
+      pUpdated.patient_id,
+      pUpdated.patient_name || pUpdated.name || '',
+      pUpdated.email || '',
+      pUpdated.phone || '',
+      pUpdated.dob || '',
+      false
+    );
+  });
 }
 
 function _intakeRowOpenDrawer(uid) {
   return openIntakeDrawer(uid);
+}
+
+// ── Required-info gate (DOB / phone) ────────────────────────────────
+// Bridge requires a real DOB for age-based clinical rules — we cannot
+// substitute a sentinel here the way we do for appointment_at. If the
+// patient row has no DOB on Firebase yet, prompt the secretary, persist
+// to Firebase via /clinician/patient/{id}/details, then continue.
+function _intakeEnsureProfileThenContinue(uid, onReady) {
+  var p = _findPatientByUid(uid);
+  if (!p) { showToast('Patient not found', true); return; }
+  var dobOk = !!(p.dob && String(p.dob).trim());
+  if (dobOk) { onReady(p); return; }
+  _openRequiredInfoModal(p, onReady);
+}
+
+function _openRequiredInfoModal(patient, onReady) {
+  var modal = document.getElementById('requiredInfoModal');
+  if (!modal) { onReady(patient); return; }
+  var hasPhone = !!(patient.phone && String(patient.phone).trim());
+  var dobInput = document.getElementById('ri_dob');
+  var phoneInput = document.getElementById('ri_phone');
+  var phoneRow = document.getElementById('ri_phone_row');
+  var saveBtn = document.getElementById('ri_save');
+  var errEl = document.getElementById('ri_error');
+  if (dobInput) dobInput.value = '';
+  if (phoneInput) phoneInput.value = '';
+  if (phoneRow) phoneRow.style.display = hasPhone ? 'none' : 'block';
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save & send';
+    saveBtn.onclick = async function() {
+      var dobVal = (dobInput && dobInput.value) || '';
+      if (!dobVal || !/^\d{4}-\d{2}-\d{2}$/.test(dobVal)) {
+        if (errEl) { errEl.textContent = 'Enter a valid date of birth.'; errEl.style.display = 'block'; }
+        return;
+      }
+      var phoneVal = phoneInput ? (phoneInput.value || '').trim() : '';
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+      try {
+        var body = { dob: dobVal };
+        if (!hasPhone && phoneVal) body.phone = phoneVal;
+        var r = await authFetch(API_BASE + '/clinician/patient/' + encodeURIComponent(patient.patient_id) + '/details', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(body)
+        });
+        if (!r.ok) throw new Error('save failed');
+        // Update the in-memory patient record so the rest of the flow
+        // (and any subsequent renders) see the new values.
+        patient.dob = dobVal;
+        if (!hasPhone && phoneVal) patient.phone = phoneVal;
+        _closeRequiredInfoModal();
+        onReady(patient);
+      } catch (e) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save & send';
+        if (errEl) { errEl.textContent = 'Could not save. Try again.'; errEl.style.display = 'block'; }
+      }
+    };
+  }
+  modal.style.display = 'flex';
+  if (dobInput) dobInput.focus();
+}
+
+function _closeRequiredInfoModal() {
+  var modal = document.getElementById('requiredInfoModal');
+  if (modal) modal.style.display = 'none';
 }
 
 // ── Intake Detail Drawer ────────────────────────────────────────────
@@ -2733,6 +2837,12 @@ function _renderIntakeIframeHtml(data) {
 async function _intakeDrawerResend(uid, btn) {
   var p = _findPatientByUid(uid);
   if (!p) return;
+  // Bridge will reject the call with 422 if dob is missing — gate first.
+  if (!(p.dob && String(p.dob).trim())) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Resend invite'; }
+    _intakeEnsureProfileThenContinue(uid, function() { _intakeDrawerResend(uid, btn); });
+    return;
+  }
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   var prevText = 'Resend invite';
   try {

@@ -1122,6 +1122,25 @@
         .flag-amber { background: #FAEEDA; color: #854F0B; }
         .flag-green { background: #E1F5EE; color: #085041; }
 
+        /* Pre-visit intake form pill */
+        .intake-pill {
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 11px; padding: 4px 10px; border-radius: 8px;
+          white-space: nowrap; font-weight: 500;
+          border: 1px solid transparent;
+        }
+        .intake-pill.intake-grey { background: #f0f0ee; color: #777; cursor: default; }
+        .intake-pill.intake-amber { background: #FAEEDA; color: #854F0B; cursor: pointer; }
+        .intake-pill.intake-amber:hover { background: #f6e3c1; }
+        .intake-pill.intake-green { background: #E1F5EE; color: #085041; cursor: pointer; }
+        .intake-pill.intake-green:hover { background: #cdebe0; }
+        .intake-pill .intake-send-btn {
+          background: #0d7377; color: #fff; border: none; border-radius: 6px;
+          padding: 2px 8px; font-size: 11px; font-weight: 600; cursor: pointer;
+          margin-left: 4px;
+        }
+        .intake-pill .intake-send-btn:hover { background: #0a5b5e; }
+
         /* Engagement traffic light */
         .engagement-dot {
           width: 14px; height: 14px; border-radius: 50%; display: inline-block;
@@ -1867,6 +1886,9 @@ async function poll() {
       patients = (await pRes.json()).patients || [];
       renderPatients();
       patients.forEach(function(pt) { fetchPronunciation(pt.patient_id); fetchClearanceStatus(pt.patient_id); });
+      // Non-blocking: fan-out to bridge for any patients with intake_lead.bridge_patient_id
+      // that we haven't fetched yet. Re-renders rows when statuses arrive.
+      try { _fetchMissingIntakeStatuses(false); } catch(ie) { console.warn('intake fan-out skipped:', ie); }
       // renderSpreadsheet(patients);
       document.getElementById('statusDot').className = 'status-dot connected';
       document.getElementById('statusText').textContent = 'Live';
@@ -2144,6 +2166,7 @@ function renderPatients() {
         '</div>' +
         '<div class="card-right-v2">' +
           '<span class="stage-badge-v2">' + escHtml(p.treatment_stage || '') + '</span>' +
+          _intakePillHtml(p) +
           '<div class="card-actions-v2">' +
             '<button class="med-toggle-btn" onclick="event.stopPropagation();window.toggleMedGrid(\'' + p.patient_id + '\')" title="Medications">💊</button>' +
             (_perms.canDelete ? '<button onclick="event.stopPropagation();deletePatient(\'' + p.patient_id + '\',\'' + escHtml(p.patient_name||p.name||'') + '\')" title="Delete" style="font-size:16px;color:#ccc;background:none;border:none;cursor:pointer;min-width:28px;min-height:28px">×</button>' : '') +
@@ -2331,8 +2354,163 @@ async function submitNewPatient() {
 
 // ── Intake bridge: lead status cache + helpers ──────────────────────
 // Map: melodai_patient_uid -> { bridge_patient_id, status, submitted_at, sent_at }
-// Populated lazily by Promise.allSettled fan-out on dashboard load (commit 4).
+// Populated lazily by Promise.allSettled fan-out on dashboard load.
 var _intakeStatusByUid = {};
+// Track in-flight unknown statuses so the pill can render "Form status unknown"
+// without retrying on every render. Flushed by manual refresh.
+var _intakeStatusUnknown = {};
+
+// Australian-format date: "Wed 29 Apr 2026, 10:30 AM" — local-tz, no toISOString.
+function _fmtAuDate(input) {
+  if (!input) return '';
+  var d;
+  try {
+    if (typeof input === 'string') {
+      // Handle "YYYY-MM-DD" + ISO-with-Z. Use Date constructor for ISO; for
+      // bare YYYY-MM-DD parse as local.
+      if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+        var parts = input.split('-');
+        d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+      } else {
+        d = new Date(input);
+      }
+    } else if (input instanceof Date) {
+      d = input;
+    } else {
+      return '';
+    }
+    if (isNaN(d.getTime())) return '';
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var hh = d.getHours();
+    var mm = d.getMinutes();
+    var ampm = hh >= 12 ? 'PM' : 'AM';
+    var hh12 = hh % 12; if (hh12 === 0) hh12 = 12;
+    var mmStr = (mm < 10 ? '0' : '') + mm;
+    return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear()
+           + ', ' + hh12 + ':' + mmStr + ' ' + ampm;
+  } catch (e) { return ''; }
+}
+
+// Pull a status string out of the bridge's GET /clinician/leads/{id} payload.
+function _intakeStatusFromBridge(data) {
+  if (!data) return '';
+  if (data.submission && data.submission.status) return String(data.submission.status).toLowerCase();
+  if (data.patient && data.patient.status) return String(data.patient.status).toLowerCase();
+  if (data.status) return String(data.status).toLowerCase();
+  return '';
+}
+
+function _intakeSubmittedAtFromBridge(data) {
+  if (!data) return '';
+  if (data.submission) {
+    return data.submission.submitted_at || data.submission.completed_at || data.submission.updated_at || '';
+  }
+  return '';
+}
+
+// Fan-out: for each patient that has an intake_lead.bridge_patient_id but no
+// cached status yet, fetch in parallel via Promise.allSettled. Re-render when
+// any new status lands.
+async function _fetchMissingIntakeStatuses(forceAll) {
+  if (!Array.isArray(patients) || !patients.length) return;
+  var todo = [];
+  patients.forEach(function(p) {
+    var lead = p && p.intake_lead;
+    if (!lead || !lead.bridge_patient_id) return;
+    var bid = lead.bridge_patient_id;
+    if (!forceAll && _intakeStatusByUid[p.patient_id]) return;
+    if (!forceAll && _intakeStatusUnknown[p.patient_id]) return;
+    todo.push({ pid: p.patient_id, bid: bid, sent_at: lead.email_sent_at || '' });
+  });
+  if (!todo.length) return;
+  var results = await Promise.allSettled(todo.map(function(t) {
+    return authFetch(API_BASE + '/clinician/leads/' + encodeURIComponent(t.bid))
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      });
+  }));
+  var anyChange = false;
+  results.forEach(function(res, i) {
+    var t = todo[i];
+    if (res.status === 'fulfilled') {
+      var data = res.value || {};
+      var status = _intakeStatusFromBridge(data);
+      if (!status) status = 'pending';
+      if (status === 'purged') {
+        // No pill — clear cache entry for this uid so the no-pill path renders.
+        _intakeStatusByUid[t.pid] = { bridge_patient_id: t.bid, status: 'purged', submitted_at: '', sent_at: t.sent_at };
+      } else {
+        _intakeStatusByUid[t.pid] = {
+          bridge_patient_id: t.bid,
+          status: status,
+          submitted_at: _intakeSubmittedAtFromBridge(data),
+          sent_at: t.sent_at
+        };
+      }
+      delete _intakeStatusUnknown[t.pid];
+      anyChange = true;
+    } else {
+      // Bridge unreachable / non-2xx — render grey "Form status unknown" without retrying.
+      _intakeStatusUnknown[t.pid] = true;
+      console.warn('Intake status fetch failed for', t.pid, res.reason && res.reason.message);
+      anyChange = true;
+    }
+  });
+  if (anyChange) { try { renderPatients(); } catch(e) {} }
+}
+
+// HTML for the per-row intake pill. Returns '' for "no pill" states.
+function _intakePillHtml(p) {
+  var hasLead = !!(p && p.intake_lead && p.intake_lead.bridge_patient_id);
+  var emailOk = _npEmailLooksValid(p && p.email);
+  var pid = p && p.patient_id ? String(p.patient_id) : '';
+  if (!hasLead) {
+    if (!emailOk) return '';
+    // Grey "Form not sent" + inline Send button. stopPropagation prevents row click.
+    return '<span class="intake-pill intake-grey" title="No intake form sent yet">Form not sent' +
+      '<button class="intake-send-btn" onclick="event.stopPropagation();_intakeRowSend(\'' + pid + '\')">Send</button>' +
+      '</span>';
+  }
+  // Lead exists in MelodAI. Pill colour depends on cached bridge status.
+  var cached = _intakeStatusByUid[pid];
+  if (!cached) {
+    if (_intakeStatusUnknown[pid]) {
+      return '<span class="intake-pill intake-grey" title="Bridge unreachable">Form status unknown</span>';
+    }
+    // Pending fetch — assume amber (lead exists, status unknown but in flight).
+    return '<span class="intake-pill intake-amber" title="Loading status…" onclick="event.stopPropagation();_intakeRowOpenDrawer(\'' + pid + '\')">Form awaiting submission</span>';
+  }
+  if (cached.status === 'submitted') {
+    var subDate = cached.submitted_at ? _fmtAuDate(cached.submitted_at) : '';
+    var tip = subDate ? 'Submitted ' + subDate : 'Form completed';
+    return '<span class="intake-pill intake-green" title="' + escHtml(tip) + '" onclick="event.stopPropagation();_intakeRowOpenDrawer(\'' + pid + '\')">Form completed</span>';
+  }
+  if (cached.status === 'purged') {
+    return '';
+  }
+  // pending or in_progress
+  var sentDate = cached.sent_at ? _fmtAuDate(cached.sent_at) : '';
+  var tip2 = sentDate ? 'Sent ' + sentDate : 'Form awaiting submission';
+  return '<span class="intake-pill intake-amber" title="' + escHtml(tip2) + '" onclick="event.stopPropagation();_intakeRowOpenDrawer(\'' + pid + '\')">Form awaiting submission</span>';
+}
+
+function _intakeRowSend(uid) {
+  var p = patients.filter(function(x){ return x.patient_id === uid; })[0];
+  if (!p) return;
+  if (!_npEmailLooksValid(p.email)) {
+    showToast('No valid email for this patient', true);
+    return;
+  }
+  sendIntakeForPatient(uid, p.patient_name || p.name || '', p.email || '', p.phone || '', p.dob || '', false);
+}
+
+// Stub — replaced by the real drawer in commit 5.
+function _intakeRowOpenDrawer(uid) {
+  if (typeof openIntakeDrawer === 'function') return openIntakeDrawer(uid);
+  showToast('Drawer coming soon', 'warn');
+}
 
 // ── Intake invite (POST /clinician/leads) ───────────────────────────
 // Used by both the Add New Patient modal (post-create) and the inline

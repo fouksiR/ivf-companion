@@ -3664,6 +3664,16 @@ async def clinician_dashboard():
         except Exception:
             pass
 
+        # Surface a compact intake_lead snippet so the dashboard pill can render
+        # without an extra Firebase fetch. We expose only the keys the UI needs.
+        intake_lead_node = patient.get("intake_lead") if isinstance(patient.get("intake_lead"), dict) else None
+        intake_lead_compact = None
+        if intake_lead_node and intake_lead_node.get("bridge_patient_id"):
+            intake_lead_compact = {
+                "bridge_patient_id": intake_lead_node.get("bridge_patient_id", ""),
+                "email_sent_at": intake_lead_node.get("email_sent_at", ""),
+            }
+
         overview.append({
             "patient_id": pid,
             "patient_name": patient_name,
@@ -3686,6 +3696,7 @@ async def clinician_dashboard():
             "summary": (store.get("current_assessment") or {}).get("summary", ""),
             "age": patient.get("age", ""),
             "cycle": cycle_data,
+            "intake_lead": intake_lead_compact,
         })
       except Exception as e:
         logger.warning(f"Error building patient overview for {pid}: {e}")

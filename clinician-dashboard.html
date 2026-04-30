@@ -1141,6 +1141,69 @@
         }
         .intake-pill .intake-send-btn:hover { background: #0a5b5e; }
 
+        /* Intake drawer */
+        #intakeDrawerOverlay {
+          display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,.45); z-index: 10001; overflow: auto;
+        }
+        #intakeDrawerOverlay.active { display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px; }
+        .intake-drawer {
+          background: #fff; border-radius: 14px; width: 100%; max-width: 760px;
+          box-shadow: 0 12px 36px rgba(0,0,0,.18); display: flex; flex-direction: column;
+          max-height: calc(100vh - 64px); overflow: hidden;
+        }
+        .intake-drawer-head {
+          display: flex; justify-content: space-between; align-items: flex-start;
+          padding: 20px 24px; border-bottom: 1px solid #eee;
+        }
+        .intake-drawer-head h3 { margin: 0; font-size: 18px; color: #1a3a4a; font-weight: 700; }
+        .intake-drawer-sub { font-size: 13px; color: #6b7280; margin-top: 4px; }
+        .intake-drawer-close {
+          background: none; border: none; font-size: 22px; color: #999; cursor: pointer;
+          padding: 0 4px; line-height: 1;
+        }
+        .intake-drawer-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+        .intake-drawer-section { margin-bottom: 16px; }
+        .intake-drawer-section h4 {
+          margin: 0 0 8px; font-size: 13px; font-weight: 700;
+          text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .intake-drawer-section.priority h4 { color: #A32D2D; }
+        .intake-drawer-section.address h4 { color: #854F0B; }
+        .intake-drawer-section.note h4 { color: #0d7377; }
+        .intake-drawer-section ul { margin: 0; padding-left: 20px; }
+        .intake-drawer-section li { font-size: 13.5px; color: #333; line-height: 1.55; margin-bottom: 4px; }
+        .intake-drawer-empty {
+          text-align: center; padding: 40px 20px; color: #6b7280;
+        }
+        .intake-drawer-empty .msg { font-size: 14px; margin-bottom: 16px; }
+        .intake-drawer-resend {
+          background: #0d7377; color: #fff; border: none; border-radius: 8px;
+          padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .intake-drawer-resend:hover { background: #0a5b5e; }
+        .intake-drawer-resend:disabled { opacity: 0.5; cursor: not-allowed; }
+        .intake-drawer-spinner {
+          text-align: center; padding: 60px 20px; color: #6b7280; font-size: 14px;
+        }
+        .intake-drawer-error {
+          text-align: center; padding: 40px 20px; color: #A32D2D;
+        }
+        .intake-drawer-error .msg { font-size: 14px; margin-bottom: 14px; }
+        .intake-drawer-retry {
+          background: #fff; color: #0d7377; border: 1px solid #0d7377; border-radius: 8px;
+          padding: 8px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .intake-drawer-iframe {
+          width: 100%; min-height: 600px; border: 0; border-radius: 8px;
+          background: #fff;
+        }
+        @media (max-width: 600px) {
+          #intakeDrawerOverlay.active { padding: 0; align-items: flex-end; }
+          .intake-drawer { border-radius: 14px 14px 0 0; max-height: 92vh; }
+          .intake-drawer-iframe { min-height: 480px; }
+        }
+
         /* Engagement traffic light */
         .engagement-dot {
           width: 14px; height: 14px; border-radius: 50%; display: inline-block;
@@ -1530,6 +1593,22 @@
       </div>
       <button id="np_submit" onclick="submitNewPatient()" style="margin-top:8px;padding:14px;background:#0d7377;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">Add Patient</button>
       <div id="np_error" style="display:none;color:#e74c3c;font-size:13px;text-align:center;margin-top:4px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Pre-visit Intake Detail Drawer -->
+<div id="intakeDrawerOverlay" onclick="if(event.target===this)closeIntakeDrawer()">
+  <div class="intake-drawer" role="dialog" aria-labelledby="intakeDrawerName">
+    <div class="intake-drawer-head">
+      <div style="min-width:0;padding-right:12px">
+        <h3 id="intakeDrawerName">Pre-visit intake</h3>
+        <div class="intake-drawer-sub" id="intakeDrawerSub">Loading…</div>
+      </div>
+      <button class="intake-drawer-close" onclick="closeIntakeDrawer()" aria-label="Close">×</button>
+    </div>
+    <div class="intake-drawer-body" id="intakeDrawerBody">
+      <div class="intake-drawer-spinner">Loading…</div>
     </div>
   </div>
 </div>
@@ -2506,10 +2585,196 @@ function _intakeRowSend(uid) {
   sendIntakeForPatient(uid, p.patient_name || p.name || '', p.email || '', p.phone || '', p.dob || '', false);
 }
 
-// Stub — replaced by the real drawer in commit 5.
 function _intakeRowOpenDrawer(uid) {
-  if (typeof openIntakeDrawer === 'function') return openIntakeDrawer(uid);
-  showToast('Drawer coming soon', 'warn');
+  return openIntakeDrawer(uid);
+}
+
+// ── Intake Detail Drawer ────────────────────────────────────────────
+// Drawer state: which patient we're showing right now.
+var _intakeDrawerUid = null;
+
+function closeIntakeDrawer() {
+  var ov = document.getElementById('intakeDrawerOverlay');
+  if (ov) ov.classList.remove('active');
+  _intakeDrawerUid = null;
+}
+
+function _findPatientByUid(uid) {
+  for (var i = 0; i < patients.length; i++) {
+    if (patients[i].patient_id === uid) return patients[i];
+  }
+  return null;
+}
+
+function _intakeBridgeIdFor(uid) {
+  var cached = _intakeStatusByUid[uid];
+  if (cached && cached.bridge_patient_id) return cached.bridge_patient_id;
+  var p = _findPatientByUid(uid);
+  if (p && p.intake_lead && p.intake_lead.bridge_patient_id) return p.intake_lead.bridge_patient_id;
+  return '';
+}
+
+async function openIntakeDrawer(uid) {
+  var p = _findPatientByUid(uid);
+  if (!p) { showToast('Patient not found', true); return; }
+  var bridgeId = _intakeBridgeIdFor(uid);
+  if (!bridgeId) { showToast('No intake lead for this patient', true); return; }
+
+  _intakeDrawerUid = uid;
+  var ov = document.getElementById('intakeDrawerOverlay');
+  var nameEl = document.getElementById('intakeDrawerName');
+  var subEl = document.getElementById('intakeDrawerSub');
+  var bodyEl = document.getElementById('intakeDrawerBody');
+  if (!ov || !nameEl || !subEl || !bodyEl) return;
+
+  nameEl.textContent = p.patient_name || p.name || uid;
+  subEl.textContent = 'Loading…';
+  bodyEl.innerHTML = '<div class="intake-drawer-spinner">Loading…</div>';
+  ov.classList.add('active');
+
+  try {
+    var r = await authFetch(API_BASE + '/clinician/leads/' + encodeURIComponent(bridgeId));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var data = await r.json();
+    // Don't render stale data if the user already moved on.
+    if (_intakeDrawerUid !== uid) return;
+    _renderIntakeDrawerContent(p, bridgeId, data);
+  } catch (e) {
+    if (_intakeDrawerUid !== uid) return;
+    subEl.textContent = '';
+    bodyEl.innerHTML = '<div class="intake-drawer-error">' +
+      '<div class="msg">Couldn\'t load form details. Try again.</div>' +
+      '<button class="intake-drawer-retry" onclick="openIntakeDrawer(\'' + uid + '\')">Retry</button>' +
+      '</div>';
+  }
+}
+
+function _renderIntakeDrawerContent(p, bridgeId, data) {
+  var subEl = document.getElementById('intakeDrawerSub');
+  var bodyEl = document.getElementById('intakeDrawerBody');
+  if (!subEl || !bodyEl) return;
+
+  var status = _intakeStatusFromBridge(data);
+  var submittedAt = _intakeSubmittedAtFromBridge(data);
+  var sentAt = '';
+  var cached = _intakeStatusByUid[p.patient_id];
+  if (cached && cached.sent_at) sentAt = cached.sent_at;
+  if (!sentAt && p.intake_lead && p.intake_lead.email_sent_at) sentAt = p.intake_lead.email_sent_at;
+
+  // Refresh cache opportunistically with whatever the bridge just told us.
+  _intakeStatusByUid[p.patient_id] = {
+    bridge_patient_id: bridgeId,
+    status: status || 'pending',
+    submitted_at: submittedAt,
+    sent_at: sentAt
+  };
+
+  if (status === 'submitted') {
+    subEl.textContent = submittedAt
+      ? 'Pre-visit intake — submitted ' + _fmtAuDate(submittedAt)
+      : 'Pre-visit intake — submitted';
+    bodyEl.innerHTML = _renderIntakeFlagsHtml(data) + _renderIntakeIframeHtml(data);
+  } else if (status === 'pending' || status === 'in_progress' || !status) {
+    subEl.textContent = 'Pre-visit intake — awaiting submission';
+    var lastSent = sentAt ? _fmtAuDate(sentAt) : '';
+    bodyEl.innerHTML = '<div class="intake-drawer-empty">' +
+      '<div class="msg">Patient hasn\'t submitted the form yet.' +
+      (lastSent ? '<br>Last sent: ' + escHtml(lastSent) + '.' : '') +
+      '</div>' +
+      '<button class="intake-drawer-resend" onclick="_intakeDrawerResend(\'' + p.patient_id + '\', this)">Resend invite</button>' +
+      '</div>';
+  } else if (status === 'purged') {
+    subEl.textContent = 'Pre-visit intake — purged';
+    bodyEl.innerHTML = '<div class="intake-drawer-empty"><div class="msg">This intake lead has been purged.</div></div>';
+  } else {
+    subEl.textContent = 'Pre-visit intake';
+    bodyEl.innerHTML = _renderIntakeFlagsHtml(data) + _renderIntakeIframeHtml(data);
+  }
+}
+
+function _renderIntakeFlagsHtml(data) {
+  var flags = (data && data.flags) || {};
+  var sections = [
+    { key: 'priority', label: 'Priority', cls: 'priority' },
+    { key: 'address', label: 'Address', cls: 'address' },
+    { key: 'note', label: 'Note', cls: 'note' }
+  ];
+  var html = '';
+  sections.forEach(function(s) {
+    var arr = flags[s.key];
+    if (!Array.isArray(arr) || !arr.length) return;
+    var items = '';
+    arr.forEach(function(f) {
+      var msg = f && (f.message || f.text || '');
+      if (!msg) return;
+      items += '<li>' + escHtml(String(msg)) + '</li>';
+    });
+    if (!items) return;
+    html += '<div class="intake-drawer-section ' + s.cls + '">' +
+      '<h4>' + s.label + '</h4>' +
+      '<ul>' + items + '</ul>' +
+      '</div>';
+  });
+  return html;
+}
+
+function _renderIntakeIframeHtml(data) {
+  var summary = (data && data.summary_html) ? String(data.summary_html) : '';
+  if (!summary) {
+    return '<div class="intake-drawer-section"><div style="color:#6b7280;font-size:13px;padding:8px 0">No rendered summary available.</div></div>';
+  }
+  // Sandboxed: no JS execution, no external resources via opaque-origin srcdoc.
+  // We escape only the srcdoc attribute boundaries, not the HTML body itself —
+  // the bridge is the source of truth for clinical wording.
+  var safeSrcdoc = summary.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return '<iframe class="intake-drawer-iframe" sandbox="allow-same-origin" srcdoc="' + safeSrcdoc + '"></iframe>';
+}
+
+async function _intakeDrawerResend(uid, btn) {
+  var p = _findPatientByUid(uid);
+  if (!p) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  var prevText = 'Resend invite';
+  try {
+    var body = {
+      melodai_patient_uid: uid,
+      name: p.patient_name || p.name || '',
+      email: p.email || '',
+      phone: p.phone || '',
+      dob: p.dob || '',
+      appointment_at: null
+    };
+    var r = await authFetch(API_BASE + '/clinician/leads', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      if (r.status === 409) {
+        showToast('Already sent — patient should check spam folder', 'warn');
+      } else {
+        showToast('Resend failed — try again', true);
+      }
+      return;
+    }
+    var data = await r.json();
+    showToast('Intake form resent to ' + (p.email || 'patient'));
+    if (data && data.patient_id) {
+      _intakeStatusByUid[uid] = {
+        bridge_patient_id: data.patient_id,
+        status: 'pending',
+        submitted_at: '',
+        sent_at: data.email_sent_at || new Date().toISOString()
+      };
+    }
+    // Re-open the drawer to refresh content with the new sent_at.
+    openIntakeDrawer(uid);
+    try { renderPatients(); } catch(e) {}
+  } catch (e) {
+    showToast('Resend failed — try again', true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = prevText; }
+  }
 }
 
 // ── Intake invite (POST /clinician/leads) ───────────────────────────

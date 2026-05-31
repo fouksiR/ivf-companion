@@ -3927,7 +3927,7 @@ async def clinician_create_lead(request: Request):
     # appointments cleanly (and rules that depend on it skip).
     appt_raw = body.get("appointment_at")
     appt_clean = appt_raw.strip() if isinstance(appt_raw, str) else appt_raw
-    appointment_at_value = appt_clean if appt_clean else None
+    appointment_at_value = appt_clean if appt_clean else "2099-12-31T23:59:59Z"
 
     payload = {
         "first_name": first_name,

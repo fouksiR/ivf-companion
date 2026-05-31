@@ -20,6 +20,10 @@ from signal_integration import (
 )
 from firebase_db import db as firebase_db
 from nice_ng257_evidence import match_nice_evidence
+from public_evidence import match_public_evidence
+from collections import defaultdict
+import time
+from zoneinfo import ZoneInfo
 import os
 import json
 import uuid
@@ -8067,3 +8071,81 @@ async def check_anti_dependency(patient_id: str):
     except Exception:
         pass
     return {"show_message": False}
+
+
+# -- PUBLIC ANONYMOUS ASK WIDGET --
+_PUBLIC_RL = defaultdict(list)
+_PUBLIC_DAILY = {"date": "", "count": 0}
+PUBLIC_PER_IP_PER_HOUR = 8
+PUBLIC_DAILY_CAP = 1500
+
+class PublicAskRequest(BaseModel):
+    message: str
+
+def _public_rate_ok(ip: str) -> tuple[bool, str]:
+    now = time.time()
+    today = datetime.now(ZoneInfo("Australia/Melbourne")).strftime("%Y-%m-%d")
+    if _PUBLIC_DAILY["date"] != today:
+        _PUBLIC_DAILY["date"] = today; _PUBLIC_DAILY["count"] = 0
+    if _PUBLIC_DAILY["count"] >= PUBLIC_DAILY_CAP:
+        return False, "daily_cap"
+    window = [t for t in _PUBLIC_RL[ip] if now - t < 3600]
+    _PUBLIC_RL[ip] = window
+    if len(window) >= PUBLIC_PER_IP_PER_HOUR:
+        return False, "ip_limit"
+    window.append(now)
+    return True, ""
+
+@app.post("/public/ask")
+async def public_ask(req: PublicAskRequest, request: Request):
+    ip = request.headers.get("x-forwarded-for", request.client.host or "anon").split(",")[0].strip()
+    ok, reason = _public_rate_ok(ip)
+    if not ok:
+        msg = ("We've reached today's limit for free questions - please try again tomorrow."
+               if reason == "daily_cap"
+               else "You've asked a few in a row - please wait a little while before asking again.")
+        return JSONResponse(status_code=429, content={"error": "rate_limited", "message": msg})
+    message = (req.message or "").strip()[:600]
+    if not message:
+        return {"response": "Ask me anything about IVF and I'll give you an evidence-based answer.", "charts": []}
+    try:
+        tr = client.messages.create(model=HAIKU_MODEL, max_tokens=5, system=TRIAGE_PROMPT,
+                                    messages=[{"role": "user", "content": message}])
+        triage_category = int(tr.content[0].text.strip())
+    except Exception:
+        triage_category = 1
+    triage_category, _ = keyword_safety_check(message, triage_category)
+    if triage_category == 4:
+        return {"response": ("I'm really glad you reached out, and what you're feeling matters. You "
+                             "deserve support from a real person right now. In Australia you can call "
+                             "Lifeline on 13 11 14 any time. If you're in immediate danger, call 000. "
+                             "Please reach out to your clinic or GP too - you don't have to carry this alone."),
+                "charts": [], "crisis": True}
+    nice = match_nice_evidence(message, top_k=2)
+    pub = match_public_evidence(message, top_k=2)
+    evidence = "\n".join([e for e in (nice, pub) if e])
+    anzard = match_anzard_charts(message, "", max_charts=1) or []
+    inline = detect_fertool_inline_charts(message) or []
+    charts = [c["key"] for c in anzard] + inline
+    emotional = triage_category in (1, 3)
+    sys = ("You are Melod-AI, a warm, plain-spoken IVF information companion on a public website. "
+           "You are NOT the user's doctor and have NO personal or medical history about them. "
+           "RULES: Answer in 3-4 short sentences, about grade-8 reading level, warm and human, no jargon. "
+           "Ground factual claims in the evidence provided and name the source naturally (e.g. 'per HFEA'). "
+           "If the question truly needs their personal details, say so briefly and point them to their clinic. "
+           "ALWAYS finish with one short line: this is general information, not medical advice - talk to your "
+           "fertility specialist about your situation.")
+    if emotional:
+        sys += (" The person sounds worried or upset: open with one genuine, brief line of acknowledgement "
+                "before the information. Never cold or clinical.")
+    if evidence:
+        sys += "\n\n" + evidence
+    try:
+        resp = client.messages.create(model=HAIKU_MODEL, max_tokens=280, system=sys,
+                                       messages=[{"role": "user", "content": message}])
+        answer = resp.content[0].text.strip()
+    except Exception:
+        answer = ("Sorry - I couldn't generate an answer just now. Please try again, or speak with your "
+                  "fertility clinic. This is general information, not medical advice.")
+    _PUBLIC_DAILY["count"] += 1
+    return {"response": answer, "charts": charts, "triage": triage_category}

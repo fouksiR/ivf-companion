@@ -3922,9 +3922,12 @@ async def clinician_create_lead(request: Request):
     first_name, last_name = _split_name(name)
     creator_email = info.get("email", "") or ""
 
-    # appointment_at is optional at the bridge. When the "Add New Patient"
-    # modal doesn't capture a date, we send None — the bridge handles missing
-    # appointments cleanly (and rules that depend on it skip).
+    # Bridge's pydantic schema requires a non-null datetime for appointment_at.
+    # The "Add New Patient" modal doesn't capture an appointment date yet, so we
+    # synthesize a far-future sentinel (year 2099) to keep the secretary's flow
+    # unblocked. Do NOT change this to None — the bridge rejects null and the lead
+    # creation / invite-email flow breaks. The bridge row is updated when the
+    # appointment is actually booked.
     appt_raw = body.get("appointment_at")
     appt_clean = appt_raw.strip() if isinstance(appt_raw, str) else appt_raw
     appointment_at_value = appt_clean if appt_clean else "2099-12-31T23:59:59Z"

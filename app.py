@@ -1912,6 +1912,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://fouksir.github.io",
+        "https://drfouks.com",
         "http://localhost:8000",
         "http://localhost:3000",
         "http://127.0.0.1:8000",
@@ -3921,14 +3922,12 @@ async def clinician_create_lead(request: Request):
     first_name, last_name = _split_name(name)
     creator_email = info.get("email", "") or ""
 
-    # Bridge's pydantic schema requires a non-null datetime for appointment_at.
-    # The "Add New Patient" modal doesn't capture an appointment date yet —
-    # we synthesize a far-future sentinel (year 2099) so the secretary's flow
-    # isn't blocked. When the appointment is actually booked, the bridge row
-    # is updated separately.
+    # appointment_at is optional at the bridge. When the "Add New Patient"
+    # modal doesn't capture a date, we send None — the bridge handles missing
+    # appointments cleanly (and rules that depend on it skip).
     appt_raw = body.get("appointment_at")
     appt_clean = appt_raw.strip() if isinstance(appt_raw, str) else appt_raw
-    appointment_at_value = appt_clean if appt_clean else "2099-12-31T23:59:59Z"
+    appointment_at_value = appt_clean if appt_clean else None
 
     payload = {
         "first_name": first_name,

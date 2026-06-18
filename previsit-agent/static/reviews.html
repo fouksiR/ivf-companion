@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Post-Visit Feedback — Admin</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;font-family:-apple-system,system-ui,Segoe UI,Roboto,sans-serif;background:#F8FAFC;color:#0F172A;}
+  header{background:#fff;border-bottom:1px solid #E2E8F0;padding:18px 28px;}
+  header h1{margin:0;font-size:20px;color:#0D9488;}
+  header .sub{font-size:13px;color:#64748B;margin-top:2px;}
+  .container{max-width:1180px;margin:24px auto;padding:0 24px;display:grid;grid-template-columns:1fr;gap:20px;}
+  @media(min-width:960px){.container{grid-template-columns:380px 1fr;}}
+  .card{background:#fff;border:1px solid #E2E8F0;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);}
+  .card h2{margin:0 0 14px;font-size:15px;color:#0F766E;text-transform:uppercase;letter-spacing:.04em;}
+  label{display:block;font-size:12px;font-weight:600;color:#475569;margin:10px 0 4px;}
+  input[type=text],input[type=email],input[type=password]{width:100%;padding:10px 12px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;font-family:inherit;outline:none;}
+  input:focus{border-color:#0D9488;box-shadow:0 0 0 3px rgba(13,148,136,.15);}
+  .check{display:flex;align-items:center;gap:8px;margin:14px 0 4px;}
+  .check input{width:18px;height:18px;accent-color:#0D9488;}
+  .check label{margin:0;font-size:13px;color:#0F172A;font-weight:600;}
+  .hint{font-size:12px;color:#94A3B8;margin:2px 0 0;}
+  button{padding:10px 16px;border:none;border-radius:8px;background:#0D9488;color:#fff;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit;}
+  button:hover:not(:disabled){background:#0F766E;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  button.ghost{background:#fff;color:#0D9488;border:1px solid #0D9488;}
+  button.ghost:hover:not(:disabled){background:#F0FDFA;}
+  button.small{padding:6px 10px;font-size:12px;}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .result{margin-top:14px;padding:12px;background:#F0FDFA;border:1px solid #CCFBF1;border-radius:8px;font-size:13px;word-break:break-all;}
+  .result .link{color:#0F766E;font-weight:600;}
+  .result .actions{margin-top:10px;display:flex;gap:8px;}
+  .stats{display:flex;gap:18px;margin-bottom:14px;}
+  .stat{flex:1;text-align:center;padding:12px;background:#F0FDFA;border:1px solid #CCFBF1;border-radius:10px;}
+  .stat .n{font-size:24px;font-weight:700;color:#0F766E;}
+  .stat .l{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#64748B;margin-top:2px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid #F1F5F9;vertical-align:top;}
+  th{font-size:11px;text-transform:uppercase;color:#64748B;letter-spacing:.05em;font-weight:600;}
+  tr:hover td{background:#F8FAFC;}
+  .stars{color:#D97706;letter-spacing:1px;font-size:15px;white-space:nowrap;}
+  .stars .off{color:#E2E8F0;}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+  .badge.complete{background:#DCFCE7;color:#166534;}
+  .badge.pending{background:#FEF3C7;color:#92400E;}
+  .badge.g{background:#E0E7FF;color:#3730A3;margin-left:6px;}
+  .comment{color:#334155;max-width:360px;}
+  .muted{color:#94A3B8;font-size:12px;}
+  .empty{padding:40px 20px;text-align:center;color:#94A3B8;font-size:13px;}
+  .login{max-width:360px;margin:12vh auto;padding:28px;background:#fff;border-radius:12px;border:1px solid #E2E8F0;box-shadow:0 4px 20px rgba(15,23,42,.06);}
+  .login h1{margin:0 0 4px;font-size:20px;color:#0D9488;}
+  .login p{margin:0 0 18px;color:#64748B;font-size:13px;}
+  .err{color:#B91C1C;font-size:12px;margin-top:8px;}
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<div id="loginView" style="display:none;">
+  <div class="login">
+    <h1>Post-Visit Feedback</h1>
+    <p>Enter admin key to continue</p>
+    <form id="loginForm">
+      <input id="keyInput" type="password" placeholder="Admin key" required autofocus>
+      <div style="margin-top:14px;"><button type="submit" style="width:100%;">Log in</button></div>
+      <div id="loginErr" class="err"></div>
+    </form>
+  </div>
+</div>
+
+<div id="mainView" style="display:none;">
+  <header>
+    <h1>Post-Visit Feedback — Admin</h1>
+    <div class="sub">Send every patient one short question after their visit</div>
+  </header>
+  <div class="container">
+    <div class="card">
+      <h2>Create Feedback Link</h2>
+      <form id="createForm">
+        <label>Patient First Name (optional)</label>
+        <input id="cfName" type="text" placeholder="for your records only">
+        <label>Patient Email (optional)</label>
+        <input id="cfEmail" type="email">
+        <div class="check">
+          <input type="checkbox" id="cfGoogle">
+          <label for="cfGoogle">Add Google review prompt</label>
+        </div>
+        <p class="hint">Shown to every respondent on the thank-you screen. Leave the URL blank to use the clinic default.</p>
+        <input id="cfGoogleUrl" type="text" placeholder="Google review URL (optional override)" style="margin-top:6px;">
+        <div style="margin-top:16px;" class="row">
+          <button type="submit" id="cfSubmit">Create Link</button>
+          <button type="button" class="ghost" id="logoutBtn">Log out</button>
+        </div>
+        <div id="cfResult" class="result" style="display:none;"></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0;">Responses</h2>
+        <span class="muted" id="refreshInfo">—</span>
+      </div>
+      <div id="statsWrap"></div>
+      <div id="reviewsWrap"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY_STORAGE = 'pv_reviews_admin_key';
+const loginView=document.getElementById('loginView');
+const mainView=document.getElementById('mainView');
+const loginForm=document.getElementById('loginForm');
+const keyInput=document.getElementById('keyInput');
+const loginErr=document.getElementById('loginErr');
+
+function getKey(){ return sessionStorage.getItem(KEY_STORAGE) || ''; }
+function setKey(k){ sessionStorage.setItem(KEY_STORAGE, k); }
+function clearKey(){ sessionStorage.removeItem(KEY_STORAGE); }
+function showLogin(){ loginView.style.display='block'; mainView.style.display='none'; }
+function showMain(){ loginView.style.display='none'; mainView.style.display='block'; loadReviews(); }
+
+async function apiFetch(path, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({'X-Admin-Key': getKey()}, opts.headers || {});
+  const r = await fetch(path, opts);
+  if (r.status === 401){ clearKey(); showLogin(); throw new Error('unauthorized'); }
+  return r;
+}
+
+loginForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  loginErr.textContent='';
+  const k = keyInput.value.trim();
+  if (!k) return;
+  setKey(k);
+  try {
+    const r = await apiFetch('/api/admin/reviews');
+    if (r.ok){ showMain(); } else { throw new Error('bad key'); }
+  } catch(err){ loginErr.textContent='Invalid admin key'; clearKey(); }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => { clearKey(); showLogin(); });
+
+document.getElementById('createForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('cfSubmit');
+  const resultEl = document.getElementById('cfResult');
+  const payload = {
+    patient_name: document.getElementById('cfName').value.trim(),
+    patient_email: document.getElementById('cfEmail').value.trim(),
+    google_review: document.getElementById('cfGoogle').checked,
+    google_url: document.getElementById('cfGoogleUrl').value.trim()
+  };
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const r = await apiFetch('/api/admin/create-review', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || 'error');
+    const g = data.google_review ? ' <span class="badge g">+ Google</span>' : '';
+    resultEl.style.display='block';
+    resultEl.innerHTML =
+      '<div><strong>Link created' + (payload.patient_name ? (' for ' + escapeHtml(payload.patient_name)) : '') + '</strong>' + g + '</div>' +
+      '<div class="link" style="margin-top:6px;">' + escapeHtml(data.link) + '</div>' +
+      '<div class="actions"><button type="button" class="small" id="copyBtn">Copy Link</button></div>';
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      navigator.clipboard.writeText(data.link).then(() => {
+        const b = document.getElementById('copyBtn'); b.textContent='Copied!';
+        setTimeout(()=>{ b.textContent='Copy Link'; }, 1800);
+      });
+    });
+    document.getElementById('createForm').reset();
+    loadReviews();
+  } catch(err){
+    resultEl.style.display='block';
+    resultEl.innerHTML = '<span style="color:#B91C1C;">Error: ' + escapeHtml(err.message) + '</span>';
+  } finally { btn.disabled=false; btn.textContent='Create Link'; }
+});
+
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function stars(n){ if(!n) return '<span class="muted">—</span>'; let s=''; for(let i=1;i<=5;i++){ s += i<=n ? '★' : '<span class="off">★</span>'; } return '<span class="stars">'+s+'</span>'; }
+function fmtDate(iso){ if(!iso) return '—'; try{ const d=new Date(iso); return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}); }catch(e){ return iso; } }
+
+async function loadReviews(){
+  const wrap = document.getElementById('reviewsWrap');
+  const statsWrap = document.getElementById('statsWrap');
+  try {
+    const r = await apiFetch('/api/admin/reviews');
+    if (!r.ok) throw new Error('load failed');
+    const data = await r.json();
+    document.getElementById('refreshInfo').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    statsWrap.innerHTML =
+      '<div class="stats">' +
+        '<div class="stat"><div class="n">' + (data.average ?? '—') + '</div><div class="l">Avg rating</div></div>' +
+        '<div class="stat"><div class="n">' + data.responses + '</div><div class="l">Responses</div></div>' +
+        '<div class="stat"><div class="n">' + data.count + '</div><div class="l">Sent</div></div>' +
+      '</div>';
+    const rows = data.reviews || [];
+    if (rows.length === 0){ wrap.innerHTML = '<div class="empty">No links yet. Create one to get started.</div>'; return; }
+    let html = '<table><thead><tr><th>Patient</th><th>Rating</th><th>Comment</th><th>Status</th><th>Created</th></tr></thead><tbody>';
+    for (const x of rows){
+      const status = (x.status === 'complete')
+        ? '<span class="badge complete">Done</span>'
+        : '<span class="badge pending">Pending</span>';
+      const g = x.google_review ? '<span class="badge g">G</span>' : '';
+      html += '<tr>' +
+        '<td>' + (escapeHtml(x.patient_name) || '<span class="muted">—</span>') + ' ' + g + '</td>' +
+        '<td>' + stars(x.rating) + '</td>' +
+        '<td class="comment">' + (escapeHtml(x.comment) || '<span class="muted">—</span>') + '</td>' +
+        '<td>' + status + '</td>' +
+        '<td class="muted">' + fmtDate(x.created_at) + '</td>' +
+      '</tr>';
+    }
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+  } catch(err){
+    if (err.message !== 'unauthorized') wrap.innerHTML = '<div class="empty">Could not load responses.</div>';
+  }
+}
+
+// boot
+if (getKey()){ showMain(); } else { showLogin(); }
+setInterval(() => { if (getKey() && mainView.style.display !== 'none') loadReviews(); }, 30000);
+</script>
+</body>
+</html>

@@ -380,6 +380,10 @@ app.include_router(consultation_router)
 from consultation_routes import init_helpers
 init_helpers(_session_get, _session_update)
 
+from postvisit_routes import router as postvisit_router, init_config as _postvisit_init
+app.include_router(postvisit_router)
+_postvisit_init(SERVICE_URL, ADMIN_API_KEY, os.getenv("GOOGLE_REVIEW_URL", ""))
+
 
 @app.get("/")
 def root():

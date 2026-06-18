@@ -43,6 +43,12 @@ SERVICE_URL = "http://localhost:8080"
 ADMIN_API_KEY = ""
 GOOGLE_REVIEW_URL = ""  # default clinic Google review link (per-link override allowed)
 
+# Email (SendGrid) — read from env in init_config(). Email is OPTIONAL: if these
+# aren't set, link creation still works and the dashboard reports "not sent".
+SENDGRID_API_KEY = ""
+EMAIL_FROM = ""               # must be a SendGrid-verified sender address
+EMAIL_FROM_NAME = "Dr Yuval Fouks"
+
 # ---------------------------------------------------------------------------
 # Storage — own Firebase subtree, graceful in-memory fallback
 # (mirrors app.py's session store but under previsit/reviews)
@@ -53,9 +59,16 @@ _rv_mem: Dict[str, Dict[str, Any]] = {}
 
 def init_config(service_url: str, admin_key: str, google_url: str = "") -> None:
     global SERVICE_URL, ADMIN_API_KEY, GOOGLE_REVIEW_URL, _rv_ref
+    global SENDGRID_API_KEY, EMAIL_FROM, EMAIL_FROM_NAME
     SERVICE_URL = service_url or SERVICE_URL
     ADMIN_API_KEY = admin_key or ""
     GOOGLE_REVIEW_URL = google_url or ""
+    # Email config pulled straight from env (keeps app.py wiring unchanged).
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+    EMAIL_FROM = os.getenv("EMAIL_FROM", "") or os.getenv("DOCTOR_EMAIL", "")
+    EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "Dr Yuval Fouks")
+    print(f"[postvisit] email send {'ENABLED' if (SENDGRID_API_KEY and EMAIL_FROM) else 'disabled'}"
+          f" (from={EMAIL_FROM or '—'})")
     try:
         # firebase_admin is already initialised by app.py at import time.
         from firebase_admin import db as fb_db
@@ -124,6 +137,69 @@ def _require_admin(x_admin_key: Optional[str]) -> None:
 def _esc_js(s: str) -> str:
     """Escape a value for safe injection into a JS double-quoted string literal."""
     return (s or "").replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ").replace("\r", "")
+
+
+def _email_html(greeting: str, link: str) -> str:
+    """Simple, mobile-friendly HTML email. Inline styles only (email clients ignore <style>)."""
+    safe_link = link.replace('"', "%22")
+    return (
+        '<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;'
+        'max-width:480px;margin:0 auto;padding:8px 4px;color:#1f2d3d;line-height:1.6;font-size:15px;">'
+        f'<p style="margin:0 0 14px;">{greeting}</p>'
+        '<p style="margin:0 0 18px;">Thank you for coming in. We\'d really value hearing how your '
+        'experience was — it takes about 20 seconds, and it helps us look after you better.</p>'
+        '<p style="text-align:center;margin:26px 0;">'
+        f'<a href="{safe_link}" style="background:#0D9488;color:#ffffff;text-decoration:none;'
+        'padding:13px 26px;border-radius:999px;font-weight:600;display:inline-block;">'
+        'Share your feedback</a></p>'
+        '<p style="margin:0 0 4px;font-size:13px;color:#64748b;">If the button doesn\'t work, paste this link into your browser:</p>'
+        f'<p style="margin:0 0 22px;font-size:13px;word-break:break-all;"><a href="{safe_link}" style="color:#0D9488;">{link}</a></p>'
+        '<p style="margin:0;color:#334155;">With thanks,<br>Dr Yuval Fouks</p>'
+        '</div>'
+    )
+
+
+def _send_review_email(to_email: str, link: str, patient_name: str = ""):
+    """Send the review link to a patient via SendGrid. Returns (ok: bool, error: str).
+
+    Never raises — email is best-effort and must not block link creation.
+    """
+    to_email = (to_email or "").strip()
+    if not to_email:
+        return False, "no recipient email"
+    if not SENDGRID_API_KEY:
+        return False, "email not configured (SENDGRID_API_KEY unset)"
+    if not EMAIL_FROM or "@" not in EMAIL_FROM:
+        return False, "sender not configured (set EMAIL_FROM to a verified address)"
+    try:
+        from sendgrid import SendGridAPIClient
+        from sendgrid.helpers.mail import Mail, Email, To, Content
+    except Exception as e:
+        return False, f"sendgrid not installed: {e}"
+
+    greeting = f"Hi {patient_name.strip()}," if patient_name and patient_name.strip() else "Hi,"
+    text_body = (
+        f"{greeting}\n\n"
+        "Thank you for coming in. We'd really value hearing how your experience was "
+        "— it takes about 20 seconds:\n\n"
+        f"{link}\n\n"
+        "With thanks,\nDr Yuval Fouks"
+    )
+    try:
+        msg = Mail(
+            from_email=Email(EMAIL_FROM, EMAIL_FROM_NAME),
+            to_emails=To(to_email),
+            subject="How was your visit?",
+        )
+        # text/plain must be added before text/html
+        msg.add_content(Content("text/plain", text_body))
+        msg.add_content(Content("text/html", _email_html(greeting, link)))
+        resp = SendGridAPIClient(SENDGRID_API_KEY).send(msg)
+        if 200 <= resp.status_code < 300:
+            return True, ""
+        return False, f"SendGrid returned {resp.status_code}"
+    except Exception as e:
+        return False, str(e)
 
 
 # ---------------------------------------------------------------------------
@@ -197,6 +273,7 @@ class CreateReviewIn(BaseModel):
     patient_email: Optional[str] = ""
     google_review: bool = False
     google_url: Optional[str] = ""   # optional override of the default clinic URL
+    send_email: bool = False         # if True + patient_email set, email the link now
 
 
 @router.post("/api/admin/create-review")
@@ -217,10 +294,23 @@ def admin_create_review(
         "comment": "",
     }
     _rv_set(token, record)
+    link = f"{SERVICE_URL.rstrip('/')}/review/{token}"
+
+    email_sent = False
+    email_error = ""
+    if body.send_email:
+        email_sent, email_error = _send_review_email(
+            record["patient_email"], link, record["patient_name"]
+        )
+        if email_sent:
+            _rv_update(token, {"emailed_at": _now_iso()})
+
     return {
         "token": token,
-        "link": f"{SERVICE_URL.rstrip('/')}/review/{token}",
+        "link": link,
         "google_review": record["google_review"],
+        "email_sent": email_sent,
+        "email_error": email_error,
     }
 
 

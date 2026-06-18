@@ -82,6 +82,11 @@
         <label>Patient Email (optional)</label>
         <input id="cfEmail" type="email">
         <div class="check">
+          <input type="checkbox" id="cfSendEmail">
+          <label for="cfSendEmail">Email the link to this patient now</label>
+        </div>
+        <p class="hint">Requires a patient email above. If email isn't set up on the service, you'll still get a link to copy.</p>
+        <div class="check" style="margin-top:14px;">
           <input type="checkbox" id="cfGoogle">
           <label for="cfGoogle">Add Google review prompt</label>
         </div>
@@ -146,11 +151,19 @@ document.getElementById('createForm').addEventListener('submit', async e => {
   e.preventDefault();
   const btn = document.getElementById('cfSubmit');
   const resultEl = document.getElementById('cfResult');
+  const wantsEmail = document.getElementById('cfSendEmail').checked;
+  const emailVal = document.getElementById('cfEmail').value.trim();
+  if (wantsEmail && !emailVal){
+    resultEl.style.display='block';
+    resultEl.innerHTML = '<span style="color:#B91C1C;">Enter a patient email above to send the link.</span>';
+    return;
+  }
   const payload = {
     patient_name: document.getElementById('cfName').value.trim(),
-    patient_email: document.getElementById('cfEmail').value.trim(),
+    patient_email: emailVal,
     google_review: document.getElementById('cfGoogle').checked,
-    google_url: document.getElementById('cfGoogleUrl').value.trim()
+    google_url: document.getElementById('cfGoogleUrl').value.trim(),
+    send_email: wantsEmail
   };
   btn.disabled = true; btn.textContent = 'Creating…';
   try {
@@ -160,9 +173,16 @@ document.getElementById('createForm').addEventListener('submit', async e => {
     const data = await r.json();
     if (!r.ok) throw new Error(data.detail || 'error');
     const g = data.google_review ? ' <span class="badge g">+ Google</span>' : '';
+    let emailLine = '';
+    if (wantsEmail){
+      emailLine = data.email_sent
+        ? '<div style="margin-top:6px;color:#166534;">✓ Emailed to ' + escapeHtml(emailVal) + '</div>'
+        : '<div style="margin-top:6px;color:#B45309;">Not emailed: ' + escapeHtml(data.email_error || 'unknown') + ' — copy the link below instead.</div>';
+    }
     resultEl.style.display='block';
     resultEl.innerHTML =
       '<div><strong>Link created' + (payload.patient_name ? (' for ' + escapeHtml(payload.patient_name)) : '') + '</strong>' + g + '</div>' +
+      emailLine +
       '<div class="link" style="margin-top:6px;">' + escapeHtml(data.link) + '</div>' +
       '<div class="actions"><button type="button" class="small" id="copyBtn">Copy Link</button></div>';
     document.getElementById('copyBtn').addEventListener('click', () => {

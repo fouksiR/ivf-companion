@@ -43,10 +43,11 @@ SERVICE_URL = "http://localhost:8080"
 ADMIN_API_KEY = ""
 GOOGLE_REVIEW_URL = ""  # default clinic Google review link (per-link override allowed)
 
-# Email (SendGrid) — read from env in init_config(). Email is OPTIONAL: if these
+# Email (Resend) — read from env in init_config(). Email is OPTIONAL: if these
 # aren't set, link creation still works and the dashboard reports "not sent".
-SENDGRID_API_KEY = ""
-EMAIL_FROM = ""               # must be a SendGrid-verified sender address
+# Reuses the SAME provider/credentials as the fouks-intake service.
+RESEND_API_KEY = ""
+EMAIL_FROM = ""               # must be a Resend-verified sender address
 EMAIL_FROM_NAME = "Dr Yuval Fouks"
 
 # ---------------------------------------------------------------------------
@@ -59,15 +60,17 @@ _rv_mem: Dict[str, Dict[str, Any]] = {}
 
 def init_config(service_url: str, admin_key: str, google_url: str = "") -> None:
     global SERVICE_URL, ADMIN_API_KEY, GOOGLE_REVIEW_URL, _rv_ref
-    global SENDGRID_API_KEY, EMAIL_FROM, EMAIL_FROM_NAME
+    global RESEND_API_KEY, EMAIL_FROM, EMAIL_FROM_NAME
     SERVICE_URL = service_url or SERVICE_URL
     ADMIN_API_KEY = admin_key or ""
     GOOGLE_REVIEW_URL = google_url or ""
-    # Email config pulled straight from env (keeps app.py wiring unchanged).
-    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
-    EMAIL_FROM = os.getenv("EMAIL_FROM", "") or os.getenv("DOCTOR_EMAIL", "")
+    # Email config pulled straight from env (same var names as fouks-intake).
+    RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+    EMAIL_FROM = (os.getenv("EMAIL_FROM_ADDRESS", "")
+                  or os.getenv("EMAIL_FROM", "")
+                  or os.getenv("DOCTOR_EMAIL", ""))
     EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "Dr Yuval Fouks")
-    print(f"[postvisit] email send {'ENABLED' if (SENDGRID_API_KEY and EMAIL_FROM) else 'disabled'}"
+    print(f"[postvisit] email send {'ENABLED' if (RESEND_API_KEY and EMAIL_FROM) else 'disabled'}"
           f" (from={EMAIL_FROM or '—'})")
     try:
         # firebase_admin is already initialised by app.py at import time.
@@ -160,24 +163,22 @@ def _email_html(greeting: str, link: str) -> str:
 
 
 def _send_review_email(to_email: str, link: str, patient_name: str = ""):
-    """Send the review link to a patient via SendGrid. Returns (ok: bool, error: str).
+    """Send the review link to a patient via Resend. Returns (ok: bool, error: str).
 
-    Never raises — email is best-effort and must not block link creation.
+    Uses the same Resend account/sender as the fouks-intake service. Never raises —
+    email is best-effort and must not block link creation.
     """
     to_email = (to_email or "").strip()
     if not to_email:
         return False, "no recipient email"
-    if not SENDGRID_API_KEY:
-        return False, "email not configured (SENDGRID_API_KEY unset)"
+    if not RESEND_API_KEY:
+        return False, "email not configured (RESEND_API_KEY unset)"
     if not EMAIL_FROM or "@" not in EMAIL_FROM:
-        return False, "sender not configured (set EMAIL_FROM to a verified address)"
-    try:
-        from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import Mail, Email, To, Content
-    except Exception as e:
-        return False, f"sendgrid not installed: {e}"
+        return False, "sender not configured (set EMAIL_FROM_ADDRESS to a verified address)"
 
-    greeting = f"Hi {patient_name.strip()}," if patient_name and patient_name.strip() else "Hi,"
+    name = (patient_name or "").strip()
+    greeting = f"Hi {name}," if name else "Hi,"
+    from_field = f"{EMAIL_FROM_NAME} <{EMAIL_FROM}>" if EMAIL_FROM_NAME else EMAIL_FROM
     text_body = (
         f"{greeting}\n\n"
         "Thank you for coming in. We'd really value hearing how your experience was "
@@ -185,19 +186,40 @@ def _send_review_email(to_email: str, link: str, patient_name: str = ""):
         f"{link}\n\n"
         "With thanks,\nDr Yuval Fouks"
     )
+    payload = {
+        "from": from_field,
+        "to": [to_email],
+        "subject": "How was your visit?",
+        "html": _email_html(greeting, link),
+        "text": text_body,
+    }
+
+    import json as _json
+    import urllib.request
+    import urllib.error
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=_json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "previsit-agent/1.0 (+https://previsit-agent.run.app)",
+        },
+        method="POST",
+    )
     try:
-        msg = Mail(
-            from_email=Email(EMAIL_FROM, EMAIL_FROM_NAME),
-            to_emails=To(to_email),
-            subject="How was your visit?",
-        )
-        # text/plain must be added before text/html
-        msg.add_content(Content("text/plain", text_body))
-        msg.add_content(Content("text/html", _email_html(greeting, link)))
-        resp = SendGridAPIClient(SENDGRID_API_KEY).send(msg)
-        if 200 <= resp.status_code < 300:
-            return True, ""
-        return False, f"SendGrid returned {resp.status_code}"
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            code = resp.getcode()
+            if 200 <= code < 300:
+                return True, ""
+            return False, f"Resend returned {code}"
+    except urllib.error.HTTPError as e:
+        try:
+            detail = e.read().decode("utf-8", "ignore")[:200]
+        except Exception:
+            detail = ""
+        return False, f"Resend {e.code}: {detail}".strip()
     except Exception as e:
         return False, str(e)
 
@@ -344,3 +366,12 @@ def reviews_dashboard():
     return HTMLResponse(pathlib.Path("static/reviews.html").read_text())
 
 
+
+
+@router.get("/send", response_class=HTMLResponse)
+def send_page():
+    import os
+    from fastapi.responses import HTMLResponse
+    path = os.path.join(os.path.dirname(__file__), "static", "send.html")
+    with open(path, encoding="utf-8") as f:
+        return HTMLResponse(f.read())

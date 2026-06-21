@@ -4,8 +4,14 @@
     {
       "name": "main-app",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8082", "--directory", "/Users/fouksi/Documents/ivf-companion"],
+      "runtimeArgs": ["-c", "import os,sys; os.chdir('/Users/fouksi/Documents/ivf-companion'); from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer; ThreadingHTTPServer(('127.0.0.1',8082), SimpleHTTPRequestHandler).serve_forever()"],
       "port": 8082
+    },
+    {
+      "name": "fertool-frontend",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-c", "import os; os.chdir('/Users/fouksi/fertool-workspace/Fertool'); from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer; ThreadingHTTPServer(('127.0.0.1',8083), SimpleHTTPRequestHandler).serve_forever()"],
+      "port": 8083
     }
   ]
 }

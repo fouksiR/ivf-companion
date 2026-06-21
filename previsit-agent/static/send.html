@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Post-visit feedback sender — Dr Yuval Fouks</title>
+  <style>
+    :root{--bg:#faf6ef;--surface:#fff;--ink:#2e3a31;--muted:#6f7a72;--line:#e3ddd0;
+      --sage:#6c8b6e;--sage-ink:#3f5a41;--bg-soft:#f3eee2;--ok:#3f5a41;}
+    *{box-sizing:border-box;}
+    body{margin:0;background:var(--bg);color:var(--ink);
+      font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;}
+    header{padding:18px 24px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:5;}
+    header h1{margin:0;font:500 22px/1.1 Georgia,serif;}
+    header .practice{font-size:11px;letter-spacing:.12em;color:var(--sage);text-transform:uppercase;margin-top:2px;}
+    main{max-width:700px;margin:28px auto;padding:0 20px 40px;}
+    .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px;margin-bottom:20px;}
+    .card h2{margin:0 0 4px;font:500 18px/1.2 Georgia,serif;}
+    .card .sub{color:var(--muted);font-size:13px;margin-bottom:14px;}
+    label.fld{display:block;font-size:12px;color:var(--muted);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.05em;}
+    input[type=text],input[type=email],input[type=url],select{
+      width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:6px;
+      background:var(--bg-soft);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;}
+    input:focus,select:focus{outline:2px solid var(--sage);outline-offset:1px;}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    @media(max-width:520px){.row2{grid-template-columns:1fr;gap:0;}}
+    .check-row{display:flex;align-items:flex-start;gap:10px;margin-top:16px;cursor:pointer;user-select:none;}
+    .check-row input[type=checkbox]{margin-top:3px;width:16px;height:16px;flex-shrink:0;accent-color:var(--sage);}
+    .check-main{font-size:14px;color:var(--ink);}
+    .check-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+    .sub-field{margin-top:10px;padding-left:26px;display:none;}
+    .actions{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    button{padding:11px 22px;border-radius:6px;font-size:14px;cursor:pointer;font-weight:500;
+      border:1px solid var(--sage);background:var(--sage);color:white;}
+    button:hover{filter:brightness(1.08);}
+    button.secondary{background:var(--surface);color:var(--sage-ink);}
+    button.link{background:none;border:none;color:var(--sage-ink);text-decoration:underline;padding:0;font-size:13px;}
+    button:disabled{opacity:.5;cursor:not-allowed;}
+    .status{margin-top:14px;padding:12px 14px;border-radius:6px;font-size:13px;display:none;}
+    .status.show{display:block;}
+    .status.ok{background:#eaf2eb;color:var(--ok);border:1px solid #c7dac9;}
+    .status.err{background:#fdecec;color:#8a3a3a;border:1px solid #e8c4c4;}
+    .status.warn{background:#fff8e6;color:#7a5a00;border:1px solid #f0e2b6;}
+    .link-created{margin-top:14px;padding:10px 14px;background:#eaf2eb;border:1px solid #c7dac9;
+      border-radius:6px;font-size:13px;display:none;}
+    .link-created strong{color:var(--ok);}
+    .link-mono{font:13px ui-monospace,Menlo,monospace;word-break:break-all;color:var(--sage-ink);margin-top:3px;}
+    .open-fallback{display:none;margin-top:16px;padding:14px 16px;border:1px solid var(--line);border-radius:8px;background:var(--bg-soft);}
+    .open-fallback .lbl{font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;}
+    .open-options{display:flex;gap:8px;flex-wrap:wrap;}
+    .preview-wrap{margin-top:14px;display:none;}
+    .preview-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+    .preview-box{background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;
+      padding:12px;font:13px/1.5 ui-monospace,Menlo,monospace;white-space:pre-wrap;max-height:220px;overflow-y:auto;}
+    .admin-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;
+      background:var(--bg-soft);border:1px solid var(--line);border-radius:7px;
+      color:var(--sage-ink);font-size:14px;font-weight:500;text-decoration:none;cursor:pointer;}
+    .admin-btn:hover{border-color:var(--sage);}
+    .manual-wrap{margin-top:12px;display:none;}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Post-visit feedback sender</h1>
+  <div class="practice">Reproductive Endocrinology &amp; Infertility &mdash; Dr Yuval Fouks</div>
+</header>
+<main>
+
+  <div id="file-warn" class="status warn show" style="display:none;">
+    This page is open as a local file, so it can&rsquo;t reach the server. Open it at
+    <strong><span id="hosted-url"></span></strong> instead.
+  </div>
+
+  <!-- Patient + send -->
+  <div class="card">
+    <h2>Send a feedback request</h2>
+    <div class="sub">Fill in the patient, then click once. A unique tracked link is created and the email is drafted for Outlook.</div>
+
+    <div class="row2">
+      <div>
+        <label class="fld" for="first_name">Patient first name</label>
+        <input id="first_name" type="text" placeholder="e.g. Sarah" autocomplete="off">
+      </div>
+      <div>
+        <label class="fld" for="email">Patient email</label>
+        <input id="email" type="email" placeholder="patient@example.com" autocomplete="off">
+      </div>
+    </div>
+
+    <label class="fld" for="sender">Send from</label>
+    <select id="sender">
+      <option value="reception">drfouks.reception@mivf.com.au</option>
+      <option value="direct">yuval.fouks@mivf.com.au</option>
+    </select>
+
+    <label class="check-row" for="chk-google">
+      <input type="checkbox" id="chk-google" checked>
+      <div>
+        <div class="check-main">Add Google review prompt</div>
+        <div class="check-sub">After they submit feedback, the patient sees a &ldquo;Leave a Google review&rdquo; button</div>
+      </div>
+    </label>
+    <div class="sub-field" id="google-url-wrap" style="display:block;">
+      <label class="fld" for="google_url">Google review URL</label>
+      <input id="google_url" type="url" value="https://share.google/JD1M98QDkKPVVLt8b">
+    </div>
+
+    <div class="actions">
+      <button id="btn-go">Generate link &amp; prepare email</button>
+      <button id="btn-reset" class="secondary">Reset</button>
+      <button id="btn-manual" class="link" type="button">Paste a link manually</button>
+    </div>
+
+    <div class="manual-wrap" id="manual-wrap">
+      <label class="fld" for="review_url">Existing feedback link</label>
+      <input id="review_url" type="url" placeholder="https://previsit-agent-...run.app/review/xxxxxxxx">
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="link-created" id="link-created">
+      <strong>&#10003; Link created</strong>
+      <div class="link-mono" id="link-display"></div>
+    </div>
+
+    <div class="open-fallback" id="open-fallback">
+      <div class="lbl">Open in Outlook</div>
+      <div class="open-options">
+        <button id="btn-web">&#127760; Outlook Web</button>
+        <button class="secondary" id="btn-desktop">&#128236; Outlook Desktop</button>
+        <button class="secondary" id="btn-copy">Copy email body</button>
+      </div>
+    </div>
+
+    <div class="preview-wrap" id="preview-wrap">
+      <div class="preview-label">Email body</div>
+      <div class="preview-box" id="preview-box"></div>
+    </div>
+  </div>
+
+  <!-- Responses -->
+  <div class="card">
+    <h2>View responses</h2>
+    <div class="sub">Ratings, comments and stats per patient.</div>
+    <a class="admin-btn" href="/reviews" target="_blank">&#11088; Open responses dashboard</a>
+  </div>
+
+</main>
+<script>
+  const ADMIN_KEY = 'previsit-admin-2026';
+  const SENDERS = {
+    reception:{address:'drfouks.reception@mivf.com.au',
+      signature:'Kind regards,\nReception\nDr Yuval Fouks \u2014 Reproductive Endocrinology & Infertility\nMelbourne IVF \u2014 Private\nSuite 4, Level 5, 36 Wellington Street, Collingwood VIC 3066\nT: (03) 7046 5670'},
+    direct:{address:'yuval.fouks@mivf.com.au',
+      signature:'Kind regards,\nDr Yuval Fouks\nReproductive Endocrinology & Infertility\nMelbourne IVF \u2014 Private\nSuite 4, Level 5, 36 Wellington Street, Collingwood VIC 3066\nT: (03) 7046 5670'}
+  };
+
+  const $=id=>document.getElementById(id);
+  const isFile = location.protocol === 'file:';
+  let currentLink = null, lastEmail = null;
+
+  if(isFile){
+    $('file-warn').style.display='block';
+    $('hosted-url').textContent = location.origin.startsWith('file') ? '<your-service>/send' : location.origin+'/send';
+  }
+
+  $('chk-google').addEventListener('change',()=>{
+    $('google-url-wrap').style.display = $('chk-google').checked ? 'block' : 'none';
+  });
+
+  $('btn-manual').addEventListener('click',()=>{
+    const w=$('manual-wrap'); w.style.display = w.style.display==='block' ? 'none' : 'block';
+  });
+  $('review_url').addEventListener('input',()=>{
+    currentLink = $('review_url').value.trim() || null;
+    if(currentLink){ showLink(currentLink); buildAndPreview(); }
+  });
+
+  function showStatus(html,type){const el=$('status');el.className='status show '+type;el.innerHTML=html;}
+  function clearStatus(){$('status').className='status';}
+  function showLink(url){$('link-display').textContent=url;$('link-created').style.display='block';}
+
+  function rfc3986(s){return encodeURIComponent(s).replace(/['()*!]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());}
+  function mailto(to,s,b){return 'mailto:'+rfc3986(to)+'?subject='+rfc3986(s)+'&body='+rfc3986(b);}
+  function outlookWeb(to,s,b){return 'https://outlook.office.com/mail/deeplink/compose?to='+encodeURIComponent(to)+'&subject='+encodeURIComponent(s)+'&body='+encodeURIComponent(b);}
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  function buildEmail(){
+    const firstName=$('first_name').value.trim();
+    const sender=SENDERS[$('sender').value];
+    const greeting=firstName?'Hi '+firstName+',':'Hi there,';
+    const subject='How was your visit? \u2014 Dr Yuval Fouks';
+    const body=greeting+'\n\n'
+      +'Thank you for coming in. We would really value hearing how your experience was \u2014 it takes about 20 seconds, and it helps us look after you better.\n\n'
+      +'Share your feedback here:\n'+currentLink+'\n\n'
+      +'If the link does not open, copy and paste it into your browser.\n\n'
+      +sender.signature;
+    return {to:$('email').value.trim(),subject,body,from:sender.address};
+  }
+
+  function buildAndPreview(){
+    if(!currentLink) return;
+    if(!$('email').value.trim()){showStatus('Add the patient&rsquo;s email above, then this email is ready to open.','warn');}
+    lastEmail=buildEmail();
+    $('preview-box').textContent=lastEmail.body;
+    $('preview-wrap').style.display='block';
+    $('open-fallback').style.display='block';
+    if($('email').value.trim()){
+      showStatus('<strong>Ready.</strong> Check <strong>From: '+esc(lastEmail.from)+'</strong>, then open Outlook below and hit Send.','ok');
+    }
+  }
+
+  async function go(){
+    const email=$('email').value.trim();
+    if(!email){showStatus('Please enter the patient&rsquo;s email address.','err');return;}
+    if(isFile){showStatus('Open this page from the server (…/send), not as a local file.','err');return;}
+
+    const btn=$('btn-go'); btn.disabled=true; btn.textContent='Creating\u2026';
+    showStatus('Creating unique link\u2026','warn');
+
+    const addGoogle=$('chk-google').checked;
+    const body={
+      patient_name:$('first_name').value.trim()||null,
+      patient_email:email,
+      send_email:false,
+      google_review:addGoogle,
+      google_url:addGoogle ? ($('google_url').value.trim()||null) : null
+    };
+
+    try{
+      const res=await fetch('/api/admin/create-review',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-Admin-Key':ADMIN_KEY},
+        body:JSON.stringify(body)
+      });
+      if(!res.ok){
+        const t=await res.text().catch(()=>'');
+        showStatus('Server returned '+res.status+'. '+esc(t.slice(0,200))+'<br>Use <a href="/reviews" target="_blank" style="color:var(--sage-ink)">the dashboard</a> to create a link, or paste one manually.','err');
+        return;
+      }
+      const d=await res.json();
+      if(!d.link){showStatus('No link came back from the server. Paste one manually.','err');return;}
+      currentLink=d.link;
+      clearStatus();
+      showLink(currentLink);
+      buildAndPreview();
+    }catch(e){
+      showStatus('Could not reach the server: '+esc(e.message)+'<br>Paste a link manually instead.','err');
+      $('manual-wrap').style.display='block';
+    }finally{
+      btn.disabled=false; btn.textContent='Generate link & prepare email';
+    }
+  }
+
+  function reset(){
+    ['first_name','email','review_url'].forEach(id=>{$(id).value='';});
+    $('sender').value='reception';
+    $('chk-google').checked=true; $('google-url-wrap').style.display='block';
+    clearStatus();
+    $('link-created').style.display='none';
+    $('open-fallback').style.display='none';
+    $('preview-wrap').style.display='none';
+    $('manual-wrap').style.display='none';
+    currentLink=null; lastEmail=null;
+  }
+
+  $('btn-go').addEventListener('click',go);
+  $('btn-reset').addEventListener('click',reset);
+  $('email').addEventListener('input',()=>{ if(currentLink) buildAndPreview(); });
+  $('sender').addEventListener('change',()=>{ if(currentLink) buildAndPreview(); });
+  $('btn-web').addEventListener('click',()=>{if(lastEmail)window.open(outlookWeb(lastEmail.to,lastEmail.subject,lastEmail.body),'_blank');});
+  $('btn-desktop').addEventListener('click',()=>{if(lastEmail)window.location.href=mailto(lastEmail.to,lastEmail.subject,lastEmail.body);});
+  $('btn-copy').addEventListener('click',async()=>{
+    if(!lastEmail)return; const btn=$('btn-copy');
+    try{await navigator.clipboard.writeText(lastEmail.body);btn.textContent='Copied \u2713';}
+    catch(e){btn.textContent='Use preview below';}
+    setTimeout(()=>{btn.textContent='Copy email body';},2000);
+  });
+</script>
+</body>
+</html>
